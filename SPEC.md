@@ -583,3 +583,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **compression ± 전환 = 유닛 좌우 미러** — 부호가 바뀌면 압축 방향과 함께 thread 기울기(threadDir)도 반전 (flip 버튼과 동일 의미). 0 스냅 통과 시 1회 반전.
 2. **파비콘 교체** — 재업로드본(`src/assets/favicon.svg`, 25.6 정사각·다크 배경+화이트 마크) 그대로 `public/favicon.svg`에 적용.
 3. **Alt 중심 대칭 스케일 + 스마트 스냅** — 이동 엣지 스냅 시 `W = 2·|snap − 중심|`로 반대편도 동기. 단일/통합 모두 적용.
+
+## 44. 리팩토링 5단계(임시 라운드) — 패널 컨트롤 믹스인 (2026-08-21)
+
+- **방식**: SCSS 믹스인 (`src/styles/mixins.scss`). 패널 컨트롤은 마크업이 제각각(칩·seg·ghost·입력칸)이라 컴포넌트 추출 대신 "룩 레시피" 공유. `vite.config` `additionalData`로 모든 SFC scss에 자동 주입.
+- **믹스인**: `bordered-control`(기본 룩·호버 EO NEON) · `active-filled`(칩: EO NEON 채움+SPACE BLACK 텍스트) · `active-outline`(보더 있는 요소) · `active-outline-inset`(seg 버튼) · `text-field`(입력칸).
+- **활성 문법 2종 유지 확정** — 칩=채움(값 선택), seg/ghost=보더(모드 전환).
+- 적용: ChipRow · Toggle · NumberField · ControlPanel(ghost/chipPlus/ratioInput/nameInput). 시각 변화 0 확인.
+- 사용자 검토 후 확정/롤백 결정 (임시 라운드).

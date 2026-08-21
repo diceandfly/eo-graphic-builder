@@ -27,13 +27,10 @@ defineEmits(['update:modelValue']);
 .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
 input {
-  width: 58px; border: 1px solid var(--line); background: none; color: var(--text);
-  font: inherit; font-size: var(--fs-sm); padding: 3px 8px; text-align: right;
+  @include text-field;
+  width: 58px; padding: 3px 8px; text-align: right;
   -moz-appearance: textfield; appearance: textfield;
-  border-radius: var(--radius);
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
-input::placeholder { color: var(--faint); }
 </style>

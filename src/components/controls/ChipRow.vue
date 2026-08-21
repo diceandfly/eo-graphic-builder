@@ -26,10 +26,8 @@ const isActive = (v) => Math.abs(props.modelValue - v) < props.tol;
 <style scoped lang="scss">
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .chip {
-  border: 1px solid var(--line); background: none; color: var(--faint);
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 5px 9px; min-width: 34px;
-  font-family: inherit; cursor: pointer;
-  border-radius: var(--radius);
+  @include bordered-control;
+  padding: 5px 9px; min-width: 34px;
+  &.on { @include active-filled; }
 }
-.chip.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 </style>

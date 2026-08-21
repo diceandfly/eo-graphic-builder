@@ -30,10 +30,7 @@ defineEmits(['update:modelValue']);
   border: none; background: none; padding: 3px 9px;
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--faint);
   font-family: inherit; cursor: pointer;
-}
-.seg button:not(:last-child) { border-right: 1px solid var(--line); }
-.seg button.on {
-  background: none; color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  &:not(:last-child) { border-right: 1px solid var(--line); }
+  &.on { @include active-outline-inset; }
 }
 </style>

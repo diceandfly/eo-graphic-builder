@@ -271,23 +271,19 @@ function cancelRename() {
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
 .chipPlus {
-  border: 1px solid var(--line); background: none; color: var(--faint);
-  font-family: inherit; font-size: var(--fs-sm); padding: 4px 9px; cursor: pointer;
-  border-radius: var(--radius);
+  @include bordered-control;
+  font-size: var(--fs-sm); padding: 4px 9px;
 }
-.chipPlus:hover { color: var(--accent); border-color: var(--accent); }
 .ratioInput {
-  width: 56px; border: 1px solid var(--accent); background: none; color: var(--text);
-  font: inherit; font-size: var(--fs-xs); padding: 4px 6px;
-  border-radius: var(--radius);
+  @include text-field;
+  width: 56px; border-color: var(--accent); font-size: var(--fs-xs); padding: 4px 6px;
 }
 .unitName { font-size: var(--fs-sm); color: var(--text); }
 .unitName { cursor: text; }
 .unitName:hover { color: var(--accent); }
 .nameInput {
-  border: 1px solid var(--accent); background: none; color: var(--text);
-  font: inherit; font-size: var(--fs-sm); padding: 2px 6px; flex: 1;
-  border-radius: var(--radius);
+  @include text-field;
+  border-color: var(--accent); padding: 2px 6px; flex: 1;
 }
 .unitRow .ghost { margin-top: 0;   border-radius: var(--radius);
 }
