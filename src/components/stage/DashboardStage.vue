@@ -181,7 +181,8 @@ function onUnitDown(u, e) {
     mode.value = 'select';
     return;
   }
-  const members = u.groupId ? props.actions.groupMemberIds(u.groupId) : [u.id];
+  const og = props.actions.outermost(u); // 최외곽 그룹 기준 선택
+  const members = og ? props.actions.groupMemberIds(og) : [u.id];
   if (e.shiftKey) {
     // Shift+클릭 = 그룹 블록 단위 멀티선택 토글 (드래그 없음)
     const anySel = members.some((id) => props.doc.selectedIds.includes(id));
@@ -197,7 +198,7 @@ function onUnitDown(u, e) {
   let targets;
   if (e.altKey) {
     targets = [props.actions.duplicateFrom(u)];
-  } else if (e.detail === 2 && u.groupId) {
+  } else if (e.detail === 2 && og) {
     // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
     props.actions.selectOnly(u.id);
     targets = [u];
@@ -530,15 +531,17 @@ onBeforeUnmount(() => {
     <Toolbar
       v-model:mode="mode"
       :fill="activeUnit?.params.fill"
-      :guides="showGuides"
-      @link="actions.toggleLinkSelected()"
-      @toggle-guides="showGuides = !showGuides"
       @fill="(c) => actions.setFill(c)"
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"
     />
-    <ZoomBadge :scale="vp.scale" @reset="resetZoom" />
+    <ZoomBadge
+      :scale="vp.scale"
+      :guides="showGuides"
+      @reset="resetZoom"
+      @toggle-guides="showGuides = !showGuides"
+    />
   </div>
 </template>
 

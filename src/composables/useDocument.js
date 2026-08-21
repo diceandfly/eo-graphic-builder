@@ -24,7 +24,7 @@ export function createParams(overrides = {}) {
     b: 0,
     threads: 'both',   // 'both' | 'one'
     threadDir: 'LtoR', // 'LtoR' | 'RtoL'
-    fill: '#FAF04B',
+    fill: '#F9EE48',
     showGuides: true,
     ...overrides,
   };

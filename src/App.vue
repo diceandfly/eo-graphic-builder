@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useDocument } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { deriveUnit } from './geometry/derive.js';
@@ -12,6 +12,7 @@ const viewport = useViewport();
 const { doc, active, gutterMax } = docApi;
 
 const stageRef = ref(null);
+const selectedUnits = computed(() => doc.units.filter((u) => doc.selectedIds.includes(u.id)));
 
 function exportSvg() {
   const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
@@ -69,12 +70,14 @@ const stageActions = { ...docApi, exportSvg, saveProject, openProject };
       <ControlPanel
         :unit="active"
         :gutter-max="gutterMax"
+        :selected="selectedUnits"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
         @set-b="docApi.setB"
         @rename="docApi.renameActive"
         @create="createUnit"
+        @link="docApi.toggleLinkSelected"
       />
     </aside>
     <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" />

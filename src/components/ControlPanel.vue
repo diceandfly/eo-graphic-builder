@@ -14,10 +14,23 @@ import {
 } from '../geometry/constants.js';
 
 const props = defineProps({
-  unit: Object,      // 활성 유닛 { id, name, params }
+  unit: Object,          // 활성 유닛 { id, name, params }
   gutterMax: Number,
+  selected: { type: Array, default: () => [] }, // 선택된 유닛들
 });
-const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'create']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'create', 'link']);
+
+// 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
+const mixed = (...keys) =>
+  props.selected.length > 1 &&
+  props.selected.some((u) => keys.some((k) => u.params[k] !== props.unit.params[k]));
+
+// 선택 전체가 이미 하나의 링크인지
+const linked = computed(() => {
+  if (props.selected.length < 2) return false;
+  const lids = [...new Set(props.selected.map((u) => u.linkId))];
+  return lids.length === 1 && lids[0] != null;
+});
 
 // 동적 삽입 input 포커스 (autofocus는 초기 로드에만 동작)
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
@@ -134,7 +147,11 @@ function cancelRename() {
 
     <section>
       <h2>Grid</h2>
-      <Slider label="cols" v-model="p.cols" :min="COLS_MIN" :max="COLS_MAX" :step="1" />
+      <Slider
+        label="cols" v-model="p.cols"
+        :min="COLS_MIN" :max="COLS_MAX" :step="1"
+        :display="mixed('cols') ? '—' : String(p.cols)"
+      />
       <Toggle
         label="gutter mode" v-model="p.gutterMode"
         :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
@@ -143,19 +160,19 @@ function cancelRename() {
         v-if="p.gutterMode === 'fixed'"
         label="gutter (px)" v-model="p.gutterPx"
         :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1"
-        :display="`${p.gutterPx}px`"
+        :display="mixed('gutterPx') ? '—' : `${p.gutterPx}px`"
       />
       <Slider
         v-else
         label="gutter (ratio)" v-model="p.g"
         :min="G_MIN" :max="G_MAX" :step="G_STEP"
-        :display="p.g.toFixed(3)"
+        :display="mixed('g') ? '—' : p.g.toFixed(3)"
       />
       <Slider
         label="compression rate" :model-value="compVal"
         :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
         :snap-to="0" :snap-radius="COMP_SNAP"
-        :display="compDisplay"
+        :display="mixed('rate', 'direction') ? '—' : compDisplay"
         @update:model-value="setComp"
       />
       <ChipRow v-model="p.rate" />
@@ -166,26 +183,19 @@ function cancelRename() {
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1"
-        :display="`${p.dPct}% × UNIT HEIGHT`"
+        :display="mixed('dPct') ? '—' : `${p.dPct}% × UNIT HEIGHT`"
       />
       <Slider
         label="thread top width" :model-value="aPct"
         :min="A_MIN * 100" :max="A_MAX * 100" :step="1"
-        :display="`${aPct}%`"
+        :display="mixed('a') ? '—' : `${aPct}%`"
         @update:model-value="(v) => emit('setA', v / 100)"
       />
       <Slider
         label="thread bottom width" :model-value="bottomPct"
         :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1"
-        :display="`${bottomPct}%`"
+        :display="mixed('b') ? '—' : `${bottomPct}%`"
         @update:model-value="(v) => emit('setB', 1 - v / 100)"
-      />
-      <Toggle
-        label="thread direction" v-model="p.threadDir"
-        :options="[
-          { value: 'LtoR', label: 'R→L' },
-          { value: 'RtoL', label: 'L→R' },
-        ]"
       />
       <Toggle
         label="thread sides" v-model="p.threads"
@@ -196,6 +206,12 @@ function cancelRename() {
       />
     </section>
 
+    <section v-if="selected.length >= 2">
+      <h2>Link</h2>
+      <button class="ghost" :class="{ linked }" @click="emit('link')">
+        {{ linked ? 'unlink parameters' : 'link parameters' }}
+      </button>
+    </section>
     </template>
   </div>
 </template>
@@ -244,6 +260,7 @@ section h2 {
   cursor: pointer;
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
+.ghost.linked { border-color: var(--accent); color: var(--accent); }
 .check {
   display: flex; align-items: center; gap: 8px;
   font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;

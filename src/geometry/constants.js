@@ -30,4 +30,4 @@ export const STAGE_GRID = 100;   // 대시보드 배경 라인 그리드 간격 
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
 // 브랜드 스와치 — 추후 자유롭게 추가/삭제 (툴바에 그대로 반영됨)
-export const BRAND_COLORS = ['#FAF04B', '#ECECEC', '#FF5C00', '#FF5CA8'];
+export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#EFEAE1', '#8E8E8E'];
