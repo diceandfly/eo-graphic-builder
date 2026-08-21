@@ -1,10 +1,11 @@
 <script setup>
-// 멀티선택/그룹 선택용 통합 바운딩박스 + 리사이즈 핸들
+import OverlayActions from './OverlayActions.vue';
+// 멀티선택/그룹 선택용 통합 바운딩박스 + 리사이즈 핸들 + 액션 버튼(전체 선택 대상에 적용)
 const props = defineProps({
   bounds: Object, // { x, y, w, h } 월드 좌표
   scale: Number,
 });
-const emit = defineEmits(['resizeStart']);
+const emit = defineEmits(['resizeStart', 'action']);
 const px = (n) => n / props.scale;
 
 const HANDLES = [
@@ -21,6 +22,7 @@ const CURSORS = {
 <template>
   <g :transform="`translate(${bounds.x} ${bounds.y})`">
     <rect class="box" :width="bounds.w" :height="bounds.h" />
+    <OverlayActions :scale="scale" :transform="`translate(${bounds.w + px(12)} 0)`" @action="(k) => emit('action', k)" />
     <rect
       v-for="h in HANDLES" :key="h.dir"
       class="handle"

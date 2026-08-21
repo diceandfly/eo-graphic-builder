@@ -179,11 +179,11 @@ function onKeyDown(e) {
     props.actions.deleteSelected();
     return;
   }
-  // 방향키: 선택 유닛 1px 이동, Shift = 10px
+  // 방향키: 선택 유닛 5px 이동, Shift = 50px
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (ARROWS[e.key] && props.doc.selectedIds.length) {
     e.preventDefault();
-    const step = e.shiftKey ? 10 : 1;
+    const step = e.shiftKey ? 50 : 5;
     const [ax, ay] = ARROWS[e.key];
     props.actions.nudgeSelected(ax * step, ay * step);
     return;
@@ -265,6 +265,14 @@ function onUnitDown(u, e) {
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
+}
+
+// 통합 바운딩박스 액션 버튼 — 선택 전체 대상
+function onGroupAction(key) {
+  if (key === 'flip') props.actions.flipSelected('h');
+  else if (key === 'flipv') props.actions.flipSelected('v');
+  else if (key === 'dup') props.actions.duplicateSelectedOffset();
+  else if (key === 'del') props.actions.deleteSelected();
 }
 
 // 통합 바운딩박스 리사이즈 (멀티/그룹)
@@ -736,6 +744,7 @@ onBeforeUnmount(() => {
           :bounds="selBounds"
           :scale="vp.scale"
           @resize-start="onGroupResizeStart"
+          @action="onGroupAction"
         />
         <SelectionOverlay
           v-if="singleSelected && activeUnit"

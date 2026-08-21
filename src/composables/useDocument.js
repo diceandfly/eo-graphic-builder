@@ -472,6 +472,31 @@ export function useDocument() {
     const p = active.value.params;
     isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
   }
+  // 선택 전체 플립 (통합 바운딩박스 기준): 각 유닛을 화면축 미러 + 위치를 bbox 중심 대칭으로 재배치
+  function flipSelected(axis) {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (!sel.length) return;
+    const bb = bboxOf(sel);
+    for (const u of sel) {
+      const p = u.params;
+      if (axis === 'h') {
+        isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
+        u.x = bb.minX + bb.maxX - (u.x + p.W);
+      } else {
+        isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
+        u.y = bb.minY + bb.maxY - (u.y + p.H);
+      }
+    }
+  }
+  // 선택 전체 복제 — 통합 bbox 폭 + 80px 오른쪽에 배치 (단일 복제 버튼과 동일 규칙)
+  function duplicateSelectedOffset() {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (!sel.length) return;
+    const bb = bboxOf(sel);
+    const copies = duplicateUnits(sel);
+    for (const c of copies) c.x += bb.maxX - bb.minX + 80;
+    return copies;
+  }
   // 멀티/그룹 리사이즈 후 파생 제약 정리
   function normalizeSelected() {
     for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
@@ -544,7 +569,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit,
-    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, setFill,
+    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,
     undo, redo, copyActive, pasteAt, renameActive,
