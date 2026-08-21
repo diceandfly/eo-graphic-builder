@@ -17,10 +17,13 @@ const props = defineProps({
   unit: Object,      // 활성 유닛 { id, name, params }
   gutterMax: Number,
 });
-const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'export']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'export', 'create']);
 
-const p = computed(() => props.unit.params);
-const aspect = computed(() => p.value.W / p.value.H);
+// 동적 삽입 input 포커스 (autofocus는 초기 로드에만 동작)
+const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
+
+const p = computed(() => props.unit?.params);
+const aspect = computed(() => (p.value ? p.value.W / p.value.H : 1));
 
 // compression: 슬라이더 표기 -2.5x ~ +2.5x, 중앙 0(무압축) 스냅.
 // rate = 1 + |v|·(RATE_MAX-1)/COMP_SCALE, 부호 = 방향(+ = L→S)
@@ -75,33 +78,40 @@ function commitRename() {
   if (editingName.value) emit('rename', nameDraft.value);
   editingName.value = false;
 }
+function cancelRename() {
+  editingName.value = false;
+}
 </script>
 
 <template>
   <div class="panel">
     <header class="brand">
-      <!-- placeholder 로고 — 추후 교체 -->
-      <svg class="logo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <rect x="0" y="9.5" width="24" height="5" fill="#FAF04B" />
-        <polygon points="3,9.5 13,3 16,3 16,9.5" fill="#FAF04B" />
-        <polygon points="8,14.5 8,21 11,21 21,14.5" fill="#FAF04B" />
+      <svg class="logo" viewBox="0 0 57.87 27.92" height="18" aria-hidden="true">
+        <g fill="#FAF04B">
+          <path d="M27.66,12.58v-2.39h-6.65v-2.72l6.63-5.16V0H6.82c-.11,0-.22.04-.31.11L.02,5.25v2.2h6.63v2.73L0,15.34v2.39h6.65v2.72L.02,25.61v2.31h20.82c.11,0,.22-.04.31-.11l6.49-5.15v-2.2h-6.63v-2.73l6.65-5.16Z"/>
+          <path d="M57.87,7.81L49.63.2h-10.55l-8.25,7.61v12.37s0,0,0,0l8.25,7.61h10.55l8.25-7.61s0,0,0,0V7.81s0,0,0,0ZM54.44,15.7h-5.21l-3.21,2.9v5.81h-3.34v-5.81l-3.21-2.9h-5.21v-3.4h5.21l3.21-2.9V3.58h3.34v5.81l3.21,2.9h5.21v3.4Z"/>
+        </g>
       </svg>
       <span>GRAPHIC BUILDER</span>
     </header>
 
     <div class="unitRow">
-      <input
-        v-if="editingName"
-        class="nameInput"
-        v-model="nameDraft"
-        @keydown.enter="commitRename"
-        @keydown.esc="editingName = false"
-        @blur="commitRename"
-        autofocus
-      />
-      <span v-else class="unitName" title="click to rename" @click="startRename">{{ unit.name }}</span>
+      <template v-if="unit">
+        <input
+          v-if="editingName"
+          v-focus
+          class="nameInput"
+          v-model="nameDraft"
+          @keydown.enter="commitRename"
+          @keydown.esc="cancelRename"
+          @blur="cancelRename"
+        />
+        <span v-else class="unitName" title="click to rename" @click="startRename">{{ unit.name }}</span>
+      </template>
+      <button v-else class="ghost" @click="emit('create')">new unit</button>
     </div>
 
+    <template v-if="unit">
     <section>
       <h2>Unit Size</h2>
       <NumberField
@@ -141,7 +151,6 @@ function commitRename() {
         :min="G_MIN" :max="G_MAX" :step="G_STEP"
         :display="p.g.toFixed(3)"
       />
-      <ChipRow v-model="p.rate" />
       <Slider
         label="compression rate" :model-value="compVal"
         :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
@@ -149,6 +158,7 @@ function commitRename() {
         :display="compDisplay"
         @update:model-value="setComp"
       />
+      <ChipRow v-model="p.rate" />
       <label class="check">
         <input type="checkbox" v-model="p.showGuides" />
         <span>grid guides</span>
@@ -187,6 +197,7 @@ function commitRename() {
       <h2>Export</h2>
       <button class="ghost" @click="emit('export')">export svg</button>
     </section>
+    </template>
   </div>
 </template>
 
@@ -219,8 +230,9 @@ function commitRename() {
 .unitName:hover { color: var(--accent); }
 .nameInput {
   border: 1px solid var(--accent); background: none; color: var(--text);
-  font: inherit; font-size: 12px; padding: 2px 6px; width: 160px;
+  font: inherit; font-size: 12px; padding: 2px 6px; flex: 1;
 }
+.unitRow .ghost { margin-top: 0; }
 section h2 {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
   color: var(--accent); font-weight: 600;

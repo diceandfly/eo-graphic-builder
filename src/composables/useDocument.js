@@ -29,83 +29,72 @@ export function createParams(overrides = {}) {
   };
 }
 
-// 문서 모델: 스테이지 위 유닛 버전들 + 활성/선택 상태.
-// 뷰포트와 완전 분리 — Phase 2에서 슬롯 배치 모델로 교체 가능.
+// 문서 모델: 스테이지 위 유닛 버전들 + 멀티선택 상태.
+// - activeId: 패널이 편집하는 유닛 (선택 해제 후에도 유지, 유닛 0개면 null)
+// - selectedIds: 바운딩박스/이동/일괄 편집 대상
 export function useDocument() {
   let nextId = 2;
   let nextVersion = 2;
   const doc = reactive({
     units: [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }],
-    activeId: 1,     // 패널이 편집하는 유닛 (항상 존재)
-    selected: true,  // 바운딩박스 표시 여부
+    activeId: 1,
+    selectedIds: [1],
   });
 
-  const active = computed(() => doc.units.find((u) => u.id === doc.activeId));
+  const active = computed(() => doc.units.find((u) => u.id === doc.activeId) ?? null);
   const gutterMax = computed(() => {
+    if (!active.value) return GUTTER_MAX;
     const p = active.value.params;
     const odd = p.orientation === 90 || p.orientation === 270;
     return Math.min(GUTTER_MAX, (odd ? p.H : p.W) / p.cols);
   });
 
-  // W/H 변경 후 파생 제약 정리
-  function normalize(p) {
-    const odd = p.orientation === 90 || p.orientation === 270;
-    const max = Math.min(GUTTER_MAX, (odd ? p.H : p.W) / p.cols);
-    if (p.gutterPx > max) p.gutterPx = Math.floor(max * 100) / 100;
-  }
-
-  function select(id) {
+  // ---- 선택 ----
+  function selectOnly(id) {
     doc.activeId = id;
-    doc.selected = true;
+    doc.selectedIds = [id];
+  }
+  function toggleSelect(id) {
+    const i = doc.selectedIds.indexOf(id);
+    if (i === -1) {
+      doc.selectedIds.push(id);
+      doc.activeId = id;
+    } else {
+      doc.selectedIds.splice(i, 1);
+      if (doc.activeId === id && doc.selectedIds.length) {
+        doc.activeId = doc.selectedIds[doc.selectedIds.length - 1];
+      }
+    }
+  }
+  function setSelection(ids) {
+    doc.selectedIds = [...ids];
+    if (ids.length) doc.activeId = ids[ids.length - 1];
   }
   function deselect() {
-    doc.selected = false;
+    doc.selectedIds = [];
   }
 
-  function duplicateActive() {
-    const src = active.value;
-    const id = nextId++;
-    doc.units.push({
-      id,
-      name: `unit v${nextVersion++}`,
-      x: src.x + src.params.W + 80,
-      y: src.y,
-      params: { ...src.params },
-    });
-    select(id);
-  }
-
-  function setSize(patch) {
-    const p = active.value.params;
-    if (patch.W != null) p.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
-    if (patch.H != null) p.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
-    normalize(p);
-  }
-  function setAspect(v) {
-    setSize({ H: active.value.params.W / v });
-  }
-  // Δa/Δb 커플링: 합이 AB_SUM_MAX를 넘으면 반대쪽을 밀어냄
-  // → 경사변 수평 런 (1-a-b) = 10% 고정 유지, 사다리꼴 역전 구조적 방지
-  function setA(v) {
-    const p = active.value.params;
-    p.a = clamp(v, A_MIN, A_MAX);
-    if (p.a + p.b > AB_SUM_MAX) p.b = Math.max(B_MIN, +(AB_SUM_MAX - p.a).toFixed(4));
-  }
-  function setB(v) {
-    const p = active.value.params;
-    p.b = clamp(v, B_MIN, B_MAX);
-    if (p.a + p.b > AB_SUM_MAX) p.a = Math.max(A_MIN, +(AB_SUM_MAX - p.b).toFixed(4));
-  }
-  function flipActive() {
-    const p = active.value.params;
-    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
-  }
-  function deleteActive() {
-    if (doc.units.length <= 1) return; // 마지막 유닛은 유지 (패널이 항상 활성 유닛을 필요로 함)
-    const i = doc.units.findIndex((u) => u.id === doc.activeId);
-    doc.units.splice(i, 1);
-    select(doc.units[Math.max(0, i - 1)].id);
-  }
+  // ---- 멀티선택 파라미터 브로드캐스트 ----
+  // 패널은 활성 유닛의 params를 직접 편집한다. 변경된 키만 감지해
+  // 나머지 선택 유닛에 같은 값을 미러링한다.
+  let mirrorGuard = false;
+  watch(
+    () => (active.value ? [active.value.id, JSON.stringify(active.value.params)] : [null, null]),
+    ([id, now], [oldId, old]) => {
+      if (mirrorGuard || id == null || id !== oldId || now === old) return;
+      if (doc.selectedIds.length < 2 || !doc.selectedIds.includes(id)) return;
+      const prev = JSON.parse(old);
+      const cur = JSON.parse(now);
+      const patch = {};
+      for (const k in cur) if (cur[k] !== prev[k]) patch[k] = cur[k];
+      if (!Object.keys(patch).length) return;
+      mirrorGuard = true;
+      for (const u of doc.units) {
+        if (u.id !== id && doc.selectedIds.includes(u.id)) Object.assign(u.params, patch);
+      }
+      mirrorGuard = false;
+    }
+  );
 
   // ---- 히스토리 (undo/redo) — units 상태 스냅샷, 연속 조작은 350ms 디바운스로 병합 ----
   const stack = [JSON.stringify(doc.units)];
@@ -132,9 +121,9 @@ export function useDocument() {
   function applyState(snap) {
     const arr = JSON.parse(snap);
     doc.units.splice(0, doc.units.length, ...arr);
+    doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((u) => u.id === id));
     if (!doc.units.find((u) => u.id === doc.activeId)) {
-      doc.activeId = doc.units[doc.units.length - 1].id;
-      doc.selected = false;
+      doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
     }
   }
   function undo() {
@@ -153,43 +142,85 @@ export function useDocument() {
   // ---- 클립보드 (⌘C/⌘V) ----
   let clipboard = null;
   function copyActive() {
-    clipboard = { ...active.value.params };
+    if (active.value) clipboard = { ...active.value.params };
   }
-  // (x, y) = 월드 좌표 중심점 (마우스 커서). 클립보드 없으면 무시.
   function pasteAt(x, y) {
     if (!clipboard) return;
+    pushUnit({ ...clipboard }, Math.round(x - clipboard.W / 2), Math.round(y - clipboard.H / 2));
+  }
+
+  function pushUnit(params, x, y) {
     const id = nextId++;
-    doc.units.push({
-      id,
-      name: `unit v${nextVersion++}`,
-      x: Math.round(x - clipboard.W / 2),
-      y: Math.round(y - clipboard.H / 2),
-      params: { ...clipboard },
-    });
-    select(id);
+    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, params });
+    selectOnly(id);
+    return doc.units[doc.units.length - 1];
+  }
+  function createUnit(x = 0, y = 0) {
+    const params = createParams();
+    return pushUnit(params, Math.round(x - params.W / 2), Math.round(y - params.H / 2));
   }
 
   function renameActive(name) {
     const t = name.trim();
-    if (t) active.value.name = t;
+    if (t && active.value) active.value.name = t;
   }
 
-  // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 얕은 복사 = 전부 원시값이라 완전 독립)
+  function deleteSelected() {
+    if (!doc.selectedIds.length) return;
+    const keep = doc.units.filter((u) => !doc.selectedIds.includes(u.id));
+    doc.units.splice(0, doc.units.length, ...keep);
+    doc.selectedIds = [];
+    doc.activeId = keep.length ? keep[keep.length - 1].id : null;
+  }
+
+  function duplicateActive() {
+    const src = active.value;
+    if (!src) return;
+    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y);
+  }
+  // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    const id = nextId++;
-    const copy = {
-      id,
-      name: `unit v${nextVersion++}`,
-      x: u.x,
-      y: u.y,
-      params: { ...u.params },
-    };
-    doc.units.push(copy);
-    select(id);
-    return doc.units[doc.units.length - 1]; // reactive proxy 반환
+    return pushUnit({ ...u.params }, u.x, u.y);
+  }
+
+  // ---- 활성 유닛 파라미터 액션 ----
+  function normalize(p) {
+    const odd = p.orientation === 90 || p.orientation === 270;
+    const max = Math.min(GUTTER_MAX, (odd ? p.H : p.W) / p.cols);
+    if (p.gutterPx > max) p.gutterPx = Math.floor(max * 100) / 100;
+  }
+  function setSize(patch) {
+    if (!active.value) return;
+    const p = active.value.params;
+    if (patch.W != null) p.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
+    if (patch.H != null) p.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
+    normalize(p);
+  }
+  function setAspect(v) {
+    if (active.value) setSize({ H: active.value.params.W / v });
+  }
+  // Δa/Δb 커플링: 합이 AB_SUM_MAX를 넘으면 반대쪽을 밀어냄
+  // → 경사변 수평 런 (1-a-b) = 10% 고정 유지, 사다리꼴 역전 구조적 방지
+  function setA(v) {
+    if (!active.value) return;
+    const p = active.value.params;
+    p.a = clamp(v, A_MIN, A_MAX);
+    if (p.a + p.b > AB_SUM_MAX) p.b = Math.max(B_MIN, +(AB_SUM_MAX - p.a).toFixed(4));
+  }
+  function setB(v) {
+    if (!active.value) return;
+    const p = active.value.params;
+    p.b = clamp(v, B_MIN, B_MAX);
+    if (p.a + p.b > AB_SUM_MAX) p.a = Math.max(A_MIN, +(AB_SUM_MAX - p.b).toFixed(4));
+  }
+  function flipActive() {
+    if (!active.value) return;
+    const p = active.value.params;
+    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   function rotate(dir) {
+    if (!active.value) return;
     const p = active.value.params;
     [p.W, p.H] = [p.H, p.W];
     p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
@@ -198,7 +229,8 @@ export function useDocument() {
 
   return {
     doc, active, gutterMax,
-    select, deselect, duplicateActive, duplicateFrom, deleteActive,
+    selectOnly, toggleSelect, setSelection, deselect,
+    duplicateActive, duplicateFrom, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, flipActive,
     undo, redo, copyActive, pasteAt, renameActive,
   };

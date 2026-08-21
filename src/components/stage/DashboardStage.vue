@@ -19,6 +19,10 @@ const el = ref(null);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 const activeUnit = computed(() => props.doc.units.find((u) => u.id === props.doc.activeId));
+const singleSelected = computed(
+  () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
+);
+const marquee = ref(null); // { x, y, w, h } — 화면 좌표
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
 let drag = null;
@@ -78,7 +82,7 @@ function onKeyDown(e) {
     return;
   }
   if (mod && e.code === 'KeyC') {
-    if (props.doc.selected) props.actions.copyActive();
+    props.actions.copyActive();
     return;
   }
   if (mod && e.code === 'KeyV') {
@@ -87,9 +91,9 @@ function onKeyDown(e) {
     props.actions.pasteAt(wx, wy);
     return;
   }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selected) {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selectedIds.length) {
     e.preventDefault();
-    props.actions.deleteActive();
+    props.actions.deleteSelected();
   }
 }
 function onKeyUp(e) {
@@ -102,13 +106,14 @@ function beginDrag(e, state) {
   window.addEventListener('pointerup', onUp, { once: true });
 }
 
-// 스테이지 배경: 팬(휠버튼/Space) 또는 선택 해제
+// 스테이지 배경: 팬(휠버튼/Space) / 마퀴 선택 (4px 미만 이동이면 선택 해제 클릭)
 function onStageDown(e) {
   if (e.button === 1 || (e.button === 0 && spaceHeld.value)) {
     e.preventDefault();
     beginDrag(e, { kind: 'pan', x0: vp.x, y0: vp.y });
   } else if (e.button === 0) {
-    props.actions.deselect();
+    const [lx, ly] = local(e);
+    beginDrag(e, { kind: 'marquee', lx, ly });
   }
 }
 
@@ -121,11 +126,23 @@ function onUnitDown(u, e) {
   }
   if (e.button !== 0) return;
   e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
+  if (e.shiftKey) {
+    props.actions.toggleSelect(u.id); // Shift+클릭 = 멀티선택 토글 (드래그 없음)
+    return;
+  }
   // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
-  let target = u;
-  if (e.altKey) target = props.actions.duplicateFrom(u);
-  else props.actions.select(u.id);
-  beginDrag(e, { kind: 'move', u: target, x0: target.x, y0: target.y });
+  let targets;
+  if (e.altKey) {
+    targets = [props.actions.duplicateFrom(u)];
+  } else if (props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1) {
+    // 멀티선택 유지한 채 전체 이동
+    props.doc.activeId = u.id;
+    targets = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+  } else {
+    props.actions.selectOnly(u.id);
+    targets = [u];
+  }
+  beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
 }
 
 // 리사이즈 (SelectionOverlay 핸들에서)
@@ -147,11 +164,28 @@ function onMove(e) {
     vp.y = drag.y0 + dys;
     return;
   }
+  if (drag.kind === 'marquee') {
+    const [lx, ly] = [drag.lx + dxs, drag.ly + dys];
+    marquee.value = {
+      x: Math.min(drag.lx, lx), y: Math.min(drag.ly, ly),
+      w: Math.abs(dxs), h: Math.abs(dys),
+    };
+    // 실시간 교차 판정 (월드 좌표)
+    const [wx1, wy1] = props.viewport.toWorld(marquee.value.x, marquee.value.y);
+    const [wx2, wy2] = props.viewport.toWorld(marquee.value.x + marquee.value.w, marquee.value.y + marquee.value.h);
+    const ids = props.doc.units
+      .filter((u) => u.x < wx2 && u.x + u.params.W > wx1 && u.y < wy2 && u.y + u.params.H > wy1)
+      .map((u) => u.id);
+    props.actions.setSelection(ids);
+    return;
+  }
   const dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
   const dy = dys / vp.scale;
   if (drag.kind === 'move') {
-    drag.u.x = drag.x0 + dx;
-    drag.u.y = drag.y0 + dy;
+    for (const t of drag.targets) {
+      t.u.x = t.x0 + dx;
+      t.u.y = t.y0 + dy;
+    }
     return;
   }
   // resize: 반대편 변 고정, Shift = 비율 고정(코너)
@@ -175,9 +209,15 @@ function onMove(e) {
   if (dir.includes('n')) u.y = y0 + (H0 - H);
 }
 
-function onUp() {
-  if (drag && drag.kind === 'resize') {
-    props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
+function onUp(e) {
+  if (drag) {
+    if (drag.kind === 'resize') {
+      props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
+    } else if (drag.kind === 'marquee') {
+      const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
+      if (moved < 4) props.actions.deselect(); // 제자리 클릭 = 선택 해제
+      marquee.value = null;
+    }
   }
   drag = null;
   window.removeEventListener('pointermove', onMove);
@@ -194,9 +234,17 @@ onMounted(() => {
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
   const r = el.value.getBoundingClientRect();
   const u = props.doc.units[0];
-  vp.x = (r.width - u.params.W) / 2;
-  vp.y = (r.height - u.params.H) / 2;
+  if (u) {
+    vp.x = (r.width - u.params.W) / 2;
+    vp.y = (r.height - u.params.H) / 2;
+  }
 });
+function centerWorld() {
+  const r = el.value.getBoundingClientRect();
+  return props.viewport.toWorld(r.width / 2, r.height / 2);
+}
+defineExpose({ centerWorld });
+
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
@@ -230,7 +278,7 @@ onBeforeUnmount(() => {
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <UnitGraphic
             :params="u.params"
-            :show-guides="doc.selected && u.id === doc.activeId && u.params.showGuides"
+            :show-guides="doc.selectedIds.includes(u.id) && u.id === doc.activeId && u.params.showGuides"
           />
           <rect
             class="hit"
@@ -239,17 +287,31 @@ onBeforeUnmount(() => {
             @pointerdown.stop="onUnitDown(u, $event)"
           />
         </g>
+        <!-- 멀티선택: 각 유닛 외곽선만 -->
+        <template v-if="!singleSelected">
+          <rect
+            v-for="u in doc.units.filter((x) => doc.selectedIds.includes(x.id))"
+            :key="'sel' + u.id"
+            class="multiSel"
+            :x="u.x" :y="u.y" :width="u.params.W" :height="u.params.H"
+          />
+        </template>
         <SelectionOverlay
-          v-if="doc.selected && activeUnit"
+          v-if="singleSelected && activeUnit"
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
           @rotate="(d) => actions.rotate(d)"
           @flip="actions.flipActive()"
           @dup="actions.duplicateActive()"
-          @del="actions.deleteActive()"
+          @del="actions.deleteSelected()"
         />
       </g>
+      <rect
+        v-if="marquee"
+        class="marquee"
+        :x="marquee.x" :y="marquee.y" :width="marquee.w" :height="marquee.h"
+      />
     </svg>
     <ZoomBadge :scale="vp.scale" @reset="resetZoom" />
   </div>
@@ -261,5 +323,7 @@ onBeforeUnmount(() => {
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
 .gridbg { pointer-events: none; }
-.gridline { stroke: #333; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
+.gridline { stroke: #3f3f3f; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>
