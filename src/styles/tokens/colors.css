@@ -1,29 +1,39 @@
 /* ─── 컬러 토큰 ───────────────────────────────────────
-   브랜딩 적용 시 이 파일만 수정하면 전체 UI에 반영된다.
-   (도형 fill 스와치는 src/geometry/constants.js BRAND_COLORS) */
+   구조: 브랜드 네임드 토큰(1층) → 시맨틱 토큰(2층)이 참조.
+   브랜딩 확정 시 1층 값만 교체하면 전체 반영.
+   (도형 fill 스와치는 src/geometry/constants.js BRAND_COLORS — 동일 값 유지 필요) */
 :root {
-  /* 표면 */
-  --bg: #0b0b0b;        /* 앱/스테이지 배경 */
-  --panel: #151515;     /* 패널·플로팅 바 배경 */
-  --canvas: #0e0e0e;    /* (예약) 캔버스 표면 */
-  --hover-bg: #222222;  /* 버튼 활성/호버 배경 */
+  /* ── 1층: 브랜드 네임드 컬러 (값은 추후 브랜딩 확정본으로 교체 예정) */
+  --eo-neon: #f9ee48;
+  --world-green: #55bb73;
+  --horizon-blue: #6ecbd6;
+  --space-black: #0b0b0b;
+  --void-grey: #8e8e8e;
+  --halo-white: #efeae1;
+
+  /* ── 2층: 시맨틱 — 표면 */
+  --bg: var(--space-black);   /* 앱/스테이지 배경 */
+  --panel: #151515;           /* 패널·플로팅 바 배경 */
+  --canvas: #0e0e0e;          /* (예약) */
+  --hover-bg: #222222;        /* 버튼 활성/호버 배경 */
 
   /* 라인·텍스트 */
-  --line: #262626;      /* 보더 */
-  --text: #ececec;      /* 본문 */
-  --faint: #7c7c7c;     /* 보조 텍스트·라벨 */
-  --disabled: #4a4a4a;  /* 비활성 아이콘 */
+  --line: #262626;
+  --text: #ececec;
+  --faint: #7c7c7c;
+  --disabled: #4a4a4a;
 
-  /* 액센트 */
-  --accent: #faf04b;    /* UI 액센트 (선택·활성) */
-  --trim: #c9c9c9;      /* (예약) */
+  /* 액센트 — UI 선택/활성 (도형 기본색과 통일: EO NEON) */
+  --accent: var(--eo-neon);
+  --accent-alpha: rgba(249, 238, 72, 0.06); /* 마퀴 채움 등 */
+  --trim: #c9c9c9; /* (예약) */
 
-  /* 시맨틱 */
+  /* 시맨틱 — 상태/오버레이 (guide·danger는 추후 브랜드 값으로 교체 예정) */
   --danger: #ff5c5c;
   --danger-bg: #2a1515;
   --doom: #ff2e2e;
   --doom-bg: #3d0f0f;
-  --link: #6ec9ff;      /* 링크 그룹 배지 */
-  --guide: #ff5ca8;     /* 스마트 가이드·유닛 그리드 */
-  --stage-grid: #3f3f3f;/* 대시보드 배경 라인 그리드 */
+  --link: var(--horizon-blue); /* 링크 그룹 배지 */
+  --guide: #ff5ca8;            /* 스마트 가이드·유닛 그리드 */
+  --stage-grid: #3f3f3f;       /* 대시보드 배경 라인 그리드 */
 }

@@ -5,7 +5,7 @@ const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
 
 // 유닛 1개의 <g id="unit"> 본문 (orientation wrapper 포함)
-function unitBody({ W, H, unit, orientation = 0, fill = '#FAF04B' }) {
+function unitBody({ W, H, unit, orientation = 0, fill = '#F9EE48' }) {
   const odd = orientation === 90 || orientation === 270;
   const localW = odd ? H : W;
   const localH = odd ? W : H;

@@ -540,3 +540,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
    - `motion.css` (--tip-delay, --toast-time)
    `index.css`가 통합 진입점, `style.css`가 임포트·소비. **브랜딩 적용 시 토큰 파일만 교체하면 전체 반영.**
    다음 단계(2): 컴포넌트 하드코드 색/치수를 토큰으로 전면 치환.
+
+## 38. 리팩토링 1단계 확정 (2026-08-21, 사용자 결정 반영)
+
+1. **액센트 통일** — UI 액센트 = 도형 기본색 = **#F9EE48 (EO NEON)**. 잔여 #FAF04B 전부 교체 (로고·파비콘·체크마크·fallback·마퀴 알파).
+2. **브랜드 네임드 토큰 층 도입** (`colors.css` 1층): `--eo-neon --world-green --horizon-blue --space-black --void-grey --halo-white`. 시맨틱(2층)이 이를 참조: `--accent→eo-neon`, `--bg→space-black`, `--link→horizon-blue`. 값은 추후 브랜딩 확정본으로 교체 예정. guide(핑크)·danger(적색)는 브랜드 값 나오면 교체.
+3. **라운딩** — 도입 가능성 있음 확정 → 2단계에서 모든 컴포넌트 border-radius를 `var(--radius)`로 통일 예정.
+4. **폰트** — 미정 유지. CDN @import를 `tokens/typography.css`로 이관해 **소스+스택 교체 지점 단일화** (index.html 링크 제거). 셀프호스팅 전환 시 @import → @font-face만 교체.

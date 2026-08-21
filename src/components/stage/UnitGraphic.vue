@@ -7,7 +7,7 @@ const props = defineProps({
   showGuides: Boolean,
   seamWidth: { type: Number, default: 0 }, // 접합 봉합 스트로크 (화면 px, 0이면 없음)
 });
-const fill = computed(() => props.params.fill || '#FAF04B');
+const fill = computed(() => props.params.fill || '#F9EE48');
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');

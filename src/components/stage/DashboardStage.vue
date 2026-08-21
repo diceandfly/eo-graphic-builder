@@ -794,7 +794,7 @@ onBeforeUnmount(() => {
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font-size: 11px; letter-spacing: 0.03em; padding: 7px 14px; pointer-events: none;
 }
-.marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
+.marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gapline { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: #ff5ca8; font-family: inherit; user-select: none; }

@@ -36,6 +36,6 @@ input[type='checkbox'] {
 }
 input[type='checkbox']:checked {
   border-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 6L9 17l-5-5' fill='none' stroke='%23FAF04B' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 6L9 17l-5-5' fill='none' stroke='%23F9EE48' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-size: 9px; background-position: center; background-repeat: no-repeat;
 }

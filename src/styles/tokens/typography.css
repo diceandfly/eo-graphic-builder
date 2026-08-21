@@ -1,4 +1,8 @@
-/* ─── 타이포그래피 토큰 ─────────────────────────────── */
+/* ─── 타이포그래피 토큰 ───────────────────────────────
+   폰트 미정 상태 — 교체 시 아래 @import URL과 --font-sans만 수정.
+   (셀프호스팅 전환 시 @import를 로컬 @font-face로 교체) */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
 :root {
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
 

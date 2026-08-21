@@ -29,5 +29,6 @@ export const COMP_SNAP = 0.1;    // 중앙 0 스냅 반경 (표기 단위)
 export const STAGE_GRID = 100;   // 대시보드 배경 라인 그리드 간격 (px, 월드 좌표)
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
-// 브랜드 스와치 — 추후 자유롭게 추가/삭제 (툴바에 그대로 반영됨)
+// 브랜드 스와치 (도형 fill) — styles/tokens/colors.css의 네임드 토큰과 값 동기 유지
+// EO NEON · WORLD GREEN · HORIZON BLUE · HALO WHITE · VOID GREY
 export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#EFEAE1', '#8E8E8E'];
