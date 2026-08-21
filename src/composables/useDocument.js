@@ -241,6 +241,10 @@ export function useDocument() {
     doc.selectedIds = [];
     doc.activeId = keep.length ? keep[keep.length - 1].id : null;
     cleanupLinks(); // 1개만 남은 링크 그룹 해제
+    // 멤버가 1개만 남은 그룹 레이어 제거
+    const gcount = {};
+    for (const u of doc.units) for (const g of u.groups) gcount[g] = (gcount[g] || 0) + 1;
+    for (const u of doc.units) u.groups = u.groups.filter((g) => gcount[g] >= 2);
   }
 
   function duplicateActive() {
@@ -356,7 +360,12 @@ export function useDocument() {
       for (const u of sel) u.linkId = null;
     } else {
       const lid = nextLink++;
-      for (const u of sel) u.linkId = lid;
+      // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일
+      const src = sel.find((u) => u.id === doc.activeId) ?? sel[0];
+      for (const u of sel) {
+        u.linkId = lid;
+        if (u !== src) Object.assign(u.params, { ...src.params });
+      }
     }
   }
   function cleanupLinks() {

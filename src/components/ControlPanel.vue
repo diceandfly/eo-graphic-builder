@@ -6,6 +6,7 @@ import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
 import { ref } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
+import { BRAND_COLORS } from '../geometry/constants.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MIN, B_MAX,
@@ -18,7 +19,7 @@ const props = defineProps({
   gutterMax: Number,
   selected: { type: Array, default: () => [] }, // 선택된 유닛들
 });
-const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'create', 'link']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'create', 'link', 'fill']);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
 const mixed = (...keys) =>
@@ -126,7 +127,7 @@ function cancelRename() {
 
     <template v-if="unit">
     <section>
-      <h2>Unit Size</h2>
+      <h2>Size</h2>
       <NumberField
         label="width (px)" :model-value="p.W" :min="UNIT_MIN" :max="UNIT_MAX"
         @update:model-value="(v) => emit('setSize', { W: v })"
@@ -206,6 +207,20 @@ function cancelRename() {
       />
     </section>
 
+    <section>
+      <h2>Color</h2>
+      <div class="colors">
+        <button
+          v-for="c in BRAND_COLORS"
+          :key="c"
+          class="colorChip"
+          :class="{ on: !mixed('fill') && p.fill === c }"
+          :style="{ background: c }"
+          @click="emit('fill', c)"
+        />
+      </div>
+    </section>
+
     <section v-if="selected.length >= 2">
       <h2>Link</h2>
       <button class="ghost" :class="{ linked }" @click="emit('link')">
@@ -261,6 +276,12 @@ section h2 {
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
+.colors { display: flex; gap: 6px; }
+.colorChip {
+  width: 18px; height: 18px; border: 1px solid var(--line);
+  padding: 0; cursor: pointer;
+}
+.colorChip.on { outline: 1px solid var(--text); outline-offset: 1px; }
 .check {
   display: flex; align-items: center; gap: 8px;
   font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;

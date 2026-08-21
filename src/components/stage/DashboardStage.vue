@@ -47,6 +47,11 @@ const groupOutlines = computed(() => {
   });
 });
 const dash = computed(() => `${5 / vp.scale} ${4 / vp.scale}`);
+// 링크 그룹 표시 번호 (linkId → 1..n 순번)
+const linkIndex = computed(() => {
+  const ids = [...new Set(props.doc.units.filter((u) => u.linkId).map((u) => u.linkId))].sort((a, b) => a - b);
+  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+});
 
 const selBounds = computed(() => {
   const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
@@ -492,6 +497,7 @@ onBeforeUnmount(() => {
         >
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          <text x="27" y="19" font-size="15">{{ linkIndex[u.linkId] }}</text>
         </g>
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
@@ -557,6 +563,7 @@ onBeforeUnmount(() => {
   fill: none; stroke: #6ec9ff; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
+.linkBadge text { fill: #6ec9ff; font-family: inherit; font-weight: 600; }
 .marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }

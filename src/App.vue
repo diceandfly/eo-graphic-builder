@@ -78,6 +78,7 @@ const stageActions = { ...docApi, exportSvg, saveProject, openProject };
         @rename="docApi.renameActive"
         @create="createUnit"
         @link="docApi.toggleLinkSelected"
+        @fill="docApi.setFill"
       />
     </aside>
     <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" />

@@ -21,14 +21,15 @@ const otf = computed(() =>
   <g :transform="otf">
     <!-- self-contained 유닛: 외부 translate/scale/flip만으로 재배치 가능 -->
     <g class="unit">
+      <!-- 동색 1px(화면) 스트로크: 접합부 안티앨리어싱 헤어라인을 모든 줌에서 봉합 -->
       <rect
         v-if="d.unit.shaft"
         :x="f(d.unit.shaft.x)" :y="f(d.unit.shaft.y)"
         :width="f(d.unit.shaft.width)" :height="f(d.unit.shaft.height)"
-        :fill="fill"
+        :fill="fill" :stroke="fill" class="seam"
       />
-      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" />
-      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" />
+      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" :stroke="fill" class="seam" />
+      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" :stroke="fill" class="seam" />
     </g>
     <!-- 그리드 가이드: 유닛 밖, export 미포함 -->
     <g v-if="showGuides" class="guides">
@@ -45,5 +46,6 @@ const otf = computed(() =>
 </template>
 
 <style scoped>
+.seam { stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
 .guides line, .guides rect { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>

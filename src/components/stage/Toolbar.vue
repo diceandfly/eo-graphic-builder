@@ -52,8 +52,8 @@ function onFile(e) {
 </script>
 
 <template>
-  <div class="toolbar" @pointerdown.stop>
-    <div class="swatches">
+  <div class="toolbarWrap" @pointerdown.stop>
+    <div class="bar swatches">
       <button
         v-for="c in BRAND_COLORS"
         :key="c"
@@ -62,7 +62,7 @@ function onFile(e) {
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></button>
     </div>
-    <span class="sep" />
+    <div class="bar">
     <button
       v-for="t in TOOLS"
       :key="t.key"
@@ -79,12 +79,16 @@ function onFile(e) {
       <span class="tip">{{ a.tip }}</span>
     </button>
     <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.toolbar {
+.toolbarWrap {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+}
+.bar {
   display: flex; align-items: center; gap: 2px;
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
 }

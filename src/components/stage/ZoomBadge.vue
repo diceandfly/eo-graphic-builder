@@ -12,7 +12,7 @@ const GRID_PATHS = ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7
   <div class="corner" @pointerdown.stop>
     <button class="tbtn" :class="{ on: guides }" @click="$emit('toggleGuides')">
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in GRID_PATHS" :key="i" :d="d" /></svg>
-      <span class="tip">Grid guides (selected units)</span>
+      <span class="tip">Show/Hide Unit Grid</span>
     </button>
     <button class="tbtn zoom" @click="$emit('reset')">
       {{ pct }}%
@@ -30,9 +30,10 @@ const GRID_PATHS = ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7
 .tbtn {
   position: relative;
   height: 32px; min-width: 32px; display: flex; align-items: center; justify-content: center;
-  background: none; border: none; cursor: pointer; padding: 0 6px;
+  background: none; border: none; cursor: pointer; padding: 0;
   color: var(--faint); font: inherit; font-size: 11px; letter-spacing: 0.04em;
 }
+.zoom { width: 48px; font-variant-numeric: tabular-nums; }
 .tbtn svg {
   width: 16px; height: 16px;
   fill: none; stroke: var(--text); stroke-width: 2;
