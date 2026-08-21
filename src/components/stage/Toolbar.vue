@@ -173,7 +173,7 @@ function onFile(e) {
   padding: 0; cursor: pointer;
 }
 .sw .chip { width: 17px; height: 17px; display: block; }
-.sw.on { background: #222; }
+.sw.on { background: var(--hover-bg); }
 .tbtn {
   position: relative;
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
@@ -185,15 +185,15 @@ function onFile(e) {
   stroke-linecap: round; stroke-linejoin: round;
 }
 .tbtn:hover svg { stroke: var(--accent); }
-.tbtn.on { background: #222; }
+.tbtn.on { background: var(--hover-bg); }
 .tbtn.on svg { stroke: var(--accent); }
-.tbtn.danger { background: #2a1515; }
-.tbtn.danger svg { stroke: #ff5c5c; }
-.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: #ff5c5c; }
-.tbtn.doom { background: #3d0f0f; animation: doomPulse 0.6s ease-in-out infinite alternate; }
-.tbtn.doom svg { stroke: #ff2e2e; }
-.tbtn.doom .tip { opacity: 1; transition-delay: 0s; color: #ff2e2e; border-color: #ff2e2e; }
-@keyframes doomPulse { from { background: #3d0f0f; } to { background: #5a1010; } }
+.tbtn.danger { background: var(--danger-bg); }
+.tbtn.danger svg { stroke: var(--danger); }
+.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: var(--danger); }
+.tbtn.doom { background: var(--doom-bg); animation: doomPulse 0.6s ease-in-out infinite alternate; }
+.tbtn.doom svg { stroke: var(--doom); }
+.tbtn.doom .tip { opacity: 1; transition-delay: 0s; color: var(--doom); border-color: var(--doom); }
+@keyframes doomPulse { from { background: var(--doom-bg); } to { background: var(--doom-pulse); } }
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);

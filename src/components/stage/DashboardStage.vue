@@ -785,19 +785,19 @@ onBeforeUnmount(() => {
 .groupLine { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.7; }
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
 .linkBadge path {
-  fill: none; stroke: #6ec9ff; stroke-width: 2;
+  fill: none; stroke: var(--link); stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
-.linkBadge text { fill: #6ec9ff; font-family: inherit; font-weight: 600; }
+.linkBadge text { fill: var(--link); font-family: inherit; font-weight: 600; }
 .toast {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font-size: 11px; letter-spacing: 0.03em; padding: 7px 14px; pointer-events: none;
 }
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
-.smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.gapline { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.gaptext { fill: #ff5ca8; font-family: inherit; user-select: none; }
+.smartguide { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
-.gridline { stroke: #3f3f3f; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.gridline { stroke: var(--stage-grid); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

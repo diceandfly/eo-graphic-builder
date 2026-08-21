@@ -1,13 +1,14 @@
 <script setup>
 import { computed } from 'vue';
 import { deriveUnit, orientationTransform } from '../../geometry/derive.js';
+import { BRAND_COLORS } from '../../geometry/constants.js';
 
 const props = defineProps({
   params: Object,
   showGuides: Boolean,
   seamWidth: { type: Number, default: 0 }, // 접합 봉합 스트로크 (화면 px, 0이면 없음)
 });
-const fill = computed(() => props.params.fill || '#F9EE48');
+const fill = computed(() => props.params.fill || BRAND_COLORS[0]);
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
@@ -48,5 +49,5 @@ const otf = computed(() =>
 
 <style scoped>
 .seam { vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
-.guides line, .guides rect { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
+.guides line, .guides rect { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>

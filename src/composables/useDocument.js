@@ -1,6 +1,7 @@
 import { reactive, computed, watch } from 'vue';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
+  BRAND_COLORS,
 } from '../geometry/constants.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -24,7 +25,7 @@ export function createParams(overrides = {}) {
     b: 0,
     threads: 'both',   // 'both' | 'one'
     threadDir: 'LtoR', // 'LtoR' | 'RtoL'
-    fill: '#F9EE48',
+    fill: BRAND_COLORS[0], // EO NEON
     showGuides: true,
     ...overrides,
   };

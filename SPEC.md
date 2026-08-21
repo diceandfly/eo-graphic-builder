@@ -547,3 +547,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **브랜드 네임드 토큰 층 도입** (`colors.css` 1층): `--eo-neon --world-green --horizon-blue --space-black --void-grey --halo-white`. 시맨틱(2층)이 이를 참조: `--accent→eo-neon`, `--bg→space-black`, `--link→horizon-blue`. 값은 추후 브랜딩 확정본으로 교체 예정. guide(핑크)·danger(적색)는 브랜드 값 나오면 교체.
 3. **라운딩** — 도입 가능성 있음 확정 → 2단계에서 모든 컴포넌트 border-radius를 `var(--radius)`로 통일 예정.
 4. **폰트** — 미정 유지. CDN @import를 `tokens/typography.css`로 이관해 **소스+스택 교체 지점 단일화** (index.html 링크 제거). 셀프호스팅 전환 시 @import → @font-face만 교체.
+
+## 39. 리팩토링 2단계-색상 (2026-08-21, 사용자 확정 반영)
+
+1. **그레이 로스터 7종 확정** — 예약 2종(canvas·trim) 토큰 삭제. `#151515 panel · #222 hover-bg · #262626 line · #3F3F3F stage-grid · #4A4A4A disabled · #7C7C7C faint · #ECECEC text`. *추후 통폐합 검토 예정 (7종도 많다는 의견).*
+2. **컴포넌트 하드코드 색 0개 달성** — 전 컴포넌트 scoped 스타일이 토큰만 참조. 신규 토큰 `--doom-pulse`(#5A1010) 1종 추가.
+3. **시각 변화 승인분 적용** — 링크 배지 #6EC9FF → `var(--link)`(HORIZON BLUE #6ECBD6).
+4. **데이터 기본 fill 단일 출처화** — createParams/UnitGraphic/exportSvg의 기본 도형색이 `BRAND_COLORS[0]`(EO NEON) 참조.
+5. **로고 fill CSS 클래스화** (`--accent` 참조). 예외 1건: 체크박스 체크마크 data-uri는 var() 불가 — 교체 주의 주석 명기.
+6. 자간 3종 흡수(0.04→base, 0.06→wide)는 **결정 확보, 타이포 라운드에서 적용 예정.**

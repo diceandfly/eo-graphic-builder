@@ -1,11 +1,12 @@
 // SVG export — 뷰포트 렌더와 동일 구조 (도형만, 배경 없음, 소수 3자리)
 import { orientationTransform } from '../geometry/derive.js';
+import { BRAND_COLORS } from '../geometry/constants.js';
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
 
 // 유닛 1개의 <g id="unit"> 본문 (orientation wrapper 포함)
-function unitBody({ W, H, unit, orientation = 0, fill = '#F9EE48' }) {
+function unitBody({ W, H, unit, orientation = 0, fill = BRAND_COLORS[0] }) {
   const odd = orientation === 90 || orientation === 270;
   const localW = odd ? H : W;
   const localH = odd ? W : H;

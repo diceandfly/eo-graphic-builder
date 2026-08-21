@@ -39,8 +39,8 @@ const BTNS = [
 }
 .tbtn:hover svg { stroke: var(--accent); }
 .inactive .tbtn { cursor: default; }
-.inactive .tbtn svg { stroke: #4a4a4a; }
-.inactive .tbtn:hover svg { stroke: #4a4a4a; }
+.inactive .tbtn svg { stroke: var(--disabled); }
+.inactive .tbtn:hover svg { stroke: var(--disabled); }
 .inactive .tbtn .tip { display: none; }
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 0;

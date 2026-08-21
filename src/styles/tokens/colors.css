@@ -14,10 +14,9 @@
   /* ── 2층: 시맨틱 — 표면 */
   --bg: var(--space-black);   /* 앱/스테이지 배경 */
   --panel: #151515;           /* 패널·플로팅 바 배경 */
-  --canvas: #0e0e0e;          /* (예약) */
   --hover-bg: #222222;        /* 버튼 활성/호버 배경 */
 
-  /* 라인·텍스트 */
+  /* 라인·텍스트 — 그레이 7종 (추후 통폐합 검토 예정) */
   --line: #262626;
   --text: #ececec;
   --faint: #7c7c7c;
@@ -26,13 +25,13 @@
   /* 액센트 — UI 선택/활성 (도형 기본색과 통일: EO NEON) */
   --accent: var(--eo-neon);
   --accent-alpha: rgba(249, 238, 72, 0.06); /* 마퀴 채움 등 */
-  --trim: #c9c9c9; /* (예약) */
 
   /* 시맨틱 — 상태/오버레이 (guide·danger는 추후 브랜드 값으로 교체 예정) */
   --danger: #ff5c5c;
   --danger-bg: #2a1515;
   --doom: #ff2e2e;
   --doom-bg: #3d0f0f;
+  --doom-pulse: #5a1010; /* doom 펄스 애니메이션 끝색 */
   --link: var(--horizon-blue); /* 링크 그룹 배지 */
   --guide: #ff5ca8;            /* 스마트 가이드·유닛 그리드 */
   --stage-grid: #3f3f3f;       /* 대시보드 배경 라인 그리드 */

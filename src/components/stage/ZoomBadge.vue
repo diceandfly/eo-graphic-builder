@@ -46,7 +46,7 @@ const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
 }
 .tbtn:hover { color: var(--accent); }
 .tbtn:hover svg { stroke: var(--accent); }
-.tbtn.on { background: #222; }
+.tbtn.on { background: var(--hover-bg); }
 .tbtn.on svg { stroke: var(--accent); }
 .tip {
   position: absolute; bottom: calc(100% + 10px); right: 0;
