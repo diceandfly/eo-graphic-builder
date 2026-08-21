@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, watch } from 'vue';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
 } from '../geometry/constants.js';
@@ -107,6 +107,73 @@ export function useDocument() {
     select(doc.units[Math.max(0, i - 1)].id);
   }
 
+  // ---- 히스토리 (undo/redo) — units 상태 스냅샷, 연속 조작은 350ms 디바운스로 병합 ----
+  const stack = [JSON.stringify(doc.units)];
+  let idx = 0;
+  let pending = null;
+  watch(
+    () => JSON.stringify(doc.units),
+    (snap) => {
+      clearTimeout(pending);
+      pending = setTimeout(() => pushState(snap), 350);
+    }
+  );
+  function pushState(snap) {
+    if (snap === stack[idx]) return;
+    stack.splice(idx + 1);
+    stack.push(snap);
+    if (stack.length > 100) stack.shift();
+    idx = stack.length - 1;
+  }
+  function flushHistory() {
+    clearTimeout(pending);
+    pushState(JSON.stringify(doc.units));
+  }
+  function applyState(snap) {
+    const arr = JSON.parse(snap);
+    doc.units.splice(0, doc.units.length, ...arr);
+    if (!doc.units.find((u) => u.id === doc.activeId)) {
+      doc.activeId = doc.units[doc.units.length - 1].id;
+      doc.selected = false;
+    }
+  }
+  function undo() {
+    flushHistory();
+    if (idx === 0) return;
+    idx -= 1;
+    applyState(stack[idx]);
+  }
+  function redo() {
+    flushHistory();
+    if (idx >= stack.length - 1) return;
+    idx += 1;
+    applyState(stack[idx]);
+  }
+
+  // ---- 클립보드 (⌘C/⌘V) ----
+  let clipboard = null;
+  function copyActive() {
+    clipboard = { ...active.value.params };
+  }
+  // (x, y) = 월드 좌표 중심점 (마우스 커서). 클립보드 없으면 무시.
+  function pasteAt(x, y) {
+    if (!clipboard) return;
+    const id = nextId++;
+    doc.units.push({
+      id,
+      name: `unit v${nextVersion++}`,
+      x: Math.round(x - clipboard.W / 2),
+      y: Math.round(y - clipboard.H / 2),
+      params: { ...clipboard },
+    });
+    select(id);
+  }
+
+  function renameActive(name) {
+    const t = name.trim();
+    if (t) active.value.name = t;
+  }
+
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 얕은 복사 = 전부 원시값이라 완전 독립)
   function duplicateFrom(u) {
     const id = nextId++;
@@ -133,5 +200,6 @@ export function useDocument() {
     doc, active, gutterMax,
     select, deselect, duplicateActive, duplicateFrom, deleteActive,
     setSize, setAspect, setA, setB, rotate, flipActive,
+    undo, redo, copyActive, pasteAt, renameActive,
   };
 }

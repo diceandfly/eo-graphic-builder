@@ -407,3 +407,17 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **패널 카드 스타일 롤백** — 플랫 UI 복구, 구분은 브랜드 타이틀 아래 라인만.
 2. **가이드 표시 조건** — 활성 유닛 + **선택 상태**일 때만. 빈 필드 클릭(선택 해제) 시 가이드 숨김.
 3. **액션 버튼 개편** — 글리프 폰트 → **24 viewBox 스트로크 SVG 아이콘**(Feather/Lucide, 16px, stroke 2)으로 볼륨 통일. 순서: ① 회전 CW ② 회전 CCW ③ flip ④ **삭제(휴지통)**. `deleteActive()`: 마지막 유닛 1개는 삭제 불가, 삭제 후 인접 유닛 선택.
+
+## 26. 2026-08-20 15차 변경 사항
+
+1. **배경 그리드**: + 크로스 → **라인 그리드** (200px, `#333`, non-scaling 1px).
+2. **액션 버튼**: 회전 2종 5% 축소 + CW 1px 좌보정 / CCW 1px 우보정. **복제 버튼 추가** (순서: CW·CCW·flip·duplicate·delete). 패널의 + duplicate 버튼 삭제.
+3. **툴팁**: 네이티브 title → **커스텀 툴팁 (350ms)**, 문장 이니셜 대문자 ("Rotate 90° clockwise" 등).
+4. **RATIO + 버튼 보류** — 템플릿에서 숨김 (로직·localStorage 병합은 유지).
+5. **compression 비주얼 스냅** — Slider에 `snapTo`/`snapRadius` 프롭, input 시 엘리먼트 값도 강제해 썸이 0에 붙음.
+6. **Δ 슬라이더 재정의** — "변의 실제 폭"으로 통일: **thread top width** = a (10–70%), **thread bottom width** = 1−b (30–100%). 둘 다 올리면 그 변이 넓어짐. 커플링 = "아랫변은 윗변보다 항상 10%p 이상 넓다".
+7. **Alt+드래그 수정** — pointerdown `preventDefault` + `dragstart` 차단 + stage `user-select: none`.
+8. **키보드** — Delete/Backspace 삭제, **⌘Z / ⌘⇧Z undo·redo** (units 스냅샷 스택, 350ms 디바운스 병합, 최대 100), **⌘C/⌘V** 복붙 — 붙여넣기는 **커서 위치 중심** (커서가 스테이지 밖이면 뷰포트 중앙).
+9. **grid guides 체크박스** — 라운드 제거, 12px (슬라이더 썸과 동일), 체크 시 옐로우 채움.
+10. **유닛 이름 클릭 → 인라인 편집** (Enter/blur 커밋, Esc 취소).
+11. **로고 교체 보류** — 첨부가 흰색 비트맵이라 벡터 추출 불가. SVG 파일 필요.

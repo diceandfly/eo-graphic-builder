@@ -1,13 +1,23 @@
 <script setup>
-defineProps({
+const props = defineProps({
   label: String,
   modelValue: Number,
   min: Number,
   max: Number,
   step: { type: Number, default: 1 },
   display: String, // 우측 값 표기 (없으면 modelValue 그대로)
+  snapTo: { type: Number, default: null },     // 이 값 근처에서 스냅
+  snapRadius: { type: Number, default: 0 },
 });
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
+function onInput(e) {
+  let v = Number(e.target.value);
+  if (props.snapTo != null && Math.abs(v - props.snapTo) <= props.snapRadius) {
+    v = props.snapTo;
+    e.target.value = String(v); // 썸도 스냅 위치로 고정 (비주얼 스냅)
+  }
+  emit('update:modelValue', v);
+}
 </script>
 
 <template>
@@ -23,7 +33,7 @@ defineEmits(['update:modelValue']);
       :min="min"
       :max="max"
       :step="step"
-      @input="$emit('update:modelValue', Number($event.target.value))"
+      @input="onInput"
     />
   </div>
 </template>

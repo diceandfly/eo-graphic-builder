@@ -17,7 +17,7 @@ const props = defineProps({
   unit: Object,      // 활성 유닛 { id, name, params }
   gutterMax: Number,
 });
-const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'duplicate', 'export']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'export']);
 
 const p = computed(() => props.unit.params);
 const aspect = computed(() => p.value.W / p.value.H);
@@ -59,9 +59,22 @@ function addRatio() {
   ratioInputOpen.value = false;
 }
 
-// Δ 슬라이더는 각자 실제 범위(a: 10–70%, b: 0–30%)를 0–100으로 정규화해 표기
-const aNorm = computed(() => Math.round(((p.value.a - A_MIN) / (A_MAX - A_MIN)) * 100));
-const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) * 100));
+// Δ 슬라이더 = 변의 실제 폭 (col 폭 대비 %). 둘 다 "올리면 그 변이 넓어짐".
+// top width = a (10–70%), bottom width = 1-b (30–100%)
+const aPct = computed(() => Math.round(p.value.a * 100));
+const bottomPct = computed(() => Math.round((1 - p.value.b) * 100));
+
+// 유닛 이름 편집
+const editingName = ref(false);
+const nameDraft = ref('');
+function startRename() {
+  nameDraft.value = props.unit.name;
+  editingName.value = true;
+}
+function commitRename() {
+  if (editingName.value) emit('rename', nameDraft.value);
+  editingName.value = false;
+}
 </script>
 
 <template>
@@ -77,8 +90,16 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
     </header>
 
     <div class="unitRow">
-      <span class="unitName">{{ unit.name }}</span>
-      <button class="mini" @click="emit('duplicate')">+ duplicate</button>
+      <input
+        v-if="editingName"
+        class="nameInput"
+        v-model="nameDraft"
+        @keydown.enter="commitRename"
+        @keydown.esc="editingName = false"
+        @blur="commitRename"
+        autofocus
+      />
+      <span v-else class="unitName" title="click to rename" @click="startRename">{{ unit.name }}</span>
     </div>
 
     <section>
@@ -97,17 +118,7 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
           :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
           @update:model-value="(v) => emit('setAspect', v)"
         />
-        <button v-if="!ratioInputOpen" class="chipPlus" title="add custom ratio" @click="ratioInputOpen = true">+</button>
-        <input
-          v-else
-          class="ratioInput"
-          v-model="ratioInput"
-          placeholder="21:9"
-          @keydown.enter="addRatio"
-          @keydown.esc="ratioInputOpen = false"
-          @blur="addRatio"
-          autofocus
-        />
+        <!-- 커스텀 비율 + 버튼: 보류 (로직은 유지) -->
       </div>
     </section>
 
@@ -134,6 +145,7 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
       <Slider
         label="compression rate" :model-value="compVal"
         :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
+        :snap-to="0" :snap-radius="COMP_SNAP"
         :display="compDisplay"
         @update:model-value="setComp"
       />
@@ -151,16 +163,16 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
         :display="`${p.dPct}% × UNIT HEIGHT`"
       />
       <Slider
-        label="thread width Δa" :model-value="aNorm"
-        :min="0" :max="100" :step="1"
-        :display="`${aNorm}%`"
-        @update:model-value="(v) => emit('setA', A_MIN + (v / 100) * (A_MAX - A_MIN))"
+        label="thread top width" :model-value="aPct"
+        :min="A_MIN * 100" :max="A_MAX * 100" :step="1"
+        :display="`${aPct}%`"
+        @update:model-value="(v) => emit('setA', v / 100)"
       />
       <Slider
-        label="thread width Δb" :model-value="bNorm"
-        :min="0" :max="100" :step="1"
-        :display="`${bNorm}%`"
-        @update:model-value="(v) => emit('setB', B_MIN + (v / 100) * (B_MAX - B_MIN))"
+        label="thread bottom width" :model-value="bottomPct"
+        :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1"
+        :display="`${bottomPct}%`"
+        @update:model-value="(v) => emit('setB', 1 - v / 100)"
       />
       <Toggle
         label="threads" v-model="p.threads"
@@ -203,12 +215,12 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
   font: inherit; font-size: 11px; padding: 4px 6px;
 }
 .unitName { font-size: 12px; color: var(--text); }
-.mini {
-  border: 1px solid var(--line); background: none; color: var(--faint);
-  font-family: inherit; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
-  padding: 3px 8px; cursor: pointer;
+.unitName { cursor: text; }
+.unitName:hover { color: var(--accent); }
+.nameInput {
+  border: 1px solid var(--accent); background: none; color: var(--text);
+  font: inherit; font-size: 12px; padding: 2px 6px; width: 160px;
 }
-.mini:hover { border-color: var(--accent); color: var(--accent); }
 section h2 {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
   color: var(--accent); font-weight: 600;

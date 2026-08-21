@@ -40,14 +40,56 @@ function onWheel(e) {
 
 // Space 팬 모드 (입력칸 포커스 중엔 무시)
 const spaceHeld = ref(false);
+let lastClient = null; // 마지막 커서 위치 (⌘V 배치 기준)
+function onStageMove(e) {
+  lastClient = [e.clientX, e.clientY];
+}
+function pasteTarget() {
+  const r = el.value.getBoundingClientRect();
+  let px, py;
+  if (
+    lastClient &&
+    lastClient[0] >= r.left && lastClient[0] <= r.right &&
+    lastClient[1] >= r.top && lastClient[1] <= r.bottom
+  ) {
+    px = lastClient[0] - r.left;
+    py = lastClient[1] - r.top;
+  } else {
+    px = r.width / 2;
+    py = r.height / 2;
+  }
+  return props.viewport.toWorld(px, py);
+}
 function isTyping(e) {
   const t = e.target;
   return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
 }
 function onKeyDown(e) {
-  if (e.code === 'Space' && !isTyping(e) && !e.repeat) {
+  if (isTyping(e)) return;
+  if (e.code === 'Space' && !e.repeat) {
     spaceHeld.value = true;
     e.preventDefault();
+    return;
+  }
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.code === 'KeyZ') {
+    e.preventDefault();
+    e.shiftKey ? props.actions.redo() : props.actions.undo();
+    return;
+  }
+  if (mod && e.code === 'KeyC') {
+    if (props.doc.selected) props.actions.copyActive();
+    return;
+  }
+  if (mod && e.code === 'KeyV') {
+    e.preventDefault();
+    const [wx, wy] = pasteTarget();
+    props.actions.pasteAt(wx, wy);
+    return;
+  }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selected) {
+    e.preventDefault();
+    props.actions.deleteActive();
   }
 }
 function onKeyUp(e) {
@@ -78,6 +120,7 @@ function onUnitDown(u, e) {
     return;
   }
   if (e.button !== 0) return;
+  e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
   // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
   let target = u;
   if (e.altKey) target = props.actions.duplicateFrom(u);
@@ -168,7 +211,9 @@ onBeforeUnmount(() => {
     :class="{ panning: spaceHeld }"
     @wheel="onWheel"
     @pointerdown="onStageDown"
+    @pointermove="onStageMove"
     @contextmenu.prevent
+    @dragstart.prevent
   >
     <svg class="world">
       <defs>
@@ -177,10 +222,7 @@ onBeforeUnmount(() => {
           :width="STAGE_GRID" :height="STAGE_GRID"
           :patternTransform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`"
         >
-          <path
-            class="cross"
-            :d="`M ${STAGE_GRID / 2 - 5} ${STAGE_GRID / 2} h 10 M ${STAGE_GRID / 2} ${STAGE_GRID / 2 - 5} v 10`"
-          />
+          <path class="gridline" :d="`M ${STAGE_GRID} 0 H 0 V ${STAGE_GRID}`" />
         </pattern>
       </defs>
       <rect class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
@@ -204,6 +246,7 @@ onBeforeUnmount(() => {
           @resize-start="onResizeStart"
           @rotate="(d) => actions.rotate(d)"
           @flip="actions.flipActive()"
+          @dup="actions.duplicateActive()"
           @del="actions.deleteActive()"
         />
       </g>
@@ -213,10 +256,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); }
+.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); user-select: none; -webkit-user-select: none; }
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
 .gridbg { pointer-events: none; }
-.cross { stroke: #383838; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.gridline { stroke: #333; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

@@ -26,7 +26,7 @@ function exportSvg() {
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
         @set-b="docApi.setB"
-        @duplicate="docApi.duplicateActive"
+        @rename="docApi.renameActive"
         @export="exportSvg"
       />
     </aside>
