@@ -1,13 +1,13 @@
 <script setup>
 import { computed } from 'vue';
 
-// 선택된 유닛의 바운딩박스 + 리사이즈 핸들 + 회전 버튼 + 이름 라벨.
-// 월드 좌표에 그리되, 핸들/글자는 scale 역보정으로 화면 크기 고정.
+// 선택된 유닛의 바운딩박스 + 리사이즈 핸들 + 액션 버튼(플립/회전) + 이름 라벨.
+// 월드 좌표에 그리되, 핸들/글자/버튼은 scale 역보정으로 화면 크기 고정.
 const props = defineProps({
   unit: Object,  // { id, name, x, y, params }
   scale: Number, // 뷰포트 줌
 });
-const emit = defineEmits(['resizeStart', 'rotate']);
+const emit = defineEmits(['resizeStart', 'rotate', 'flip']);
 
 const W = computed(() => props.unit.params.W);
 const H = computed(() => props.unit.params.H);
@@ -22,6 +22,18 @@ const CURSORS = {
   n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize',
   nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize',
 };
+
+// 우측변 상단 기준 세로 일렬 액션 버튼. size/gap은 화면 px.
+const BTN = 28;
+const ACTIONS = [
+  { key: 'flip', glyph: '⇄', tip: 'flip thread direction' },
+  { key: 'ccw', glyph: '⟲', tip: 'rotate 90° counter-clockwise' },
+  { key: 'cw', glyph: '⟳', tip: 'rotate 90° clockwise' },
+];
+function onAction(key) {
+  if (key === 'flip') emit('flip');
+  else emit('rotate', key === 'cw' ? 1 : -1);
+}
 </script>
 
 <template>
@@ -29,15 +41,23 @@ const CURSORS = {
     <rect class="box" :width="W" :height="H" />
     <text class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
 
-    <!-- 회전 버튼 (우상단 외곽, 90° 스텝) -->
-    <g class="rot" :transform="`translate(${W} ${-px(22)})`">
-      <g :transform="`translate(${-px(46)} 0)`" @pointerdown.stop @click.stop="emit('rotate', -1)">
-        <rect :x="-px(10)" :y="-px(10)" :width="px(20)" :height="px(20)" />
-        <text :font-size="px(13)" :y="px(4.5)">⟲</text>
-      </g>
-      <g :transform="`translate(${-px(20)} 0)`" @pointerdown.stop @click.stop="emit('rotate', 1)">
-        <rect :x="-px(10)" :y="-px(10)" :width="px(20)" :height="px(20)" />
-        <text :font-size="px(13)" :y="px(4.5)">⟳</text>
+    <!-- 액션 버튼: 바운딩박스 우측변 상단, 세로 일렬 -->
+    <g class="actions" :transform="`translate(${W + px(12)} 0)`">
+      <g
+        v-for="(a, i) in ACTIONS"
+        :key="a.key"
+        class="abtn"
+        :transform="`translate(0 ${i * px(BTN + 6)})`"
+        @pointerdown.stop
+        @click.stop="onAction(a.key)"
+      >
+        <title>{{ a.tip }}</title>
+        <rect :width="px(BTN)" :height="px(BTN)" />
+        <text
+          :x="px(BTN / 2)" :y="px(BTN / 2)"
+          :font-size="px(16)"
+          text-anchor="middle" dominant-baseline="central"
+        >{{ a.glyph }}</text>
       </g>
     </g>
 
@@ -56,9 +76,9 @@ const CURSORS = {
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .label { fill: var(--accent); font-family: inherit; user-select: none; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.rot { cursor: pointer; }
-.rot rect { fill: var(--bg); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.rot text { fill: var(--text); text-anchor: middle; user-select: none; }
-.rot g:hover rect { stroke: var(--accent); }
-.rot g:hover text { fill: var(--accent); }
+.abtn { cursor: pointer; }
+.abtn rect { fill: var(--panel); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.abtn text { fill: var(--text); user-select: none; }
+.abtn:hover rect { stroke: var(--accent); }
+.abtn:hover text { fill: var(--accent); }
 </style>

@@ -4,12 +4,13 @@ import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
+import { ref } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MIN, B_MAX,
   GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
-  UNIT_MIN, UNIT_MAX, ASPECT_TOL,
+  UNIT_MIN, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
 } from '../geometry/constants.js';
 
 const props = defineProps({
@@ -21,16 +22,42 @@ const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'duplicate', '
 const p = computed(() => props.unit.params);
 const aspect = computed(() => p.value.W / p.value.H);
 
-// compression: 슬라이더는 -1(S→L 최대) ~ +1(L→S 최대) 정규화 값. rate = 1 + |v|·(RATE_MAX-1)
+// compression: 슬라이더 표기 -2.5x ~ +2.5x, 중앙 0(무압축) 스냅.
+// rate = 1 + |v|·(RATE_MAX-1)/COMP_SCALE, 부호 = 방향(+ = L→S)
 const compVal = computed(() => {
-  const t = (p.value.rate - 1) / (RATE_MAX - 1);
+  const t = ((p.value.rate - 1) / (RATE_MAX - 1)) * COMP_SCALE;
   return p.value.direction === 'StoL' ? -t : t;
 });
 function setComp(v) {
-  p.value.rate = 1 + Math.abs(v) * (RATE_MAX - 1);
+  if (Math.abs(v) < COMP_SNAP) v = 0; // 중앙 스냅포인트
+  p.value.rate = 1 + (Math.abs(v) / COMP_SCALE) * (RATE_MAX - 1);
   p.value.direction = v >= 0 ? 'LtoS' : 'StoL';
 }
-const compDisplay = computed(() => `${(compVal.value * 100).toFixed(1)}%`);
+const compDisplay = computed(() => {
+  const v = compVal.value;
+  return v === 0 ? '0' : `${v > 0 ? '+' : ''}${v.toFixed(2)}x`;
+});
+
+// 커스텀 비율 프리셋 — localStorage 영속
+const RATIO_KEY = 'eo.customRatios';
+const customRatios = ref(JSON.parse(localStorage.getItem(RATIO_KEY) || '[]'));
+const ratioInputOpen = ref(false);
+const ratioInput = ref('');
+const allAspects = computed(() => ASPECT_CHIPS.concat(customRatios.value));
+function addRatio() {
+  const t = ratioInput.value.trim();
+  let v = null;
+  const m = t.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (m) v = Number(m[1]) / Number(m[2]);
+  else if (/^\d+(?:\.\d+)?$/.test(t)) v = Number(t);
+  if (v && v > 0.05 && v < 20) {
+    customRatios.value.push({ label: t, v });
+    localStorage.setItem(RATIO_KEY, JSON.stringify(customRatios.value));
+    emit('setAspect', v);
+  }
+  ratioInput.value = '';
+  ratioInputOpen.value = false;
+}
 
 // Δ 슬라이더는 각자 실제 범위(a: 10–70%, b: 0–30%)를 0–100으로 정규화해 표기
 const aNorm = computed(() => Math.round(((p.value.a - A_MIN) / (A_MAX - A_MIN)) * 100));
@@ -39,7 +66,15 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
 
 <template>
   <div class="panel">
-    <header class="brand">EO GRAPHIC BUILDER</header>
+    <header class="brand">
+      <!-- placeholder 로고 — 추후 교체 -->
+      <svg class="logo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <rect x="0" y="9.5" width="24" height="5" fill="#FAF04B" />
+        <polygon points="3,9.5 13,3 16,3 16,9.5" fill="#FAF04B" />
+        <polygon points="8,14.5 8,21 11,21 21,14.5" fill="#FAF04B" />
+      </svg>
+      <span>GRAPHIC BUILDER</span>
+    </header>
 
     <div class="unitRow">
       <span class="unitName">{{ unit.name }}</span>
@@ -56,10 +91,24 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
         label="height (px)" :model-value="p.H" :min="UNIT_MIN" :max="UNIT_MAX"
         @update:model-value="(v) => emit('setSize', { H: v })"
       />
-      <ChipRow
-        :model-value="aspect" :chips="ASPECT_CHIPS" :tol="ASPECT_TOL"
-        @update:model-value="(v) => emit('setAspect', v)"
-      />
+      <div class="ratioHead">ratio</div>
+      <div class="ratioRow">
+        <ChipRow
+          :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
+          @update:model-value="(v) => emit('setAspect', v)"
+        />
+        <button v-if="!ratioInputOpen" class="chipPlus" title="add custom ratio" @click="ratioInputOpen = true">+</button>
+        <input
+          v-else
+          class="ratioInput"
+          v-model="ratioInput"
+          placeholder="21:9"
+          @keydown.enter="addRatio"
+          @keydown.esc="ratioInputOpen = false"
+          @blur="addRatio"
+          autofocus
+        />
+      </div>
     </section>
 
     <section>
@@ -84,7 +133,7 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
       <ChipRow v-model="p.rate" />
       <Slider
         label="compression rate" :model-value="compVal"
-        :min="-1" :max="1" :step="0.001"
+        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
         :display="compDisplay"
         @update:model-value="setComp"
       />
@@ -120,13 +169,6 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
           { value: 'one', label: 'one side' },
         ]"
       />
-      <Toggle
-        label="thread direction" v-model="p.threadDir"
-        :options="[
-          { value: 'LtoR', label: 'L→R' },
-          { value: 'RtoL', label: 'R→L' },
-        ]"
-      />
     </section>
 
     <section>
@@ -137,12 +179,33 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
 </template>
 
 <style scoped>
-.panel { display: flex; flex-direction: column; gap: 26px; }
+.panel { display: flex; flex-direction: column; gap: 10px; }
 .brand {
-  font-size: 13px; font-weight: 700; letter-spacing: 0.18em; color: var(--text);
-  padding-bottom: 14px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--text);
+  padding: 4px 2px 12px;
 }
-.unitRow { display: flex; justify-content: space-between; align-items: center; margin: -8px 0; }
+.logo { flex-shrink: 0; }
+.unitRow { display: flex; justify-content: space-between; align-items: center; padding: 0 2px 4px; }
+/* 카드형 섹션 구분 */
+section {
+  background: #191919; border: 1px solid #202020; padding: 14px 14px 12px;
+}
+.ratioHead {
+  font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 6px;
+}
+.ratioRow { display: flex; align-items: flex-start; gap: 6px; }
+.ratioRow :deep(.chips) { margin-bottom: 0; }
+.chipPlus {
+  border: 1px solid var(--line); background: none; color: var(--faint);
+  font-family: inherit; font-size: 12px; padding: 4px 9px; cursor: pointer;
+}
+.chipPlus:hover { color: var(--accent); border-color: var(--accent); }
+.ratioInput {
+  width: 56px; border: 1px solid var(--accent); background: none; color: var(--text);
+  font: inherit; font-size: 11px; padding: 4px 6px;
+}
 .unitName { font-size: 12px; color: var(--text); }
 .mini {
   border: 1px solid var(--line); background: none; color: var(--faint);

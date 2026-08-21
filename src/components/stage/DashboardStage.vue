@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { UNIT_MIN, UNIT_MAX } from '../../geometry/constants.js';
+import { UNIT_MIN, UNIT_MAX, STAGE_GRID } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
@@ -11,8 +11,8 @@ import ZoomBadge from './ZoomBadge.vue';
 const props = defineProps({
   doc: Object,      // useDocument().doc
   viewport: Object, // useViewport() 반환값
+  actions: Object,  // useDocument() 액션 (select/deselect/rotate/flipActive/duplicateFrom/setSize)
 });
-const emit = defineEmits(['select', 'deselect', 'rotate', 'resized']);
 
 const { vp, panBy, zoomAt, resetAt } = props.viewport;
 const el = ref(null);
@@ -66,7 +66,7 @@ function onStageDown(e) {
     e.preventDefault();
     beginDrag(e, { kind: 'pan', x0: vp.x, y0: vp.y });
   } else if (e.button === 0) {
-    emit('deselect');
+    props.actions.deselect();
   }
 }
 
@@ -78,8 +78,11 @@ function onUnitDown(u, e) {
     return;
   }
   if (e.button !== 0) return;
-  emit('select', u.id);
-  beginDrag(e, { kind: 'move', u, x0: u.x, y0: u.y });
+  // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
+  let target = u;
+  if (e.altKey) target = props.actions.duplicateFrom(u);
+  else props.actions.select(u.id);
+  beginDrag(e, { kind: 'move', u: target, x0: target.x, y0: target.y });
 }
 
 // 리사이즈 (SelectionOverlay 핸들에서)
@@ -131,8 +134,7 @@ function onMove(e) {
 
 function onUp() {
   if (drag && drag.kind === 'resize') {
-    // W 변경에 따른 파생 제약 정리 (거터 클램프)
-    emit('resized');
+    props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
   }
   drag = null;
   window.removeEventListener('pointermove', onMove);
@@ -169,6 +171,19 @@ onBeforeUnmount(() => {
     @contextmenu.prevent
   >
     <svg class="world">
+      <defs>
+        <pattern
+          id="stage-grid" patternUnits="userSpaceOnUse"
+          :width="STAGE_GRID" :height="STAGE_GRID"
+          :patternTransform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`"
+        >
+          <path
+            class="cross"
+            :d="`M ${STAGE_GRID / 2 - 5} ${STAGE_GRID / 2} h 10 M ${STAGE_GRID / 2} ${STAGE_GRID / 2 - 5} v 10`"
+          />
+        </pattern>
+      </defs>
+      <rect class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <UnitGraphic
@@ -187,7 +202,8 @@ onBeforeUnmount(() => {
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
-          @rotate="(d) => emit('rotate', d)"
+          @rotate="(d) => actions.rotate(d)"
+          @flip="actions.flipActive()"
         />
       </g>
     </svg>
@@ -200,4 +216,6 @@ onBeforeUnmount(() => {
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
+.gridbg { pointer-events: none; }
+.cross { stroke: #383838; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

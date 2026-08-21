@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue';
 import {
-  A_MIN, A_MAX, B_MIN, B_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
+  A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
 } from '../geometry/constants.js';
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -84,11 +84,35 @@ export function useDocument() {
   function setAspect(v) {
     setSize({ H: active.value.params.W / v });
   }
+  // Δa/Δb 커플링: 합이 AB_SUM_MAX를 넘으면 반대쪽을 밀어냄
+  // → 경사변 수평 런 (1-a-b) = 10% 고정 유지, 사다리꼴 역전 구조적 방지
   function setA(v) {
-    active.value.params.a = clamp(v, A_MIN, A_MAX);
+    const p = active.value.params;
+    p.a = clamp(v, A_MIN, A_MAX);
+    if (p.a + p.b > AB_SUM_MAX) p.b = Math.max(B_MIN, +(AB_SUM_MAX - p.a).toFixed(4));
   }
   function setB(v) {
-    active.value.params.b = clamp(v, B_MIN, B_MAX);
+    const p = active.value.params;
+    p.b = clamp(v, B_MIN, B_MAX);
+    if (p.a + p.b > AB_SUM_MAX) p.a = Math.max(A_MIN, +(AB_SUM_MAX - p.b).toFixed(4));
+  }
+  function flipActive() {
+    const p = active.value.params;
+    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+  }
+  // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 얕은 복사 = 전부 원시값이라 완전 독립)
+  function duplicateFrom(u) {
+    const id = nextId++;
+    const copy = {
+      id,
+      name: `unit v${nextVersion++}`,
+      x: u.x,
+      y: u.y,
+      params: { ...u.params },
+    };
+    doc.units.push(copy);
+    select(id);
+    return doc.units[doc.units.length - 1]; // reactive proxy 반환
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   function rotate(dir) {
@@ -100,7 +124,7 @@ export function useDocument() {
 
   return {
     doc, active, gutterMax,
-    select, deselect, duplicateActive,
-    setSize, setAspect, setA, setB, rotate,
+    select, deselect, duplicateActive, duplicateFrom,
+    setSize, setAspect, setA, setB, rotate, flipActive,
   };
 }

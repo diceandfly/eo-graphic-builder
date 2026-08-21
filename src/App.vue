@@ -30,14 +30,7 @@ function exportSvg() {
         @export="exportSvg"
       />
     </aside>
-    <DashboardStage
-      :doc="doc"
-      :viewport="viewport"
-      @select="docApi.select"
-      @deselect="docApi.deselect"
-      @rotate="docApi.rotate"
-      @resized="docApi.setSize({})"
-    />
+    <DashboardStage :doc="doc" :viewport="viewport" :actions="docApi" />
   </div>
 </template>
 

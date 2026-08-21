@@ -32,6 +32,7 @@ const otf = computed(() =>
     </g>
     <!-- 그리드 가이드: 유닛 밖, export 미포함 -->
     <g v-if="showGuides" class="guides">
+      <rect x="0" y="0" :width="d.localW" :height="d.localH" fill="none" />
       <template v-for="(c, i) in d.columns" :key="i">
         <line :x1="f(c.L)" y1="0" :x2="f(c.L)" :y2="d.localH" />
         <line :x1="f(c.R)" y1="0" :x2="f(c.R)" :y2="d.localH" />
@@ -44,5 +45,5 @@ const otf = computed(() =>
 </template>
 
 <style scoped>
-.guides line { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
+.guides line, .guides rect { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>
