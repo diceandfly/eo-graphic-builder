@@ -1,0 +1,24 @@
+// 지오메트리/제약 상수. 튜닝 지점은 전부 여기로 모은다.
+export const A_MIN = 0.10;       // Δa 하한 (col 폭 대비)
+export const A_MAX = 0.70;       // Δa 상한
+export const B_MIN = 0;          // Δb 하한
+export const B_MAX = 0.30;       // Δb 상한 (a+b 상호 제약 없음 — 2026-08-19 삭제)
+export const COLS_MIN = 1;
+export const COLS_MAX = 24;
+export const RATE_MIN = 1.0;
+export const RATE_MAX = 2.5;
+export const RATE_STEP = 0.001;
+export const CHIP_TOL = 0.004;   // 비율칩 활성 판정 허용오차
+export const MIN_COL_W = 0.01;   // 폭 0 수렴 col의 path 붕괴 가드 (px)
+export const EPS = 0.01;         // degenerate 도형 생략 기준 (px)
+export const D_PCT_MIN = 2;      // shaft 높이 하한 (H 대비 %)
+export const D_PCT_MAX = 90;     // shaft 높이 상한 (H 대비 %)
+export const GUTTER_MIN = 10;    // gutterPx 슬라이더 하한 (px)
+export const G_MIN = 0.1;        // proportional 거터 비율 하한
+export const G_MAX = 0.5;        // proportional 거터 비율 상한
+export const G_STEP = 0.005;     // proportional 거터 슬라이더 step
+export const GUTTER_MAX = 30;    // gutterPx 슬라이더 상한 (px) — min(GUTTER_MAX, W/cols)
+export const THREAD_MIN_RATIO = 0.002; // col 폭 < W·비율 이면 thread를 W·비율 폭 직사각형으로 렌더
+export const THREAD_OVERLAP = 1; // thread를 shaft 쪽으로 1px 파묻어 AA 유격 제거
+export const SIZE_MIN = 250;     // 캔버스 W/H 공통 하한 (px) — 90° 회전 스왑이 손실 없도록 동일 범위
+export const SIZE_MAX = 2400;    // 캔버스 W/H 공통 상한 (px)

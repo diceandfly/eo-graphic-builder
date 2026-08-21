@@ -1,0 +1,42 @@
+/* RETÍCULA 참조 팔레트 — accent만 브랜드 옐로우로 치환 */
+:root {
+  --bg: #0B0B0B;
+  --panel: #151515;
+  --canvas: #0E0E0E;
+  --line: #262626;
+  --text: #ECECEC;
+  --faint: #7C7C7C;
+  --accent: #FAF04B;
+  --trim: #C9C9C9;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#app { height: 100vh; }
+
+/* 슬라이더 — 2px 트랙 + 15px 사각 썸 (레퍼런스 .rg) */
+.rg {
+  -webkit-appearance: none; appearance: none;
+  display: block; width: 100%; height: 2px;
+  background: var(--line); outline: none; margin: 7px 0; cursor: pointer;
+}
+.rg::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: var(--accent); border: none; border-radius: 0; cursor: pointer;
+}
+.rg::-moz-range-thumb {
+  width: 12px; height: 12px;
+  background: var(--accent); border: none; border-radius: 0; cursor: pointer;
+}
+.rg:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent);
+}
+
+input[type='checkbox'] { accent-color: var(--accent); }
