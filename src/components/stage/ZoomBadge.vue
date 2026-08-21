@@ -2,25 +2,25 @@
 import { computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
+import { ICONS } from '../../ui/icons.js';
 
 // 우하단 코너 바 — 캔버스 그리드 / 유닛 그리드 토글 + 줌%
 const props = defineProps({ scale: Number, guides: Boolean, stageGrid: Boolean });
 defineEmits(['reset', 'toggleGuides', 'toggleStageGrid']);
 const pct = computed(() => Math.round(props.scale * 100));
-const GRID_PATHS = ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'];
-const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
+
 </script>
 
 <template>
   <div class="corner">
     <FloatingBar>
       <IconButton
-        :paths="HASH_PATHS" :active="stageGrid" tip-align="right"
+        :paths="ICONS.canvasGrid" :active="stageGrid" tip-align="right"
         :tip="stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid'"
         @click="$emit('toggleStageGrid')"
       />
       <IconButton
-        :paths="GRID_PATHS" :active="guides" tip-align="right"
+        :paths="ICONS.unitGrid" :active="guides" tip-align="right"
         :tip="guides ? 'Hide Unit Grid' : 'Show Unit Grid'"
         @click="$emit('toggleGuides')"
       />

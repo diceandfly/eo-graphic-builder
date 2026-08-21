@@ -591,3 +591,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **활성 문법 2종 유지 확정** — 칩=채움(값 선택), seg/ghost=보더(모드 전환).
 - 적용: ChipRow · Toggle · NumberField · ControlPanel(ghost/chipPlus/ratioInput/nameInput). 시각 변화 0 확인.
 - 사용자 검토 후 확정/롤백 결정 (임시 라운드).
+
+## 45. 2026-08-21 — 키보드 이동·멀티 복제 + 리팩토링 6단계
+
+1. **방향키 이동** — 선택 유닛 1px, Shift+방향키 10px (입력칸 포커스 중 제외, 페이지 스크롤 차단).
+2. **멀티선택 Alt+드래그 복제** — 선택 전체를 상대 위치 유지한 채 복제, 사본끼리 그룹 구조 재구성(새 gid), 링크 승계, 사본들이 새 선택이 되어 함께 드래그.
+3. **리팩토링 6단계: 아이콘 중앙화** — `src/ui/icons.js` 딕셔너리(24vb 스트로크 패스, 동작명 키). Toolbar·ZoomBadge·AlignBar·SelectionOverlay·링크 배지가 전부 참조. 아이콘 교체/추가는 이 파일에서만.

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { BRAND_COLORS } from '../../geometry/constants.js';
+import { ICONS } from '../../ui/icons.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
 // 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide)
@@ -13,38 +14,14 @@ const props = defineProps({
 const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open', 'reset']);
 
 const TOOLS = [
-  {
-    key: 'select', tip: 'Select (V)',
-    paths: ['M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z', 'M13 13l9 9'],
-  },
-  {
-    key: 'eyedrop', tip: 'Eyedropper (I)',
-    paths: [
-      'm2 22 1-1h3l9-9', 'M3 21v-3l9-9',
-      'm15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z',
-    ],
-  },
+  { key: 'select', tip: 'Select (V)', paths: ICONS.select },
+  { key: 'eyedrop', tip: 'Eyedropper (I)', paths: ICONS.eyedrop },
 ];
 const ACTIONS = [
-  {
-    key: 'export', tip: 'Export SVG',
-    paths: ['M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8', 'm16 6-4-4-4 4', 'M12 2v13'],
-  },
-  {
-    key: 'save', tip: 'Save JSON',
-    paths: [
-      'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z',
-      'M17 21v-8H7v8', 'M7 3v5h8',
-    ],
-  },
-  {
-    key: 'open', tip: 'Open JSON',
-    paths: ['M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'],
-  },
-  {
-    key: 'reset', tip: 'Reset dashboard',
-    paths: ['M1 4v6h6', 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10'],
-  },
+  { key: 'export', tip: 'Export SVG', paths: ICONS.exportSvg },
+  { key: 'save', tip: 'Save JSON', paths: ICONS.save },
+  { key: 'open', tip: 'Open JSON', paths: ICONS.open },
+  { key: 'reset', tip: 'Reset dashboard', paths: ICONS.reset },
 ];
 
 const fileEl = ref(null);

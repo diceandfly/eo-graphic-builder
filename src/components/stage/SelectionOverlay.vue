@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { readTokenMs } from '../../utils/cssToken.js';
+import { ICONS } from '../../ui/icons.js';
 
 // 선택된 유닛의 바운딩박스 + 리사이즈 핸들 + 액션 버튼(플립/회전) + 이름 라벨.
 // 월드 좌표에 그리되, 핸들/글자/버튼은 scale 역보정으로 화면 크기 고정.
@@ -29,30 +30,10 @@ const CURSORS = {
 const BTN = 28;
 const ICON = 16; // 버튼 내 아이콘 기본 크기 (화면 px). s = 개별 배율, dx = 화면 px 미세보정.
 const ACTIONS = [
-  {
-    key: 'flip', tip: 'Flip horizontal',
-    paths: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
-  },
-  {
-    key: 'flipv', tip: 'Flip vertical',
-    paths: ['m3 8 4-4 4 4', 'M7 4v16', 'm21 16-4 4-4-4', 'M17 20V4'],
-  },
-  {
-    key: 'dup', tip: 'Duplicate unit',
-    paths: [
-      'M11 9h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z',
-      'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
-    ],
-  },
-  {
-    key: 'del', tip: 'Delete unit',
-    paths: [
-      'M3 6h18',
-      'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6',
-      'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
-      'M10 11v6', 'M14 11v6',
-    ],
-  },
+  { key: 'flip', tip: 'Flip horizontal', paths: ICONS.flipH },
+  { key: 'flipv', tip: 'Flip vertical', paths: ICONS.flipV },
+  { key: 'dup', tip: 'Duplicate unit', paths: ICONS.duplicate },
+  { key: 'del', tip: 'Delete unit', paths: ICONS.trash },
 ];
 function onAction(key) {
   if (key === 'flip') emit('flip');

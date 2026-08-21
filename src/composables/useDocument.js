@@ -286,6 +286,34 @@ export function useDocument() {
   function duplicateFrom(u) {
     return pushUnit({ ...u.params }, u.x, u.y, u.linkId);
   }
+  // 복수 유닛 동시 복제 — 상대 위치 그대로, 그룹 구조는 사본끼리 새 gid로 재구성, 링크 승계
+  function duplicateUnits(units) {
+    const gidMap = new Map(); // 원본 gid → 사본 gid
+    const copies = [];
+    for (const u of units) {
+      const id = nextId++;
+      const groups = u.groups.map((g) => {
+        if (!gidMap.has(g)) gidMap.set(g, nextGroup++);
+        return gidMap.get(g);
+      });
+      doc.units.push({
+        id, name: `unit v${nextVersion++}`, x: u.x, y: u.y,
+        groups, linkId: u.linkId, params: { ...u.params },
+      });
+      copies.push(doc.units[doc.units.length - 1]);
+    }
+    setSelection(copies.map((c) => c.id));
+    return copies;
+  }
+  // 선택 유닛 키보드 이동 (방향키 1px / Shift 10px)
+  function nudgeSelected(dx, dy) {
+    for (const u of doc.units) {
+      if (doc.selectedIds.includes(u.id)) {
+        u.x += dx;
+        u.y += dy;
+      }
+    }
+  }
 
   // ---- 활성 유닛 파라미터 액션 ----
   function normalize(p) {
@@ -507,7 +535,7 @@ export function useDocument() {
   return {
     doc, active, gutterMax, alignSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
-    duplicateActive, duplicateFrom, deleteSelected, createUnit,
+    duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, setFill,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

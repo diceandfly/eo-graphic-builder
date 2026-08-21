@@ -8,6 +8,7 @@ import Toolbar from './Toolbar.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
+import { ICONS } from '../../ui/icons.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -178,6 +179,15 @@ function onKeyDown(e) {
     props.actions.deleteSelected();
     return;
   }
+  // 방향키: 선택 유닛 1px 이동, Shift = 10px
+  const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (ARROWS[e.key] && props.doc.selectedIds.length) {
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    const [ax, ay] = ARROWS[e.key];
+    props.actions.nudgeSelected(ax * step, ay * step);
+    return;
+  }
   if (!mod && e.code === 'KeyV') mode.value = 'select';
   if (!mod && e.code === 'KeyI') mode.value = 'eyedrop';
 }
@@ -233,7 +243,11 @@ function onUnitDown(u, e) {
   // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
   let targets;
   if (e.altKey) {
-    targets = [props.actions.duplicateFrom(u)];
+    // 멀티선택 안의 유닛을 Alt+드래그하면 선택 전체를 상대 위치 유지한 채 복제
+    const inMulti = props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1;
+    targets = inMulti
+      ? props.actions.duplicateUnits(props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id)))
+      : [props.actions.duplicateFrom(u)];
   } else if (e.detail === 2 && og) {
     // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
     props.actions.selectOnly(u.id);
@@ -704,8 +718,7 @@ onBeforeUnmount(() => {
         >
           <text :x="-pxs(20)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end">{{ linkIndex[u.linkId] }}</text>
           <g :transform="`translate(${-pxs(16)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
         <!-- 정렬 키 오브젝트: 두꺼운 스트로크 하이라이트 -->
