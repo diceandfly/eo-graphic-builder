@@ -4,7 +4,7 @@ import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { BRAND_COLORS } from '../geometry/constants.js';
 import {
@@ -60,6 +60,12 @@ const compDisplay = computed(() => {
 // 커스텀 비율 프리셋 — localStorage 영속
 const RATIO_KEY = 'eo.customRatios';
 const customRatios = ref(JSON.parse(localStorage.getItem(RATIO_KEY) || '[]'));
+// JSON 프로젝트 열기 등으로 저장소가 바뀌면 칩 목록 즉시 갱신
+const reloadRatios = () => {
+  customRatios.value = JSON.parse(localStorage.getItem(RATIO_KEY) || '[]');
+};
+onMounted(() => window.addEventListener('eo:ratios', reloadRatios));
+onBeforeUnmount(() => window.removeEventListener('eo:ratios', reloadRatios));
 const ratioInputOpen = ref(false);
 const ratioInput = ref('');
 const allAspects = computed(() => ASPECT_CHIPS.concat(customRatios.value));
@@ -132,10 +138,12 @@ function cancelRename() {
       <h2>Size</h2>
       <NumberField
         label="width (px)" :model-value="p.W" :min="UNIT_MIN" :max="UNIT_MAX"
+        :mixed="mixed('W')"
         @update:model-value="(v) => emit('setSize', { W: v })"
       />
       <NumberField
         label="height (px)" :model-value="p.H" :min="UNIT_MIN" :max="UNIT_MAX"
+        :mixed="mixed('H')"
         @update:model-value="(v) => emit('setSize', { H: v })"
       />
       <div class="ratioHead">ratio</div>

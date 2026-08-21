@@ -548,7 +548,7 @@ onBeforeUnmount(() => {
           <UnitGraphic
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
-            :seam="vp.scale < 1"
+            :seam-width="Math.max(0, 1.2 - vp.scale)"
           />
           <rect
             class="hit"
@@ -597,6 +597,18 @@ onBeforeUnmount(() => {
         />
         <template v-for="(g, gi) in gapGuides" :key="'gap' + gi">
           <template v-for="(seg, si) in g.segs" :key="si">
+            <text
+              v-if="g.axis === 'x'"
+              class="gaptext"
+              :x="(seg[0] + seg[1]) / 2" :y="g.at - pxs(7)"
+              :font-size="pxs(10)" text-anchor="middle"
+            >{{ Math.round(seg[1] - seg[0]) }}</text>
+            <text
+              v-else
+              class="gaptext"
+              :x="g.at + pxs(9)" :y="(seg[0] + seg[1]) / 2 + pxs(3)"
+              :font-size="pxs(10)"
+            >{{ Math.round(seg[1] - seg[0]) }}</text>
             <line
               v-if="g.axis === 'x'"
               class="gapline" :x1="seg[0]" :y1="g.at" :x2="seg[1]" :y2="g.at"
@@ -682,6 +694,7 @@ onBeforeUnmount(() => {
 .marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gapline { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gaptext { fill: #ff5ca8; font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .gridline { stroke: #3f3f3f; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

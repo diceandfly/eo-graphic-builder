@@ -5,7 +5,7 @@ import { deriveUnit, orientationTransform } from '../../geometry/derive.js';
 const props = defineProps({
   params: Object,
   showGuides: Boolean,
-  seam: Boolean, // 줌 < 100%에서만 동색 스트로크로 접합 헤어라인 봉합
+  seamWidth: { type: Number, default: 0 }, // 접합 봉합 스트로크 (화면 px, 0이면 없음)
 });
 const fill = computed(() => props.params.fill || '#FAF04B');
 
@@ -27,10 +27,10 @@ const otf = computed(() =>
         v-if="d.unit.shaft"
         :x="f(d.unit.shaft.x)" :y="f(d.unit.shaft.y)"
         :width="f(d.unit.shaft.width)" :height="f(d.unit.shaft.height)"
-        :fill="fill" :stroke="seam ? fill : 'none'" class="seam"
+        :fill="fill" :stroke="seamWidth > 0 ? fill : 'none'" :stroke-width="seamWidth" class="seam"
       />
-      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" :stroke="seam ? fill : 'none'" class="seam" />
-      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" :stroke="seam ? fill : 'none'" class="seam" />
+      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" :stroke="seamWidth > 0 ? fill : 'none'" :stroke-width="seamWidth" class="seam" />
+      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" :stroke="seamWidth > 0 ? fill : 'none'" :stroke-width="seamWidth" class="seam" />
     </g>
     <!-- 그리드 가이드: 유닛 밖, export 미포함 -->
     <g v-if="showGuides" class="guides">
@@ -47,6 +47,6 @@ const otf = computed(() =>
 </template>
 
 <style scoped>
-.seam { stroke-width: 1; vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
+.seam { vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
 .guides line, .guides rect { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>

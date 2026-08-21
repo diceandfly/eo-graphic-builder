@@ -15,7 +15,7 @@ export function createParams(overrides = {}) {
     cols: 8,
     gutterMode: 'fixed', // 'fixed' | 'proportional'
     gutterPx: 20,
-    g: 0.1,
+    g: 0.2,
     rate: 1.618,
     direction: 'LtoS',
     // Shape
@@ -151,6 +151,12 @@ export function useDocument() {
   // ---- 멀티선택 파라미터 브로드캐스트 ----
   // 패널은 활성 유닛의 params를 직접 편집한다. 변경된 키만 감지해
   // 나머지 선택 유닛에 같은 값을 미러링한다.
+  let notify = () => {};
+  function setNotifier(fn) {
+    notify = fn;
+  }
+  let lastBroadcastNote = 0;
+
   let mirrorGuard = false;
   watch(
     () => (active.value ? [active.value.id, JSON.stringify(active.value.params)] : [null, null]),
@@ -175,6 +181,11 @@ export function useDocument() {
         if (targets.has(u.id)) Object.assign(u.params, patch);
       }
       mirrorGuard = false;
+      // 멀티선택 편집이 여러 유닛에 퍼졌음을 1회성 토스트로 안내
+      if (doc.selectedIds.length >= 2 && Date.now() - lastBroadcastNote > 2500) {
+        lastBroadcastNote = Date.now();
+        notify(`Applied to ${doc.selectedIds.length} selected units`);
+      }
     }
   );
 
@@ -231,9 +242,9 @@ export function useDocument() {
     pushUnit({ ...clipboard }, Math.round(x - clipboard.W / 2), Math.round(y - clipboard.H / 2));
   }
 
-  function pushUnit(params, x, y) {
+  function pushUnit(params, x, y, linkId = null) {
     const id = nextId++;
-    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groups: [], linkId: null, params });
+    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groups: [], linkId, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -263,11 +274,11 @@ export function useDocument() {
   function duplicateActive() {
     const src = active.value;
     if (!src) return;
-    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y);
+    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y, src.linkId);
   }
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    return pushUnit({ ...u.params }, u.x, u.y);
+    return pushUnit({ ...u.params }, u.x, u.y, u.linkId);
   }
 
   // ---- 활성 유닛 파라미터 액션 ----
@@ -380,6 +391,7 @@ export function useDocument() {
         u.linkId = lid;
         if (u !== src) Object.assign(u.params, { ...src.params });
       }
+      cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
       return { action: 'linked', count: sel.length, src: src.name };
     }
   }
@@ -389,17 +401,26 @@ export function useDocument() {
     for (const u of doc.units) if (u.linkId && counts[u.linkId] < 2) u.linkId = null;
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
+  // 회전은 링크 멤버 각각에 자기 중심 기준으로 직접 적용
+  // (미러 패치는 W/H만 복사해 위치가 어긋나므로 여기서 위치까지 보정.
+  //  반올림 없이 소수 좌표 유지 — 반복 회전 시 누적 오차 방지)
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
-    const p = u.params;
-    const cx = u.x + p.W / 2;
-    const cy = u.y + p.H / 2;
-    [p.W, p.H] = [p.H, p.W];
-    p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
-    u.x = Math.round(cx - p.W / 2);
-    u.y = Math.round(cy - p.H / 2);
-    normalize(p);
+    const targets = [u];
+    if (u.linkId) {
+      for (const m of doc.units) if (m.linkId === u.linkId && m !== u) targets.push(m);
+    }
+    for (const t of targets) {
+      const p = t.params;
+      const cx = t.x + p.W / 2;
+      const cy = t.y + p.H / 2;
+      [p.W, p.H] = [p.H, p.W];
+      p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+      t.x = cx - p.W / 2;
+      t.y = cy - p.H / 2;
+      normalize(p);
+    }
   }
   // 상하 반전 = 180° 회전 + 좌우 반전 (W/H 불변, one-side의 shaft 위치도 뒤집힘)
   function flipUnitV() {
@@ -422,6 +443,6 @@ export function useDocument() {
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,
     undo, redo, copyActive, pasteAt, renameActive,
-    loadProject, absorbFrom,
+    loadProject, absorbFrom, setNotifier,
   };
 }

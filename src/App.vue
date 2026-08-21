@@ -55,7 +55,10 @@ async function openProject(file) {
     const data = JSON.parse(await file.text());
     docApi.loadProject(data.units || []);
     if (data.viewport) Object.assign(viewport.vp, data.viewport);
-    if (data.customRatios) localStorage.setItem('eo.customRatios', JSON.stringify(data.customRatios));
+    if (data.customRatios) {
+      localStorage.setItem('eo.customRatios', JSON.stringify(data.customRatios));
+      window.dispatchEvent(new Event('eo:ratios'));
+    }
   } catch (err) {
     console.error('invalid project file', err);
   }
@@ -71,6 +74,8 @@ function onLink() {
     );
   }
 }
+
+docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 const stageActions = { ...docApi, exportSvg, saveProject, openProject };
 </script>

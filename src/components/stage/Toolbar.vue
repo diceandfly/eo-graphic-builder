@@ -43,14 +43,21 @@ const ACTIONS = [
 
 const fileEl = ref(null);
 
-// 스포이드 우클릭 → 범주 스코프 메뉴
+// 스포이드 우클릭 → 범주 스코프 메뉴 (5초 무조작 시 자동 닫힘)
 const menuOpen = ref(false);
+let idleTimer = null;
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(closeMenu, 5000);
+}
 function onToolContext(key, e) {
   if (key !== 'eyedrop') return;
   e.preventDefault();
   menuOpen.value = !menuOpen.value;
+  if (menuOpen.value) resetIdle();
 }
 function closeMenu() {
+  clearTimeout(idleTimer);
   menuOpen.value = false;
 }
 watch(menuOpen, (open) => {
@@ -81,31 +88,42 @@ function onFile(e) {
       ><span class="chip" :style="{ background: c }" /></button>
     </div>
     <div class="bar">
-    <button
+    <div
       v-for="t in TOOLS"
       :key="t.key"
-      class="tbtn"
-      :class="{ on: mode === t.key }"
-      @click="emit('update:mode', t.key)"
-      @contextmenu="onToolContext(t.key, $event)"
+      class="toolWrap"
+      :class="{ hasMenu: menuOpen && t.key === 'eyedrop' }"
     >
-      <svg viewBox="0 0 24 24"><path v-for="(d, i) in t.paths" :key="i" :d="d" /></svg>
-      <span class="tip">{{ t.tip }}</span>
-    </button>
+      <button
+        class="tbtn"
+        :class="{ on: mode === t.key }"
+        @click="emit('update:mode', t.key)"
+        @contextmenu="onToolContext(t.key, $event)"
+      >
+        <svg viewBox="0 0 24 24"><path v-for="(d, i) in t.paths" :key="i" :d="d" /></svg>
+        <span class="tip">{{ t.tip }}</span>
+      </button>
+      <!-- 스포이드 스코프 메뉴: 버튼 기준 중앙 정렬, 메뉴 표시 중엔 툴팁 억제 -->
+      <div
+        v-if="t.key === 'eyedrop' && menuOpen && scope"
+        class="menu"
+        @pointerdown.stop="resetIdle"
+        @pointermove="resetIdle"
+        @change="resetIdle"
+      >
+        <div class="menuTitle">Eyedropper picks</div>
+        <label v-for="(label, key) in SCOPE_LABELS" :key="key" class="menuRow">
+          <input type="checkbox" v-model="scope[key]" />
+          <span>{{ label }}</span>
+        </label>
+      </div>
+    </div>
     <span class="sep" />
     <button v-for="a in ACTIONS" :key="a.key" class="tbtn" @click="onAction(a.key)">
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in a.paths" :key="i" :d="d" /></svg>
       <span class="tip">{{ a.tip }}</span>
     </button>
     <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
-    </div>
-    <!-- 스포이드 스코프 메뉴 (우클릭) -->
-    <div v-if="menuOpen && scope" class="menu" @pointerdown.stop>
-      <div class="menuTitle">Eyedropper picks</div>
-      <label v-for="(label, key) in SCOPE_LABELS" :key="key" class="menuRow">
-        <input type="checkbox" v-model="scope[key]" />
-        <span>{{ label }}</span>
-      </label>
     </div>
   </div>
 </template>
@@ -148,8 +166,10 @@ function onFile(e) {
   opacity: 0; pointer-events: none; transition: opacity 0.1s;
 }
 .tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
+.toolWrap { position: relative; }
+.toolWrap.hasMenu .tip { display: none; } /* 메뉴와 툴팁 위치 충돌 방지 */
 .menu {
-  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); padding: 10px 12px;
   display: flex; flex-direction: column; gap: 8px;
 }
