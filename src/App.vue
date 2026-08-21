@@ -22,6 +22,35 @@ function createUnit() {
   const [wx, wy] = stageRef.value.centerWorld();
   docApi.createUnit(wx, wy);
 }
+
+// JSON 프로젝트 저장/열기 — 대시보드 작업 전체 (유닛·뷰포트·커스텀 비율)
+function saveProject() {
+  const data = {
+    version: 1,
+    units: doc.units,
+    viewport: { ...viewport.vp },
+    customRatios: JSON.parse(localStorage.getItem('eo.customRatios') || '[]'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'eo-project.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function openProject(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    docApi.loadProject(data.units || []);
+    if (data.viewport) Object.assign(viewport.vp, data.viewport);
+    if (data.customRatios) localStorage.setItem('eo.customRatios', JSON.stringify(data.customRatios));
+  } catch (err) {
+    console.error('invalid project file', err);
+  }
+}
+
+const stageActions = { ...docApi, exportSvg, saveProject, openProject };
 </script>
 
 <template>
@@ -36,10 +65,9 @@ function createUnit() {
         @set-b="docApi.setB"
         @rename="docApi.renameActive"
         @create="createUnit"
-        @export="exportSvg"
       />
     </aside>
-    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="docApi" />
+    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" />
   </div>
 </template>
 

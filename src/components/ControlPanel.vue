@@ -17,7 +17,7 @@ const props = defineProps({
   unit: Object,      // 활성 유닛 { id, name, params }
   gutterMax: Number,
 });
-const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'export', 'create']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'rename', 'create']);
 
 // 동적 삽입 input 포커스 (autofocus는 초기 로드에만 동작)
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
@@ -102,7 +102,7 @@ function cancelRename() {
           v-focus
           class="nameInput"
           v-model="nameDraft"
-          @keydown.enter="commitRename"
+          @keydown.enter="(e) => { if (!e.isComposing) commitRename(); }"
           @keydown.esc="cancelRename"
           @blur="cancelRename"
         />
@@ -185,18 +185,14 @@ function cancelRename() {
         @update:model-value="(v) => emit('setB', 1 - v / 100)"
       />
       <Toggle
-        label="threads" v-model="p.threads"
+        label="thread sides" v-model="p.threads"
         :options="[
-          { value: 'both', label: 'both side' },
-          { value: 'one', label: 'one side' },
+          { value: 'both', label: 'double' },
+          { value: 'one', label: 'single' },
         ]"
       />
     </section>
 
-    <section>
-      <h2>Export</h2>
-      <button class="ghost" @click="emit('export')">export svg</button>
-    </section>
     </template>
   </div>
 </template>

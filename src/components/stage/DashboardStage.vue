@@ -4,6 +4,7 @@ import { UNIT_MIN, UNIT_MAX, STAGE_GRID } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
+import Toolbar from './Toolbar.vue';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -23,6 +24,8 @@ const singleSelected = computed(
   () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
 );
 const marquee = ref(null); // { x, y, w, h } — 화면 좌표
+const mode = ref('select'); // 'select' | 'eyedrop'
+const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
 let drag = null;
@@ -66,7 +69,9 @@ function pasteTarget() {
 }
 function isTyping(e) {
   const t = e.target;
-  return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+  if (!t) return false;
+  if (t.tagName === 'TEXTAREA' || t.isContentEditable) return true;
+  return t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type);
 }
 function onKeyDown(e) {
   if (isTyping(e)) return;
@@ -94,7 +99,10 @@ function onKeyDown(e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selectedIds.length) {
     e.preventDefault();
     props.actions.deleteSelected();
+    return;
   }
+  if (!mod && e.code === 'KeyV') mode.value = 'select';
+  if (!mod && e.code === 'KeyI') mode.value = 'eyedrop';
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -126,6 +134,12 @@ function onUnitDown(u, e) {
   }
   if (e.button !== 0) return;
   e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
+  if (mode.value === 'eyedrop') {
+    // 스포이드: 클릭한 유닛의 파라미터를 선택된 유닛들에 흡수 후 선택툴 복귀
+    props.actions.absorbFrom(u);
+    mode.value = 'select';
+    return;
+  }
   if (e.shiftKey) {
     props.actions.toggleSelect(u.id); // Shift+클릭 = 멀티선택 토글 (드래그 없음)
     return;
@@ -182,10 +196,55 @@ function onMove(e) {
   const dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
   const dy = dys / vp.scale;
   if (drag.kind === 'move') {
+    // 스마트 가이드: 다른 유닛의 엣지/센터(x·y 각 3개)에 6px(화면) 반경 스냅
+    const SNAP = 6 / vp.scale;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const t of drag.targets) {
-      t.u.x = t.x0 + dx;
-      t.u.y = t.y0 + dy;
+      minX = Math.min(minX, t.x0 + dx);
+      minY = Math.min(minY, t.y0 + dy);
+      maxX = Math.max(maxX, t.x0 + dx + t.u.params.W);
+      maxY = Math.max(maxY, t.y0 + dy + t.u.params.H);
     }
+    const others = props.doc.units.filter((u) => !drag.targets.some((t) => t.u === u));
+    const mineX = [minX, (minX + maxX) / 2, maxX];
+    const mineY = [minY, (minY + maxY) / 2, maxY];
+    let bestX = null, bestY = null;
+    for (const o of others) {
+      const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
+      const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+      for (const c of ox) for (const m of mineX) {
+        const d = c - m;
+        if (Math.abs(d) < SNAP && (!bestX || Math.abs(d) < Math.abs(bestX.d))) bestX = { d, pos: c, o };
+      }
+      for (const c of oy) for (const m of mineY) {
+        const d = c - m;
+        if (Math.abs(d) < SNAP && (!bestY || Math.abs(d) < Math.abs(bestY.d))) bestY = { d, pos: c, o };
+      }
+    }
+    const sdx = dx + (bestX ? bestX.d : 0);
+    const sdy = dy + (bestY ? bestY.d : 0);
+    for (const t of drag.targets) {
+      t.u.x = t.x0 + sdx;
+      t.u.y = t.y0 + sdy;
+    }
+    const guides = [];
+    if (bestX) {
+      const o = bestX.o;
+      guides.push({
+        axis: 'v', pos: bestX.pos,
+        from: Math.min(minY + (bestY ? bestY.d : 0), o.y),
+        to: Math.max(maxY + (bestY ? bestY.d : 0), o.y + o.params.H),
+      });
+    }
+    if (bestY) {
+      const o = bestY.o;
+      guides.push({
+        axis: 'h', pos: bestY.pos,
+        from: Math.min(minX + (bestX ? bestX.d : 0), o.x),
+        to: Math.max(maxX + (bestX ? bestX.d : 0), o.x + o.params.W),
+      });
+    }
+    smartGuides.value = guides;
     return;
   }
   // resize: 반대편 변 고정, Shift = 비율 고정(코너)
@@ -220,6 +279,7 @@ function onUp(e) {
     }
   }
   drag = null;
+  smartGuides.value = [];
   window.removeEventListener('pointermove', onMove);
 }
 
@@ -232,11 +292,13 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
-  const r = el.value.getBoundingClientRect();
-  const u = props.doc.units[0];
-  if (u) {
-    vp.x = (r.width - u.params.W) / 2;
-    vp.y = (r.height - u.params.H) / 2;
+  if (!props.viewport.restored) {
+    const r = el.value.getBoundingClientRect();
+    const u = props.doc.units[0];
+    if (u) {
+      vp.x = (r.width - u.params.W) / 2;
+      vp.y = (r.height - u.params.H) / 2;
+    }
   }
 });
 function centerWorld() {
@@ -256,7 +318,7 @@ onBeforeUnmount(() => {
   <div
     ref="el"
     class="stage"
-    :class="{ panning: spaceHeld }"
+    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop' }"
     @wheel="onWheel"
     @pointerdown="onStageDown"
     @pointermove="onStageMove"
@@ -306,6 +368,16 @@ onBeforeUnmount(() => {
           @dup="actions.duplicateActive()"
           @del="actions.deleteSelected()"
         />
+        <template v-for="(g, i) in smartGuides" :key="'sg' + i">
+          <line
+            v-if="g.axis === 'v'"
+            class="smartguide" :x1="g.pos" :y1="g.from" :x2="g.pos" :y2="g.to"
+          />
+          <line
+            v-else
+            class="smartguide" :x1="g.from" :y1="g.pos" :x2="g.to" :y2="g.pos"
+          />
+        </template>
       </g>
       <rect
         v-if="marquee"
@@ -313,6 +385,12 @@ onBeforeUnmount(() => {
         :x="marquee.x" :y="marquee.y" :width="marquee.w" :height="marquee.h"
       />
     </svg>
+    <Toolbar
+      v-model:mode="mode"
+      @export="actions.exportSvg()"
+      @save="actions.saveProject()"
+      @open="(f) => actions.openProject(f)"
+    />
     <ZoomBadge :scale="vp.scale" @reset="resetZoom" />
   </div>
 </template>
@@ -325,5 +403,7 @@ onBeforeUnmount(() => {
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
+.smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .gridline { stroke: #3f3f3f; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

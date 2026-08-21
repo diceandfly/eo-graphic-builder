@@ -12,9 +12,9 @@ export function createParams(overrides = {}) {
     H: 675,
     orientation: 0, // 0 | 90 | 180 | 270 (시계방향)
     // Grid
-    cols: 12,
+    cols: 8,
     gutterMode: 'fixed', // 'fixed' | 'proportional'
-    gutterPx: 15,
+    gutterPx: 20,
     g: 0.1,
     rate: 1.618,
     direction: 'LtoS',
@@ -32,14 +32,60 @@ export function createParams(overrides = {}) {
 // 문서 모델: 스테이지 위 유닛 버전들 + 멀티선택 상태.
 // - activeId: 패널이 편집하는 유닛 (선택 해제 후에도 유지, 유닛 0개면 null)
 // - selectedIds: 바운딩박스/이동/일괄 편집 대상
+const DOC_KEY = 'eo.doc';
+
 export function useDocument() {
+  // localStorage 자동 복원 (새로고침 안전망)
+  let savedUnits = null;
+  try {
+    savedUnits = JSON.parse(localStorage.getItem(DOC_KEY) || 'null')?.units ?? null;
+  } catch { savedUnits = null; }
+  const initialUnits = savedUnits ?? [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }];
+
   let nextId = 2;
   let nextVersion = 2;
   const doc = reactive({
-    units: [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }],
-    activeId: 1,
-    selectedIds: [1],
+    units: initialUnits,
+    activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
+    selectedIds: [],
   });
+  recalcCounters();
+  function recalcCounters() {
+    nextId = doc.units.reduce((m, u) => Math.max(m, u.id), 0) + 1;
+    nextVersion = doc.units.reduce((m, u) => {
+      const mt = u.name.match(/v(\d+)$/);
+      return Math.max(m, mt ? Number(mt[1]) : 0);
+    }, 0) + 1;
+  }
+
+  // 자동 저장 (500ms 디바운스)
+  let saveTimer = null;
+  watch(
+    () => JSON.stringify(doc.units),
+    (snap) => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        localStorage.setItem(DOC_KEY, JSON.stringify({ version: 1, units: JSON.parse(snap) }));
+      }, 500);
+    }
+  );
+
+  // JSON 프로젝트 로드 (파일 열기)
+  function loadProject(units) {
+    doc.units.splice(0, doc.units.length, ...units);
+    doc.selectedIds = [];
+    doc.activeId = units.length ? units[units.length - 1].id : null;
+    recalcCounters();
+  }
+
+  // 스포이드: 소스 유닛의 파라미터를 선택된 유닛들에 흡수 (위치·이름 유지)
+  function absorbFrom(source) {
+    for (const u of doc.units) {
+      if (u.id !== source.id && doc.selectedIds.includes(u.id)) {
+        Object.assign(u.params, { ...source.params });
+      }
+    }
+  }
 
   const active = computed(() => doc.units.find((u) => u.id === doc.activeId) ?? null);
   const gutterMax = computed(() => {
@@ -233,5 +279,6 @@ export function useDocument() {
     duplicateActive, duplicateFrom, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, flipActive,
     undo, redo, copyActive, pasteAt, renameActive,
+    loadProject, absorbFrom,
   };
 }
