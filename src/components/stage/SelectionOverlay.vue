@@ -7,7 +7,7 @@ const props = defineProps({
   unit: Object,  // { id, name, x, y, params }
   scale: Number, // 뷰포트 줌
 });
-const emit = defineEmits(['resizeStart', 'rotate', 'flip']);
+const emit = defineEmits(['resizeStart', 'rotate', 'flip', 'del']);
 
 const W = computed(() => props.unit.params.W);
 const H = computed(() => props.unit.params.H);
@@ -24,14 +24,35 @@ const CURSORS = {
 };
 
 // 우측변 상단 기준 세로 일렬 액션 버튼. size/gap은 화면 px.
+// 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide) — 글리프 폰트 대신 볼륨감 통일
 const BTN = 28;
+const ICON = 16; // 버튼 내 아이콘 크기 (화면 px)
 const ACTIONS = [
-  { key: 'flip', glyph: '⇄', tip: 'flip thread direction' },
-  { key: 'ccw', glyph: '⟲', tip: 'rotate 90° counter-clockwise' },
-  { key: 'cw', glyph: '⟳', tip: 'rotate 90° clockwise' },
+  {
+    key: 'cw', tip: 'rotate 90° clockwise',
+    paths: ['M23 4v6h-6', 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10'],
+  },
+  {
+    key: 'ccw', tip: 'rotate 90° counter-clockwise',
+    paths: ['M1 4v6h6', 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10'],
+  },
+  {
+    key: 'flip', tip: 'flip thread direction',
+    paths: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
+  },
+  {
+    key: 'del', tip: 'delete unit',
+    paths: [
+      'M3 6h18',
+      'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6',
+      'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+      'M10 11v6', 'M14 11v6',
+    ],
+  },
 ];
 function onAction(key) {
   if (key === 'flip') emit('flip');
+  else if (key === 'del') emit('del');
   else emit('rotate', key === 'cw' ? 1 : -1);
 }
 </script>
@@ -53,11 +74,12 @@ function onAction(key) {
       >
         <title>{{ a.tip }}</title>
         <rect :width="px(BTN)" :height="px(BTN)" />
-        <text
-          :x="px(BTN / 2)" :y="px(BTN / 2)"
-          :font-size="px(16)"
-          text-anchor="middle" dominant-baseline="central"
-        >{{ a.glyph }}</text>
+        <g
+          class="icon"
+          :transform="`translate(${px((BTN - ICON) / 2)} ${px((BTN - ICON) / 2)}) scale(${px(ICON) / 24})`"
+        >
+          <path v-for="(d, j) in a.paths" :key="j" :d="d" />
+        </g>
       </g>
     </g>
 
@@ -78,7 +100,10 @@ function onAction(key) {
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .abtn { cursor: pointer; }
 .abtn rect { fill: var(--panel); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.abtn text { fill: var(--text); user-select: none; }
+.abtn .icon path {
+  fill: none; stroke: var(--text); stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .abtn:hover rect { stroke: var(--accent); }
-.abtn:hover text { fill: var(--accent); }
+.abtn:hover .icon path { stroke: var(--accent); }
 </style>

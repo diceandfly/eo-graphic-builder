@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <UnitGraphic
             :params="u.params"
-            :show-guides="u.id === doc.activeId && u.params.showGuides"
+            :show-guides="doc.selected && u.id === doc.activeId && u.params.showGuides"
           />
           <rect
             class="hit"
@@ -204,6 +204,7 @@ onBeforeUnmount(() => {
           @resize-start="onResizeStart"
           @rotate="(d) => actions.rotate(d)"
           @flip="actions.flipActive()"
+          @del="actions.deleteActive()"
         />
       </g>
     </svg>

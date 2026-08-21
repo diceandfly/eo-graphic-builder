@@ -100,6 +100,13 @@ export function useDocument() {
     const p = active.value.params;
     p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
   }
+  function deleteActive() {
+    if (doc.units.length <= 1) return; // 마지막 유닛은 유지 (패널이 항상 활성 유닛을 필요로 함)
+    const i = doc.units.findIndex((u) => u.id === doc.activeId);
+    doc.units.splice(i, 1);
+    select(doc.units[Math.max(0, i - 1)].id);
+  }
+
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 얕은 복사 = 전부 원시값이라 완전 독립)
   function duplicateFrom(u) {
     const id = nextId++;
@@ -124,7 +131,7 @@ export function useDocument() {
 
   return {
     doc, active, gutterMax,
-    select, deselect, duplicateActive, duplicateFrom,
+    select, deselect, duplicateActive, duplicateFrom, deleteActive,
     setSize, setAspect, setA, setB, rotate, flipActive,
   };
 }

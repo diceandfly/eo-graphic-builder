@@ -401,3 +401,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **RATIO 라벨 + 커스텀 비율 추가(+)** — `21:9` 또는 소수 입력, `localStorage('eo.customRatios')` 영속.
 7. **thread direction 토글 삭제 → 바운딩박스 flip(⇄) 버튼** — 액션 버튼 3개(⇄/⟲/⟳)를 우측변 상단 기준 세로 일렬, 28px, `dominant-baseline: central` 중앙정렬, 네이티브 `<title>` 툴팁.
 8. **Δa/Δb 커플링** — `B_MAX` 0.70으로 확대, `Δa + Δb ≤ 0.90` (`AB_SUM_MAX`). 초과 시 조작 중인 쪽이 반대쪽을 밀어내며 경사변 수평 런 10% 고정(각도 유지) — 사다리꼴 역전 구조적 방지.
+
+## 25. 2026-08-20 14차 변경 사항
+
+1. **패널 카드 스타일 롤백** — 플랫 UI 복구, 구분은 브랜드 타이틀 아래 라인만.
+2. **가이드 표시 조건** — 활성 유닛 + **선택 상태**일 때만. 빈 필드 클릭(선택 해제) 시 가이드 숨김.
+3. **액션 버튼 개편** — 글리프 폰트 → **24 viewBox 스트로크 SVG 아이콘**(Feather/Lucide, 16px, stroke 2)으로 볼륨 통일. 순서: ① 회전 CW ② 회전 CCW ③ flip ④ **삭제(휴지통)**. `deleteActive()`: 마지막 유닛 1개는 삭제 불가, 삭제 후 인접 유닛 선택.

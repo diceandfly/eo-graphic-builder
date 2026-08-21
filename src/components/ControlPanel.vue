@@ -179,18 +179,14 @@ const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) 
 </template>
 
 <style scoped>
-.panel { display: flex; flex-direction: column; gap: 10px; }
+.panel { display: flex; flex-direction: column; gap: 26px; }
 .brand {
   display: flex; align-items: center; gap: 10px;
   font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--text);
-  padding: 4px 2px 12px;
+  padding: 4px 2px 14px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
-.unitRow { display: flex; justify-content: space-between; align-items: center; padding: 0 2px 4px; }
-/* 카드형 섹션 구분 */
-section {
-  background: #191919; border: 1px solid #202020; padding: 14px 14px 12px;
-}
+.unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
 .ratioHead {
   font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
   color: var(--faint); margin-bottom: 6px;
