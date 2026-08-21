@@ -243,11 +243,13 @@ function onUnitDown(u, e) {
   // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
   let targets;
   if (e.altKey) {
-    // 멀티선택 안의 유닛을 Alt+드래그하면 선택 전체를 상대 위치 유지한 채 복제
+    // Alt+드래그 복제 대상: 멀티선택 안이면 선택 전체, 그룹 멤버면 그룹 전체(미선택이어도), 아니면 단일
     const inMulti = props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1;
-    targets = inMulti
-      ? props.actions.duplicateUnits(props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id)))
-      : [props.actions.duplicateFrom(u)];
+    const srcIds = inMulti ? props.doc.selectedIds : members;
+    targets =
+      srcIds.length > 1
+        ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
+        : [props.actions.duplicateFrom(u)];
   } else if (e.detail === 2 && og) {
     // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
     props.actions.selectOnly(u.id);

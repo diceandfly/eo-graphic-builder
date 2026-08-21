@@ -350,12 +350,22 @@ export function useDocument() {
     const p = active.value.params;
     p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
   }
-  // 유닛 좌우 반전 = 압축 방향 + thread 기울기 동시 반전 (로컬 좌표 기준 미러)
+  // 로컬 좌우 미러 = 압축 방향 + thread 기울기 동시 반전
+  function mirrorLocalX(p) {
+    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
+    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+  }
+  // 로컬 상하 미러 = 180° 회전 + 좌우 미러 (W/H 불변)
+  function mirrorLocalY(p) {
+    p.orientation = (p.orientation + 180) % 360;
+    mirrorLocalX(p);
+  }
+  const isOdd = (p) => p.orientation === 90 || p.orientation === 270;
+  // 화면 기준 좌우 반전 — 90/270° 회전 상태면 로컬 축이 바뀌어 있으므로 로컬 상하 미러를 적용
   function flipUnit() {
     if (!active.value) return;
     const p = active.value.params;
-    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
-    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+    isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
   }
   // 스와치: 선택 유닛(없으면 활성)에 fill 적용
   function setFill(color) {
@@ -456,13 +466,11 @@ export function useDocument() {
       normalize(p);
     }
   }
-  // 상하 반전 = 180° 회전 + 좌우 반전 (W/H 불변, one-side의 shaft 위치도 뒤집힘)
+  // 화면 기준 상하 반전 — 90/270° 회전 상태면 로컬 좌우 미러가 화면 상하 미러
   function flipUnitV() {
     if (!active.value) return;
     const p = active.value.params;
-    p.orientation = (p.orientation + 180) % 360;
-    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
-    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+    isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
   }
   // 멀티/그룹 리사이즈 후 파생 제약 정리
   function normalizeSelected() {

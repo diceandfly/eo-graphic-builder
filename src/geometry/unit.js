@@ -16,7 +16,8 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
   const shaft = D < EPS ? null : { x: 0, y: shaftTop, width: W, height: D };
 
   // thread 밑변을 shaft 쪽으로 1px 파묻어 경계 안티앨리어싱 유격을 없앤다
-  const yB = shaftTop + THREAD_OVERLAP;
+  // (극소 높이에서 shaft를 넘지 않도록 오버랩을 shaft 두께의 절반까지로 제한)
+  const yB = shaftTop + Math.min(THREAD_OVERLAP, Math.max(0, shaftBot - shaftTop) / 2);
 
   const threadsTop = [];
   const threadsBottom = [];
