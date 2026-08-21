@@ -762,7 +762,7 @@ onBeforeUnmount(() => {
       @open="(f) => actions.openProject(f)"
       @reset="onReset"
     />
-    <AlignBar v-if="doc.selectedIds.length >= 2" @align="(t) => actions.alignSelected(t)" />
+    <AlignBar :active="doc.selectedIds.length >= 2" @align="(t) => actions.alignSelected(t)" />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"

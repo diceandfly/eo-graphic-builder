@@ -1,0 +1,6 @@
+/* 분류별 디자인 토큰 진입점 — 브랜딩 적용 시 각 파일만 교체 */
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './sizes.css';
+@import './motion.css';

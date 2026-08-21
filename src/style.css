@@ -1,21 +1,11 @@
-/* RETÍCULA 참조 팔레트 — accent만 브랜드 옐로우로 치환 */
-:root {
-  --bg: #0B0B0B;
-  --panel: #151515;
-  --canvas: #0E0E0E;
-  --line: #262626;
-  --text: #ECECEC;
-  --faint: #7C7C7C;
-  --accent: #FAF04B;
-  --trim: #C9C9C9;
-}
+@import './styles/tokens/index.css';
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 #app { height: 100vh; }
@@ -28,12 +18,12 @@ body {
 }
 .rg::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 10px; height: 10px;
-  background: var(--accent); border: none; border-radius: 0; cursor: pointer;
+  width: var(--thumb-size); height: var(--thumb-size);
+  background: var(--accent); border: none; border-radius: var(--radius); cursor: pointer;
 }
 .rg::-moz-range-thumb {
-  width: 10px; height: 10px;
-  background: var(--accent); border: none; border-radius: 0; cursor: pointer;
+  width: var(--thumb-size); height: var(--thumb-size);
+  background: var(--accent); border: none; border-radius: var(--radius); cursor: pointer;
 }
 .rg:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent);
@@ -41,8 +31,8 @@ body {
 
 input[type='checkbox'] {
   -webkit-appearance: none; appearance: none;
-  width: 12px; height: 12px; margin: 0;
-  border: 1px solid var(--line); border-radius: 0; background: none; cursor: pointer;
+  width: var(--check-size); height: var(--check-size); margin: 0;
+  border: 1px solid var(--line); border-radius: var(--radius); background: none; cursor: pointer;
 }
 input[type='checkbox']:checked {
   border-color: var(--accent);

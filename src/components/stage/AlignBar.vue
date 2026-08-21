@@ -1,5 +1,6 @@
 <script setup>
-// 좌하단 정렬 패널 — 키 오브젝트(선택 중 재클릭) 기준 정렬
+// 좌하단 정렬 패널 — 키 오브젝트(선택 중 재클릭) 기준 정렬. 2개 이상 선택 시 활성.
+defineProps({ active: Boolean });
 defineEmits(['align']);
 const BTNS = [
   { key: 'left', tip: 'Align left edges', paths: ['M5 3v18', 'M9 8h10', 'M9 14h6'] },
@@ -12,8 +13,8 @@ const BTNS = [
 </script>
 
 <template>
-  <div class="alignbar" @pointerdown.stop>
-    <button v-for="b in BTNS" :key="b.key" class="tbtn" @click="$emit('align', b.key)">
+  <div class="alignbar" :class="{ inactive: !active }" @pointerdown.stop>
+    <button v-for="b in BTNS" :key="b.key" class="tbtn" :disabled="!active" @click="$emit('align', b.key)">
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in b.paths" :key="i" :d="d" /></svg>
       <span class="tip">{{ b.tip }}</span>
     </button>
@@ -37,6 +38,10 @@ const BTNS = [
   stroke-linecap: round; stroke-linejoin: round;
 }
 .tbtn:hover svg { stroke: var(--accent); }
+.inactive .tbtn { cursor: default; }
+.inactive .tbtn svg { stroke: #4a4a4a; }
+.inactive .tbtn:hover svg { stroke: #4a4a4a; }
+.inactive .tbtn .tip { display: none; }
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 0;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);

@@ -68,21 +68,26 @@ watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
-// 리셋 2단계 확인: 1차 클릭 → 경고 상태(3초), 그 안에 재클릭 → 실행
-const resetArmed = ref(false);
+// 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
+const resetStage = ref(0);
 let armTimer = null;
+const RESET_TIPS = [
+  'Reset dashboard',
+  'Click again to reset',
+  'FINAL WARNING — every unit will be vaporized. They had families.',
+];
 function onAction(key) {
   if (key === 'export') emit('export');
   else if (key === 'save') emit('save');
   else if (key === 'open') fileEl.value.click();
   else if (key === 'reset') {
-    if (resetArmed.value) {
-      clearTimeout(armTimer);
-      resetArmed.value = false;
+    clearTimeout(armTimer);
+    if (resetStage.value >= 2) {
+      resetStage.value = 0;
       emit('reset');
     } else {
-      resetArmed.value = true;
-      armTimer = setTimeout(() => (resetArmed.value = false), 3000);
+      resetStage.value += 1;
+      armTimer = setTimeout(() => (resetStage.value = 0), resetStage.value === 2 ? 5000 : 3000);
     }
   }
 }
@@ -140,11 +145,11 @@ function onFile(e) {
       v-for="a in ACTIONS"
       :key="a.key"
       class="tbtn"
-      :class="{ danger: a.key === 'reset' && resetArmed }"
+      :class="{ danger: a.key === 'reset' && resetStage === 1, doom: a.key === 'reset' && resetStage === 2 }"
       @click="onAction(a.key)"
     >
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in a.paths" :key="i" :d="d" /></svg>
-      <span class="tip">{{ a.key === 'reset' && resetArmed ? 'Click again to reset' : a.tip }}</span>
+      <span class="tip">{{ a.key === 'reset' ? RESET_TIPS[resetStage] : a.tip }}</span>
     </button>
     <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
     </div>
@@ -185,6 +190,10 @@ function onFile(e) {
 .tbtn.danger { background: #2a1515; }
 .tbtn.danger svg { stroke: #ff5c5c; }
 .tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: #ff5c5c; }
+.tbtn.doom { background: #3d0f0f; animation: doomPulse 0.6s ease-in-out infinite alternate; }
+.tbtn.doom svg { stroke: #ff2e2e; }
+.tbtn.doom .tip { opacity: 1; transition-delay: 0s; color: #ff2e2e; border-color: #ff2e2e; }
+@keyframes doomPulse { from { background: #3d0f0f; } to { background: #5a1010; } }
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);

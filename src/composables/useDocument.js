@@ -488,8 +488,12 @@ export function useDocument() {
     }
   }
 
-  // 대시보드 초기화 — 기본 유닛 1개로 (undo로 복구 가능)
+  // 대시보드 초기화 — 기본 유닛 1개, 이름/카운터도 v1부터 재시작 (undo로 복구 가능)
   function resetDoc() {
+    nextId = 1;
+    nextVersion = 1;
+    nextGroup = 1;
+    nextLink = 1;
     doc.units.splice(0, doc.units.length, {
       id: nextId++, name: `unit v${nextVersion++}`, x: 0, y: 0,
       groups: [], linkId: null, params: createParams(),

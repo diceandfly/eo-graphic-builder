@@ -527,3 +527,16 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **정렬 키 하이라이트 5px** (기존 2.5px).
 4. **타이포 위계 점검·통일** — 슬라이더 값 13→12px(입력칸과 통일), 칩 자간 0.02→0.03em(seg와 통일). 라벨 11px/0.03em/uppercase/faint, 섹션 타이틀 11px/0.16em/accent 체계 확인.
 5. **리사이즈 스마트 스냅** — 단일/통합 리사이즈 모두 이동 중인 엣지가 다른 유닛의 엣지/센터에 스냅(6px 화면), 정렬 가이드 라인 표시. Shift(비율 고정) 중에는 비활성.
+
+## 37. 2026-08-21 26차 변경 사항 + 리팩토링 1단계
+
+1. **정렬 패널 상시 표시** — 2개 미만 선택 시 비활성 상태(회색 아이콘·툴팁/클릭 무효), 2개 이상 선택 시 활성.
+2. **리셋 3단계 확인** — ① 경고("Click again to reset") ② 최후통첩(적색 펄스 + "FINAL WARNING — every unit will be vaporized. They had families.", 5초 유지) ③ 실행. 리셋 시 **유닛 이름·카운터 v1부터 재시작** (id/group/link 카운터 포함).
+3. **리팩토링 1단계: 디자인 토큰 분리** — `src/styles/tokens/` 분류별 파일:
+   - `colors.css` (표면/라인·텍스트/액센트/시맨틱 — danger·doom·link·guide·stage-grid 등)
+   - `typography.css` (--font-sans, 크기 위계 fs-2xs~md, 자간 ls-base/wide/caps, 굵기)
+   - `spacing.css` (--sp-1~6, --sp-section, --panel-pad)
+   - `sizes.css` (--btn-size, --icon-size, --thumb-size, --check-size, --swatch-*, --panel-w, --radius)
+   - `motion.css` (--tip-delay, --toast-time)
+   `index.css`가 통합 진입점, `style.css`가 임포트·소비. **브랜딩 적용 시 토큰 파일만 교체하면 전체 반영.**
+   다음 단계(2): 컴포넌트 하드코드 색/치수를 토큰으로 전면 치환.

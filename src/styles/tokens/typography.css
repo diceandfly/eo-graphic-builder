@@ -1,0 +1,21 @@
+/* ─── 타이포그래피 토큰 ─────────────────────────────── */
+:root {
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+
+  /* 크기 위계 */
+  --fs-2xs: 10px;  /* 메뉴 타이틀 등 최소 표기 */
+  --fs-xs: 11px;   /* 라벨·칩·버튼·툴팁 */
+  --fs-sm: 12px;   /* 값·입력칸·유닛 이름·브랜드 */
+  --fs-md: 13px;   /* (예약) */
+
+  /* 자간 */
+  --ls-base: 0.03em;   /* 라벨·칩·토글 */
+  --ls-wide: 0.08em;   /* 브랜드 타이틀·메뉴 타이틀 */
+  --ls-caps: 0.16em;   /* 섹션 타이틀 */
+
+  /* 굵기 */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+}
