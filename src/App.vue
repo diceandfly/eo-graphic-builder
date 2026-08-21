@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useUnitParams } from './composables/useUnitParams.js';
 import UnitCanvas from './components/UnitCanvas.vue';
 import ControlPanel from './components/ControlPanel.vue';
+import { downloadSvg } from './export/exportSvg.js';
 
 const { p, D, gutterMax, columns, unit, setA, setB, rotate } = useUnitParams();
 
@@ -18,6 +19,10 @@ onMounted(() => {
   ro.observe(stageEl.value);
 });
 onBeforeUnmount(() => ro?.disconnect());
+
+function exportSvg() {
+  downloadSvg({ W: p.W, H: p.H, unit: unit.value, orientation: p.orientation });
+}
 
 const canvasStyle = computed(() => {
   const s = Math.min(stage.w / p.W, stage.h / p.H) || 0;
@@ -37,7 +42,7 @@ const canvasStyle = computed(() => {
       </div>
     </main>
     <aside class="side">
-      <ControlPanel :p="p" :D="D" :gutter-max="gutterMax" @set-a="setA" @set-b="setB" @rotate="rotate" />
+      <ControlPanel :p="p" :D="D" :gutter-max="gutterMax" @set-a="setA" @set-b="setB" @rotate="rotate" @export="exportSvg" />
     </aside>
   </div>
 </template>

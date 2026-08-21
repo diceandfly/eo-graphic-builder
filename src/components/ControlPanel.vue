@@ -15,7 +15,7 @@ const props = defineProps({
   D: Number,        // 파생 shaft 높이 (px)
   gutterMax: Number,
 });
-const emit = defineEmits(['setA', 'setB', 'rotate']);
+const emit = defineEmits(['setA', 'setB', 'rotate', 'export']);
 
 // Δ 슬라이더는 각자 실제 범위(a: 30–70%, b: 0–30%)를 0–100으로 정규화해 표기
 const aNorm = computed(() => Math.round(((props.p.a - A_MIN) / (A_MAX - A_MIN)) * 100));
@@ -108,6 +108,11 @@ const compDisplay = computed(() => `${(compVal.value * 100).toFixed(1)}%`);
           { value: 'RtoL', label: 'R→L' },
         ]"
       />
+    </section>
+
+    <section>
+      <h2>Export</h2>
+      <button class="ghost" @click="emit('export')">export svg</button>
     </section>
   </div>
 </template>

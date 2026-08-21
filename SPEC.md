@@ -351,3 +351,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - W/H 슬라이더 제거 → 숫자 입력 + 비율 프리셋 칩. UI 상하한 제거, 내부 가드(50–8000px)만.
 - 극미세 thread: 이진 치환 → **모프 블렌드** (w가 minW~3·minW 구간에서 사다리꼴→직사각형 선형 보간).
 - 뷰포트/선택 코드는 유닛 상태와 분리 (Phase 2 문서 모델 교체 대비).
+
+## 21. 2026-08-20 SVG export 선구현 (대시보드 홀드 중)
+
+- 패널 하단 **Export 섹션 + export svg 버튼**. `src/export/exportSvg.js` (순수 함수 + 다운로드 헬퍼).
+- 출력: §4 구조 그대로 (`<g id="unit">` + shaft rect + threads polygon), 도형만·배경 없음·소수 3자리. 가이드 미포함.
+- 회전 상태는 렌더와 동일한 `rotate(90) translate(0,-localH)` wrapper로 반영.
+- 파일명: `eo-unit-{W}x{H}.svg`.
