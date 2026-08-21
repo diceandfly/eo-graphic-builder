@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 
 // 선택된 유닛의 바운딩박스 + 리사이즈 핸들 + 액션 버튼(플립/회전) + 이름 라벨.
 // 월드 좌표에 그리되, 핸들/글자/버튼은 scale 역보정으로 화면 크기 고정.
@@ -37,7 +37,7 @@ const ACTIONS = [
     paths: ['M1 4v6h6', 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10'],
   },
   {
-    key: 'flip', tip: 'Flip thread direction',
+    key: 'flip', tip: 'Flip unit',
     paths: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
   },
   {
@@ -66,6 +66,15 @@ function onAction(key) {
 
 // 커스텀 툴팁 — 350ms 호버 후 표시 (네이티브 title보다 빠름)
 const tip = ref(null); // { i, text }
+const tipTextEl = ref(null);
+const tipW = ref(0); // 텍스트 실측 폭 (월드 단위) — 박스가 텍스트를 hug
+watch(tip, async (v) => {
+  tipW.value = 0;
+  if (v) {
+    await nextTick();
+    if (tipTextEl.value) tipW.value = tipTextEl.value.getBBox().width;
+  }
+});
 let tipTimer = null;
 function tipEnter(a, i) {
   clearTimeout(tipTimer);
@@ -104,8 +113,8 @@ const iconSize = (a) => ICON * (a.s ?? 1);
         </g>
       </g>
       <g v-if="tip" class="tip" :transform="`translate(${px(BTN + 10)} ${tip.i * px(BTN + 6)})`">
-        <rect :width="px(tip.text.length * 6.2 + 16)" :height="px(22)" :y="px(3)" />
-        <text :x="px(8)" :y="px(14)" :font-size="px(11)" dominant-baseline="central">{{ tip.text }}</text>
+        <rect v-if="tipW" :width="tipW + px(16)" :height="px(22)" :y="px(3)" />
+        <text ref="tipTextEl" :x="px(8)" :y="px(14)" :font-size="px(11)" dominant-baseline="central">{{ tip.text }}</text>
       </g>
     </g>
 

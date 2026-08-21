@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue';
+import { BRAND_COLORS } from '../../geometry/constants.js';
 
 // 대시보드 하단 중앙 툴바 — 선택/스포이드 툴 + 내보내기/저장/열기.
 // 아이콘: 24 viewBox 스트로크 패스 (바운딩박스 버튼과 동일 톤)
-const props = defineProps({ mode: String }); // 'select' | 'eyedrop'
-const emit = defineEmits(['update:mode', 'export', 'save', 'open']);
+const props = defineProps({ mode: String, fill: String }); // 'select' | 'eyedrop'
+const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open']);
 
 const TOOLS = [
   {
@@ -52,6 +53,17 @@ function onFile(e) {
 
 <template>
   <div class="toolbar" @pointerdown.stop>
+    <div class="swatches">
+      <button
+        v-for="c in BRAND_COLORS"
+        :key="c"
+        class="sw"
+        :class="{ on: fill === c }"
+        :style="{ background: c }"
+        @click="emit('fill', c)"
+      />
+    </div>
+    <span class="sep" />
     <button
       v-for="t in TOOLS"
       :key="t.key"
@@ -78,6 +90,12 @@ function onFile(e) {
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
 }
 .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+.swatches { display: flex; gap: 5px; padding: 0 4px; }
+.sw {
+  width: 14px; height: 14px; border: 1px solid var(--line);
+  padding: 0; cursor: pointer;
+}
+.sw.on { outline: 1px solid var(--text); outline-offset: 1px; }
 .tbtn {
   position: relative;
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;

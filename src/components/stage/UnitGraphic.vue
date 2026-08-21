@@ -5,8 +5,8 @@ import { deriveUnit, orientationTransform } from '../../geometry/derive.js';
 const props = defineProps({
   params: Object,
   showGuides: Boolean,
-  fill: { type: String, default: '#FAF04B' },
 });
+const fill = computed(() => props.params.fill || '#FAF04B');
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');

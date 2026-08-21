@@ -29,3 +29,5 @@ export const COMP_SNAP = 0.1;    // 중앙 0 스냅 반경 (표기 단위)
 export const STAGE_GRID = 100;   // 대시보드 배경 라인 그리드 간격 (px, 월드 좌표)
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
+// 브랜드 스와치 — 추후 자유롭게 추가/삭제 (툴바에 그대로 반영됨)
+export const BRAND_COLORS = ['#FAF04B', '#ECECEC', '#FF5C00', '#FF5CA8'];

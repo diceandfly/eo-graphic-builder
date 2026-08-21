@@ -28,11 +28,11 @@ body {
 }
 .rg::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px; height: 12px;
+  width: 10px; height: 10px;
   background: var(--accent); border: none; border-radius: 0; cursor: pointer;
 }
 .rg::-moz-range-thumb {
-  width: 12px; height: 12px;
+  width: 10px; height: 10px;
   background: var(--accent); border: none; border-radius: 0; cursor: pointer;
 }
 .rg:focus-visible::-webkit-slider-thumb {

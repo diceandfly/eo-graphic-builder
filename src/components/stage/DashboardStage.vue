@@ -24,6 +24,17 @@ const singleSelected = computed(
   () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
 );
 const marquee = ref(null); // { x, y, w, h } — 화면 좌표
+const selBounds = computed(() => {
+  const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
+  if (sel.length < 2) return null;
+  const minX = Math.min(...sel.map((u) => u.x));
+  const minY = Math.min(...sel.map((u) => u.y));
+  return {
+    x: minX, y: minY,
+    w: Math.max(...sel.map((u) => u.x + u.params.W)) - minX,
+    h: Math.max(...sel.map((u) => u.y + u.params.H)) - minY,
+  };
+});
 const mode = ref('select'); // 'select' | 'eyedrop'
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
 
@@ -90,6 +101,11 @@ function onKeyDown(e) {
     props.actions.copyActive();
     return;
   }
+  if (mod && e.code === 'KeyG') {
+    e.preventDefault();
+    e.shiftKey ? props.actions.ungroupSelected() : props.actions.groupSelected();
+    return;
+  }
   if (mod && e.code === 'KeyV') {
     e.preventDefault();
     const [wx, wy] = pasteTarget();
@@ -140,21 +156,34 @@ function onUnitDown(u, e) {
     mode.value = 'select';
     return;
   }
+  const members = u.groupId ? props.actions.groupMemberIds(u.groupId) : [u.id];
   if (e.shiftKey) {
-    props.actions.toggleSelect(u.id); // Shift+클릭 = 멀티선택 토글 (드래그 없음)
+    // Shift+클릭 = 그룹 블록 단위 멀티선택 토글 (드래그 없음)
+    const anySel = members.some((id) => props.doc.selectedIds.includes(id));
+    if (anySel) {
+      props.doc.selectedIds = props.doc.selectedIds.filter((id) => !members.includes(id));
+    } else {
+      props.actions.setSelection([...props.doc.selectedIds, ...members]);
+      props.doc.activeId = u.id;
+    }
     return;
   }
   // Option(Alt)+드래그 = 사본을 만들어 사본을 끌고 감 (원본 유지)
   let targets;
   if (e.altKey) {
     targets = [props.actions.duplicateFrom(u)];
+  } else if (e.detail === 2 && u.groupId) {
+    // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
+    props.actions.selectOnly(u.id);
+    targets = [u];
   } else if (props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1) {
     // 멀티선택 유지한 채 전체 이동
     props.doc.activeId = u.id;
     targets = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
   } else {
-    props.actions.selectOnly(u.id);
-    targets = [u];
+    props.actions.setSelection(members);
+    props.doc.activeId = u.id;
+    targets = props.doc.units.filter((x) => members.includes(x.id));
   }
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
 }
@@ -190,12 +219,17 @@ function onMove(e) {
     const ids = props.doc.units
       .filter((u) => u.x < wx2 && u.x + u.params.W > wx1 && u.y < wy2 && u.y + u.params.H > wy1)
       .map((u) => u.id);
-    props.actions.setSelection(ids);
+    props.actions.setSelection(props.actions.expandGroups(ids));
     return;
   }
-  const dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
-  const dy = dys / vp.scale;
+  let dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
+  let dy = dys / vp.scale;
   if (drag.kind === 'move') {
+    // Shift = 수직/수평 축 고정
+    if (e.shiftKey) {
+      if (Math.abs(dx) > Math.abs(dy)) dy = 0;
+      else dx = 0;
+    }
     // 스마트 가이드: 다른 유닛의 엣지/센터(x·y 각 3개)에 6px(화면) 반경 스냅
     const SNAP = 6 / vp.scale;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -349,22 +383,19 @@ onBeforeUnmount(() => {
             @pointerdown.stop="onUnitDown(u, $event)"
           />
         </g>
-        <!-- 멀티선택: 각 유닛 외곽선만 -->
-        <template v-if="!singleSelected">
-          <rect
-            v-for="u in doc.units.filter((x) => doc.selectedIds.includes(x.id))"
-            :key="'sel' + u.id"
-            class="multiSel"
-            :x="u.x" :y="u.y" :width="u.params.W" :height="u.params.H"
-          />
-        </template>
+        <!-- 멀티선택: 결합 바운딩 박스 하나 -->
+        <rect
+          v-if="selBounds"
+          class="multiSel"
+          :x="selBounds.x" :y="selBounds.y" :width="selBounds.w" :height="selBounds.h"
+        />
         <SelectionOverlay
           v-if="singleSelected && activeUnit"
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
           @rotate="(d) => actions.rotate(d)"
-          @flip="actions.flipActive()"
+          @flip="actions.flipUnit()"
           @dup="actions.duplicateActive()"
           @del="actions.deleteSelected()"
         />
@@ -387,6 +418,8 @@ onBeforeUnmount(() => {
     </svg>
     <Toolbar
       v-model:mode="mode"
+      :fill="activeUnit?.params.fill"
+      @fill="(c) => actions.setFill(c)"
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"

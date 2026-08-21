@@ -24,6 +24,7 @@ export function createParams(overrides = {}) {
     b: 0,
     threads: 'both',   // 'both' | 'one'
     threadDir: 'LtoR', // 'LtoR' | 'RtoL'
+    fill: '#FAF04B',
     showGuides: true,
     ...overrides,
   };
@@ -44,6 +45,7 @@ export function useDocument() {
 
   let nextId = 2;
   let nextVersion = 2;
+  let nextGroup = 1;
   const doc = reactive({
     units: initialUnits,
     activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
@@ -56,6 +58,7 @@ export function useDocument() {
       const mt = u.name.match(/v(\d+)$/);
       return Math.max(m, mt ? Number(mt[1]) : 0);
     }, 0) + 1;
+    nextGroup = doc.units.reduce((m, u) => Math.max(m, u.groupId || 0), 0) + 1;
   }
 
   // 자동 저장 (500ms 디바운스)
@@ -197,7 +200,7 @@ export function useDocument() {
 
   function pushUnit(params, x, y) {
     const id = nextId++;
-    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, params });
+    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groupId: null, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -264,6 +267,47 @@ export function useDocument() {
     const p = active.value.params;
     p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
   }
+  // 유닛 좌우 반전 = 압축 방향 + thread 기울기 동시 반전 (로컬 좌표 기준 미러)
+  function flipUnit() {
+    if (!active.value) return;
+    const p = active.value.params;
+    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
+    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+  }
+  // 스와치: 선택 유닛(없으면 활성)에 fill 적용
+  function setFill(color) {
+    const ids = doc.selectedIds.length
+      ? doc.selectedIds
+      : doc.activeId != null ? [doc.activeId] : [];
+    for (const u of doc.units) if (ids.includes(u.id)) u.params.fill = color;
+  }
+
+  // ---- 그룹 (⌘G / ⌘⇧G) ----
+  function groupMemberIds(gid) {
+    return doc.units.filter((u) => u.groupId === gid).map((u) => u.id);
+  }
+  function expandGroups(ids) {
+    const out = new Set(ids);
+    for (const u of doc.units) {
+      if (out.has(u.id) && u.groupId) {
+        for (const id of groupMemberIds(u.groupId)) out.add(id);
+      }
+    }
+    return [...out];
+  }
+  function groupSelected() {
+    const sel = doc.selectedIds;
+    if (sel.length < 2) return; // 단일 유닛/단일 그룹의 중복 그룹 방지
+    const gids = [...new Set(doc.units.filter((u) => sel.includes(u.id)).map((u) => u.groupId))];
+    if (gids.length === 1 && gids[0] != null && groupMemberIds(gids[0]).length === sel.length) {
+      return; // 이미 완전한 단일 그룹
+    }
+    const gid = nextGroup++;
+    for (const u of doc.units) if (sel.includes(u.id)) u.groupId = gid;
+  }
+  function ungroupSelected() {
+    for (const u of doc.units) if (doc.selectedIds.includes(u.id)) u.groupId = null;
+  }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   function rotate(dir) {
     if (!active.value) return;
@@ -277,7 +321,8 @@ export function useDocument() {
     doc, active, gutterMax,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, deleteSelected, createUnit,
-    setSize, setAspect, setA, setB, rotate, flipActive,
+    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, setFill,
+    groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     undo, redo, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom,
   };

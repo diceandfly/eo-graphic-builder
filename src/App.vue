@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useDocument } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { deriveUnit } from './geometry/derive.js';
-import { downloadSvg } from './export/exportSvg.js';
+import { downloadSvg, downloadCompositeSvg } from './export/exportSvg.js';
 import DashboardStage from './components/stage/DashboardStage.vue';
 import ControlPanel from './components/ControlPanel.vue';
 
@@ -14,9 +14,19 @@ const { doc, active, gutterMax } = docApi;
 const stageRef = ref(null);
 
 function exportSvg() {
+  const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+  if (sel.length > 1) {
+    // 다중 선택: 상대 배치를 보존한 컴포지트
+    downloadCompositeSvg(sel.map((u) => ({
+      x: u.x, y: u.y, W: u.params.W, H: u.params.H,
+      unit: deriveUnit(u.params).unit,
+      orientation: u.params.orientation, fill: u.params.fill,
+    })));
+    return;
+  }
   if (!active.value) return;
   const p = active.value.params;
-  downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation });
+  downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill });
 }
 function createUnit() {
   const [wx, wy] = stageRef.value.centerWorld();

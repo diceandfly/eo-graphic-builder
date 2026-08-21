@@ -185,6 +185,13 @@ function cancelRename() {
         @update:model-value="(v) => emit('setB', 1 - v / 100)"
       />
       <Toggle
+        label="thread direction" v-model="p.threadDir"
+        :options="[
+          { value: 'LtoR', label: 'L→R' },
+          { value: 'RtoL', label: 'R→L' },
+        ]"
+      />
+      <Toggle
         label="thread sides" v-model="p.threads"
         :options="[
           { value: 'both', label: 'double' },
