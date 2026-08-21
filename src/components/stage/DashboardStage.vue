@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { UNIT_MIN, UNIT_MAX, STAGE_GRID } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
@@ -52,6 +52,14 @@ const linkIndex = computed(() => {
   const ids = [...new Set(props.doc.units.filter((u) => u.linkId).map((u) => u.linkId))].sort((a, b) => a - b);
   return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
 });
+// 현재 선택에 관련된 링크 그룹만 배지 표시
+const visibleLinkIds = computed(() => {
+  const set = new Set();
+  for (const u of props.doc.units) {
+    if (u.linkId && props.doc.selectedIds.includes(u.id)) set.add(u.linkId);
+  }
+  return set;
+});
 
 const selBounds = computed(() => {
   const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
@@ -65,8 +73,23 @@ const selBounds = computed(() => {
   };
 });
 const mode = ref('select'); // 'select' | 'eyedrop'
-const showGuides = ref(true); // 전역 그리드 가이드 (선택된 유닛에만 표시)
+const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
+const showStageGrid = ref(true); // 대시보드 배경 라인 그리드
+const pxs = (n) => n / vp.scale;
+
+// 토스트 (대시보드 상단)
+const toastMsg = ref(null);
+let toastTimer = null;
+function toast(msg) {
+  toastMsg.value = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toastMsg.value = null), 2600);
+}
+
+// 스포이드 범주 스코프 (우클릭 메뉴)
+const eyedropScope = reactive({ size: true, grid: true, shape: true, color: true });
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
+const gapGuides = ref([]);   // [{ axis: 'x'|'y', at, segs: [[a,b],[c,d]] }] — 등간격 표시
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
 let drag = null;
@@ -182,7 +205,7 @@ function onUnitDown(u, e) {
   e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
   if (mode.value === 'eyedrop') {
     // 스포이드: 클릭한 유닛의 파라미터를 선택된 유닛들에 흡수 후 선택툴 복귀
-    props.actions.absorbFrom(u);
+    props.actions.absorbFrom(u, { ...eyedropScope });
     mode.value = 'select';
     return;
   }
@@ -351,8 +374,15 @@ function onMove(e) {
         if (Math.abs(d) < SNAP && (!bestY || Math.abs(d) < Math.abs(bestY.d))) bestY = { d, pos: c, o };
       }
     }
-    const sdx = dx + (bestX ? bestX.d : 0);
-    const sdy = dy + (bestY ? bestY.d : 0);
+    // 등간격(smart gap) 스냅 — 엣지 스냅이 없는 축에서만 시도
+    // 패턴 ①: 이웃 R–S의 기존 간격 g를 드래그 유닛–R 간격으로 복제 (좌/우, 상/하)
+    // 패턴 ②: 두 유닛 사이 가운데 균등 배치
+    const D = { minX, minY, maxX, maxY };
+    let gapX = null, gapY = null;
+    if (!bestX) gapX = findGapSnap('x', D, others, SNAP);
+    if (!bestY) gapY = findGapSnap('y', D, others, SNAP);
+    const sdx = dx + (bestX ? bestX.d : gapX ? gapX.d : 0);
+    const sdy = dy + (bestY ? bestY.d : gapY ? gapY.d : 0);
     for (const t of drag.targets) {
       t.u.x = t.x0 + sdx;
       t.u.y = t.y0 + sdy;
@@ -375,6 +405,10 @@ function onMove(e) {
       });
     }
     smartGuides.value = guides;
+    const gaps = [];
+    if (gapX) gaps.push({ axis: 'x', at: (minY + maxY) / 2 + (gapY ? gapY.d : 0) + (bestY ? bestY.d : 0), segs: gapX.segs });
+    if (gapY) gaps.push({ axis: 'y', at: (minX + maxX) / 2 + (gapX ? gapX.d : 0) + (bestX ? bestX.d : 0), segs: gapY.segs });
+    gapGuides.value = gaps;
     return;
   }
   // resize: 반대편 변 고정, Shift = 비율 고정(코너)
@@ -398,6 +432,46 @@ function onMove(e) {
   if (dir.includes('n')) u.y = y0 + (H0 - H);
 }
 
+// 등간격 스냅 탐색. axis='x'면 가로 간격 (y는 좌표 스왑으로 재사용)
+function findGapSnap(axis, D, others, SNAP) {
+  const lo = (u) => (axis === 'x' ? u.x : u.y);
+  const hi = (u) => (axis === 'x' ? u.x + u.params.W : u.y + u.params.H);
+  const clo = (u) => (axis === 'x' ? u.y : u.x);
+  const chi = (u) => (axis === 'x' ? u.y + u.params.H : u.x + u.params.W);
+  const dLo = axis === 'x' ? D.minX : D.minY;
+  const dHi = axis === 'x' ? D.maxX : D.maxY;
+  const dcLo = axis === 'x' ? D.minY : D.minX;
+  const dcHi = axis === 'x' ? D.maxY : D.maxX;
+  const size = dHi - dLo;
+
+  // 드래그 유닛과 교차축으로 겹치는 이웃만
+  const cands = others.filter((o) => clo(o) < dcHi && chi(o) > dcLo);
+  let best = null;
+  const consider = (d, segs) => {
+    if (Math.abs(d) < SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, segs };
+  };
+  for (const R of cands) {
+    for (const S of cands) {
+      if (S === R) continue;
+      // 서로도 교차축 겹침이 있는 쌍만 (정렬된 행/열로 인식)
+      if (!(clo(R) < chi(S) && chi(R) > clo(S))) continue;
+      const g = lo(R) - hi(S); // S 왼(위), R 오른(아래)
+      if (g <= 0) continue;
+      // ① D를 R의 뒤에 g 간격으로
+      consider(hi(R) + g - dLo, [[hi(S), lo(R)], [hi(R), hi(R) + g]]);
+      // ① D를 S의 앞에 g 간격으로
+      consider(lo(S) - g - dHi, [[lo(S) - g, lo(S)], [hi(S), lo(R)]]);
+      // ② S–R 사이 가운데 균등 배치 (사이 공간이 충분할 때)
+      const inner = lo(R) - hi(S);
+      if (inner > size) {
+        const t = hi(S) + (inner - size) / 2;
+        consider(t - dLo, [[hi(S), t], [t + size, lo(R)]]);
+      }
+    }
+  }
+  return best;
+}
+
 function onUp(e) {
   if (drag) {
     if (drag.kind === 'resize') {
@@ -412,6 +486,7 @@ function onUp(e) {
   }
   drag = null;
   smartGuides.value = [];
+  gapGuides.value = [];
   window.removeEventListener('pointermove', onMove);
 }
 
@@ -437,7 +512,7 @@ function centerWorld() {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(r.width / 2, r.height / 2);
 }
-defineExpose({ centerWorld });
+defineExpose({ centerWorld, toast });
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown);
@@ -467,12 +542,13 @@ onBeforeUnmount(() => {
           <path class="gridline" :d="`M ${STAGE_GRID} 0 H 0 V ${STAGE_GRID}`" />
         </pattern>
       </defs>
-      <rect class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
+      <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <UnitGraphic
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
+            :seam="vp.scale < 1"
           />
           <rect
             class="hit"
@@ -488,16 +564,18 @@ onBeforeUnmount(() => {
           :x="g.x" :y="g.y" :width="g.w" :height="g.h"
           :stroke-dasharray="dash"
         />
-        <!-- 링크 배지 -->
+        <!-- 링크 배지 (선택 관련 링크만) -->
         <g
-          v-for="u in doc.units.filter((x) => x.linkId)"
+          v-for="u in doc.units.filter((x) => x.linkId && visibleLinkIds.has(x.linkId))"
           :key="'lk' + u.id"
           class="linkBadge"
-          :transform="`translate(${u.x + u.params.W - 16 / vp.scale} ${u.y - 18 / vp.scale}) scale(${12 / vp.scale / 24})`"
+          :transform="`translate(${u.x + u.params.W} ${u.y})`"
         >
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-          <text x="27" y="19" font-size="15">{{ linkIndex[u.linkId] }}</text>
+          <text :x="-pxs(20)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end">{{ linkIndex[u.linkId] }}</text>
+          <g :transform="`translate(${-pxs(16)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </g>
         </g>
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
@@ -517,6 +595,34 @@ onBeforeUnmount(() => {
           @dup="actions.duplicateActive()"
           @del="actions.deleteSelected()"
         />
+        <template v-for="(g, gi) in gapGuides" :key="'gap' + gi">
+          <template v-for="(seg, si) in g.segs" :key="si">
+            <line
+              v-if="g.axis === 'x'"
+              class="gapline" :x1="seg[0]" :y1="g.at" :x2="seg[1]" :y2="g.at"
+            />
+            <line
+              v-if="g.axis === 'x'"
+              class="gapline" :x1="seg[0]" :y1="g.at - pxs(4)" :x2="seg[0]" :y2="g.at + pxs(4)"
+            />
+            <line
+              v-if="g.axis === 'x'"
+              class="gapline" :x1="seg[1]" :y1="g.at - pxs(4)" :x2="seg[1]" :y2="g.at + pxs(4)"
+            />
+            <line
+              v-if="g.axis === 'y'"
+              class="gapline" :x1="g.at" :y1="seg[0]" :x2="g.at" :y2="seg[1]"
+            />
+            <line
+              v-if="g.axis === 'y'"
+              class="gapline" :x1="g.at - pxs(4)" :y1="seg[0]" :x2="g.at + pxs(4)" :y2="seg[0]"
+            />
+            <line
+              v-if="g.axis === 'y'"
+              class="gapline" :x1="g.at - pxs(4)" :y1="seg[1]" :x2="g.at + pxs(4)" :y2="seg[1]"
+            />
+          </template>
+        </template>
         <template v-for="(g, i) in smartGuides" :key="'sg' + i">
           <line
             v-if="g.axis === 'v'"
@@ -537,6 +643,7 @@ onBeforeUnmount(() => {
     <Toolbar
       v-model:mode="mode"
       :fill="activeUnit?.params.fill"
+      :scope="eyedropScope"
       @fill="(c) => actions.setFill(c)"
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
@@ -545,9 +652,12 @@ onBeforeUnmount(() => {
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"
+      :stage-grid="showStageGrid"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"
+      @toggle-stage-grid="showStageGrid = !showStageGrid"
     />
+    <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
 </template>
 
@@ -564,8 +674,14 @@ onBeforeUnmount(() => {
   stroke-linecap: round; stroke-linejoin: round;
 }
 .linkBadge text { fill: #6ec9ff; font-family: inherit; font-weight: 600; }
+.toast {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font-size: 11px; letter-spacing: 0.03em; padding: 7px 14px; pointer-events: none;
+}
 .marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.gapline { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .gridline { stroke: #3f3f3f; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

@@ -1,10 +1,13 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { BRAND_COLORS } from '../../geometry/constants.js';
 
 // 대시보드 하단 중앙 툴바 — 선택/스포이드 툴 + 내보내기/저장/열기.
 // 아이콘: 24 viewBox 스트로크 패스 (바운딩박스 버튼과 동일 톤)
-const props = defineProps({ mode: String, fill: String }); // mode: 'select' | 'eyedrop'
+const props = defineProps({
+  mode: String, fill: String,
+  scope: Object, // 스포이드 범주 토글 { size, grid, shape, color }
+}); // mode: 'select' | 'eyedrop'
 const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open']);
 
 const TOOLS = [
@@ -23,7 +26,7 @@ const TOOLS = [
 const ACTIONS = [
   {
     key: 'export', tip: 'Export SVG',
-    paths: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3'],
+    paths: ['M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8', 'm16 6-4-4-4 4', 'M12 2v13'],
   },
   {
     key: 'save', tip: 'Save JSON',
@@ -39,6 +42,21 @@ const ACTIONS = [
 ];
 
 const fileEl = ref(null);
+
+// 스포이드 우클릭 → 범주 스코프 메뉴
+const menuOpen = ref(false);
+function onToolContext(key, e) {
+  if (key !== 'eyedrop') return;
+  e.preventDefault();
+  menuOpen.value = !menuOpen.value;
+}
+function closeMenu() {
+  menuOpen.value = false;
+}
+watch(menuOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
+});
+const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
 function onAction(key) {
   if (key === 'export') emit('export');
   else if (key === 'save') emit('save');
@@ -69,6 +87,7 @@ function onFile(e) {
       class="tbtn"
       :class="{ on: mode === t.key }"
       @click="emit('update:mode', t.key)"
+      @contextmenu="onToolContext(t.key, $event)"
     >
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in t.paths" :key="i" :d="d" /></svg>
       <span class="tip">{{ t.tip }}</span>
@@ -79,6 +98,14 @@ function onFile(e) {
       <span class="tip">{{ a.tip }}</span>
     </button>
     <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
+    </div>
+    <!-- 스포이드 스코프 메뉴 (우클릭) -->
+    <div v-if="menuOpen && scope" class="menu" @pointerdown.stop>
+      <div class="menuTitle">Eyedropper picks</div>
+      <label v-for="(label, key) in SCOPE_LABELS" :key="key" class="menuRow">
+        <input type="checkbox" v-model="scope[key]" />
+        <span>{{ label }}</span>
+      </label>
     </div>
   </div>
 </template>
@@ -121,4 +148,17 @@ function onFile(e) {
   opacity: 0; pointer-events: none; transition: opacity 0.1s;
 }
 .tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
+.menu {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--line); padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.menuTitle {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 2px;
+}
+.menuRow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--text); cursor: pointer; white-space: nowrap;
+}
 </style>

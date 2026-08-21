@@ -5,6 +5,7 @@ import { deriveUnit, orientationTransform } from '../../geometry/derive.js';
 const props = defineProps({
   params: Object,
   showGuides: Boolean,
+  seam: Boolean, // 줌 < 100%에서만 동색 스트로크로 접합 헤어라인 봉합
 });
 const fill = computed(() => props.params.fill || '#FAF04B');
 
@@ -26,10 +27,10 @@ const otf = computed(() =>
         v-if="d.unit.shaft"
         :x="f(d.unit.shaft.x)" :y="f(d.unit.shaft.y)"
         :width="f(d.unit.shaft.width)" :height="f(d.unit.shaft.height)"
-        :fill="fill" :stroke="fill" class="seam"
+        :fill="fill" :stroke="seam ? fill : 'none'" class="seam"
       />
-      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" :stroke="fill" class="seam" />
-      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" :stroke="fill" class="seam" />
+      <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" :stroke="seam ? fill : 'none'" class="seam" />
+      <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" :stroke="seam ? fill : 'none'" class="seam" />
     </g>
     <!-- 그리드 가이드: 유닛 밖, export 미포함 -->
     <g v-if="showGuides" class="guides">

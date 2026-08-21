@@ -2,17 +2,22 @@
 import { computed } from 'vue';
 
 // 우하단 코너 바 — 그리드 가이드 토글 + 줌% (툴바와 동일 스타일)
-const props = defineProps({ scale: Number, guides: Boolean });
-defineEmits(['reset', 'toggleGuides']);
+const props = defineProps({ scale: Number, guides: Boolean, stageGrid: Boolean });
+defineEmits(['reset', 'toggleGuides', 'toggleStageGrid']);
 const pct = computed(() => Math.round(props.scale * 100));
 const GRID_PATHS = ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'];
+const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
 </script>
 
 <template>
   <div class="corner" @pointerdown.stop>
+    <button class="tbtn" :class="{ on: stageGrid }" @click="$emit('toggleStageGrid')">
+      <svg viewBox="0 0 24 24"><path v-for="(d, i) in HASH_PATHS" :key="i" :d="d" /></svg>
+      <span class="tip">{{ stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid' }}</span>
+    </button>
     <button class="tbtn" :class="{ on: guides }" @click="$emit('toggleGuides')">
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in GRID_PATHS" :key="i" :d="d" /></svg>
-      <span class="tip">Show/Hide Unit Grid</span>
+      <span class="tip">{{ guides ? 'Hide Unit Grid' : 'Show Unit Grid' }}</span>
     </button>
     <button class="tbtn zoom" @click="$emit('reset')">
       {{ pct }}%

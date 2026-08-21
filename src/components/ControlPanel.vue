@@ -27,6 +27,8 @@ const mixed = (...keys) =>
   props.selected.some((u) => keys.some((k) => u.params[k] !== props.unit.params[k]));
 
 // 선택 전체가 이미 하나의 링크인지
+const colorOpen = ref(false);
+
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
   const lids = [...new Set(props.selected.map((u) => u.linkId))];
@@ -209,14 +211,22 @@ function cancelRename() {
 
     <section>
       <h2>Color</h2>
-      <div class="colors">
+      <div class="colorRow">
+        <button
+          class="bigChip"
+          :style="{ background: mixed('fill') ? 'transparent' : p.fill }"
+          @click="colorOpen = !colorOpen"
+        >{{ mixed('fill') ? '—' : '' }}</button>
+        <span class="hex">{{ mixed('fill') ? 'mixed' : p.fill }}</span>
+      </div>
+      <div v-if="colorOpen" class="palette">
         <button
           v-for="c in BRAND_COLORS"
           :key="c"
           class="colorChip"
           :class="{ on: !mixed('fill') && p.fill === c }"
           :style="{ background: c }"
-          @click="emit('fill', c)"
+          @click="emit('fill', c); colorOpen = false"
         />
       </div>
     </section>
@@ -276,7 +286,14 @@ section h2 {
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
-.colors { display: flex; gap: 6px; }
+.colorRow { display: flex; align-items: center; gap: 10px; }
+.bigChip {
+  width: 34px; height: 34px; border: 1px solid var(--line);
+  padding: 0; cursor: pointer; color: var(--faint); font: inherit;
+}
+.bigChip:hover { border-color: var(--accent); }
+.hex { font-size: 11px; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; }
+.palette { display: flex; gap: 6px; margin-top: 10px; }
 .colorChip {
   width: 18px; height: 18px; border: 1px solid var(--line);
   padding: 0; cursor: pointer;

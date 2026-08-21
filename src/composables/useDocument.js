@@ -92,13 +92,26 @@ export function useDocument() {
   }
 
   // 스포이드: 소스 유닛의 파라미터를 선택된 유닛들에 흡수 (위치·이름 유지)
-  function absorbFrom(source) {
+  // scope: { size, grid, shape, color } — 켜진 범주의 키만 흡수 (없으면 전체)
+  const SCOPE_KEYS = {
+    size: ['W', 'H', 'orientation'],
+    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'],
+    shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
+    color: ['fill'],
+  };
+  function absorbFrom(source, scope = null) {
+    const keys = scope
+      ? Object.entries(scope).filter(([, v]) => v).flatMap(([k]) => SCOPE_KEYS[k] || [])
+      : Object.keys(source.params);
+    if (!keys.length) return;
+    const patch = {};
+    for (const k of keys) patch[k] = source.params[k];
     const ids = new Set(doc.selectedIds);
     for (const u of doc.units) {
       if (ids.has(u.id) && u.linkId) for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
     }
     for (const u of doc.units) {
-      if (u.id !== source.id && ids.has(u.id)) Object.assign(u.params, { ...source.params });
+      if (u.id !== source.id && ids.has(u.id)) Object.assign(u.params, patch);
     }
   }
 
@@ -354,10 +367,11 @@ export function useDocument() {
   // 선택 전체가 이미 같은 링크면 해제, 아니면 새 링크로 통합
   function toggleLinkSelected() {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
-    if (sel.length < 2) return;
+    if (sel.length < 2) return null;
     const lids = [...new Set(sel.map((u) => u.linkId))];
     if (lids.length === 1 && lids[0] != null && linkMemberIds(lids[0]).length === sel.length) {
       for (const u of sel) u.linkId = null;
+      return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
       // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일
@@ -366,6 +380,7 @@ export function useDocument() {
         u.linkId = lid;
         if (u !== src) Object.assign(u.params, { ...src.params });
       }
+      return { action: 'linked', count: sel.length, src: src.name };
     }
   }
   function cleanupLinks() {

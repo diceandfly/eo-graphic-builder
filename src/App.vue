@@ -61,6 +61,17 @@ async function openProject(file) {
   }
 }
 
+function onLink() {
+  const r = docApi.toggleLinkSelected();
+  if (r && stageRef.value) {
+    stageRef.value.toast(
+      r.action === 'linked'
+        ? `Linked ${r.count} units — synced to "${r.src}"`
+        : `Unlinked ${r.count} units`
+    );
+  }
+}
+
 const stageActions = { ...docApi, exportSvg, saveProject, openProject };
 </script>
 
@@ -77,7 +88,7 @@ const stageActions = { ...docApi, exportSvg, saveProject, openProject };
         @set-b="docApi.setB"
         @rename="docApi.renameActive"
         @create="createUnit"
-        @link="docApi.toggleLinkSelected"
+        @link="onLink"
         @fill="docApi.setFill"
       />
     </aside>
