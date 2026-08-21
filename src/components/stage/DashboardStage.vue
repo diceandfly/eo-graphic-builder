@@ -5,6 +5,7 @@ import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
+import GroupOverlay from './GroupOverlay.vue';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -24,6 +25,29 @@ const singleSelected = computed(
   () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
 );
 const marquee = ref(null); // { x, y, w, h } — 화면 좌표
+// 선택에 관여한 최외곽 그룹들의 점선 아웃라인 (오프셋 6px 화면)
+const groupOutlines = computed(() => {
+  const gids = new Set();
+  for (const u of props.doc.units) {
+    if (props.doc.selectedIds.includes(u.id)) {
+      const g = props.actions.outermost(u);
+      if (g) gids.add(g);
+    }
+  }
+  const off = 6 / vp.scale;
+  return [...gids].map((gid) => {
+    const members = props.doc.units.filter((u) => u.groups.includes(gid));
+    const minX = Math.min(...members.map((u) => u.x));
+    const minY = Math.min(...members.map((u) => u.y));
+    return {
+      x: minX - off, y: minY - off,
+      w: Math.max(...members.map((u) => u.x + u.params.W)) - minX + off * 2,
+      h: Math.max(...members.map((u) => u.y + u.params.H)) - minY + off * 2,
+    };
+  });
+});
+const dash = computed(() => `${5 / vp.scale} ${4 / vp.scale}`);
+
 const selBounds = computed(() => {
   const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
   if (sel.length < 2) return null;
@@ -36,6 +60,7 @@ const selBounds = computed(() => {
   };
 });
 const mode = ref('select'); // 'select' | 'eyedrop'
+const showGuides = ref(true); // 전역 그리드 가이드 (선택된 유닛에만 표시)
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
@@ -188,6 +213,33 @@ function onUnitDown(u, e) {
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
 }
 
+// 통합 바운딩박스 리사이즈 (멀티/그룹)
+function onGroupResizeStart(dir, e) {
+  const b = selBounds.value;
+  if (!b) return;
+  beginDrag(e, {
+    kind: 'resizeg', dir, b0: { ...b },
+    snaps: props.doc.units
+      .filter((u) => props.doc.selectedIds.includes(u.id))
+      .map((u) => ({ u, x0: u.x, y0: u.y, W0: u.params.W, H0: u.params.H })),
+  });
+}
+
+// 회전 드래그 (코너 존): 90° 스텝 스냅
+function onRotateStart(e) {
+  const u = activeUnit.value;
+  if (!u) return;
+  const [wx, wy] = props.viewport.toWorld(...local(e));
+  const cx = u.x + u.params.W / 2;
+  const cy = u.y + u.params.H / 2;
+  beginDrag(e, {
+    kind: 'rotate', u,
+    cx, cy,
+    a0: Math.atan2(wy - cy, wx - cx),
+    applied: 0,
+  });
+}
+
 // 리사이즈 (SelectionOverlay 핸들에서)
 function onResizeStart(dir, e) {
   const u = activeUnit.value;
@@ -224,6 +276,44 @@ function onMove(e) {
   }
   let dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
   let dy = dys / vp.scale;
+  if (drag.kind === 'rotate') {
+    const [wx, wy] = props.viewport.toWorld(...local(e));
+    const ang = Math.atan2(wy - drag.cy, wx - drag.cx);
+    let deg = ((ang - drag.a0) * 180) / Math.PI;
+    deg = ((deg + 180) % 360 + 360) % 360 - 180;
+    const steps = Math.round(deg / 90);
+    while (drag.applied !== steps) {
+      const d = steps > drag.applied ? 1 : -1;
+      props.actions.rotate(d);
+      drag.applied += d;
+    }
+    return;
+  }
+  if (drag.kind === 'resizeg') {
+    const { dir, b0, snaps } = drag;
+    let W = b0.w, H = b0.h;
+    if (dir.includes('e')) W = b0.w + dx;
+    if (dir.includes('w')) W = b0.w - dx;
+    if (dir.includes('s')) H = b0.h + dy;
+    if (dir.includes('n')) H = b0.h - dy;
+    W = Math.max(W, 20);
+    H = Math.max(H, 20);
+    let sx = dir.includes('e') || dir.includes('w') ? W / b0.w : 1;
+    let sy = dir.includes('n') || dir.includes('s') ? H / b0.h : 1;
+    if (e.shiftKey && dir.length === 2) {
+      const s = Math.abs(sx - 1) > Math.abs(sy - 1) ? sx : sy;
+      sx = s; sy = s;
+    }
+    const ax = dir.includes('w') ? b0.x + b0.w : b0.x;
+    const ay = dir.includes('n') ? b0.y + b0.h : b0.y;
+    for (const t of snaps) {
+      t.u.x = Math.round(ax + (t.x0 - ax) * sx);
+      t.u.y = Math.round(ay + (t.y0 - ay) * sy);
+      t.u.params.W = clamp(Math.round(t.W0 * sx), UNIT_MIN, UNIT_MAX);
+      t.u.params.H = clamp(Math.round(t.H0 * sy), UNIT_MIN, UNIT_MAX);
+    }
+    return;
+  }
   if (drag.kind === 'move') {
     // Shift = 수직/수평 축 고정
     if (e.shiftKey) {
@@ -306,6 +396,8 @@ function onUp(e) {
   if (drag) {
     if (drag.kind === 'resize') {
       props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
+    } else if (drag.kind === 'resizeg') {
+      props.actions.normalizeSelected();
     } else if (drag.kind === 'marquee') {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
       if (moved < 4) props.actions.deselect(); // 제자리 클릭 = 선택 해제
@@ -374,7 +466,7 @@ onBeforeUnmount(() => {
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <UnitGraphic
             :params="u.params"
-            :show-guides="doc.selectedIds.includes(u.id) && u.id === doc.activeId && u.params.showGuides"
+            :show-guides="showGuides && doc.selectedIds.includes(u.id)"
           />
           <rect
             class="hit"
@@ -383,19 +475,38 @@ onBeforeUnmount(() => {
             @pointerdown.stop="onUnitDown(u, $event)"
           />
         </g>
-        <!-- 멀티선택: 결합 바운딩 박스 하나 -->
+        <!-- 그룹 표시: 점선 아웃라인 (선택 시) -->
         <rect
+          v-for="(g, i) in groupOutlines" :key="'go' + i"
+          class="groupLine"
+          :x="g.x" :y="g.y" :width="g.w" :height="g.h"
+          :stroke-dasharray="dash"
+        />
+        <!-- 링크 배지 -->
+        <g
+          v-for="u in doc.units.filter((x) => x.linkId)"
+          :key="'lk' + u.id"
+          class="linkBadge"
+          :transform="`translate(${u.x + u.params.W - 16 / vp.scale} ${u.y - 18 / vp.scale}) scale(${12 / vp.scale / 24})`"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </g>
+        <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
+        <GroupOverlay
           v-if="selBounds"
-          class="multiSel"
-          :x="selBounds.x" :y="selBounds.y" :width="selBounds.w" :height="selBounds.h"
+          :bounds="selBounds"
+          :scale="vp.scale"
+          @resize-start="onGroupResizeStart"
         />
         <SelectionOverlay
           v-if="singleSelected && activeUnit"
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
-          @rotate="(d) => actions.rotate(d)"
+          @rotate-start="onRotateStart"
           @flip="actions.flipUnit()"
+          @flipv="actions.flipUnitV()"
           @dup="actions.duplicateActive()"
           @del="actions.deleteSelected()"
         />
@@ -419,6 +530,9 @@ onBeforeUnmount(() => {
     <Toolbar
       v-model:mode="mode"
       :fill="activeUnit?.params.fill"
+      :guides="showGuides"
+      @link="actions.toggleLinkSelected()"
+      @toggle-guides="showGuides = !showGuides"
       @fill="(c) => actions.setFill(c)"
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
@@ -435,6 +549,11 @@ onBeforeUnmount(() => {
 .hit { cursor: default; }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.groupLine { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.linkBadge path {
+  fill: none; stroke: #6ec9ff; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .marquee { fill: rgba(250, 240, 75, 0.06); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: #ff5ca8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }

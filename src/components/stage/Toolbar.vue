@@ -4,8 +4,8 @@ import { BRAND_COLORS } from '../../geometry/constants.js';
 
 // 대시보드 하단 중앙 툴바 — 선택/스포이드 툴 + 내보내기/저장/열기.
 // 아이콘: 24 viewBox 스트로크 패스 (바운딩박스 버튼과 동일 톤)
-const props = defineProps({ mode: String, fill: String }); // 'select' | 'eyedrop'
-const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open']);
+const props = defineProps({ mode: String, fill: String, guides: Boolean }); // mode: 'select' | 'eyedrop'
+const emit = defineEmits(['update:mode', 'fill', 'link', 'toggle-guides', 'export', 'save', 'open']);
 
 const TOOLS = [
   {
@@ -18,6 +18,19 @@ const TOOLS = [
       'm2 22 1-1h3l9-9', 'M3 21v-3l9-9',
       'm15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z',
     ],
+  },
+];
+const MID = [
+  {
+    key: 'link', tip: 'Link selection (sync params)',
+    paths: [
+      'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71',
+      'M14 11a5 5 0 0 0-7.54.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+    ],
+  },
+  {
+    key: 'guides', tip: 'Grid guides (selected units)',
+    paths: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
   },
 ];
 const ACTIONS = [
@@ -59,9 +72,8 @@ function onFile(e) {
         :key="c"
         class="sw"
         :class="{ on: fill === c }"
-        :style="{ background: c }"
         @click="emit('fill', c)"
-      />
+      ><span class="chip" :style="{ background: c }" /></button>
     </div>
     <span class="sep" />
     <button
@@ -73,6 +85,17 @@ function onFile(e) {
     >
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in t.paths" :key="i" :d="d" /></svg>
       <span class="tip">{{ t.tip }}</span>
+    </button>
+    <span class="sep" />
+    <button
+      v-for="m in MID"
+      :key="m.key"
+      class="tbtn"
+      :class="{ on: m.key === 'guides' && guides }"
+      @click="m.key === 'link' ? emit('link') : emit('toggle-guides')"
+    >
+      <svg viewBox="0 0 24 24"><path v-for="(d, i) in m.paths" :key="i" :d="d" /></svg>
+      <span class="tip">{{ m.tip }}</span>
     </button>
     <span class="sep" />
     <button v-for="a in ACTIONS" :key="a.key" class="tbtn" @click="onAction(a.key)">
@@ -90,12 +113,14 @@ function onFile(e) {
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
 }
 .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
-.swatches { display: flex; gap: 5px; padding: 0 4px; }
+.swatches { display: flex; gap: 2px; }
 .sw {
-  width: 14px; height: 14px; border: 1px solid var(--line);
+  width: 32px; height: 32px; border: none; background: none;
+  display: flex; align-items: center; justify-content: center;
   padding: 0; cursor: pointer;
 }
-.sw.on { outline: 1px solid var(--text); outline-offset: 1px; }
+.sw .chip { width: 14px; height: 14px; display: block; }
+.sw.on { background: #222; }
 .tbtn {
   position: relative;
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;

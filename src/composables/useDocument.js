@@ -35,17 +35,26 @@ export function createParams(overrides = {}) {
 // - selectedIds: 바운딩박스/이동/일괄 편집 대상
 const DOC_KEY = 'eo.doc';
 
+// 구버전 스키마 호환: groupId(단일) → groups(중첩 스택, 바깥쪽이 끝)
+function migrateUnit(u) {
+  if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
+  delete u.groupId;
+  if (u.linkId === undefined) u.linkId = null;
+  return u;
+}
+
 export function useDocument() {
   // localStorage 자동 복원 (새로고침 안전망)
   let savedUnits = null;
   try {
     savedUnits = JSON.parse(localStorage.getItem(DOC_KEY) || 'null')?.units ?? null;
   } catch { savedUnits = null; }
-  const initialUnits = savedUnits ?? [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }];
+  const initialUnits = (savedUnits ?? [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
 
   let nextId = 2;
   let nextVersion = 2;
   let nextGroup = 1;
+  let nextLink = 1;
   const doc = reactive({
     units: initialUnits,
     activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
@@ -58,7 +67,8 @@ export function useDocument() {
       const mt = u.name.match(/v(\d+)$/);
       return Math.max(m, mt ? Number(mt[1]) : 0);
     }, 0) + 1;
-    nextGroup = doc.units.reduce((m, u) => Math.max(m, u.groupId || 0), 0) + 1;
+    nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
+    nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
   }
 
   // 자동 저장 (500ms 디바운스)
@@ -75,7 +85,7 @@ export function useDocument() {
 
   // JSON 프로젝트 로드 (파일 열기)
   function loadProject(units) {
-    doc.units.splice(0, doc.units.length, ...units);
+    doc.units.splice(0, doc.units.length, ...units.map(migrateUnit));
     doc.selectedIds = [];
     doc.activeId = units.length ? units[units.length - 1].id : null;
     recalcCounters();
@@ -83,10 +93,12 @@ export function useDocument() {
 
   // 스포이드: 소스 유닛의 파라미터를 선택된 유닛들에 흡수 (위치·이름 유지)
   function absorbFrom(source) {
+    const ids = new Set(doc.selectedIds);
     for (const u of doc.units) {
-      if (u.id !== source.id && doc.selectedIds.includes(u.id)) {
-        Object.assign(u.params, { ...source.params });
-      }
+      if (ids.has(u.id) && u.linkId) for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
+    }
+    for (const u of doc.units) {
+      if (u.id !== source.id && ids.has(u.id)) Object.assign(u.params, { ...source.params });
     }
   }
 
@@ -131,7 +143,15 @@ export function useDocument() {
     () => (active.value ? [active.value.id, JSON.stringify(active.value.params)] : [null, null]),
     ([id, now], [oldId, old]) => {
       if (mirrorGuard || id == null || id !== oldId || now === old) return;
-      if (doc.selectedIds.length < 2 || !doc.selectedIds.includes(id)) return;
+      // 대상: 멀티선택 미러링 + 링크 그룹 상시 동기화
+      const targets = new Set();
+      if (doc.selectedIds.length >= 2 && doc.selectedIds.includes(id)) {
+        for (const sid of doc.selectedIds) targets.add(sid);
+      }
+      const me = doc.units.find((u) => u.id === id);
+      if (me?.linkId) for (const lid of linkMemberIds(me.linkId)) targets.add(lid);
+      targets.delete(id);
+      if (!targets.size) return;
       const prev = JSON.parse(old);
       const cur = JSON.parse(now);
       const patch = {};
@@ -139,7 +159,7 @@ export function useDocument() {
       if (!Object.keys(patch).length) return;
       mirrorGuard = true;
       for (const u of doc.units) {
-        if (u.id !== id && doc.selectedIds.includes(u.id)) Object.assign(u.params, patch);
+        if (targets.has(u.id)) Object.assign(u.params, patch);
       }
       mirrorGuard = false;
     }
@@ -200,7 +220,7 @@ export function useDocument() {
 
   function pushUnit(params, x, y) {
     const id = nextId++;
-    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groupId: null, params });
+    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groups: [], linkId: null, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -220,6 +240,7 @@ export function useDocument() {
     doc.units.splice(0, doc.units.length, ...keep);
     doc.selectedIds = [];
     doc.activeId = keep.length ? keep[keep.length - 1].id : null;
+    cleanupLinks(); // 1개만 남은 링크 그룹 해제
   }
 
   function duplicateActive() {
@@ -276,21 +297,27 @@ export function useDocument() {
   }
   // 스와치: 선택 유닛(없으면 활성)에 fill 적용
   function setFill(color) {
-    const ids = doc.selectedIds.length
-      ? doc.selectedIds
-      : doc.activeId != null ? [doc.activeId] : [];
-    for (const u of doc.units) if (ids.includes(u.id)) u.params.fill = color;
+    const ids = new Set(
+      doc.selectedIds.length ? doc.selectedIds : doc.activeId != null ? [doc.activeId] : []
+    );
+    for (const u of doc.units) {
+      if (ids.has(u.id) && u.linkId) for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
+    }
+    for (const u of doc.units) if (ids.has(u.id)) u.params.fill = color;
   }
 
-  // ---- 그룹 (⌘G / ⌘⇧G) ----
+  // ---- 그룹 (⌘G / ⌘⇧G) — 중첩 지원: u.groups = [안쪽 ... 바깥쪽] ----
+  const outermost = (u) => (u.groups.length ? u.groups[u.groups.length - 1] : null);
   function groupMemberIds(gid) {
-    return doc.units.filter((u) => u.groupId === gid).map((u) => u.id);
+    return doc.units.filter((u) => u.groups.includes(gid)).map((u) => u.id);
   }
+  // 클릭/마퀴 선택 확장: 각 유닛의 최외곽 그룹 전체 포함
   function expandGroups(ids) {
     const out = new Set(ids);
     for (const u of doc.units) {
-      if (out.has(u.id) && u.groupId) {
-        for (const id of groupMemberIds(u.groupId)) out.add(id);
+      if (out.has(u.id)) {
+        const g = outermost(u);
+        if (g) for (const id of groupMemberIds(g)) out.add(id);
       }
     }
     return [...out];
@@ -298,31 +325,78 @@ export function useDocument() {
   function groupSelected() {
     const sel = doc.selectedIds;
     if (sel.length < 2) return; // 단일 유닛/단일 그룹의 중복 그룹 방지
-    const gids = [...new Set(doc.units.filter((u) => sel.includes(u.id)).map((u) => u.groupId))];
-    if (gids.length === 1 && gids[0] != null && groupMemberIds(gids[0]).length === sel.length) {
+    const units = doc.units.filter((u) => sel.includes(u.id));
+    const outs = [...new Set(units.map(outermost))];
+    if (outs.length === 1 && outs[0] != null && groupMemberIds(outs[0]).length === sel.length) {
       return; // 이미 완전한 단일 그룹
     }
     const gid = nextGroup++;
-    for (const u of doc.units) if (sel.includes(u.id)) u.groupId = gid;
+    for (const u of units) u.groups.push(gid); // 바깥 레이어로 추가 — 내부 구조 유지
   }
+  // 1레이어 언그룹: 선택된 유닛들의 최외곽 그룹만 벗김
   function ungroupSelected() {
-    for (const u of doc.units) if (doc.selectedIds.includes(u.id)) u.groupId = null;
+    const outs = new Set(
+      doc.units.filter((u) => doc.selectedIds.includes(u.id)).map(outermost).filter(Boolean)
+    );
+    for (const u of doc.units) {
+      if (doc.selectedIds.includes(u.id) && outs.has(outermost(u))) u.groups.pop();
+    }
+  }
+
+  // ---- 링크 (파라미터 상시 동기화) ----
+  function linkMemberIds(lid) {
+    return doc.units.filter((u) => u.linkId === lid).map((u) => u.id);
+  }
+  // 선택 전체가 이미 같은 링크면 해제, 아니면 새 링크로 통합
+  function toggleLinkSelected() {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (sel.length < 2) return;
+    const lids = [...new Set(sel.map((u) => u.linkId))];
+    if (lids.length === 1 && lids[0] != null && linkMemberIds(lids[0]).length === sel.length) {
+      for (const u of sel) u.linkId = null;
+    } else {
+      const lid = nextLink++;
+      for (const u of sel) u.linkId = lid;
+    }
+  }
+  function cleanupLinks() {
+    const counts = {};
+    for (const u of doc.units) if (u.linkId) counts[u.linkId] = (counts[u.linkId] || 0) + 1;
+    for (const u of doc.units) if (u.linkId && counts[u.linkId] < 2) u.linkId = null;
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   function rotate(dir) {
-    if (!active.value) return;
-    const p = active.value.params;
+    const u = active.value;
+    if (!u) return;
+    const p = u.params;
+    const cx = u.x + p.W / 2;
+    const cy = u.y + p.H / 2;
     [p.W, p.H] = [p.H, p.W];
     p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+    u.x = Math.round(cx - p.W / 2);
+    u.y = Math.round(cy - p.H / 2);
     normalize(p);
+  }
+  // 상하 반전 = 180° 회전 + 좌우 반전 (W/H 불변, one-side의 shaft 위치도 뒤집힘)
+  function flipUnitV() {
+    if (!active.value) return;
+    const p = active.value.params;
+    p.orientation = (p.orientation + 180) % 360;
+    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
+    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+  }
+  // 멀티/그룹 리사이즈 후 파생 제약 정리
+  function normalizeSelected() {
+    for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
   }
 
   return {
     doc, active, gutterMax,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, deleteSelected, createUnit,
-    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, setFill,
-    groupMemberIds, expandGroups, groupSelected, ungroupSelected,
+    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, setFill,
+    normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
+    toggleLinkSelected, linkMemberIds,
     undo, redo, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom,
   };

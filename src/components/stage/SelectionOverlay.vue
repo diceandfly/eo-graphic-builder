@@ -7,7 +7,7 @@ const props = defineProps({
   unit: Object,  // { id, name, x, y, params }
   scale: Number, // 뷰포트 줌
 });
-const emit = defineEmits(['resizeStart', 'rotate', 'flip', 'dup', 'del']);
+const emit = defineEmits(['resizeStart', 'rotateStart', 'flip', 'flipv', 'dup', 'del']);
 
 const W = computed(() => props.unit.params.W);
 const H = computed(() => props.unit.params.H);
@@ -29,16 +29,12 @@ const BTN = 28;
 const ICON = 16; // 버튼 내 아이콘 기본 크기 (화면 px). s = 개별 배율, dx = 화면 px 미세보정.
 const ACTIONS = [
   {
-    key: 'cw', tip: 'Rotate 90° clockwise', s: 0.95, dx: -1,
-    paths: ['M23 4v6h-6', 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10'],
-  },
-  {
-    key: 'ccw', tip: 'Rotate 90° counter-clockwise', s: 0.95, dx: 1,
-    paths: ['M1 4v6h6', 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10'],
-  },
-  {
-    key: 'flip', tip: 'Flip unit',
+    key: 'flip', tip: 'Flip horizontal',
     paths: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
+  },
+  {
+    key: 'flipv', tip: 'Flip vertical',
+    paths: ['m3 8 4-4 4 4', 'M7 4v16', 'm21 16-4 4-4-4', 'M17 20V4'],
   },
   {
     key: 'dup', tip: 'Duplicate unit',
@@ -59,10 +55,17 @@ const ACTIONS = [
 ];
 function onAction(key) {
   if (key === 'flip') emit('flip');
+  else if (key === 'flipv') emit('flipv');
   else if (key === 'dup') emit('dup');
   else if (key === 'del') emit('del');
-  else emit('rotate', key === 'cw' ? 1 : -1);
 }
+
+// 코너 바깥 회전 존 (드래그로 90° 스텝 회전)
+const ROT = 18; // 존 크기 (화면 px)
+const ROT_ZONES = [
+  { x: 0, y: 0, ox: -1, oy: -1 }, { x: 1, y: 0, ox: 1, oy: -1 },
+  { x: 0, y: 1, ox: -1, oy: 1 }, { x: 1, y: 1, ox: 1, oy: 1 },
+];
 
 // 커스텀 툴팁 — 350ms 호버 후 표시 (네이티브 title보다 빠름)
 const tip = ref(null); // { i, text }
@@ -119,6 +122,14 @@ const iconSize = (a) => ICON * (a.s ?? 1);
     </g>
 
     <rect
+      v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
+      class="rotZone"
+      :x="z.x * W + (z.ox < 0 ? -px(ROT) : 0)"
+      :y="z.y * H + (z.oy < 0 ? -px(ROT) : 0)"
+      :width="px(ROT)" :height="px(ROT)"
+      @pointerdown.stop.prevent="emit('rotateStart', $event)"
+    />
+    <rect
       v-for="h in HANDLES" :key="h.dir"
       class="handle"
       :x="h.x * W - px(4)" :y="h.y * H - px(4)"
@@ -133,6 +144,10 @@ const iconSize = (a) => ICON * (a.s ?? 1);
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .label { fill: var(--accent); font-family: inherit; user-select: none; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rotZone {
+  fill: transparent;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpolyline points='23 4 23 10 17 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 9 9, alias;
+}
 .abtn { cursor: pointer; }
 .abtn rect { fill: var(--panel); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .abtn .icon path {

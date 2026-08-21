@@ -159,10 +159,6 @@ function cancelRename() {
         @update:model-value="setComp"
       />
       <ChipRow v-model="p.rate" />
-      <label class="check">
-        <input type="checkbox" v-model="p.showGuides" />
-        <span>grid guides</span>
-      </label>
     </section>
 
     <section>
@@ -187,8 +183,8 @@ function cancelRename() {
       <Toggle
         label="thread direction" v-model="p.threadDir"
         :options="[
-          { value: 'LtoR', label: 'L→R' },
-          { value: 'RtoL', label: 'R→L' },
+          { value: 'LtoR', label: 'R→L' },
+          { value: 'RtoL', label: 'L→R' },
         ]"
       />
       <Toggle
