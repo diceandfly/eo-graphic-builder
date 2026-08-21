@@ -27,6 +27,12 @@ const CURSORS = {
   nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize',
 };
 
+// 코너 바깥 회전 존 (드래그로 90° 스텝 회전) — GroupOverlay와 동일 규격
+const ROT = 18; // 존 크기 (화면 px)
+const ROT_ZONES = [
+  { x: 0, y: 0, ox: -1, oy: -1 }, { x: 1, y: 0, ox: 1, oy: -1 },
+  { x: 0, y: 1, ox: -1, oy: 1 }, { x: 1, y: 1, ox: 1, oy: 1 },
+];
 </script>
 
 <template>
