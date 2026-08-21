@@ -253,7 +253,7 @@ function cancelRename() {
 .panel { display: flex; flex-direction: column; gap: 26px; }
 .brand {
   display: flex; align-items: center; gap: 10px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.2em; color: var(--text);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--text);
   padding: 4px 2px 14px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }

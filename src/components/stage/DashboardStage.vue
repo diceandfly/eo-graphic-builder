@@ -6,6 +6,7 @@ import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
 import GroupOverlay from './GroupOverlay.vue';
+import AlignBar from './AlignBar.vue';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -61,6 +62,11 @@ const visibleLinkIds = computed(() => {
   return set;
 });
 
+const keyUnit = computed(() =>
+  props.doc.keyId != null && props.doc.selectedIds.includes(props.doc.keyId)
+    ? props.doc.units.find((u) => u.id === props.doc.keyId)
+    : null
+);
 const selBounds = computed(() => {
   const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
   if (sel.length < 2) return null;
@@ -93,6 +99,7 @@ const gapGuides = ref([]);   // [{ axis: 'x'|'y', at, segs: [[a,b],[c,d]] }] —
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
 let drag = null;
+let keyCandidate = null; // 멀티선택 중 재클릭 → 정렬 키 오브젝트 후보
 
 function local(e) {
   const r = el.value.getBoundingClientRect();
@@ -231,9 +238,10 @@ function onUnitDown(u, e) {
     props.actions.selectOnly(u.id);
     targets = [u];
   } else if (props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1) {
-    // 멀티선택 유지한 채 전체 이동
+    // 멀티선택 유지한 채 전체 이동 — 움직임 없는 재클릭이면 키 오브젝트 지정 (onUp)
     props.doc.activeId = u.id;
     targets = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+    keyCandidate = u.id;
   } else {
     props.actions.setSelection(members);
     props.doc.activeId = u.id;
@@ -474,6 +482,10 @@ function findGapSnap(axis, D, others, SNAP) {
 
 function onUp(e) {
   if (drag) {
+    if (drag.kind === 'move' && keyCandidate != null) {
+      const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
+      if (moved < 4) props.doc.keyId = keyCandidate;
+    }
     if (drag.kind === 'resize') {
       props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
     } else if (drag.kind === 'resizeg') {
@@ -485,6 +497,7 @@ function onUp(e) {
     }
   }
   drag = null;
+  keyCandidate = null;
   smartGuides.value = [];
   gapGuides.value = [];
   window.removeEventListener('pointermove', onMove);
@@ -577,6 +590,13 @@ onBeforeUnmount(() => {
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
           </g>
         </g>
+        <!-- 정렬 키 오브젝트: 두꺼운 스트로크 하이라이트 -->
+        <rect
+          v-if="keyUnit"
+          class="keySel"
+          :x="keyUnit.x" :y="keyUnit.y"
+          :width="keyUnit.params.W" :height="keyUnit.params.H"
+        />
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
           v-if="selBounds"
@@ -661,6 +681,7 @@ onBeforeUnmount(() => {
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"
     />
+    <AlignBar v-if="doc.selectedIds.length >= 2" @align="(t) => actions.alignSelected(t)" />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"
@@ -681,6 +702,7 @@ onBeforeUnmount(() => {
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .groupLine { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.keySel { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
 .linkBadge path {
   fill: none; stroke: #6ec9ff; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;

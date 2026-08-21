@@ -59,6 +59,7 @@ export function useDocument() {
     units: initialUnits,
     activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
     selectedIds: [],
+    keyId: null, // 정렬 기준(키 오브젝트) — 멀티선택 중 재클릭으로 지정
   });
   recalcCounters();
   function recalcCounters() {
@@ -127,6 +128,7 @@ export function useDocument() {
   function selectOnly(id) {
     doc.activeId = id;
     doc.selectedIds = [id];
+    doc.keyId = null;
   }
   function toggleSelect(id) {
     const i = doc.selectedIds.indexOf(id);
@@ -143,9 +145,11 @@ export function useDocument() {
   function setSelection(ids) {
     doc.selectedIds = [...ids];
     if (ids.length) doc.activeId = ids[ids.length - 1];
+    if (!ids.includes(doc.keyId)) doc.keyId = null;
   }
   function deselect() {
     doc.selectedIds = [];
+    doc.keyId = null;
   }
 
   // ---- 멀티선택 파라미터 브로드캐스트 ----
@@ -235,11 +239,12 @@ export function useDocument() {
   // ---- 클립보드 (⌘C/⌘V) ----
   let clipboard = null;
   function copyActive() {
-    if (active.value) clipboard = { ...active.value.params };
+    if (active.value) clipboard = { params: { ...active.value.params }, linkId: active.value.linkId };
   }
   function pasteAt(x, y) {
     if (!clipboard) return;
-    pushUnit({ ...clipboard }, Math.round(x - clipboard.W / 2), Math.round(y - clipboard.H / 2));
+    const p = clipboard.params;
+    pushUnit({ ...p }, Math.round(x - p.W / 2), Math.round(y - p.H / 2), clipboard.linkId);
   }
 
   function pushUnit(params, x, y, linkId = null) {
@@ -435,8 +440,56 @@ export function useDocument() {
     for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
   }
 
+  // ---- 정렬 (좌하단 정렬 패널) ----
+  // 블록 = 최외곽 그룹 단위 (그룹은 한 덩어리로 이동), 기준 = 키 오브젝트 블록 (없으면 선택 전체 bbox)
+  function blocksOf(ids) {
+    const map = new Map();
+    for (const u of doc.units) {
+      if (!ids.includes(u.id)) continue;
+      const g = outermost(u);
+      const key = g ? 'g' + g : 'u' + u.id;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(u);
+    }
+    return [...map.values()];
+  }
+  function bboxOf(units) {
+    return {
+      minX: Math.min(...units.map((u) => u.x)),
+      minY: Math.min(...units.map((u) => u.y)),
+      maxX: Math.max(...units.map((u) => u.x + u.params.W)),
+      maxY: Math.max(...units.map((u) => u.y + u.params.H)),
+    };
+  }
+  function alignSelected(type) {
+    const blocks = blocksOf(doc.selectedIds);
+    if (blocks.length < 2) return;
+    const keyU =
+      doc.keyId != null && doc.selectedIds.includes(doc.keyId)
+        ? doc.units.find((u) => u.id === doc.keyId)
+        : null;
+    const ref = keyU
+      ? bboxOf(blocks.find((b) => b.includes(keyU)))
+      : bboxOf(doc.units.filter((u) => doc.selectedIds.includes(u.id)));
+    for (const b of blocks) {
+      if (keyU && b.includes(keyU)) continue;
+      const bb = bboxOf(b);
+      let dx = 0, dy = 0;
+      if (type === 'left') dx = ref.minX - bb.minX;
+      else if (type === 'hcenter') dx = (ref.minX + ref.maxX) / 2 - (bb.minX + bb.maxX) / 2;
+      else if (type === 'right') dx = ref.maxX - bb.maxX;
+      else if (type === 'top') dy = ref.minY - bb.minY;
+      else if (type === 'vcenter') dy = (ref.minY + ref.maxY) / 2 - (bb.minY + bb.maxY) / 2;
+      else if (type === 'bottom') dy = ref.maxY - bb.maxY;
+      for (const u of b) {
+        u.x += dx;
+        u.y += dy;
+      }
+    }
+  }
+
   return {
-    doc, active, gutterMax,
+    doc, active, gutterMax, alignSelected,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, setFill,
