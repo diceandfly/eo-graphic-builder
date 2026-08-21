@@ -42,5 +42,5 @@ function onInput(e) {
 .row { margin-bottom: 12px; }
 .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .label { font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--faint); }
-.value { font-size: 13px; color: var(--text); font-variant-numeric: tabular-nums; }
+.value { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; }
 </style>

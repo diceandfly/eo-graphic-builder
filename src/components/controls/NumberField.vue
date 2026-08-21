@@ -24,11 +24,11 @@ defineEmits(['update:modelValue']);
 </template>
 
 <style scoped>
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .label { font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--faint); }
 input {
   width: 58px; border: 1px solid var(--line); background: none; color: var(--text);
-  font: inherit; font-size: 12px; padding: 5px 8px; text-align: right;
+  font: inherit; font-size: 12px; padding: 3px 8px; text-align: right;
   -moz-appearance: textfield; appearance: textfield;
 }
 input::-webkit-outer-spin-button,

@@ -488,8 +488,19 @@ export function useDocument() {
     }
   }
 
+  // 대시보드 초기화 — 기본 유닛 1개로 (undo로 복구 가능)
+  function resetDoc() {
+    doc.units.splice(0, doc.units.length, {
+      id: nextId++, name: `unit v${nextVersion++}`, x: 0, y: 0,
+      groups: [], linkId: null, params: createParams(),
+    });
+    doc.activeId = doc.units[0].id;
+    doc.selectedIds = [doc.units[0].id];
+    doc.keyId = null;
+  }
+
   return {
-    doc, active, gutterMax, alignSelected,
+    doc, active, gutterMax, alignSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, setFill,

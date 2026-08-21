@@ -8,7 +8,7 @@ const props = defineProps({
   mode: String, fill: String,
   scope: Object, // 스포이드 범주 토글 { size, grid, shape, color }
 }); // mode: 'select' | 'eyedrop'
-const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open']);
+const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open', 'reset']);
 
 const TOOLS = [
   {
@@ -39,6 +39,10 @@ const ACTIONS = [
     key: 'open', tip: 'Open JSON',
     paths: ['M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'],
   },
+  {
+    key: 'reset', tip: 'Reset dashboard',
+    paths: ['M1 4v6h6', 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10'],
+  },
 ];
 
 const fileEl = ref(null);
@@ -64,10 +68,23 @@ watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
+// 리셋 2단계 확인: 1차 클릭 → 경고 상태(3초), 그 안에 재클릭 → 실행
+const resetArmed = ref(false);
+let armTimer = null;
 function onAction(key) {
   if (key === 'export') emit('export');
   else if (key === 'save') emit('save');
   else if (key === 'open') fileEl.value.click();
+  else if (key === 'reset') {
+    if (resetArmed.value) {
+      clearTimeout(armTimer);
+      resetArmed.value = false;
+      emit('reset');
+    } else {
+      resetArmed.value = true;
+      armTimer = setTimeout(() => (resetArmed.value = false), 3000);
+    }
+  }
 }
 function onFile(e) {
   const f = e.target.files[0];
@@ -119,9 +136,15 @@ function onFile(e) {
       </div>
     </div>
     <span class="sep" />
-    <button v-for="a in ACTIONS" :key="a.key" class="tbtn" @click="onAction(a.key)">
+    <button
+      v-for="a in ACTIONS"
+      :key="a.key"
+      class="tbtn"
+      :class="{ danger: a.key === 'reset' && resetArmed }"
+      @click="onAction(a.key)"
+    >
       <svg viewBox="0 0 24 24"><path v-for="(d, i) in a.paths" :key="i" :d="d" /></svg>
-      <span class="tip">{{ a.tip }}</span>
+      <span class="tip">{{ a.key === 'reset' && resetArmed ? 'Click again to reset' : a.tip }}</span>
     </button>
     <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
     </div>
@@ -159,6 +182,9 @@ function onFile(e) {
 .tbtn:hover svg { stroke: var(--accent); }
 .tbtn.on { background: #222; }
 .tbtn.on svg { stroke: var(--accent); }
+.tbtn.danger { background: #2a1515; }
+.tbtn.danger svg { stroke: #ff5c5c; }
+.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: #ff5c5c; }
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);

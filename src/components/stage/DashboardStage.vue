@@ -333,6 +333,27 @@ function onMove(e) {
     if (dir.includes('w')) W = b0.w - dx;
     if (dir.includes('s')) H = b0.h + dy;
     if (dir.includes('n')) H = b0.h - dy;
+    // 통합 박스의 이동 엣지도 스마트 스냅
+    const SNAPG = 6 / vp.scale;
+    const exclude = snaps.map((t) => t.u);
+    const gGuides = [];
+    if (!e.shiftKey) {
+      if (dir.includes('e')) {
+        const sn = snapEdge('x', b0.x + W, exclude, SNAPG);
+        if (sn) { W += sn.d; gGuides.push(edgeGuide('x', sn, b0.y, b0.y + H)); }
+      } else if (dir.includes('w')) {
+        const sn = snapEdge('x', b0.x + b0.w - W, exclude, SNAPG);
+        if (sn) { W = b0.x + b0.w - sn.pos; gGuides.push(edgeGuide('x', sn, b0.y, b0.y + H)); }
+      }
+      if (dir.includes('s')) {
+        const sn = snapEdge('y', b0.y + H, exclude, SNAPG);
+        if (sn) { H += sn.d; gGuides.push(edgeGuide('y', sn, b0.x, b0.x + W)); }
+      } else if (dir.includes('n')) {
+        const sn = snapEdge('y', b0.y + b0.h - H, exclude, SNAPG);
+        if (sn) { H = b0.y + b0.h - sn.pos; gGuides.push(edgeGuide('y', sn, b0.x, b0.x + W)); }
+      }
+    }
+    smartGuides.value = gGuides;
     W = Math.max(W, 20);
     H = Math.max(H, 20);
     let sx = dir.includes('e') || dir.includes('w') ? W / b0.w : 1;
@@ -419,7 +440,7 @@ function onMove(e) {
     gapGuides.value = gaps;
     return;
   }
-  // resize: 반대편 변 고정, Shift = 비율 고정(코너)
+  // resize: 반대편 변 고정, Shift = 비율 고정(코너), 이동 엣지는 스마트 스냅
   const { dir, u, x0, y0, W0, H0, ratio } = drag;
   const p = u.params;
   let W = W0, H = H0;
@@ -432,12 +453,63 @@ function onMove(e) {
     if (Math.abs(W - W0) * H0 > Math.abs(H - H0) * W0) H = W / ratio;
     else W = H * ratio;
   }
+  const SNAP = 6 / vp.scale;
+  const rGuides = [];
+  if (!e.shiftKey) {
+    if (dir.includes('e')) {
+      const sn = snapEdge('x', x0 + W, [u], SNAP);
+      if (sn) { W += sn.d; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
+    } else if (dir.includes('w')) {
+      const sn = snapEdge('x', x0 + (W0 - W), [u], SNAP);
+      if (sn) { W = x0 + W0 - sn.pos; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
+    }
+    if (dir.includes('s')) {
+      const sn = snapEdge('y', y0 + H, [u], SNAP);
+      if (sn) { H += sn.d; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
+    } else if (dir.includes('n')) {
+      const sn = snapEdge('y', y0 + (H0 - H), [u], SNAP);
+      if (sn) { H = y0 + H0 - sn.pos; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
+    }
+  }
+  smartGuides.value = rGuides;
   W = clamp(Math.round(W), UNIT_MIN, UNIT_MAX);
   H = clamp(Math.round(H), UNIT_MIN, UNIT_MAX);
   p.W = W;
   p.H = H;
   if (dir.includes('w')) u.x = x0 + (W0 - W);
   if (dir.includes('n')) u.y = y0 + (H0 - H);
+}
+
+// 리사이즈 중 이동하는 엣지를 다른 유닛의 엣지/센터에 스냅
+function snapEdge(axis, pos, excludeUnits, SNAP) {
+  let best = null;
+  for (const o of props.doc.units) {
+    if (excludeUnits.includes(o)) continue;
+    const cands =
+      axis === 'x'
+        ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]
+        : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+    for (const c of cands) {
+      const d = c - pos;
+      if (Math.abs(d) < SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, pos: c, o };
+    }
+  }
+  return best;
+}
+function edgeGuide(axis, snap, boxMin, boxMax) {
+  const o = snap.o;
+  if (axis === 'x') {
+    return {
+      axis: 'v', pos: snap.pos,
+      from: Math.min(boxMin, o.y),
+      to: Math.max(boxMax, o.y + o.params.H),
+    };
+  }
+  return {
+    axis: 'h', pos: snap.pos,
+    from: Math.min(boxMin, o.x),
+    to: Math.max(boxMax, o.x + o.params.W),
+  };
 }
 
 // 등간격 스냅 탐색. axis='x'면 가로 간격 (y는 좌표 스왑으로 재사용)
@@ -508,18 +580,26 @@ function resetZoom() {
   resetAt(r.width / 2, r.height / 2);
 }
 
+function centerFirstUnit() {
+  const r = el.value.getBoundingClientRect();
+  const u = props.doc.units[0];
+  vp.scale = 1;
+  if (u) {
+    vp.x = (r.width - u.params.W) / 2;
+    vp.y = (r.height - u.params.H) / 2;
+  }
+}
+function onReset() {
+  props.actions.resetDoc();
+  centerFirstUnit();
+  toast('Dashboard reset');
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
-  if (!props.viewport.restored) {
-    const r = el.value.getBoundingClientRect();
-    const u = props.doc.units[0];
-    if (u) {
-      vp.x = (r.width - u.params.W) / 2;
-      vp.y = (r.height - u.params.H) / 2;
-    }
-  }
+  if (!props.viewport.restored) centerFirstUnit();
 });
 function centerWorld() {
   const r = el.value.getBoundingClientRect();
@@ -680,6 +760,7 @@ onBeforeUnmount(() => {
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"
+      @reset="onReset"
     />
     <AlignBar v-if="doc.selectedIds.length >= 2" @align="(t) => actions.alignSelected(t)" />
     <ZoomBadge
@@ -702,7 +783,7 @@ onBeforeUnmount(() => {
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .groupLine { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.7; }
-.keySel { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
 .linkBadge path {
   fill: none; stroke: #6ec9ff; stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
