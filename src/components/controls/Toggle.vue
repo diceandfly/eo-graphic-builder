@@ -26,7 +26,7 @@ defineEmits(['update:modelValue']);
 .label { font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--faint); }
 .seg { display: flex; border: 1px solid var(--line); }
 .seg button {
-  border: none; background: none; padding: 6px 12px;
+  border: none; background: none; padding: 3px 9px;
   font-size: 11px; letter-spacing: 0.03em; color: var(--faint);
   font-family: inherit; cursor: pointer;
 }
