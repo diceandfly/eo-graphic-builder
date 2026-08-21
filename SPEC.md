@@ -577,3 +577,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **Toolbar / ZoomBadge / AlignBar 전면 교체** — 중복 `.tbtn/.tip/.bar` 스타일 3벌 → 0. 각 파일은 버튼 정의(아이콘·툴팁·동작)만 보유.
 3. **툴팁 규격 통일** — HTML 바 3곳은 IconButton 내장, SVG 오버레이(SelectionOverlay)는 구현체 유지하되 타이밍을 `--tip-delay` 토큰에서 읽음(`utils/cssToken.js readTokenMs`). 토스트 유지 시간도 `--toast-time` 토큰 동기.
 4. SCSS 중첩 첫 활용 (IconButton 상태 변형). 시각 변화 0 확인.
+
+## 43. 2026-08-21 — 중간 수정 3건
+
+1. **compression ± 전환 = 유닛 좌우 미러** — 부호가 바뀌면 압축 방향과 함께 thread 기울기(threadDir)도 반전 (flip 버튼과 동일 의미). 0 스냅 통과 시 1회 반전.
+2. **파비콘 교체** — 재업로드본(`src/assets/favicon.svg`, 25.6 정사각·다크 배경+화이트 마크) 그대로 `public/favicon.svg`에 적용.
+3. **Alt 중심 대칭 스케일 + 스마트 스냅** — 이동 엣지 스냅 시 `W = 2·|snap − 중심|`로 반대편도 동기. 단일/통합 모두 적용.

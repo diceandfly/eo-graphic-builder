@@ -339,7 +339,20 @@ function onMove(e) {
     const SNAPG = 6 / vp.scale;
     const exclude = snaps.map((t) => t.u);
     const gGuides = [];
-    if (!e.shiftKey && !e.altKey) {
+    if (!e.shiftKey && e.altKey) {
+      // 중심 대칭 + 스냅
+      const gcx = b0.x + b0.w / 2, gcy = b0.y + b0.h / 2;
+      if (dir.includes('e') || dir.includes('w')) {
+        const edge = dir.includes('e') ? gcx + W / 2 : gcx - W / 2;
+        const sn = snapEdge('x', edge, exclude, SNAPG);
+        if (sn) { W = 2 * Math.abs(sn.pos - gcx); gGuides.push(edgeGuide('x', sn, gcy - H / 2, gcy + H / 2)); }
+      }
+      if (dir.includes('s') || dir.includes('n')) {
+        const edge = dir.includes('s') ? gcy + H / 2 : gcy - H / 2;
+        const sn = snapEdge('y', edge, exclude, SNAPG);
+        if (sn) { H = 2 * Math.abs(sn.pos - gcy); gGuides.push(edgeGuide('y', sn, gcx - W / 2, gcx + W / 2)); }
+      }
+    } else if (!e.shiftKey) {
       if (dir.includes('e')) {
         const sn = snapEdge('x', b0.x + W, exclude, SNAPG);
         if (sn) { W += sn.d; gGuides.push(edgeGuide('x', sn, b0.y, b0.y + H)); }
@@ -459,20 +472,35 @@ function onMove(e) {
   }
   const SNAP = 6 / vp.scale;
   const rGuides = [];
-  if (!e.shiftKey && !e.altKey) {
-    if (dir.includes('e')) {
-      const sn = snapEdge('x', x0 + W, [u], SNAP);
-      if (sn) { W += sn.d; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
-    } else if (dir.includes('w')) {
-      const sn = snapEdge('x', x0 + (W0 - W), [u], SNAP);
-      if (sn) { W = x0 + W0 - sn.pos; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
-    }
-    if (dir.includes('s')) {
-      const sn = snapEdge('y', y0 + H, [u], SNAP);
-      if (sn) { H += sn.d; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
-    } else if (dir.includes('n')) {
-      const sn = snapEdge('y', y0 + (H0 - H), [u], SNAP);
-      if (sn) { H = y0 + H0 - sn.pos; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
+  if (!e.shiftKey) {
+    if (e.altKey) {
+      // 중심 대칭: 이동 엣지가 스냅되면 반대편도 같이 — W = 2·(snap − 중심)
+      const cx = x0 + W0 / 2, cy = y0 + H0 / 2;
+      if (dir.includes('e') || dir.includes('w')) {
+        const edge = dir.includes('e') ? cx + W / 2 : cx - W / 2;
+        const sn = snapEdge('x', edge, [u], SNAP);
+        if (sn) { W = 2 * Math.abs(sn.pos - cx); rGuides.push(edgeGuide('x', sn, cy - H / 2, cy + H / 2)); }
+      }
+      if (dir.includes('s') || dir.includes('n')) {
+        const edge = dir.includes('s') ? cy + H / 2 : cy - H / 2;
+        const sn = snapEdge('y', edge, [u], SNAP);
+        if (sn) { H = 2 * Math.abs(sn.pos - cy); rGuides.push(edgeGuide('y', sn, cx - W / 2, cx + W / 2)); }
+      }
+    } else {
+      if (dir.includes('e')) {
+        const sn = snapEdge('x', x0 + W, [u], SNAP);
+        if (sn) { W += sn.d; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
+      } else if (dir.includes('w')) {
+        const sn = snapEdge('x', x0 + (W0 - W), [u], SNAP);
+        if (sn) { W = x0 + W0 - sn.pos; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
+      }
+      if (dir.includes('s')) {
+        const sn = snapEdge('y', y0 + H, [u], SNAP);
+        if (sn) { H += sn.d; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
+      } else if (dir.includes('n')) {
+        const sn = snapEdge('y', y0 + (H0 - H), [u], SNAP);
+        if (sn) { H = y0 + H0 - sn.pos; rGuides.push(edgeGuide('y', sn, x0, x0 + W)); }
+      }
     }
   }
   smartGuides.value = rGuides;

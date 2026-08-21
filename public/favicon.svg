@@ -1,3 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="29.35 -0.4 28.72 28.72">
-  <path fill="#F9EE48" d="M57.87,7.81L49.63.2h-10.55l-8.25,7.61v12.37s0,0,0,0l8.25,7.61h10.55l8.25-7.61s0,0,0,0V7.81s0,0,0,0ZM54.44,15.7h-5.21l-3.21,2.9v5.81h-3.34v-5.81l-3.21-2.9h-5.21v-3.4h5.21l3.21-2.9V3.58h3.34v5.81l3.21,2.9h5.21v3.4Z"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25.6 25.6">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        fill: #06080a;
+      }
+    </style>
+  </defs>
+  <g id="content">
+    <rect class="cls-2" width="25.6" height="25.6"/>
+    <path class="cls-1" d="M21.97,11.88v-1.59h-4.41v-1.8l4.39-3.42v-1.53h-13.8c-.07,0-.15.03-.21.07l-4.3,3.41v1.46h4.39v1.81l-4.41,3.42v1.59h4.41v1.8l-4.39,3.42v1.53h13.8c.07,0,.15-.03.21-.07l4.3-3.41v-1.46h-4.39v-1.81l4.41-3.42Z"/>
+  </g>
 </svg>

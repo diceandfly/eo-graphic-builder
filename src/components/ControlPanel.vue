@@ -50,7 +50,12 @@ const compVal = computed(() => {
 function setComp(v) {
   if (Math.abs(v) < COMP_SNAP) v = 0; // 중앙 스냅포인트
   p.value.rate = 1 + (Math.abs(v) / COMP_SCALE) * (RATE_MAX - 1);
-  p.value.direction = v >= 0 ? 'LtoS' : 'StoL';
+  const dir = v >= 0 ? 'LtoS' : 'StoL';
+  if (dir !== p.value.direction) {
+    // 부호 전환 = 유닛 좌우 미러: 압축 방향과 thread 기울기를 함께 반전 (flip 버튼과 동일 의미)
+    p.value.direction = dir;
+    p.value.threadDir = p.value.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+  }
 }
 const compDisplay = computed(() => {
   const v = compVal.value;
