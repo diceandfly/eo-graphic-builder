@@ -7,6 +7,7 @@ import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
+import { readTokenMs } from '../../utils/cssToken.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -89,7 +90,7 @@ let toastTimer = null;
 function toast(msg) {
   toastMsg.value = msg;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (toastMsg.value = null), 2600);
+  toastTimer = setTimeout(() => (toastMsg.value = null), readTokenMs('--toast-time', 2600));
 }
 
 // 스포이드 범주 스코프 (우클릭 메뉴)

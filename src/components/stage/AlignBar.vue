@@ -1,4 +1,7 @@
 <script setup>
+import IconButton from '../ui/IconButton.vue';
+import FloatingBar from '../ui/FloatingBar.vue';
+
 // 좌하단 정렬 패널 — 키 오브젝트(선택 중 재클릭) 기준 정렬. 2개 이상 선택 시 활성.
 defineProps({ active: Boolean });
 defineEmits(['align']);
@@ -13,43 +16,19 @@ const BTNS = [
 </script>
 
 <template>
-  <div class="alignbar" :class="{ inactive: !active }" @pointerdown.stop>
-    <button v-for="b in BTNS" :key="b.key" class="tbtn" :disabled="!active" @click="$emit('align', b.key)">
-      <svg viewBox="0 0 24 24"><path v-for="(d, i) in b.paths" :key="i" :d="d" /></svg>
-      <span class="tip">{{ b.tip }}</span>
-    </button>
+  <div class="alignbar">
+    <FloatingBar>
+      <IconButton
+        v-for="b in BTNS"
+        :key="b.key"
+        :paths="b.paths" :tip="b.tip" tip-align="left"
+        :disabled="!active"
+        @click="$emit('align', b.key)"
+      />
+    </FloatingBar>
   </div>
 </template>
 
 <style scoped lang="scss">
-.alignbar {
-  position: absolute; left: 14px; bottom: 14px;
-  display: flex; align-items: center; gap: 2px;
-  background: var(--panel); border: 1px solid var(--line); padding: 4px;
-  border-radius: var(--radius);
-}
-.tbtn {
-  position: relative;
-  width: var(--btn-size); height: var(--btn-size); display: flex; align-items: center; justify-content: center;
-  background: none; border: none; cursor: pointer; padding: 0;
-  border-radius: var(--radius);
-}
-.tbtn svg {
-  width: var(--icon-size); height: var(--icon-size);
-  fill: none; stroke: var(--text); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.tbtn:hover svg { stroke: var(--accent); }
-.inactive .tbtn { cursor: default; }
-.inactive .tbtn svg { stroke: var(--disabled); }
-.inactive .tbtn:hover svg { stroke: var(--disabled); }
-.inactive .tbtn .tip { display: none;   border-radius: var(--radius);
-}
-.tip {
-  position: absolute; bottom: calc(100% + 10px); left: 0;
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity 0.1s;
-}
-.tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
+.alignbar { position: absolute; left: var(--sp-6); bottom: var(--sp-6); }
 </style>

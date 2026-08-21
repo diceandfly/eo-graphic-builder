@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue';
+import IconButton from '../ui/IconButton.vue';
+import FloatingBar from '../ui/FloatingBar.vue';
 
-// 우하단 코너 바 — 그리드 가이드 토글 + 줌% (툴바와 동일 스타일)
+// 우하단 코너 바 — 캔버스 그리드 / 유닛 그리드 토글 + 줌%
 const props = defineProps({ scale: Number, guides: Boolean, stageGrid: Boolean });
 defineEmits(['reset', 'toggleGuides', 'toggleStageGrid']);
 const pct = computed(() => Math.round(props.scale * 100));
@@ -10,52 +12,26 @@ const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
 </script>
 
 <template>
-  <div class="corner" @pointerdown.stop>
-    <button class="tbtn" :class="{ on: stageGrid }" @click="$emit('toggleStageGrid')">
-      <svg viewBox="0 0 24 24"><path v-for="(d, i) in HASH_PATHS" :key="i" :d="d" /></svg>
-      <span class="tip">{{ stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid' }}</span>
-    </button>
-    <button class="tbtn" :class="{ on: guides }" @click="$emit('toggleGuides')">
-      <svg viewBox="0 0 24 24"><path v-for="(d, i) in GRID_PATHS" :key="i" :d="d" /></svg>
-      <span class="tip">{{ guides ? 'Hide Unit Grid' : 'Show Unit Grid' }}</span>
-    </button>
-    <button class="tbtn zoom" @click="$emit('reset')">
-      {{ pct }}%
-      <span class="tip">Reset zoom (100%)</span>
-    </button>
+  <div class="corner">
+    <FloatingBar>
+      <IconButton
+        :paths="HASH_PATHS" :active="stageGrid" tip-align="right"
+        :tip="stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid'"
+        @click="$emit('toggleStageGrid')"
+      />
+      <IconButton
+        :paths="GRID_PATHS" :active="guides" tip-align="right"
+        :tip="guides ? 'Hide Unit Grid' : 'Show Unit Grid'"
+        @click="$emit('toggleGuides')"
+      />
+      <IconButton class="zoom" tip="Reset zoom (100%)" tip-align="right" @click="$emit('reset')">
+        {{ pct }}%
+      </IconButton>
+    </FloatingBar>
   </div>
 </template>
 
 <style scoped lang="scss">
-.corner {
-  position: absolute; right: 14px; bottom: 14px;
-  display: flex; align-items: center; gap: 2px;
-  background: var(--panel); border: 1px solid var(--line); padding: 4px;
-  border-radius: var(--radius);
-}
-.tbtn {
-  position: relative;
-  height: var(--btn-size); min-width: var(--btn-size); display: flex; align-items: center; justify-content: center;
-  background: none; border: none; cursor: pointer; padding: 0;
-  color: var(--faint); font: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-  border-radius: var(--radius);
-}
+.corner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); }
 .zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
-.tbtn svg {
-  width: var(--icon-size); height: var(--icon-size);
-  fill: none; stroke: var(--text); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.tbtn:hover { color: var(--accent); }
-.tbtn:hover svg { stroke: var(--accent); }
-.tbtn.on { background: var(--hover-bg); }
-.tbtn.on svg { stroke: var(--accent); }
-.tip {
-  position: absolute; bottom: calc(100% + 10px); right: 0;
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity 0.1s;
-  border-radius: var(--radius);
-}
-.tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
 </style>

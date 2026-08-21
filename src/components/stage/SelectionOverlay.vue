@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
+import { readTokenMs } from '../../utils/cssToken.js';
 
 // 선택된 유닛의 바운딩박스 + 리사이즈 핸들 + 액션 버튼(플립/회전) + 이름 라벨.
 // 월드 좌표에 그리되, 핸들/글자/버튼은 scale 역보정으로 화면 크기 고정.
@@ -67,7 +68,7 @@ const ROT_ZONES = [
   { x: 0, y: 1, ox: -1, oy: 1 }, { x: 1, y: 1, ox: 1, oy: 1 },
 ];
 
-// 커스텀 툴팁 — 350ms 호버 후 표시 (네이티브 title보다 빠름)
+// 커스텀 툴팁 — HTML IconButton 툴팁과 동일 규격: 타이밍 --tip-delay, 스타일 토큰(panel/line/text/fs-xs)
 const tip = ref(null); // { i, text }
 const tipTextEl = ref(null);
 const tipW = ref(0); // 텍스트 실측 폭 (월드 단위) — 박스가 텍스트를 hug
@@ -81,7 +82,7 @@ watch(tip, async (v) => {
 let tipTimer = null;
 function tipEnter(a, i) {
   clearTimeout(tipTimer);
-  tipTimer = setTimeout(() => { tip.value = { i, text: a.tip }; }, 350);
+  tipTimer = setTimeout(() => { tip.value = { i, text: a.tip }; }, readTokenMs('--tip-delay', 350));
 }
 function tipLeave() {
   clearTimeout(tipTimer);

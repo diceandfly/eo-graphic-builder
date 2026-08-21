@@ -1,9 +1,11 @@
 <script setup>
 import { ref, watch } from 'vue';
+import IconButton from '../ui/IconButton.vue';
+import FloatingBar from '../ui/FloatingBar.vue';
 import { BRAND_COLORS } from '../../geometry/constants.js';
 
-// 대시보드 하단 중앙 툴바 — 선택/스포이드 툴 + 내보내기/저장/열기.
-// 아이콘: 24 viewBox 스트로크 패스 (바운딩박스 버튼과 동일 톤)
+// 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
+// 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide)
 const props = defineProps({
   mode: String, fill: String,
   scope: Object, // 스포이드 범주 토글 { size, grid, shape, color }
@@ -68,6 +70,7 @@ watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
+
 // 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
 const resetStage = ref(0);
 let armTimer = null;
@@ -76,6 +79,7 @@ const RESET_TIPS = [
   'Click again to reset',
   'FINAL WARNING — every unit will be vaporized. They had families.',
 ];
+const RESET_TONES = ['default', 'danger', 'doom'];
 function onAction(key) {
   if (key === 'export') emit('export');
   else if (key === 'save') emit('save');
@@ -99,126 +103,78 @@ function onFile(e) {
 </script>
 
 <template>
-  <div class="toolbarWrap" @pointerdown.stop>
-    <div class="bar swatches">
-      <button
+  <div class="toolbarWrap">
+    <!-- 스와치 바 -->
+    <FloatingBar>
+      <IconButton
         v-for="c in BRAND_COLORS"
         :key="c"
-        class="sw"
-        :class="{ on: fill === c }"
+        :active="fill === c"
         @click="emit('fill', c)"
-      ><span class="chip" :style="{ background: c }" /></button>
-    </div>
-    <div class="bar">
-    <div
-      v-for="t in TOOLS"
-      :key="t.key"
-      class="toolWrap"
-      :class="{ hasMenu: menuOpen && t.key === 'eyedrop' }"
-    >
-      <button
-        class="tbtn"
-        :class="{ on: mode === t.key }"
-        @click="emit('update:mode', t.key)"
-        @contextmenu="onToolContext(t.key, $event)"
-      >
-        <svg viewBox="0 0 24 24"><path v-for="(d, i) in t.paths" :key="i" :d="d" /></svg>
-        <span class="tip">{{ t.tip }}</span>
-      </button>
-      <!-- 스포이드 스코프 메뉴: 버튼 기준 중앙 정렬, 메뉴 표시 중엔 툴팁 억제 -->
-      <div
-        v-if="t.key === 'eyedrop' && menuOpen && scope"
-        class="menu"
-        @pointerdown.stop="resetIdle"
-        @pointermove="resetIdle"
-        @change="resetIdle"
-      >
-        <div class="menuTitle">Eyedropper picks</div>
-        <label v-for="(label, key) in SCOPE_LABELS" :key="key" class="menuRow">
-          <input type="checkbox" v-model="scope[key]" />
-          <span>{{ label }}</span>
-        </label>
+      ><span class="chip" :style="{ background: c }" /></IconButton>
+    </FloatingBar>
+
+    <!-- 도구 바 -->
+    <FloatingBar>
+      <div v-for="t in TOOLS" :key="t.key" class="toolWrap">
+        <IconButton
+          :paths="t.paths"
+          :tip="menuOpen && t.key === 'eyedrop' ? '' : t.tip"
+          :active="mode === t.key"
+          @click="emit('update:mode', t.key)"
+          @contextmenu="onToolContext(t.key, $event)"
+        />
+        <!-- 스포이드 스코프 메뉴: 버튼 기준 중앙 정렬, 표시 중엔 툴팁 억제 -->
+        <div
+          v-if="t.key === 'eyedrop' && menuOpen && scope"
+          class="menu"
+          @pointerdown.stop="resetIdle"
+          @pointermove="resetIdle"
+          @change="resetIdle"
+        >
+          <div class="menuTitle">Eyedropper picks</div>
+          <label v-for="(label, key) in SCOPE_LABELS" :key="key" class="menuRow">
+            <input type="checkbox" v-model="scope[key]" />
+            <span>{{ label }}</span>
+          </label>
+        </div>
       </div>
-    </div>
-    <span class="sep" />
-    <button
-      v-for="a in ACTIONS"
-      :key="a.key"
-      class="tbtn"
-      :class="{ danger: a.key === 'reset' && resetStage === 1, doom: a.key === 'reset' && resetStage === 2 }"
-      @click="onAction(a.key)"
-    >
-      <svg viewBox="0 0 24 24"><path v-for="(d, i) in a.paths" :key="i" :d="d" /></svg>
-      <span class="tip">{{ a.key === 'reset' ? RESET_TIPS[resetStage] : a.tip }}</span>
-    </button>
-    <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
-    </div>
+      <span class="sep" />
+      <IconButton
+        v-for="a in ACTIONS"
+        :key="a.key"
+        :paths="a.paths"
+        :tip="a.key === 'reset' ? RESET_TIPS[resetStage] : a.tip"
+        :tone="a.key === 'reset' ? RESET_TONES[resetStage] : 'default'"
+        @click="onAction(a.key)"
+      />
+      <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
+    </FloatingBar>
   </div>
 </template>
 
 <style scoped lang="scss">
 .toolbarWrap {
-  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 10px;
+  position: absolute; left: 50%; bottom: var(--sp-6); transform: translateX(-50%);
+  display: flex; align-items: center; gap: var(--sp-4);
 }
-.bar {
-  display: flex; align-items: center; gap: 2px;
-  background: var(--panel); border: 1px solid var(--line); padding: 4px;
+.chip {
+  width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);
 }
-.sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
-.swatches { display: flex; gap: 2px; }
-.sw {
-  width: var(--btn-size); height: var(--btn-size); border: none; background: none;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0; cursor: pointer;
-}
-.sw .chip { width: var(--swatch-chip); height: var(--swatch-chip); display: block;   border-radius: var(--radius);
-}
-.sw.on { background: var(--hover-bg); }
-.tbtn {
-  position: relative;
-  width: var(--btn-size); height: var(--btn-size); display: flex; align-items: center; justify-content: center;
-  background: none; border: none; cursor: pointer; padding: 0;
-  border-radius: var(--radius);
-}
-.tbtn svg {
-  width: var(--icon-size); height: var(--icon-size);
-  fill: none; stroke: var(--text); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round;
-}
-.tbtn:hover svg { stroke: var(--accent); }
-.tbtn.on { background: var(--hover-bg); }
-.tbtn.on svg { stroke: var(--accent); }
-.tbtn.danger { background: var(--danger-bg); }
-.tbtn.danger svg { stroke: var(--danger); }
-.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: var(--danger);   border-radius: var(--radius);
-}
-.tbtn.doom { background: var(--doom-bg); animation: doomPulse 0.6s ease-in-out infinite alternate; }
-.tbtn.doom svg { stroke: var(--doom); }
-.tbtn.doom .tip { opacity: 1; transition-delay: 0s; color: var(--doom); border-color: var(--doom); }
-@keyframes doomPulse { from { background: var(--doom-bg); } to { background: var(--doom-pulse); } }
-.tip {
-  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity 0.1s;
-}
-.tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
 .toolWrap { position: relative; }
-.toolWrap.hasMenu .tip { display: none; } /* 메뉴와 툴팁 위치 충돌 방지 */
 .menu {
   position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
-  background: var(--panel); border: 1px solid var(--line); padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 8px;
-  border-radius: var(--radius);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: var(--sp-3);
 }
 .menuTitle {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--faint); margin-bottom: 2px;
 }
 .menuRow {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: var(--sp-3);
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
 </style>

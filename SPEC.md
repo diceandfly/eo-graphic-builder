@@ -568,3 +568,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 41. 2026-08-21 — Alt 중심 대칭 스케일
 
 - 단일/통합(그룹·멀티) 리사이즈 중 **Alt(Option) 누르면 중심 고정 대칭 스케일** (변화량 양쪽 분배, 앵커 = 중심). Alt 중에는 엣지 스냅 비활성(양 변이 동시에 움직이므로). Shift 비율 고정과 조합 가능.
+
+## 42. 리팩토링 3·4단계 — 플로팅 바 컴포넌트 통합 + 툴팁 단일화 (2026-08-21, 사용자 확정 반영)
+
+1. **공통 UI 컴포넌트** (`src/components/ui/`):
+   - `IconButton.vue` — 아이콘 버튼 단일 출처. 프롭: `paths`(24vb 스트로크) 또는 슬롯(텍스트·스와치 칩), `tip`, `tipAlign`(center/left/right), **`active` + `tone`(default/danger/doom) + `disabled`** (사용자 확정 상태 체계). 툴팁 내장(--tip-delay/--tip-fade 토큰).
+   - `FloatingBar.vue` — 바 컨테이너(패널 배경·보더·패딩·라운딩), 자식 `.sep` 구분선 지원. 위치 지정은 사용처 래퍼 책임.
+2. **Toolbar / ZoomBadge / AlignBar 전면 교체** — 중복 `.tbtn/.tip/.bar` 스타일 3벌 → 0. 각 파일은 버튼 정의(아이콘·툴팁·동작)만 보유.
+3. **툴팁 규격 통일** — HTML 바 3곳은 IconButton 내장, SVG 오버레이(SelectionOverlay)는 구현체 유지하되 타이밍을 `--tip-delay` 토큰에서 읽음(`utils/cssToken.js readTokenMs`). 토스트 유지 시간도 `--toast-time` 토큰 동기.
+4. SCSS 중첩 첫 활용 (IconButton 상태 변형). 시각 변화 0 확인.
