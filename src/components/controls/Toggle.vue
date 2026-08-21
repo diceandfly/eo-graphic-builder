@@ -21,13 +21,14 @@ defineEmits(['update:modelValue']);
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.label { font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--faint); }
-.seg { display: flex; border: 1px solid var(--line); }
+.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
+.seg { display: flex; border: 1px solid var(--line);   border-radius: var(--radius);
+}
 .seg button {
   border: none; background: none; padding: 3px 9px;
-  font-size: 11px; letter-spacing: 0.03em; color: var(--faint);
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--faint);
   font-family: inherit; cursor: pointer;
 }
 .seg button:not(:last-child) { border-right: 1px solid var(--line); }

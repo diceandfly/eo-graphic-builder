@@ -249,8 +249,8 @@ function cancelRename() {
   </div>
 </template>
 
-<style scoped>
-.panel { display: flex; flex-direction: column; gap: 26px; }
+<style scoped lang="scss">
+.panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
   display: flex; align-items: center; gap: 10px;
   font-size: 16px; font-weight: 700; letter-spacing: 0em; color: var(--text);
@@ -260,57 +260,63 @@ function cancelRename() {
 .logoFill { fill: var(--accent); }
 .unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
 .ratioHead {
-  font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
   color: var(--faint); margin-bottom: 6px;
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
 .chipPlus {
   border: 1px solid var(--line); background: none; color: var(--faint);
-  font-family: inherit; font-size: 12px; padding: 4px 9px; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-sm); padding: 4px 9px; cursor: pointer;
+  border-radius: var(--radius);
 }
 .chipPlus:hover { color: var(--accent); border-color: var(--accent); }
 .ratioInput {
   width: 56px; border: 1px solid var(--accent); background: none; color: var(--text);
-  font: inherit; font-size: 11px; padding: 4px 6px;
+  font: inherit; font-size: var(--fs-xs); padding: 4px 6px;
+  border-radius: var(--radius);
 }
-.unitName { font-size: 12px; color: var(--text); }
+.unitName { font-size: var(--fs-sm); color: var(--text); }
 .unitName { cursor: text; }
 .unitName:hover { color: var(--accent); }
 .nameInput {
   border: 1px solid var(--accent); background: none; color: var(--text);
-  font: inherit; font-size: 12px; padding: 2px 6px; flex: 1;
+  font: inherit; font-size: var(--fs-sm); padding: 2px 6px; flex: 1;
+  border-radius: var(--radius);
 }
-.unitRow .ghost { margin-top: 0; }
+.unitRow .ghost { margin-top: 0;   border-radius: var(--radius);
+}
 section h2 {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
   color: var(--accent); font-weight: 600;
   margin: 0 0 14px;
 }
 .ghost {
   width: 100%; margin-top: 2px; padding: 8px 12px;
   border: 1px solid var(--line); background: none; color: var(--text);
-  font-family: inherit; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
   cursor: pointer;
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
 .colorRow { display: flex; align-items: center; gap: 10px; }
 .bigChip {
-  width: 34px; height: 34px; border: 1px solid var(--line);
+  width: var(--swatch-big); height: var(--swatch-big); border: 1px solid var(--line);
   padding: 0; cursor: pointer; color: var(--faint); font: inherit;
+  border-radius: var(--radius);
 }
 .bigChip:hover { border-color: var(--accent); }
-.hex { font-size: 11px; color: var(--faint); letter-spacing: 0.04em; text-transform: uppercase; }
+.hex { font-size: var(--fs-xs); color: var(--faint); letter-spacing: var(--ls-base); text-transform: uppercase; }
 .palette { display: flex; gap: 6px; margin-top: 10px; }
 .colorChip {
   width: 18px; height: 18px; border: 1px solid var(--line);
   padding: 0; cursor: pointer;
+  border-radius: var(--radius);
 }
 .colorChip.on { outline: 1px solid var(--text); outline-offset: 1px; }
 .check {
   display: flex; align-items: center; gap: 8px;
-  font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
   color: var(--faint); cursor: pointer;
 }
 </style>

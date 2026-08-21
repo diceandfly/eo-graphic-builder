@@ -101,10 +101,10 @@ const stageActions = { ...docApi, exportSvg, saveProject, openProject };
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .layout { display: flex; height: 100vh; }
 .side {
-  width: 300px; flex-shrink: 0; overflow-y: auto;
-  padding: 22px 18px 40px; border-right: 1px solid var(--line); background: var(--panel);
+  width: var(--panel-w); flex-shrink: 0; overflow-y: auto;
+  padding: 22px var(--panel-pad) 40px; border-right: 1px solid var(--line); background: var(--panel);
 }
 </style>

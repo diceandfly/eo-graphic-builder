@@ -21,19 +21,21 @@ const BTNS = [
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .alignbar {
   position: absolute; left: 14px; bottom: 14px;
   display: flex; align-items: center; gap: 2px;
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
+  border-radius: var(--radius);
 }
 .tbtn {
   position: relative;
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  width: var(--btn-size); height: var(--btn-size); display: flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer; padding: 0;
+  border-radius: var(--radius);
 }
 .tbtn svg {
-  width: 16px; height: 16px;
+  width: var(--icon-size); height: var(--icon-size);
   fill: none; stroke: var(--text); stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
@@ -41,11 +43,12 @@ const BTNS = [
 .inactive .tbtn { cursor: default; }
 .inactive .tbtn svg { stroke: var(--disabled); }
 .inactive .tbtn:hover svg { stroke: var(--disabled); }
-.inactive .tbtn .tip { display: none; }
+.inactive .tbtn .tip { display: none;   border-radius: var(--radius);
+}
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 0;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: 11px; padding: 4px 8px; white-space: nowrap;
+  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity 0.1s;
 }
 .tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }

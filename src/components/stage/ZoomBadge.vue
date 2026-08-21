@@ -26,21 +26,23 @@ const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .corner {
   position: absolute; right: 14px; bottom: 14px;
   display: flex; align-items: center; gap: 2px;
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
+  border-radius: var(--radius);
 }
 .tbtn {
   position: relative;
-  height: 32px; min-width: 32px; display: flex; align-items: center; justify-content: center;
+  height: var(--btn-size); min-width: var(--btn-size); display: flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer; padding: 0;
-  color: var(--faint); font: inherit; font-size: 11px; letter-spacing: 0.04em;
+  color: var(--faint); font: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  border-radius: var(--radius);
 }
-.zoom { width: 48px; font-variant-numeric: tabular-nums; }
+.zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
 .tbtn svg {
-  width: 16px; height: 16px;
+  width: var(--icon-size); height: var(--icon-size);
   fill: none; stroke: var(--text); stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
@@ -51,8 +53,9 @@ const HASH_PATHS = ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'];
 .tip {
   position: absolute; bottom: calc(100% + 10px); right: 0;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: 11px; padding: 4px 8px; white-space: nowrap;
+  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity 0.1s;
+  border-radius: var(--radius);
 }
 .tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
 </style>

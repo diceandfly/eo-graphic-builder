@@ -32,7 +32,7 @@ const CURSORS = {
   </g>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 </style>

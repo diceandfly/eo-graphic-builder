@@ -140,7 +140,7 @@ const iconSize = (a) => ICON * (a.s ?? 1);
   </g>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .label { fill: var(--accent); font-family: inherit; user-select: none; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }

@@ -47,7 +47,7 @@ const otf = computed(() =>
   </g>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .seam { vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
 .guides line, .guides rect { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>

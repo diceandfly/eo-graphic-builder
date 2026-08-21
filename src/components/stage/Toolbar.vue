@@ -156,7 +156,7 @@ function onFile(e) {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .toolbarWrap {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px;
@@ -164,23 +164,26 @@ function onFile(e) {
 .bar {
   display: flex; align-items: center; gap: 2px;
   background: var(--panel); border: 1px solid var(--line); padding: 4px;
+  border-radius: var(--radius);
 }
 .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
 .swatches { display: flex; gap: 2px; }
 .sw {
-  width: 32px; height: 32px; border: none; background: none;
+  width: var(--btn-size); height: var(--btn-size); border: none; background: none;
   display: flex; align-items: center; justify-content: center;
   padding: 0; cursor: pointer;
 }
-.sw .chip { width: 17px; height: 17px; display: block; }
+.sw .chip { width: var(--swatch-chip); height: var(--swatch-chip); display: block;   border-radius: var(--radius);
+}
 .sw.on { background: var(--hover-bg); }
 .tbtn {
   position: relative;
-  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  width: var(--btn-size); height: var(--btn-size); display: flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer; padding: 0;
+  border-radius: var(--radius);
 }
 .tbtn svg {
-  width: 16px; height: 16px;
+  width: var(--icon-size); height: var(--icon-size);
   fill: none; stroke: var(--text); stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
 }
@@ -189,7 +192,8 @@ function onFile(e) {
 .tbtn.on svg { stroke: var(--accent); }
 .tbtn.danger { background: var(--danger-bg); }
 .tbtn.danger svg { stroke: var(--danger); }
-.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: var(--danger); }
+.tbtn.danger .tip { opacity: 1; transition-delay: 0s; color: var(--danger);   border-radius: var(--radius);
+}
 .tbtn.doom { background: var(--doom-bg); animation: doomPulse 0.6s ease-in-out infinite alternate; }
 .tbtn.doom svg { stroke: var(--doom); }
 .tbtn.doom .tip { opacity: 1; transition-delay: 0s; color: var(--doom); border-color: var(--doom); }
@@ -197,7 +201,7 @@ function onFile(e) {
 .tip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: 11px; padding: 4px 8px; white-space: nowrap;
+  font-size: var(--fs-xs); padding: 4px 8px; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity 0.1s;
 }
 .tbtn:hover .tip { opacity: 1; transition-delay: 0.35s; }
@@ -207,13 +211,14 @@ function onFile(e) {
   position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); padding: 10px 12px;
   display: flex; flex-direction: column; gap: 8px;
+  border-radius: var(--radius);
 }
 .menuTitle {
-  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--faint); margin-bottom: 2px;
 }
 .menuRow {
   display: flex; align-items: center; gap: 8px;
-  font-size: 11px; color: var(--text); cursor: pointer; white-space: nowrap;
+  font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
 </style>

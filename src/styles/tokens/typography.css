@@ -6,18 +6,25 @@
 :root {
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
 
-  /* 크기 위계 */
-  --fs-2xs: 10px;  /* 메뉴 타이틀 등 최소 표기 */
-  --fs-xs: 11px;   /* 라벨·칩·버튼·툴팁 */
-  --fs-sm: 12px;   /* 값·입력칸·유닛 이름·브랜드 */
-  --fs-md: 13px;   /* (예약) */
+  /* ── 크기 위계 ──
+     2xs: 스포이드 메뉴 타이틀 등 최소 캡션
+     xs : 라벨·칩·seg 토글·버튼·툴팁·토스트·hex 표기 (기본 UI 텍스트)
+     sm : 값 표기·입력칸·유닛 이름·브랜드 타이틀
+     md : (예약 — 현재 미사용) */
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
 
-  /* 자간 */
-  --ls-base: 0.03em;   /* 라벨·칩·토글 */
-  --ls-wide: 0.08em;   /* 브랜드 타이틀·메뉴 타이틀 */
-  --ls-caps: 0.16em;   /* 섹션 타이틀 */
+  /* ── 자간 (5종 → 3종 흡수 확정: 0.04→base, 0.06→wide) ──
+     base: 라벨·칩·토글·값 등 일반 UI 텍스트
+     wide: 브랜드 타이틀·ghost 버튼 등 강조 소자
+     caps: 섹션 타이틀 (SIZE/GRID/…) */
+  --ls-base: 0.03em;
+  --ls-wide: 0.08em;
+  --ls-caps: 0.16em;
 
-  /* 굵기 */
+  /* ── 굵기 ── */
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;

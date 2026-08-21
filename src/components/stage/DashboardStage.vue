@@ -775,7 +775,7 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); user-select: none; -webkit-user-select: none; }
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
@@ -792,7 +792,8 @@ onBeforeUnmount(() => {
 .toast {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: 11px; letter-spacing: 0.03em; padding: 7px 14px; pointer-events: none;
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none;
+  border-radius: var(--radius);
 }
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
 .smartguide { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
