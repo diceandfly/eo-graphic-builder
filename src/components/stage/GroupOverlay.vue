@@ -5,8 +5,15 @@ const props = defineProps({
   bounds: Object, // { x, y, w, h } 월드 좌표
   scale: Number,
 });
-const emit = defineEmits(['resizeStart', 'action']);
+const emit = defineEmits(['resizeStart', 'rotateStart', 'action']);
 const px = (n) => n / props.scale;
+
+// 코너 바깥 회전 존 (단일 선택과 동일 UX — 90° 스텝, 선택 전체를 한 덩어리로 회전)
+const ROT = 18;
+const ROT_ZONES = [
+  { x: 0, y: 0, ox: -1, oy: -1 }, { x: 1, y: 0, ox: 1, oy: -1 },
+  { x: 0, y: 1, ox: -1, oy: 1 }, { x: 1, y: 1, ox: 1, oy: 1 },
+];
 
 const HANDLES = [
   { dir: 'nw', x: 0, y: 0 }, { dir: 'n', x: 0.5, y: 0 }, { dir: 'ne', x: 1, y: 0 },
@@ -24,6 +31,14 @@ const CURSORS = {
     <rect class="box" :width="bounds.w" :height="bounds.h" />
     <OverlayActions :scale="scale" :transform="`translate(${bounds.w + px(12)} 0)`" @action="(k) => emit('action', k)" />
     <rect
+      v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
+      class="rotZone"
+      :x="z.x * bounds.w + (z.ox < 0 ? -px(ROT) : 0)"
+      :y="z.y * bounds.h + (z.oy < 0 ? -px(ROT) : 0)"
+      :width="px(ROT)" :height="px(ROT)"
+      @pointerdown.stop.prevent="emit('rotateStart', $event)"
+    />
+    <rect
       v-for="h in HANDLES" :key="h.dir"
       class="handle"
       :x="h.x * bounds.w - px(4)" :y="h.y * bounds.h - px(4)"
@@ -37,4 +52,8 @@ const CURSORS = {
 <style scoped lang="scss">
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rotZone {
+  fill: transparent;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpolyline points='23 4 23 10 17 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 9 9, alias;
+}
 </style>

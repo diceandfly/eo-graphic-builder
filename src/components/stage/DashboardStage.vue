@@ -287,15 +287,23 @@ function onGroupResizeStart(dir, e) {
   });
 }
 
-// 회전 드래그 (코너 존): 90° 스텝 스냅
-function onRotateStart(e) {
-  const u = activeUnit.value;
-  if (!u) return;
+// 회전 드래그 (코너 존): 90° 스텝 스냅. group=true면 선택 전체를 한 덩어리로 회전
+function onRotateStart(e, group = false) {
   const [wx, wy] = props.viewport.toWorld(...local(e));
-  const cx = u.x + u.params.W / 2;
-  const cy = u.y + u.params.H / 2;
+  let cx, cy;
+  if (group) {
+    const b = selBounds.value;
+    if (!b) return;
+    cx = b.x + b.w / 2;
+    cy = b.y + b.h / 2;
+  } else {
+    const u = activeUnit.value;
+    if (!u) return;
+    cx = u.x + u.params.W / 2;
+    cy = u.y + u.params.H / 2;
+  }
   beginDrag(e, {
-    kind: 'rotate', u,
+    kind: 'rotate', group,
     cx, cy,
     a0: Math.atan2(wy - cy, wx - cx),
     applied: 0,
@@ -346,7 +354,7 @@ function onMove(e) {
     const steps = Math.round(deg / 90);
     while (drag.applied !== steps) {
       const d = steps > drag.applied ? 1 : -1;
-      props.actions.rotate(d);
+      drag.group ? props.actions.rotateSelected(d) : props.actions.rotate(d);
       drag.applied += d;
     }
     return;
@@ -404,12 +412,15 @@ function onMove(e) {
     // 앵커: 기본은 반대편 변, Alt면 박스 중심
     const ax = e.altKey ? b0.x + b0.w / 2 : dir.includes('w') ? b0.x + b0.w : b0.x;
     const ay = e.altKey ? b0.y + b0.h / 2 : dir.includes('n') ? b0.y + b0.h : b0.y;
-    for (const t of snaps) {
-      t.u.x = Math.round(ax + (t.x0 - ax) * sx);
-      t.u.y = Math.round(ay + (t.y0 - ay) * sy);
-      t.u.params.W = clamp(Math.round(t.W0 * sx), UNIT_MIN, UNIT_MAX);
-      t.u.params.H = clamp(Math.round(t.H0 * sy), UNIT_MIN, UNIT_MAX);
-    }
+    // 유닛별로 다른 값을 쓰므로 브로드캐스트 억제 (geomOp) — 드래그 중 '와리가리' 방지
+    props.actions.withGeomOp(() => {
+      for (const t of snaps) {
+        t.u.x = Math.round(ax + (t.x0 - ax) * sx);
+        t.u.y = Math.round(ay + (t.y0 - ay) * sy);
+        t.u.params.W = clamp(Math.round(t.W0 * sx), UNIT_MIN, UNIT_MAX);
+        t.u.params.H = clamp(Math.round(t.H0 * sy), UNIT_MIN, UNIT_MAX);
+      }
+    });
     return;
   }
   if (drag.kind === 'move') {
@@ -744,6 +755,7 @@ onBeforeUnmount(() => {
           :bounds="selBounds"
           :scale="vp.scale"
           @resize-start="onGroupResizeStart"
+          @rotate-start="(e) => onRotateStart(e, true)"
           @action="onGroupAction"
         />
         <SelectionOverlay

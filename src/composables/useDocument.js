@@ -1,4 +1,4 @@
-import { reactive, computed, watch } from 'vue';
+import { reactive, computed, watch, nextTick } from 'vue';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
   BRAND_COLORS,
@@ -163,9 +163,21 @@ export function useDocument() {
   let lastBroadcastNote = 0;
 
   let mirrorGuard = false;
+  // 지오메트리 조작 가드 — 유닛별로 "다른" 값을 의도적으로 쓰는 조작(통합 스케일·회전·플립) 중에는
+  // 멀티선택 브로드캐스트가 끼어들어 활성 유닛 값으로 덮어쓰지 않도록 한 틱 동안 억제.
+  let geomOp = false;
+  function withGeomOp(fn) {
+    geomOp = true;
+    try {
+      fn();
+    } finally {
+      nextTick(() => { geomOp = false; }); // pre-flush 워처가 먼저 돌고 난 뒤 해제
+    }
+  }
   watch(
     () => (active.value ? [active.value.id, JSON.stringify(active.value.params)] : [null, null]),
     ([id, now], [oldId, old]) => {
+      if (geomOp) return;
       if (mirrorGuard || id == null || id !== oldId || now === old) return;
       // 대상: 멀티선택 미러링 + 링크 그룹 상시 동기화
       const targets = new Set();
@@ -455,16 +467,18 @@ export function useDocument() {
     if (u.linkId) {
       for (const m of doc.units) if (m.linkId === u.linkId && m !== u) targets.push(m);
     }
-    for (const t of targets) {
-      const p = t.params;
-      const cx = t.x + p.W / 2;
-      const cy = t.y + p.H / 2;
-      [p.W, p.H] = [p.H, p.W];
-      p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
-      t.x = cx - p.W / 2;
-      t.y = cy - p.H / 2;
-      normalize(p);
-    }
+    withGeomOp(() => {
+      for (const t of targets) {
+        const p = t.params;
+        const cx = t.x + p.W / 2;
+        const cy = t.y + p.H / 2;
+        [p.W, p.H] = [p.H, p.W];
+        p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+        t.x = cx - p.W / 2;
+        t.y = cy - p.H / 2;
+        normalize(p);
+      }
+    });
   }
   // 화면 기준 상하 반전 — 90/270° 회전 상태면 로컬 좌우 미러가 화면 상하 미러
   function flipUnitV() {
@@ -477,16 +491,39 @@ export function useDocument() {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
     const bb = bboxOf(sel);
-    for (const u of sel) {
-      const p = u.params;
-      if (axis === 'h') {
-        isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
-        u.x = bb.minX + bb.maxX - (u.x + p.W);
-      } else {
-        isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
-        u.y = bb.minY + bb.maxY - (u.y + p.H);
+    withGeomOp(() => {
+      for (const u of sel) {
+        const p = u.params;
+        if (axis === 'h') {
+          isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
+          u.x = bb.minX + bb.maxX - (u.x + p.W);
+        } else {
+          isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
+          u.y = bb.minY + bb.maxY - (u.y + p.H);
+        }
       }
-    }
+    });
+  }
+  // 선택 전체를 하나의 덩어리처럼 90° 회전 — 통합 bbox 중심 기준으로 각 유닛 중심을 회전시키고 유닛 자체도 회전
+  function rotateSelected(dir) {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (!sel.length) return;
+    const bb = bboxOf(sel);
+    const C = { x: (bb.minX + bb.maxX) / 2, y: (bb.minY + bb.maxY) / 2 };
+    withGeomOp(() => {
+      for (const u of sel) {
+        const p = u.params;
+        const ucx = u.x + p.W / 2, ucy = u.y + p.H / 2;
+        const dx = ucx - C.x, dy = ucy - C.y;
+        const ncx = dir > 0 ? C.x - dy : C.x + dy;
+        const ncy = dir > 0 ? C.y + dx : C.y - dx;
+        [p.W, p.H] = [p.H, p.W];
+        p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+        u.x = ncx - p.W / 2;
+        u.y = ncy - p.H / 2;
+        normalize(p);
+      }
+    });
   }
   // 선택 전체 복제 — 통합 bbox 폭 + 80px 오른쪽에 배치 (단일 복제 버튼과 동일 규칙)
   function duplicateSelectedOffset() {
@@ -569,7 +606,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit,
-    setSize, setAspect, setA, setB, rotate, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill,
+    setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,
     undo, redo, copyActive, pasteAt, renameActive,
