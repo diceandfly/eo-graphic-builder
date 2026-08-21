@@ -328,16 +328,17 @@ function onMove(e) {
   }
   if (drag.kind === 'resizeg') {
     const { dir, b0, snaps } = drag;
+    const symG = e.altKey ? 2 : 1; // Alt = 중심 대칭 스케일
     let W = b0.w, H = b0.h;
-    if (dir.includes('e')) W = b0.w + dx;
-    if (dir.includes('w')) W = b0.w - dx;
-    if (dir.includes('s')) H = b0.h + dy;
-    if (dir.includes('n')) H = b0.h - dy;
+    if (dir.includes('e')) W = b0.w + dx * symG;
+    if (dir.includes('w')) W = b0.w - dx * symG;
+    if (dir.includes('s')) H = b0.h + dy * symG;
+    if (dir.includes('n')) H = b0.h - dy * symG;
     // 통합 박스의 이동 엣지도 스마트 스냅
     const SNAPG = 6 / vp.scale;
     const exclude = snaps.map((t) => t.u);
     const gGuides = [];
-    if (!e.shiftKey) {
+    if (!e.shiftKey && !e.altKey) {
       if (dir.includes('e')) {
         const sn = snapEdge('x', b0.x + W, exclude, SNAPG);
         if (sn) { W += sn.d; gGuides.push(edgeGuide('x', sn, b0.y, b0.y + H)); }
@@ -362,8 +363,9 @@ function onMove(e) {
       const s = Math.abs(sx - 1) > Math.abs(sy - 1) ? sx : sy;
       sx = s; sy = s;
     }
-    const ax = dir.includes('w') ? b0.x + b0.w : b0.x;
-    const ay = dir.includes('n') ? b0.y + b0.h : b0.y;
+    // 앵커: 기본은 반대편 변, Alt면 박스 중심
+    const ax = e.altKey ? b0.x + b0.w / 2 : dir.includes('w') ? b0.x + b0.w : b0.x;
+    const ay = e.altKey ? b0.y + b0.h / 2 : dir.includes('n') ? b0.y + b0.h : b0.y;
     for (const t of snaps) {
       t.u.x = Math.round(ax + (t.x0 - ax) * sx);
       t.u.y = Math.round(ay + (t.y0 - ay) * sy);
@@ -440,14 +442,15 @@ function onMove(e) {
     gapGuides.value = gaps;
     return;
   }
-  // resize: 반대편 변 고정, Shift = 비율 고정(코너), 이동 엣지는 스마트 스냅
+  // resize: 반대편 변 고정(기본) / Alt = 중심 대칭 스케일 / Shift = 비율 고정(코너) / 이동 엣지 스마트 스냅
   const { dir, u, x0, y0, W0, H0, ratio } = drag;
   const p = u.params;
+  const sym = e.altKey ? 2 : 1; // 중심 대칭이면 양쪽이 함께 움직여 변화량 2배
   let W = W0, H = H0;
-  if (dir.includes('e')) W = W0 + dx;
-  if (dir.includes('w')) W = W0 - dx;
-  if (dir.includes('s')) H = H0 + dy;
-  if (dir.includes('n')) H = H0 - dy;
+  if (dir.includes('e')) W = W0 + dx * sym;
+  if (dir.includes('w')) W = W0 - dx * sym;
+  if (dir.includes('s')) H = H0 + dy * sym;
+  if (dir.includes('n')) H = H0 - dy * sym;
   if (e.shiftKey && dir.length === 2) {
     // 지배적 축 기준으로 비율 유지
     if (Math.abs(W - W0) * H0 > Math.abs(H - H0) * W0) H = W / ratio;
@@ -455,7 +458,7 @@ function onMove(e) {
   }
   const SNAP = 6 / vp.scale;
   const rGuides = [];
-  if (!e.shiftKey) {
+  if (!e.shiftKey && !e.altKey) {
     if (dir.includes('e')) {
       const sn = snapEdge('x', x0 + W, [u], SNAP);
       if (sn) { W += sn.d; rGuides.push(edgeGuide('x', sn, y0, y0 + H)); }
@@ -476,8 +479,14 @@ function onMove(e) {
   H = clamp(Math.round(H), UNIT_MIN, UNIT_MAX);
   p.W = W;
   p.H = H;
-  if (dir.includes('w')) u.x = x0 + (W0 - W);
-  if (dir.includes('n')) u.y = y0 + (H0 - H);
+  if (e.altKey) {
+    // 중심 고정: 변화량을 양쪽으로 분배
+    u.x = x0 + (W0 - W) / 2;
+    u.y = y0 + (H0 - H) / 2;
+  } else {
+    if (dir.includes('w')) u.x = x0 + (W0 - W);
+    if (dir.includes('n')) u.y = y0 + (H0 - H);
+  }
 }
 
 // 리사이즈 중 이동하는 엣지를 다른 유닛의 엣지/센터에 스냅
