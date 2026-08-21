@@ -194,22 +194,30 @@ UI 그룹은 **아래 3개만.** margin, bleed, rows, 단위 전환, format pres
 **그리드 가이드 토글** (col 경계선 + 중앙선 + shaft 상/하단선, 기본 on)만 제공.
 파라미터 인디케이터·미니 개념도는 시도 후 **삭제됨** (이력: §11–§14).
 
-## 6. 아키텍처
+## 6. 아키텍처 (2026-08-20 대시보드 개편 반영)
 
 ```
 src/
-  geometry/
-    constants.js     // AB_MAX, COLS_MAX, RATE_MIN/MAX, TOL 등
-    ratios.js        // 비율칩 테이블
-    layout.js        // computeColumns({W, cols, gutterMode, gutterPx, g, rate, direction}) → [{L, R, w}]
-    unit.js          // buildUnit({cols, H, D, a, b}) → { shaft, threadsTop[], threadsBottom[] }
-  components/
-    UnitCanvas.vue   // SVG 렌더 (self-contained <g id="unit">)
-    ControlPanel.vue
-    controls/        // Slider.vue, ChipRow.vue, NumberField.vue, Toggle.vue
+  geometry/            // 전부 Vue 의존성 0 — 순수 함수
+    constants.js       // 범위/가드/줌 상수
+    ratios.js          // compression 비율칩
+    aspects.js         // 유닛 비율 프리셋 칩
+    layout.js          // computeColumns(...) → [{L, R, w}]
+    unit.js            // buildUnit(...) → { shaft, threadsTop[], threadsBottom[], shaftTop, shaftBot } (모프 블렌드 포함)
+    derive.js          // deriveUnit(params) 파생 일원화 + orientationTransform(0/90/180/270)
   composables/
-    useUnitParams.js // 상태 + 제약 강제 (a/b 독립 클램프, gutter 상한 클램프)
-  App.vue
+    useDocument.js     // 문서 모델: units[](파라미터+위치), 활성/선택, 복제, 클램프 액션
+    useViewport.js     // 팬/줌 (문서 모델과 완전 분리)
+  components/
+    ControlPanel.vue   // 좌측 패널 (타이틀/Unit Size/Grid/Shape/Export)
+    controls/          // Slider, ChipRow(일반화), NumberField, Toggle
+    stage/
+      DashboardStage.vue   // 스테이지: 팬/줌/선택/이동/리사이즈 이벤트 배선
+      UnitGraphic.vue      // 유닛 1개 <g> 렌더 (가이드 포함)
+      SelectionOverlay.vue // 바운딩박스+핸들+회전버튼+이름 라벨
+      ZoomBadge.vue        // 줌% 표시 + 리셋
+  export/exportSvg.js  // §4 구조 SVG 문자열 + 다운로드
+  App.vue              // 조립만
 ```
 
 **원칙**
@@ -371,3 +379,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 레일 하단 버튼: ⚡LIVE · ⟳SYNC ALL(일괄 푸시) · ✕CLEAR(초기화) · ↓EXPORT ALL(Phase 3) · ◂접기.
 - **DnD 적용**: 유닛 드래그 = 대시보드 내 일반 이동 → 레일 진입 시 드롭 모드(고스트 + 카드 하이라이트) → 드롭 = 해당 카드 적용 + 이동 롤백. 레일 밖 드롭 = 이동 확정. Esc = 전체 취소.
 - **확대 검토 모드**: 카드 더블클릭 → 중앙 스테이지가 레이아웃 확대 뷰로 전환, Esc로 복귀.
+
+## 23. 2026-08-20 대시보드 구현 (12차)
+
+§20·§22 확정 사양 구현 완료.
+- **멀티유닛 문서 모델** (`useDocument`): units[] 각자 파라미터+스테이지 위치, 활성/선택 분리, `+ duplicate`로 버전 생성(우측 오프셋 배치), 이름 라벨.
+- **팬/줌 뷰포트** (`useViewport`): 초기 100%·첫 유닛 중앙, 휠 = 팬, 핀치/⌘+휠 = 커서 중심 줌(5%–800%), 휠버튼·Space+드래그 = 팬, 우하단 줌% 뱃지 클릭 = 100% 리셋.
+- **선택/변형**: 좌클릭 선택 → 바운딩박스. 변 핸들 = W/H, 코너 = 자유, Shift+코너 = 비율 고정, 반대편 변 앵커. 드래그 델타는 줌 배율 환산. 파라미터와 UI 양방향 실시간.
+- **회전**: 선택 박스 우상단 플로팅 ⟲/⟳ (90° 스텝, orientation 0/90/180/270 확장). 패널 rotate 버튼 삭제. export도 4방향 wrapper 지원 (`orientationTransform` 공유).
+- **패널**: 좌측 배치 + "EO GRAPHIC BUILDER" 타이틀. W/H 슬라이더 삭제 → 숫자 입력(내부 가드 50–8000) + 비율 프리셋 칩(16:9·3:2·4:3·1:1·3:4·2:3·9:16, tol 0.01).
+- **모프 블렌드**: thread 폭 minW~3·minW 구간에서 사다리꼴→col 직사각형 선형 보간. 이진 치환 점프 제거 (§19의 언밸런스 문제 해소). 연속성 수치 검증 완료.
+- 가이드는 활성 유닛에만 표시. Space 팬은 입력칸 포커스 중 비활성.

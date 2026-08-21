@@ -2,10 +2,13 @@
 import { RATIO_CHIPS } from '../../geometry/ratios.js';
 import { CHIP_TOL } from '../../geometry/constants.js';
 
-defineProps({ modelValue: Number });
+const props = defineProps({
+  modelValue: Number,
+  chips: { type: Array, default: () => RATIO_CHIPS }, // [{ label, v }]
+  tol: { type: Number, default: CHIP_TOL },
+});
 defineEmits(['update:modelValue']);
-const chips = RATIO_CHIPS;
-const isActive = (rate, v) => Math.abs(rate - v) < CHIP_TOL;
+const isActive = (v) => Math.abs(props.modelValue - v) < props.tol;
 </script>
 
 <template>
@@ -14,7 +17,7 @@ const isActive = (rate, v) => Math.abs(rate - v) < CHIP_TOL;
       v-for="c in chips"
       :key="c.label"
       class="chip"
-      :class="{ on: isActive(modelValue, c.v) }"
+      :class="{ on: isActive(c.v) }"
       @click="$emit('update:modelValue', c.v)"
     >{{ c.label }}</button>
   </div>

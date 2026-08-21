@@ -20,7 +20,8 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
 
   const threadsTop = [];
   const threadsBottom = [];
-  const minW = W * THREAD_MIN_RATIO; // 극한 압축 기준은 캔버스 폭 비례 (기본 0.2%)
+  const minW = W * THREAD_MIN_RATIO;  // 극한 압축 기준은 캔버스 폭 비례 (기본 0.2%)
+  const blendEnd = 3 * minW;          // minW~3·minW 구간에서 사다리꼴 → 직사각형 모프
   const wantBottom = !one;
   if (h >= EPS) {
     for (const { L, R, w } of columns) {
@@ -51,6 +52,13 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
           [R, 0],
           [R, yB],
         ];
+        // 모프 블렌드: 폭이 blendEnd 아래로 내려가면 col 전체 직사각형 형태로 선형 보간.
+        // t=1(blendEnd)에서 온전한 사다리꼴, t=0(minW)에서 직사각형 — 이진 치환의 시각적 점프 제거.
+        if (w < blendEnd) {
+          const t = (w - minW) / (blendEnd - minW);
+          const rect = [[L, yB], [L, 0], [R, 0], [R, yB]];
+          top = top.map(([x, y], i) => [rect[i][0] + t * (x - rect[i][0]), y]);
+        }
         if (rtl) top = top.map(([x, y]) => [L + R - x, y]); // col 내 좌우 반전
         threadsTop.push(top);
         // 하단 = 컬럼 중심점 기준 180° 회전 (점대칭): x' = L+R-x, y' = H-y

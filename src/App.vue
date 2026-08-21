@@ -1,62 +1,50 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useUnitParams } from './composables/useUnitParams.js';
-import UnitCanvas from './components/UnitCanvas.vue';
-import ControlPanel from './components/ControlPanel.vue';
+import { useDocument } from './composables/useDocument.js';
+import { useViewport } from './composables/useViewport.js';
+import { deriveUnit } from './geometry/derive.js';
 import { downloadSvg } from './export/exportSvg.js';
+import DashboardStage from './components/stage/DashboardStage.vue';
+import ControlPanel from './components/ControlPanel.vue';
 
-const { p, D, gutterMax, columns, unit, setA, setB, rotate } = useUnitParams();
-
-// 캔버스를 stage 안에 contain 피팅 (가로/세로 어느 쪽이 길어도 프레임 이탈 없음)
-const stageEl = ref(null);
-const stage = reactive({ w: 0, h: 0 });
-let ro;
-onMounted(() => {
-  ro = new ResizeObserver(([e]) => {
-    stage.w = e.contentRect.width;
-    stage.h = e.contentRect.height;
-  });
-  ro.observe(stageEl.value);
-});
-onBeforeUnmount(() => ro?.disconnect());
+const docApi = useDocument();
+const viewport = useViewport();
+const { doc, active, gutterMax } = docApi;
 
 function exportSvg() {
-  downloadSvg({ W: p.W, H: p.H, unit: unit.value, orientation: p.orientation });
+  const p = active.value.params;
+  downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation });
 }
-
-const canvasStyle = computed(() => {
-  const s = Math.min(stage.w / p.W, stage.h / p.H) || 0;
-  return { width: `${p.W * s}px`, height: `${p.H * s}px` };
-});
 </script>
 
 <template>
   <div class="layout">
-    <main ref="stageEl" class="stage">
-      <div class="canvasWrap" :style="canvasStyle">
-        <UnitCanvas
-          :W="p.W" :H="p.H"
-          :unit="unit" :columns="columns"
-          :show-guides="p.showGuides" :orientation="p.orientation"
-        />
-      </div>
-    </main>
     <aside class="side">
-      <ControlPanel :p="p" :D="D" :gutter-max="gutterMax" @set-a="setA" @set-b="setB" @rotate="rotate" @export="exportSvg" />
+      <ControlPanel
+        :unit="active"
+        :gutter-max="gutterMax"
+        @set-size="docApi.setSize"
+        @set-aspect="docApi.setAspect"
+        @set-a="docApi.setA"
+        @set-b="docApi.setB"
+        @duplicate="docApi.duplicateActive"
+        @export="exportSvg"
+      />
     </aside>
+    <DashboardStage
+      :doc="doc"
+      :viewport="viewport"
+      @select="docApi.select"
+      @deselect="docApi.deselect"
+      @rotate="docApi.rotate"
+      @resized="docApi.setSize({})"
+    />
   </div>
 </template>
 
 <style scoped>
 .layout { display: flex; height: 100vh; }
-.stage {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 40px; min-width: 0; overflow: hidden;
-}
-.canvasWrap { outline: 1px solid var(--line); background: var(--canvas); }
-.canvasWrap :deep(svg) { width: 100%; height: 100%; }
 .side {
   width: 300px; flex-shrink: 0; overflow-y: auto;
-  padding: 22px 18px 40px; border-left: 1px solid var(--line); background: var(--panel);
+  padding: 22px 18px 40px; border-right: 1px solid var(--line); background: var(--panel);
 }
 </style>

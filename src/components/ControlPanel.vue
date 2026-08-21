@@ -4,43 +4,62 @@ import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
+import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MIN, B_MAX,
-  GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP, SIZE_MIN, SIZE_MAX,
+  GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
+  UNIT_MIN, UNIT_MAX, ASPECT_TOL,
 } from '../geometry/constants.js';
 
 const props = defineProps({
-  p: Object,        // reactive params
-  D: Number,        // 파생 shaft 높이 (px)
+  unit: Object,      // 활성 유닛 { id, name, params }
   gutterMax: Number,
 });
-const emit = defineEmits(['setA', 'setB', 'rotate', 'export']);
+const emit = defineEmits(['setSize', 'setAspect', 'setA', 'setB', 'duplicate', 'export']);
 
-// Δ 슬라이더는 각자 실제 범위(a: 30–70%, b: 0–30%)를 0–100으로 정규화해 표기
-const aNorm = computed(() => Math.round(((props.p.a - A_MIN) / (A_MAX - A_MIN)) * 100));
-const bNorm = computed(() => Math.round(((props.p.b - B_MIN) / (B_MAX - B_MIN)) * 100));
+const p = computed(() => props.unit.params);
+const aspect = computed(() => p.value.W / p.value.H);
+
 // compression: 슬라이더는 -1(S→L 최대) ~ +1(L→S 최대) 정규화 값. rate = 1 + |v|·(RATE_MAX-1)
 const compVal = computed(() => {
-  const t = (props.p.rate - 1) / (RATE_MAX - 1);
-  return props.p.direction === 'StoL' ? -t : t;
+  const t = (p.value.rate - 1) / (RATE_MAX - 1);
+  return p.value.direction === 'StoL' ? -t : t;
 });
 function setComp(v) {
-  props.p.rate = 1 + Math.abs(v) * (RATE_MAX - 1);
-  props.p.direction = v >= 0 ? 'LtoS' : 'StoL';
+  p.value.rate = 1 + Math.abs(v) * (RATE_MAX - 1);
+  p.value.direction = v >= 0 ? 'LtoS' : 'StoL';
 }
 const compDisplay = computed(() => `${(compVal.value * 100).toFixed(1)}%`);
+
+// Δ 슬라이더는 각자 실제 범위(a: 10–70%, b: 0–30%)를 0–100으로 정규화해 표기
+const aNorm = computed(() => Math.round(((p.value.a - A_MIN) / (A_MAX - A_MIN)) * 100));
+const bNorm = computed(() => Math.round(((p.value.b - B_MIN) / (B_MAX - B_MIN)) * 100));
 </script>
 
 <template>
   <div class="panel">
+    <header class="brand">EO GRAPHIC BUILDER</header>
+
+    <div class="unitRow">
+      <span class="unitName">{{ unit.name }}</span>
+      <button class="mini" @click="emit('duplicate')">+ duplicate</button>
+    </div>
+
     <section>
       <h2>Unit Size</h2>
-      <NumberField label="width (px)" :model-value="p.W" :min="SIZE_MIN" :max="SIZE_MAX" @update:model-value="(v) => (p.W = Math.min(SIZE_MAX, Math.max(SIZE_MIN, v)))" />
-      <Slider label="" v-model="p.W" :min="SIZE_MIN" :max="SIZE_MAX" :step="1" />
-      <NumberField label="height (px)" :model-value="p.H" :min="SIZE_MIN" :max="SIZE_MAX" @update:model-value="(v) => (p.H = Math.min(SIZE_MAX, Math.max(SIZE_MIN, v)))" />
-      <Slider label="" v-model="p.H" :min="SIZE_MIN" :max="SIZE_MAX" :step="1" />
-      <button class="ghost" @click="emit('rotate')">rotate 90°</button>
+      <NumberField
+        label="width (px)" :model-value="p.W" :min="UNIT_MIN" :max="UNIT_MAX"
+        @update:model-value="(v) => emit('setSize', { W: v })"
+      />
+      <NumberField
+        label="height (px)" :model-value="p.H" :min="UNIT_MIN" :max="UNIT_MAX"
+        @update:model-value="(v) => emit('setSize', { H: v })"
+      />
+      <ChipRow
+        :model-value="aspect" :chips="ASPECT_CHIPS" :tol="ASPECT_TOL"
+        @update:model-value="(v) => emit('setAspect', v)"
+      />
     </section>
 
     <section>
@@ -119,6 +138,18 @@ const compDisplay = computed(() => `${(compVal.value * 100).toFixed(1)}%`);
 
 <style scoped>
 .panel { display: flex; flex-direction: column; gap: 26px; }
+.brand {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.18em; color: var(--text);
+  padding-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.unitRow { display: flex; justify-content: space-between; align-items: center; margin: -8px 0; }
+.unitName { font-size: 12px; color: var(--text); }
+.mini {
+  border: 1px solid var(--line); background: none; color: var(--faint);
+  font-family: inherit; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 8px; cursor: pointer;
+}
+.mini:hover { border-color: var(--accent); color: var(--accent); }
 section h2 {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em;
   color: var(--accent); font-weight: 600;
