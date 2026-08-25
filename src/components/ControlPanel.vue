@@ -26,7 +26,7 @@ const props = defineProps({
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
   'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset', 'exportPreset',
-  'exportPresets', 'importPresets',
+  'exportPresets', 'importPresets', 'unlinkOne',
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -34,6 +34,8 @@ const mixed = (...keys) =>
   props.selected.length > 1 &&
   props.selected.some((u) => keys.some((k) => u.params[k] !== props.unit.params[k]));
 
+// 링크 멤버 1개만 선택 — "이 유닛만 해제" 버튼 표시 (§73)
+const singleLinked = computed(() => props.selected.length === 1 && props.selected[0].linkId != null);
 // 선택 전체가 이미 하나의 링크인지
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
@@ -317,12 +319,14 @@ function applyPhysical(pp) {
     </template>
 
     <LinkSection
-      v-if="selected.length >= 2"
+      v-if="selected.length >= 2 || singleLinked"
       :linked="linked"
       :link-scope="linkScope"
       :chips-visible="scopeChipsVisible"
+      :single="singleLinked"
       @link="(scope) => emit('link', scope)"
       @scope-toggle="(k) => emit('linkScopeToggle', k)"
+      @unlink-one="emit('unlinkOne')"
     />
     </template>
 

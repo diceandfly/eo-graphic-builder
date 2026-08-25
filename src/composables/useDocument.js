@@ -636,6 +636,15 @@ export function useDocument() {
       return { action: 'linked', count: sel.length, src: src.name };
     }
   }
+  // 단일 유닛을 자기 링크에서 제거 (나머지 멤버는 유지, 1개만 남으면 자동 해체)
+  function unlinkUnit(id) {
+    const u = doc.units.find((x) => x.id === id);
+    if (!u || !u.linkId) return null;
+    u.linkId = null;
+    cleanupLinks();
+    pruneMeta();
+    return { name: u.name };
+  }
   function cleanupLinks() {
     const counts = {};
     for (const u of doc.units) if (u.linkId) counts[u.linkId] = (counts[u.linkId] || 0) + 1;
@@ -911,7 +920,7 @@ export function useDocument() {
     createRect, renameGroup, blendFrom, arrangeGrid, orderSelected,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
-    toggleLinkSelected, linkMemberIds,
+    toggleLinkSelected, linkMemberIds, unlinkUnit,
     undo, redo, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom, setNotifier,
     restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)

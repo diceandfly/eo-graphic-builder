@@ -7,8 +7,9 @@ const props = defineProps({
   linked: Boolean,
   linkScope: Object,    // 링크된 상태의 스코프 (null = 전체 on)
   chipsVisible: Boolean, // rect 혼합 선택이면 false (rect 링크는 전체 동기화)
+  single: Boolean,       // 링크 멤버 1개만 선택 — "이 유닛만 해제" 모드 (§73)
 });
-const emit = defineEmits(['link', 'scopeToggle']);
+const emit = defineEmits(['link', 'scopeToggle', 'unlinkOne']);
 
 const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
 // 기본: color·orientation off (useDocument linkScopeDefault와 동일 값 유지)
@@ -24,10 +25,14 @@ function onChip(k) {
 <template>
   <section>
     <h2>Link</h2>
-    <button class="ghost" :class="{ linked }" @click="emit('link', { ...draftScope })">
+    <!-- 단일 링크 멤버: 이 유닛만 링크에서 빼기 -->
+    <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
+      unlink this unit
+    </button>
+    <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...draftScope })">
       {{ linked ? 'unlink parameters' : 'link parameters' }}
     </button>
-    <div v-if="chipsVisible" class="scopeChips">
+    <div v-if="!single && chipsVisible" class="scopeChips">
       <button
         v-for="(label, key) in LINK_CATS" :key="key"
         class="scopeChip" :class="{ on: scopeOn(key) }"

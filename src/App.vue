@@ -157,6 +157,13 @@ function onLink(scope) {
   }
 }
 
+// 링크 멤버 1개만 선택 시 "이 유닛만 해제"
+function onUnlinkOne() {
+  if (!active.value) return;
+  const r = docApi.unlinkUnit(active.value.id);
+  if (r) stageRef.value?.toast(`Unlinked "${r.name}" from its link group`);
+}
+
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 const stageActions = {
@@ -189,6 +196,7 @@ const stageActions = {
         @export-presets="presetsApi.exportJson"
         @import-presets="importPresets"
         @link="onLink"
+        @unlink-one="onUnlinkOne"
         @fill="docApi.setFill"
       />
     </aside>

@@ -815,3 +815,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 컨텍스트 메뉴 Export 그룹 확장: [Copy as SVG (⌘C) / Copy as PNG (⌘⇧C) / Export SVG file].
 - 구현: `utils/clipboard.js`(copyTextToClipboard·copySvgAsPng), `exportSvg.buildSelectionSvg`(선택→svg+치수), App `selectionItems()` 공용화(exportSvg도 사용).
 - 검증: 가짜 클립보드 주입으로 SVG 텍스트(2.5KB)·PNG 블롭(26KB) 캡처 확인. ⚠ 브라우저 팬은 clipboard 권한 차단(NotAllowedError) — 실브라우저에서는 정상. Safari는 비동기 후 write의 사용자 제스처 제한 가능성 있음(크롬 기준 개발).
+
+## 73. 2026-08-25 — 링크 멤버 단일 선택 시 "unlink this unit"
+
+- 링크된 유닛 하나만 선택하면 LINK 섹션에 **"unlink this unit"** 버튼 표시 (스코프 칩 없음). 클릭 = 그 유닛만 링크에서 제거(`unlinkUnit`), 나머지 멤버는 링크 유지, 1개만 남으면 자동 해체. 토스트 안내.
+- 검증: 3유닛 링크 → 1개 딥 선택 → 버튼 표시·해제 → linkIds [1,1,null], 버튼 소멸.
