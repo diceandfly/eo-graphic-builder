@@ -618,3 +618,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 49. 2026-08-21 — 단일 회전 존 복구
 
 - 지난 라운드 OverlayActions 추출 시 정규식이 SelectionOverlay의 `ROT`/`ROT_ZONES` 정의까지 제거해 단일 유닛 코너 회전이 사라졌던 것을 복구. 단일(중심 보존 +90°)·그룹(통합 중심 기준) 회전 모두 재검증 완료.
+
+## 50. 2026-08-21 — flipX 계수·해골 리셋·Unit-N 네이밍·자동저장 메타
+
+1. **flipX 표시 계수** — 플립을 파라미터 변형(direction/threadDir 토글)에서 **별도 계수 `params.flipX`**로 분리. 내부 rate/direction/threadDir은 저작값 고정, `deriveUnit`이 렌더 시에만 유효 방향으로 반전. 효과: 플립만 다른 유닛들이 멀티선택에서 mixed(—)가 아닌 동일 값으로 인식. compression ± 슬라이더는 여전히 저작 파라미터를 편집(별개). 스포이드 범주에 flipX 미포함(표시 계수). 구버전 스키마 자동 마이그레이션.
+2. **리셋 아이콘 → 해골** (lucide skull).
+3. **자동저장에 savedAt 메타** + 시작 시 "Restored N units from autosave · 시각" 토스트.
+4. **네이밍 `Unit-N`** (생성·복제·리셋 전부). 레거시 `unit vN` 카운터 호환.

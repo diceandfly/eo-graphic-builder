@@ -12,13 +12,20 @@ export function deriveUnit(p) {
   const localW = odd ? p.H : p.W;
   const localH = odd ? p.W : p.H;
   const D = (localH * clamp(p.dPct, 0, D_PCT_MAX)) / 100;
+  // flipX(표시 계수): 저작 파라미터는 그대로 두고 렌더 시에만 방향·기울기를 반전
+  const direction = p.flipX
+    ? (p.direction === 'LtoS' ? 'StoL' : 'LtoS')
+    : p.direction;
+  const threadDir = p.flipX
+    ? (p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR')
+    : p.threadDir;
   const columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
-    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction: p.direction,
+    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction,
   });
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
-    a: p.a, b: p.b, threads: p.threads, threadDir: p.threadDir,
+    a: p.a, b: p.b, threads: p.threads, threadDir,
   });
   return { localW, localH, D, columns, unit };
 }

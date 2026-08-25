@@ -673,6 +673,12 @@ onMounted(() => {
   window.addEventListener('keyup', onKeyUp);
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
   if (!props.viewport.restored) centerFirstUnit();
+  // 자동저장 복원 안내
+  const meta = props.actions.restoredMeta;
+  if (meta?.count) {
+    const when = meta.savedAt ? new Date(meta.savedAt).toLocaleString() : '';
+    toast(`Restored ${meta.count} unit${meta.count > 1 ? 's' : ''} from autosave${when ? ' · ' + when : ''}`);
+  }
 });
 function centerWorld() {
   const r = el.value.getBoundingClientRect();

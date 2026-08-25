@@ -25,6 +25,7 @@ export function createParams(overrides = {}) {
     b: 0,
     threads: 'both',   // 'both' | 'one'
     threadDir: 'LtoR', // 'LtoR' | 'RtoL'
+    flipX: false, // 표시 계수: 좌우 미러 (내부 rate/direction은 불변 — 플립만 다른 유닛은 mixed로 취급 안 됨)
     fill: BRAND_COLORS[0], // EO NEON
     showGuides: true,
     ...overrides,
@@ -41,16 +42,20 @@ function migrateUnit(u) {
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   if (u.linkId === undefined) u.linkId = null;
+  if (u.params && u.params.flipX === undefined) u.params.flipX = false;
   return u;
 }
 
 export function useDocument() {
   // localStorage 자동 복원 (새로고침 안전망)
   let savedUnits = null;
+  let savedMeta = null;
   try {
-    savedUnits = JSON.parse(localStorage.getItem(DOC_KEY) || 'null')?.units ?? null;
+    const raw = JSON.parse(localStorage.getItem(DOC_KEY) || 'null');
+    savedUnits = raw?.units ?? null;
+    if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
-  const initialUnits = (savedUnits ?? [{ id: 1, name: 'unit v1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
+  const initialUnits = (savedUnits ?? [{ id: 1, name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
 
   let nextId = 2;
   let nextVersion = 2;
@@ -66,7 +71,7 @@ export function useDocument() {
   function recalcCounters() {
     nextId = doc.units.reduce((m, u) => Math.max(m, u.id), 0) + 1;
     nextVersion = doc.units.reduce((m, u) => {
-      const mt = u.name.match(/v(\d+)$/);
+      const mt = u.name.match(/(?:v|-)(\d+)$/);
       return Math.max(m, mt ? Number(mt[1]) : 0);
     }, 0) + 1;
     nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
@@ -80,7 +85,7 @@ export function useDocument() {
     (snap) => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        localStorage.setItem(DOC_KEY, JSON.stringify({ version: 1, units: JSON.parse(snap) }));
+        localStorage.setItem(DOC_KEY, JSON.stringify({ version: 1, savedAt: Date.now(), units: JSON.parse(snap) }));
       }, 500);
     }
   );
@@ -262,7 +267,7 @@ export function useDocument() {
 
   function pushUnit(params, x, y, linkId = null) {
     const id = nextId++;
-    doc.units.push({ id, name: `unit v${nextVersion++}`, x, y, groups: [], linkId, params });
+    doc.units.push({ id, name: `Unit-${nextVersion++}`, x, y, groups: [], linkId, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -309,7 +314,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, name: `unit v${nextVersion++}`, x: u.x, y: u.y,
+        id, name: `Unit-${nextVersion++}`, x: u.x, y: u.y,
         groups, linkId: u.linkId, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
@@ -362,15 +367,14 @@ export function useDocument() {
     const p = active.value.params;
     p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
   }
-  // 로컬 좌우 미러 = 압축 방향 + thread 기울기 동시 반전
+  // 로컬 좌우 미러 = flipX 계수 토글 (내부 rate/direction/threadDir은 저작값 그대로)
   function mirrorLocalX(p) {
-    p.direction = p.direction === 'LtoS' ? 'StoL' : 'LtoS';
-    p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
+    p.flipX = !p.flipX;
   }
   // 로컬 상하 미러 = 180° 회전 + 좌우 미러 (W/H 불변)
   function mirrorLocalY(p) {
     p.orientation = (p.orientation + 180) % 360;
-    mirrorLocalX(p);
+    p.flipX = !p.flipX;
   }
   const isOdd = (p) => p.orientation === 90 || p.orientation === 270;
   // 화면 기준 좌우 반전 — 90/270° 회전 상태면 로컬 축이 바뀌어 있으므로 로컬 상하 미러를 적용
@@ -594,7 +598,7 @@ export function useDocument() {
     nextGroup = 1;
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
-      id: nextId++, name: `unit v${nextVersion++}`, x: 0, y: 0,
+      id: nextId++, name: `Unit-${nextVersion++}`, x: 0, y: 0,
       groups: [], linkId: null, params: createParams(),
     });
     doc.activeId = doc.units[0].id;
@@ -611,5 +615,6 @@ export function useDocument() {
     toggleLinkSelected, linkMemberIds,
     undo, redo, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom, setNotifier,
+    restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)
   };
 }
