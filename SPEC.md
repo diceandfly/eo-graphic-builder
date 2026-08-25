@@ -786,3 +786,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **부채 ① 브랜드 컬러 단일 출처화** — `constants.js BRAND_TOKENS`(이름→hex 맵)가 유일한 정의처. main.js가 부팅 시 CSS 1층 토큰(--eo-neon 등)으로 주입 — colors.css의 정적 1층 값은 첫 페인트용 폴백으로 강등(주석 명시). BRAND_COLORS/NAMES는 SWATCHES 구성표에서 파생. 이제 브랜드 색 변경은 한 곳에서.
 2. **부채 ② 링크 확산 헬퍼 통합** — `expandLinkByScope(ids, cat)` 신설, setFill('color')·rotate('orientation')의 인라인 스코프 검사를 대체. 링크 전파 표면은 ①미러 워처 ②expandLinkByScope/filterByLinkScope 두 헬퍼로 한정한다는 규칙을 코드 주석으로 박제. 회귀 검증: color off 미전파 / on 전파 재확인.
 - 남은 부채 로드맵: ③ ControlPanel 분리 → ④ 타입 분기 테이블 → ⑤ IndexedDB → ⑥ 회귀 스위트.
+
+## 69. 2026-08-25 — 부채 정리 ③④⑤⑥ 완료
+
+3. **③ ControlPanel 분리** — `panel/PresetBrowser.vue`(프리셋 브라우저 전체: 뷰 토글·인라인 리네임·우클릭 메뉴·JSON IO) + `panel/LinkSection.vue`(링크 토글+스코프 칩·드래프트) 추출. ControlPanel 632→약 450줄, 프리셋/링크 상태가 해당 컴포넌트로 캡슐화. ⚠ 보류 중이던 커스텀 비율 + 버튼 로직(addRatio)은 이번에 삭제 — 복원 시 git 이력(§51 시점) 참조.
+4. **④ 오브젝트 타입 레지스트리** — `objects/registry.js`: OBJECT_TYPES{unit, rect}에 namePrefix·layer(z순서)·presetable·linkScoped 특성 정의 + 헬퍼(typeOf/layerOf/namePrefix/isPresetable/isLinkScoped). 적용: 이름 생성(useDocument)·z정렬(zOrdered)·프리셋 가드·스코프 칩 표시. 새 타입(이미지)은 레지스트리 한 항목+렌더 분기만 추가하면 됨.
+5. **⑤ IndexedDB 기반** — `utils/idb.js`('eo-store'/'blobs': putBlob·getBlob·deleteBlob·listBlobIds). **저장 아키텍처 결정: 문서 메타 JSON은 localStorage 유지(동기 복원), 대용량 바이너리만 IDB — 문서에는 blob id만.** 이미지 붙여넣기 라운드의 선행 기반.
+6. **⑥ 지오메트리 회귀 스위트** — `tests/geometry-regression.mjs` + `npm run test:geo`: 대표·경계 조합 30종의 export SVG 해시 스냅샷을 기준선(tests/baselines/geometry.json, 커밋 대상)과 비교. NaN/Infinity 하드 가드. 브라우저·의존성 0, node 단독 실행. 의도된 지오메트리 변경 시 `--update`로 기준선 갱신 후 커밋. eslint에 tests/ node 글로벌 추가.

@@ -1,12 +1,13 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
-import UnitGraphic from './stage/UnitGraphic.vue';
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
+import PresetBrowser from './panel/PresetBrowser.vue';
+import LinkSection from './panel/LinkSection.vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
+import { isLinkScoped, typeOf } from '../objects/registry.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
@@ -15,7 +16,7 @@ import {
 } from '../geometry/constants.js';
 
 const props = defineProps({
-  unit: Object,          // 활성 유닛 { id, name, params }
+  unit: Object,          // 활성 유닛 { id, type, name, params }
   gutterMax: Number,
   selected: { type: Array, default: () => [] }, // 선택된 유닛들
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
@@ -27,12 +28,6 @@ const emit = defineEmits([
   'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset', 'exportPreset',
   'exportPresets', 'importPresets',
 ]);
-const presetFileEl = ref(null);
-function onPresetFile(e) {
-  const f = e.target.files[0];
-  if (f) emit('importPresets', f);
-  e.target.value = '';
-}
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
 const mixed = (...keys) =>
@@ -50,11 +45,11 @@ const linked = computed(() => {
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
 const p = computed(() => props.unit?.params);
-// 직사각형 오브젝트: 전용 섹션(FILL/STROKE/GRID) 분기
-const isRect = computed(() => props.unit?.type === 'rect');
+// 직사각형 오브젝트: 전용 섹션(GRID) 분기
+const isRect = computed(() => typeOf(props.unit) === 'rect');
 const ON_OFF = [{ value: 'on', label: 'on' }, { value: 'off', label: 'off' }];
-// 링크 스코프 범주는 나사축 유닛 전용 — rect가 섞이면 칩 숨김 (rect 링크는 전체 동기화)
-const scopeChipsVisible = computed(() => props.selected.every((u) => u.type !== 'rect'));
+// 링크 스코프 범주는 스코프형 타입(유닛)만 — rect가 섞이면 칩 숨김 (rect 링크는 전체 동기화)
+const scopeChipsVisible = computed(() => props.selected.every((u) => isLinkScoped(u)));
 // 멀티선택: SIZE는 통합 bbox 기준으로 표시·편집 (그룹을 하나의 대상처럼)
 // EACH 토글 on이면 bbox 대신 개별 유닛 속성으로 표시·적용 (같은 값을 각자에게)
 const eachMode = ref(false);
@@ -105,24 +100,7 @@ const reloadRatios = () => {
 };
 onMounted(() => window.addEventListener('eo:ratios', reloadRatios));
 onBeforeUnmount(() => window.removeEventListener('eo:ratios', reloadRatios));
-const ratioInputOpen = ref(false);
-const ratioInput = ref('');
 const allAspects = computed(() => ASPECT_CHIPS.concat(customRatios.value));
-// eslint-disable-next-line no-unused-vars -- 커스텀 비율 + 버튼 숨김 상태, 복원 대비 유지
-function addRatio() {
-  const t = ratioInput.value.trim();
-  let v = null;
-  const m = t.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
-  if (m) v = Number(m[1]) / Number(m[2]);
-  else if (/^\d+(?:\.\d+)?$/.test(t)) v = Number(t);
-  if (v && v > 0.05 && v < 20) {
-    customRatios.value.push({ label: t, v });
-    localStorage.setItem(RATIO_KEY, JSON.stringify(customRatios.value));
-    emit('setAspect', v);
-  }
-  ratioInput.value = '';
-  ratioInputOpen.value = false;
-}
 
 // Δ 슬라이더 = 변의 실제 폭 (col 폭 대비 %). 둘 다 "올리면 그 변이 넓어짐".
 // top width = a (10–70%), bottom width = 1-b (30–100%)
@@ -146,46 +124,6 @@ function commitRename() {
 function cancelRename() {
   editingName.value = false;
 }
-
-// 링크 동기화 스코프 칩 (스포이드 범주와 동일 5종).
-// 링크 전에는 드래프트를 편집하고, "link parameters" 시 그 값으로 링크 생성.
-const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
-// 기본: color·orientation off (useDocument linkScopeDefault와 동일 값 유지)
-const draftScope = reactive({ size: true, orientation: false, grid: true, shape: true, color: false });
-const scopeOn = (k) =>
-  linked.value ? (props.linkScope ? props.linkScope[k] !== false : true) : draftScope[k];
-function onScopeChip(k) {
-  if (linked.value) emit('linkScopeToggle', k);
-  else draftScope[k] = !draftScope[k];
-}
-
-// 프리셋 브라우저 뷰 모드 (썸네일 2컬럼 / 리스트) — localStorage 영속
-const presetView = ref(localStorage.getItem('eo.presetView') || 'thumbs');
-watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
-
-// 프리셋 이름 인라인 편집 (Default는 고정)
-const editingPreset = ref(null); // { id, draft }
-function startPresetRename(p) {
-  if (p.id === 'default') return;
-  editingPreset.value = { id: p.id, draft: p.name };
-}
-function commitPresetName(e) {
-  if (e && e.isComposing) return;
-  if (editingPreset.value) emit('renamePreset', editingPreset.value.id, editingPreset.value.draft);
-  editingPreset.value = null;
-}
-
-// 프리셋 우클릭 메뉴 — 추출(Export SVG)·이름변경·삭제 (Default는 추출만)
-const presetMenu = ref(null); // { x, y, p } — 뷰포트(fixed) 좌표
-function openPresetMenu(p, e) {
-  presetMenu.value = { x: e.clientX, y: e.clientY, p };
-}
-function closePresetMenu() {
-  presetMenu.value = null;
-}
-watch(presetMenu, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closePresetMenu, { once: true }), 0);
-});
 
 // 직사각형 비율 그룹 — 디지털(비율) + 피지컬(출판 규격, dpi 기반 실제 px 크기)
 const RECT_DIGITAL = [
@@ -289,7 +227,7 @@ function applyPhysical(pp) {
           :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
           @update:model-value="(v) => emit('setAspect', v, sizeEach)"
         />
-        <!-- 커스텀 비율 + 버튼: 보류 (로직은 유지) -->
+        <!-- 커스텀 비율 + 버튼: 보류 (로직은 유지 — git 이력 §51) -->
       </div>
     </section>
 
@@ -376,119 +314,29 @@ function applyPhysical(pp) {
         ]"
       />
     </section>
-
-    <!-- COLOR 섹션 §65 제거 — 색 지정은 컬러 툴바/스포이드로 -->
     </template>
 
-    <section v-if="selected.length >= 2">
-      <h2>Link</h2>
-      <button class="ghost" :class="{ linked }" @click="emit('link', { ...draftScope })">
-        {{ linked ? 'unlink parameters' : 'link parameters' }}
-      </button>
-      <!-- 링크 동기화 범주: 링크 전엔 드래프트, 링크 후엔 해당 링크의 스코프 편집 -->
-      <div v-if="scopeChipsVisible" class="scopeChips">
-        <button
-          v-for="(label, key) in LINK_CATS" :key="key"
-          class="scopeChip" :class="{ on: scopeOn(key) }"
-          @click="onScopeChip(key)"
-        >{{ label }}</button>
-      </div>
-    </section>
+    <LinkSection
+      v-if="selected.length >= 2"
+      :linked="linked"
+      :link-scope="linkScope"
+      :chips-visible="scopeChipsVisible"
+      @link="(scope) => emit('link', scope)"
+      @scope-toggle="(k) => emit('linkScopeToggle', k)"
+    />
     </template>
 
-    <!-- 선택 없음: 새 유닛 + 프리셋 브라우저 -->
-    <template v-else>
-    <section>
-      <div class="secHead">
-        <h2>Unit Presets</h2>
-        <Toggle
-          class="viewToggle" v-model="presetView"
-          :options="[{ value: 'thumbs', label: 'thumbs' }, { value: 'list', label: 'list' }]"
-        />
-      </div>
-      <div v-if="!presets.length" class="pEmpty">right-click a unit to register a preset</div>
-      <div v-else-if="presetView === 'thumbs'" class="pGrid">
-        <div
-          v-for="p in presets" :key="p.id" class="pCard"
-          @click="emit('placePreset', p)"
-          @contextmenu.prevent.stop="openPresetMenu(p, $event)"
-        >
-          <svg class="pThumb" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
-            <UnitGraphic :params="p.params" />
-          </svg>
-          <input
-            v-if="editingPreset?.id === p.id"
-            v-focus class="pNameInput" v-model="editingPreset.draft"
-            @click.stop @pointerdown.stop
-            @keydown.enter="commitPresetName"
-            @keydown.esc="editingPreset = null"
-            @blur="editingPreset = null"
-          />
-          <div
-            v-else class="pName"
-            :title="p.id === 'default' ? '' : 'click to rename'"
-            @click.stop="startPresetRename(p)"
-          >{{ p.name }}</div>
-          <button
-            class="pDel" title="delete preset"
-            @click.stop="emit('deletePreset', p.id)"
-          >×</button>
-        </div>
-      </div>
-      <div v-else class="pList">
-        <div
-          v-for="p in presets" :key="p.id" class="pRow"
-          @click="emit('placePreset', p)"
-          @contextmenu.prevent.stop="openPresetMenu(p, $event)"
-        >
-          <svg class="pMini" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
-            <UnitGraphic :params="p.params" />
-          </svg>
-          <input
-            v-if="editingPreset?.id === p.id"
-            v-focus class="pNameInput" v-model="editingPreset.draft"
-            @click.stop @pointerdown.stop
-            @keydown.enter="commitPresetName"
-            @keydown.esc="editingPreset = null"
-            @blur="editingPreset = null"
-          />
-          <span
-            v-else class="pName"
-            :title="p.id === 'default' ? '' : 'click to rename'"
-            @click.stop="startPresetRename(p)"
-          >{{ p.name }}</span>
-          <button
-            class="pDel" title="delete preset"
-            @click.stop="emit('deletePreset', p.id)"
-          >×</button>
-        </div>
-      </div>
-    </section>
-    <!-- 프리셋 라이브러리 JSON 입출력 — 패널 최하단 -->
-    <div class="pIoRow">
-      <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
-      <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
-      <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
-    </div>
-    </template>
-
-    <!-- 프리셋 우클릭 메뉴 -->
-    <div
-      v-if="presetMenu"
-      class="pMenu"
-      :style="{ left: presetMenu.x + 'px', top: presetMenu.y + 'px' }"
-      @pointerdown.stop
-      @contextmenu.prevent
-    >
-      <button class="pMenuItem" @click="emit('exportPreset', presetMenu.p); closePresetMenu()">Export SVG</button>
-      <button
-        v-if="presetMenu.p.id !== 'default'"
-        class="pMenuItem" @click="startPresetRename(presetMenu.p); closePresetMenu()"
-      >Rename</button>
-      <button
-        class="pMenuItem" @click="emit('deletePreset', presetMenu.p.id); closePresetMenu()"
-      >Delete</button>
-    </div>
+    <!-- 선택 없음: 프리셋 브라우저 -->
+    <PresetBrowser
+      v-else
+      :presets="presets"
+      @place-preset="(pr) => emit('placePreset', pr)"
+      @delete-preset="(id) => emit('deletePreset', id)"
+      @rename-preset="(id, name) => emit('renamePreset', id, name)"
+      @export-preset="(pr) => emit('exportPreset', pr)"
+      @export-presets="emit('exportPresets')"
+      @import-presets="(f) => emit('importPresets', f)"
+    />
   </div>
 </template>
 
@@ -508,22 +356,11 @@ function applyPhysical(pp) {
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
-.chipPlus {
-  @include bordered-control;
-  font-size: var(--fs-sm); padding: 4px 9px;
-}
-.ratioInput {
-  @include text-field;
-  width: 56px; border-color: var(--accent); font-size: var(--fs-xs); padding: 4px 6px;
-}
-.unitName { font-size: var(--fs-sm); color: var(--text); }
-.unitName { cursor: text; }
+.unitName { font-size: var(--fs-sm); color: var(--text); cursor: text; }
 .unitName:hover { color: var(--accent); }
 .nameInput {
   @include text-field;
   border-color: var(--accent); padding: 2px 6px; flex: 1;
-}
-.unitRow .ghost { margin-top: 0;   border-radius: var(--radius);
 }
 section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
@@ -551,81 +388,5 @@ section h2 {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
   padding: 2px 7px;
   &.on { border-color: var(--accent); color: var(--accent); }
-}
-.ghost {
-  width: 100%; margin-top: 2px; padding: 8px 12px;
-  border: 1px solid var(--line); background: none; color: var(--text);
-  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  cursor: pointer;
-}
-.ghost:hover { border-color: var(--accent); color: var(--accent); }
-.ghost.linked { border-color: var(--accent); color: var(--accent); }
-.scopeChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-.scopeChip {
-  @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;
-  color: var(--faint);
-  &.on { border-color: var(--accent); color: var(--accent); }
-}
-.viewToggle { margin-bottom: 0; }
-.pEmpty {
-  font-size: var(--fs-xs); color: var(--faint); letter-spacing: var(--ls-base);
-  border: 1px dashed var(--line); border-radius: var(--radius);
-  padding: 16px 12px; text-align: center;
-}
-.pGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.pCard {
-  position: relative; cursor: pointer;
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
-  &:hover { border-color: var(--accent); }
-  &:hover .pDel { opacity: 1; }
-}
-.pThumb { display: block; width: 100%; height: auto; background: var(--bg); border-radius: var(--radius); }
-.pList { display: flex; flex-direction: column; gap: 6px; }
-.pRow {
-  position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer;
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 8px;
-  &:hover { border-color: var(--accent); }
-  &:hover .pDel { opacity: 1; }
-}
-.pMini { width: 34px; height: 26px; flex-shrink: 0; background: var(--bg); border-radius: var(--radius); }
-.pName { font-size: var(--fs-xs); color: var(--text); margin-top: 4px; cursor: text; }
-.pName:hover { color: var(--accent); }
-.pRow .pName { margin-top: 0; }
-.pNameInput {
-  @include text-field;
-  border-color: var(--accent); padding: 1px 5px; margin-top: 4px; width: 100%;
-  font-size: var(--fs-xs);
-}
-.pRow .pNameInput { margin-top: 0; flex: 1; min-width: 0; }
-.pDel {
-  position: absolute; top: 3px; right: 3px; opacity: 0;
-  border: none; background: var(--panel); color: var(--faint);
-  font: inherit; font-size: var(--fs-sm); line-height: 1; padding: 1px 5px;
-  border-radius: var(--radius); cursor: pointer;
-  &:hover { color: var(--danger); }
-}
-.pMenu {
-  position: fixed; z-index: 20;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 4px; display: flex; flex-direction: column;
-}
-.pIoRow { display: flex; gap: 6px; }
-.pIoBtn {
-  @include bordered-control;
-  flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  padding: 5px 0;
-  &:hover { border-color: var(--accent); color: var(--accent); }
-}
-.pMenuItem {
-  border: none; background: none; color: var(--text); cursor: pointer;
-  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-  padding: 6px 10px; text-align: left; border-radius: var(--radius); white-space: nowrap;
-  &:hover { color: var(--accent); }
-}
-.check {
-  display: flex; align-items: center; gap: 8px;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--faint); cursor: pointer;
 }
 </style>
