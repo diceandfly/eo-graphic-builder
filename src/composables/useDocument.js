@@ -338,10 +338,21 @@ export function useDocument() {
     const max = Math.min(GUTTER_MAX, (odd ? p.H : p.W) / p.cols);
     if (p.gutterPx > max) p.gutterPx = Math.floor(max * 100) / 100;
   }
-  function setSize(patch) {
+  function setSize(patch, each = false) {
     // 멀티선택: 통합 bbox를 목표 치수로 비례 스케일 (앵커 = bbox 좌상단)
+    // each = true (패널 EACH 토글): 선택된 각 유닛의 W/H에 같은 값을 개별 적용
     if (doc.selectedIds.length > 1) {
       const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+      if (each) {
+        withGeomOp(() => {
+          for (const u of sel) {
+            if (patch.W != null) u.params.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
+            if (patch.H != null) u.params.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
+            normalize(u.params);
+          }
+        });
+        return;
+      }
       const bb = bboxOf(sel);
       const sx = patch.W != null ? Math.max(patch.W, UNIT_MIN) / (bb.maxX - bb.minX) : 1;
       const sy = patch.H != null ? Math.max(patch.H, UNIT_MIN) / (bb.maxY - bb.minY) : 1;
@@ -362,9 +373,19 @@ export function useDocument() {
     if (patch.H != null) p.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
     normalize(p);
   }
-  function setAspect(v) {
+  function setAspect(v, each = false) {
     if (doc.selectedIds.length > 1) {
       const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+      if (each) {
+        // 각 유닛이 자기 W 기준으로 목표 비율 (H = W / v)
+        withGeomOp(() => {
+          for (const u of sel) {
+            u.params.H = clamp(Math.round(u.params.W / v), UNIT_MIN, UNIT_MAX);
+            normalize(u.params);
+          }
+        });
+        return;
+      }
       const bb = bboxOf(sel);
       setSize({ H: (bb.maxX - bb.minX) / v });
       return;

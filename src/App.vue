@@ -13,6 +13,8 @@ const { doc, active, gutterMax } = docApi;
 
 const stageRef = ref(null);
 const selectedUnits = computed(() => doc.units.filter((u) => doc.selectedIds.includes(u.id)));
+// 패널 표시 대상: 선택이 없으면 null → 패널이 새 유닛 생성 UI로 전환
+const panelUnit = computed(() => (doc.selectedIds.length ? active.value : null));
 
 function exportSvg() {
   const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
@@ -84,7 +86,7 @@ const stageActions = { ...docApi, exportSvg, saveProject, openProject };
   <div class="layout">
     <aside class="side">
       <ControlPanel
-        :unit="active"
+        :unit="panelUnit"
         :gutter-max="gutterMax"
         :selected="selectedUnits"
         @set-size="docApi.setSize"

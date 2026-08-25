@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
-import { BRAND_COLORS } from '../../geometry/constants.js';
+import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
@@ -57,6 +57,8 @@ const RESET_TIPS = [
   'FINAL WARNING — every unit will be vaporized. They had families.',
 ];
 const RESET_TONES = ['default', 'danger', 'doom'];
+// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 해골
+const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.reset];
 function onAction(key) {
   if (key === 'export') emit('export');
   else if (key === 'save') emit('save');
@@ -84,9 +86,10 @@ function onFile(e) {
     <!-- 스와치 바 -->
     <FloatingBar>
       <IconButton
-        v-for="c in BRAND_COLORS"
+        v-for="(c, i) in BRAND_COLORS"
         :key="c"
         :active="fill === c"
+        :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></IconButton>
     </FloatingBar>
@@ -120,7 +123,7 @@ function onFile(e) {
       <IconButton
         v-for="a in ACTIONS"
         :key="a.key"
-        :paths="a.paths"
+        :paths="a.key === 'reset' ? RESET_ICONS[resetStage] : a.paths"
         :tip="a.key === 'reset' ? RESET_TIPS[resetStage] : a.tip"
         :tone="a.key === 'reset' ? RESET_TONES[resetStage] : 'default'"
         @click="onAction(a.key)"

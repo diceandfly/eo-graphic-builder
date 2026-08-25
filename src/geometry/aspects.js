@@ -4,7 +4,5 @@ export const ASPECT_CHIPS = [
   { label: '3:2', v: 1.5 },
   { label: '4:3', v: 4 / 3 },
   { label: '1:1', v: 1 },
-  { label: '3:4', v: 0.75 },
-  { label: '2:3', v: 2 / 3 },
   { label: '9:16', v: 9 / 16 },
 ];

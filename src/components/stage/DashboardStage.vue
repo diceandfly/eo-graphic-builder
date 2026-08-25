@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { UNIT_MIN, UNIT_MAX, STAGE_GRID } from '../../geometry/constants.js';
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { UNIT_MIN, UNIT_MAX, STAGE_GRID, BRAND_COLORS } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
@@ -94,8 +94,19 @@ function toast(msg) {
   toastTimer = setTimeout(() => (toastMsg.value = null), readTokenMs('--toast-time', 2600));
 }
 
+// 뷰 설정 영속 (localStorage 'eo.prefs') — 브라우저 팬은 재시작 시 초기화될 수 있음
+const PREFS_KEY = 'eo.prefs';
+let prefs;
+try { prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { prefs = {}; }
 // 스포이드 범주 스코프 (우클릭 메뉴)
-const eyedropScope = reactive({ size: true, grid: true, shape: true, color: true });
+const eyedropScope = reactive({ size: true, grid: true, shape: true, color: true, ...(prefs.eyedropScope || {}) });
+// 캔버스 그리드 설정 (그리드 버튼 우클릭 메뉴): 정방형 간격 + 이동 그리드 스냅
+const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
+const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
+watch(
+  () => JSON.stringify({ eyedropScope, grid: gridCfg }),
+  (s) => localStorage.setItem(PREFS_KEY, s)
+);
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
 const gapGuides = ref([]);   // [{ axis: 'x'|'y', at, segs: [[a,b],[c,d]] }] — 등간격 표시
 
@@ -179,6 +190,18 @@ function onKeyDown(e) {
     props.actions.deleteSelected();
     return;
   }
+  // Shift+H / Shift+V = 화면축 좌우/상하 반전 (선택 대상 전체)
+  if (!mod && e.shiftKey && (e.code === 'KeyH' || e.code === 'KeyV') && props.doc.selectedIds.length) {
+    e.preventDefault();
+    props.actions.flipSelected(e.code === 'KeyH' ? 'h' : 'v');
+    return;
+  }
+  // 1~5 = 브랜드 컬러 적용 (선택 대상)
+  const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4 };
+  if (!mod && !e.shiftKey && DIGITS[e.code] != null && props.doc.selectedIds.length) {
+    props.actions.setFill(BRAND_COLORS[DIGITS[e.code]]);
+    return;
+  }
   // 방향키: 선택 유닛 5px 이동, Shift = 50px
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (ARROWS[e.key] && props.doc.selectedIds.length) {
@@ -188,8 +211,8 @@ function onKeyDown(e) {
     props.actions.nudgeSelected(ax * step, ay * step);
     return;
   }
-  if (!mod && e.code === 'KeyV') mode.value = 'select';
-  if (!mod && e.code === 'KeyI') mode.value = 'eyedrop';
+  if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
+  if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -473,8 +496,13 @@ function onMove(e) {
     let gapX = null, gapY = null;
     if (!bestX) gapX = findGapSnap('x', D, others, SNAP);
     if (!bestY) gapY = findGapSnap('y', D, others, SNAP);
-    const sdx = dx + (bestX ? bestX.d : gapX ? gapX.d : 0);
-    const sdy = dy + (bestY ? bestY.d : gapY ? gapY.d : 0);
+    let sdx = dx + (bestX ? bestX.d : gapX ? gapX.d : 0);
+    let sdy = dy + (bestY ? bestY.d : gapY ? gapY.d : 0);
+    // 그리드 스냅: 엣지/등간격 스냅이 없는 축만 선택 bbox 좌상단을 격자에 양자화
+    if (gridCfg.snap) {
+      if (!bestX && !gapX) sdx = dx + Math.round(minX / gridCfg.size) * gridCfg.size - minX;
+      if (!bestY && !gapY) sdy = dy + Math.round(minY / gridCfg.size) * gridCfg.size - minY;
+    }
     for (const t of drag.targets) {
       t.u.x = t.x0 + sdx;
       t.u.y = t.y0 + sdy;
@@ -720,10 +748,10 @@ onBeforeUnmount(() => {
       <defs>
         <pattern
           id="stage-grid" patternUnits="userSpaceOnUse"
-          :width="STAGE_GRID" :height="STAGE_GRID"
+          :width="gridCfg.size" :height="gridCfg.size"
           :patternTransform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`"
         >
-          <path class="gridline" :d="`M ${STAGE_GRID} 0 H 0 V ${STAGE_GRID}`" />
+          <path class="gridline" :d="`M ${gridCfg.size} 0 H 0 V ${gridCfg.size}`" />
         </pattern>
       </defs>
       <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
@@ -741,13 +769,15 @@ onBeforeUnmount(() => {
             @pointerdown.stop="onUnitDown(u, $event)"
           />
         </g>
-        <!-- 그룹 표시: 점선 아웃라인 (선택 시) -->
-        <rect
-          v-for="(g, i) in groupOutlines" :key="'go' + i"
-          class="groupLine"
-          :x="g.x" :y="g.y" :width="g.w" :height="g.h"
-          :stroke-dasharray="dash"
-        />
+        <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스 표시 토글 적용) -->
+        <template v-if="showBBox">
+          <rect
+            v-for="(g, i) in groupOutlines" :key="'go' + i"
+            class="groupLine"
+            :x="g.x" :y="g.y" :width="g.w" :height="g.h"
+            :stroke-dasharray="dash"
+          />
+        </template>
         <!-- 링크 배지 (선택 관련 링크만) -->
         <g
           v-for="u in doc.units.filter((x) => x.linkId && visibleLinkIds.has(x.linkId))"
@@ -762,14 +792,14 @@ onBeforeUnmount(() => {
         </g>
         <!-- 정렬 키 오브젝트: 두꺼운 스트로크 하이라이트 -->
         <rect
-          v-if="keyUnit"
+          v-if="showBBox && keyUnit"
           class="keySel"
           :x="keyUnit.x" :y="keyUnit.y"
           :width="keyUnit.params.W" :height="keyUnit.params.H"
         />
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
-          v-if="selBounds"
+          v-if="showBBox && selBounds"
           :bounds="selBounds"
           :scale="vp.scale"
           @resize-start="onGroupResizeStart"
@@ -777,7 +807,7 @@ onBeforeUnmount(() => {
           @action="onGroupAction"
         />
         <SelectionOverlay
-          v-if="singleSelected && activeUnit"
+          v-if="showBBox && singleSelected && activeUnit"
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
@@ -859,9 +889,12 @@ onBeforeUnmount(() => {
       :scale="vp.scale"
       :guides="showGuides"
       :stage-grid="showStageGrid"
+      :bbox="showBBox"
+      :grid-cfg="gridCfg"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"
       @toggle-stage-grid="showStageGrid = !showStageGrid"
+      @toggle-bbox="showBBox = !showBBox"
     />
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>

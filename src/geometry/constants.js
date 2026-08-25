@@ -26,9 +26,13 @@ export const UNIT_MAX = 8000;    // 유닛 W/H 내부 가드 상한 (px)
 export const ASPECT_TOL = 0.01;  // 비율 프리셋 칩 활성 판정 허용오차
 export const COMP_SCALE = 2.5;   // compression 슬라이더 표기 범위 (±2.5x)
 export const COMP_SNAP = 0.1;    // 중앙 0 스냅 반경 (표기 단위)
-export const STAGE_GRID = 100;   // 대시보드 배경 라인 그리드 간격 (px, 월드 좌표)
+export const STAGE_GRID = 100;   // 대시보드 배경 라인 그리드 간격 기본값 (px, 월드 좌표)
+export const STAGE_GRID_MIN = 20;   // 격자 하한 — 과소 간격의 렌더 부하 방지
+export const STAGE_GRID_MAX = 1000;
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
 // 브랜드 스와치 (도형 fill) — styles/tokens/colors.css의 네임드 토큰과 값 동기 유지
 // EO NEON · WORLD GREEN · HORIZON BLUE · HALO WHITE · VOID GREY
 export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#EFEAE1', '#8E8E8E'];
+// BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~5) 안내용
+export const BRAND_COLOR_NAMES = ['EO NEON', 'WORLD GREEN', 'HORIZON BLUE', 'HALO WHITE', 'VOID GREY'];

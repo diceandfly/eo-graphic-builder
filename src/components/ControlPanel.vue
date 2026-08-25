@@ -40,6 +40,8 @@ const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
 const p = computed(() => props.unit?.params);
 // 멀티선택: SIZE는 통합 bbox 기준으로 표시·편집 (그룹을 하나의 대상처럼)
+// EACH 토글 on이면 bbox 대신 개별 유닛 속성으로 표시·적용 (같은 값을 각자에게)
+const eachMode = ref(false);
 const selBox = computed(() => {
   if (props.selected.length < 2) return null;
   const minX = Math.min(...props.selected.map((u) => u.x));
@@ -49,10 +51,12 @@ const selBox = computed(() => {
     h: Math.max(...props.selected.map((u) => u.y + u.params.H)) - minY,
   };
 });
-const dispW = computed(() => (selBox.value ? Math.round(selBox.value.w) : p.value?.W));
-const dispH = computed(() => (selBox.value ? Math.round(selBox.value.h) : p.value?.H));
+const sizeEach = computed(() => eachMode.value && props.selected.length > 1);
+const useBox = computed(() => (sizeEach.value ? null : selBox.value));
+const dispW = computed(() => (useBox.value ? Math.round(useBox.value.w) : p.value?.W));
+const dispH = computed(() => (useBox.value ? Math.round(useBox.value.h) : p.value?.H));
 const aspect = computed(() =>
-  selBox.value ? selBox.value.w / selBox.value.h : p.value ? p.value.W / p.value.H : 1
+  useBox.value ? useBox.value.w / useBox.value.h : p.value ? p.value.W / p.value.H : 1
 );
 
 // compression: 슬라이더 표기 -2.5x ~ +2.5x, 중앙 0(무압축) 스냅.
@@ -155,20 +159,30 @@ function cancelRename() {
 
     <template v-if="unit">
     <section>
-      <h2>Size</h2>
+      <div class="secHead">
+        <h2>Size</h2>
+        <button
+          v-if="selected.length >= 2"
+          class="eachBtn" :class="{ on: eachMode }"
+          title="apply to each unit instead of the combined bounding box"
+          @click="eachMode = !eachMode"
+        >each</button>
+      </div>
       <NumberField
         label="width (px)" :model-value="dispW" :min="UNIT_MIN" :max="UNIT_MAX"
-        @update:model-value="(v) => emit('setSize', { W: v })"
+        :mixed="sizeEach && mixed('W')"
+        @update:model-value="(v) => emit('setSize', { W: v }, sizeEach)"
       />
       <NumberField
         label="height (px)" :model-value="dispH" :min="UNIT_MIN" :max="UNIT_MAX"
-        @update:model-value="(v) => emit('setSize', { H: v })"
+        :mixed="sizeEach && mixed('H')"
+        @update:model-value="(v) => emit('setSize', { H: v }, sizeEach)"
       />
       <div class="ratioHead">ratio</div>
       <div class="ratioRow">
         <ChipRow
           :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
-          @update:model-value="(v) => emit('setAspect', v)"
+          @update:model-value="(v) => emit('setAspect', v, sizeEach)"
         />
         <!-- 커스텀 비율 + 버튼: 보류 (로직은 유지) -->
       </div>
@@ -304,6 +318,13 @@ section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
   color: var(--accent); font-weight: 600;
   margin: 0 0 14px;
+}
+.secHead { display: flex; justify-content: space-between; align-items: baseline; }
+.eachBtn {
+  @include bordered-control;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  padding: 2px 7px;
+  &.on { border-color: var(--accent); color: var(--accent); }
 }
 .ghost {
   width: 100%; margin-top: 2px; padding: 8px 12px;

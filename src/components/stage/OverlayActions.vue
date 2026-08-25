@@ -13,8 +13,8 @@ const px = (n) => n / props.scale;
 const BTN = 28;
 const ICON = 16;
 const ACTIONS = [
-  { key: 'flip', tip: 'Flip horizontal', paths: ICONS.flipH },
-  { key: 'flipv', tip: 'Flip vertical', paths: ICONS.flipV },
+  { key: 'flip', tip: 'Flip horizontal (⇧H)', paths: ICONS.flipH },
+  { key: 'flipv', tip: 'Flip vertical (⇧V)', paths: ICONS.flipV },
   { key: 'dup', tip: 'Duplicate', paths: ICONS.duplicate },
   { key: 'del', tip: 'Delete', paths: ICONS.trash },
 ];

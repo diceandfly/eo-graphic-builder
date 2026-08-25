@@ -645,3 +645,15 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **ESLint 도입** — flat config(`eslint.config.js`): js recommended + vue essential. 조정: `multi-word-component-names` off(기존 네이밍), `no-mutating-props`는 `shallowOnly`(doc/scope를 reactive 스토어로 내려 깊은 변경하는 구조 허용), 미사용 인자 `_` 접두 허용. `npm run lint`. 편집 직후 자동 lint 훅(`.claude/settings.json` PostToolUse). 도입 시 발견된 실제 정리 4건 수정(미사용 import/변수, 무의미한 초기 대입).
 2. **기본 유닛 파라미터** — W 960 · H 810 · cols 12 · gutter 10px · compression **UI 표기 +1.03x**(내부 rate 1.618 = φ, 변경 없음) · shaft 35%. ⚠️ compression "1.03x"는 슬라이더 표기값이며 내부 rate와 환산 관계(rate = 1 + |v|/2.5×(RATE_MAX−1)) — 혼동 주의.
 3. `.claude/launch.json`에 `autoPort` 추가(5173 점유 시 자동 포트).
+
+## 54. 2026-08-25 — EACH 토글·그리드 설정 메뉴·설정 영속·단축키 확장 (8건)
+
+1. **SIZE EACH 토글** — 멀티/그룹 선택 시 SIZE 섹션 우측에 EACH 버튼. off(기본) = 기존 통합 bbox 비례 스케일, on = W/H·비율 칩이 **각 유닛 개별 속성**으로 표시(mixed는 '—')·적용(같은 값을 각자에게, withGeomOp). `setSize(patch, each)`/`setAspect(v, each)` 시그니처 확장.
+2. **선택 없음 = 새 유닛 생성 UI** — 선택이 비면 패널이 (유닛 0개일 때와 동일한) NEW UNIT 버튼 뷰로 전환. App에서 `panelUnit = selectedIds.length ? active : null`.
+3. **리셋 아이콘 단계화** — 1·2단계 일반 리셋 화살표(lucide rotate-ccw, 2단계는 danger 톤), 3단계(FINAL WARNING)에서만 해골. `ICONS.resetArrow` 추가.
+4. **캔버스 그리드 우클릭 메뉴** — 그리드 버튼 우클릭 → Size(px, 정방형 단일 수치, **하한 20**/상한 1000 클램프 `STAGE_GRID_MIN/MAX`) + **Snap to grid** 체크. 스포이드 메뉴와 동일 UX(5초 무조작 자동 닫힘). 스냅은 이동 드래그에서 엣지/등간격 스냅이 없는 축만 선택 bbox 좌상단을 격자에 양자화 (스마트가이드 우선).
+5. **설정 영속 `eo.prefs`** — 스포이드 스코프 + 그리드 설정(size·snap)을 localStorage에 저장/복원. ("임의로 돌아가는" 증상은 미영속 + 브라우저 팬 재시작 초기화가 원인이었음.)
+6. **비율 칩 3:4·2:3 삭제.**
+7. **바운딩박스 show/hide** — 코너 바 맨 왼쪽(lucide box-select). off면 Selection/Group 오버레이·그룹 점선·키 하이라이트 숨김 (조작은 유지).
+8. **단축키** — ⇧H/⇧V = 화면축 좌우/상하 반전(`flipSelected`, 오버레이 툴팁에 표기), 1~5 = 브랜드 컬러 적용(스와치 툴팁에 `EO NEON (1)` 형식 병기, `BRAND_COLOR_NAMES` 추가). 입력 필드 포커스 중엔 기존 `isTyping` 가드로 차단, V/I 도구 전환은 Shift 미조합일 때만.
+- 버그 픽스: 이벤트명 `toggleBBox`처럼 대문자 연속이면 케밥 리스너와 매칭 실패 → `toggleBbox`로 명명 (Vue emit 네이밍 주의 사례).
