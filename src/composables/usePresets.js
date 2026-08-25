@@ -5,7 +5,7 @@ import { createParams } from './useDocument.js';
 // 리스트 1번은 항상 기본 유닛 프리셋(Default) — 삭제·이름변경 불가, 저장소 미포함(런타임 생성).
 // (배치 단위 프리셋 = Phase 2 템플릿과 별개 계층)
 const KEY = 'eo.presets';
-const DEFAULT_PRESET = Object.freeze({ id: 'default', name: 'Default', params: createParams() });
+const DEFAULT_PRESET = Object.freeze({ id: 'default', name: 'Default Unit', params: createParams() });
 
 export function usePresets() {
   let saved;

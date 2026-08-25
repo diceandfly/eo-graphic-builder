@@ -9,6 +9,7 @@ defineProps({
   paths: { type: Array, default: null },
   tip: { type: String, default: '' },
   tipAlign: { type: String, default: 'center' }, // 'center' | 'left' | 'right'
+  tipSide: { type: String, default: 'top' }, // 'top' | 'bottom' — 상단 바에서는 bottom
   active: Boolean,
   tone: { type: String, default: 'default' },
   disabled: Boolean,
@@ -19,7 +20,7 @@ defineEmits(['click', 'contextmenu']);
 <template>
   <button
     class="ib"
-    :class="[`tone-${tone}`, `tip-${tipAlign}`, { active, disabled }]"
+    :class="[`tone-${tone}`, `tip-${tipAlign}`, `tipside-${tipSide}`, { active, disabled }]"
     :disabled="disabled"
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
@@ -76,6 +77,7 @@ defineEmits(['click', 'contextmenu']);
   &.tip-center .tip { left: 50%; transform: translateX(-50%); }
   &.tip-left .tip { left: 0; }
   &.tip-right .tip { right: 0; }
+  &.tipside-bottom .tip { bottom: auto; top: calc(100% + 10px); }
   &:hover .tip { opacity: 1; transition-delay: var(--tip-delay); }
 }
 @keyframes doomPulse {

@@ -698,3 +698,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **프리셋 이름 = 유닛 이름** (중복 시 " (2)" 접미). 리스트/썸네일에서 **이름 클릭 = 인라인 변경** (Enter 확정·blur 취소, Default 제외).
 5. **Default 프리셋** — 리스트 1번 고정(런타임 생성, 삭제·개명 불가, `createParams()` 현재 기본값 사용 — 기본값 개정 시 자동 추종). **NEW UNIT 버튼 제거** (`create` emit 폐기, 유닛 생성 = 프리셋 클릭).
 6. **정렬바 활성 조건 = 블록 2개 이상** (최외곽 그룹 1개 = 1블록 → 그룹 하나만 선택 시 비활성).
+
+## 59. 2026-08-25 — 블렌드 도구·툴바 개편·컨텍스트 메뉴 통합·링크 통일 버그픽스
+
+1. **에디터 들여쓰기 오탐** — style.css 블록 주석 연속줄(5칸 정렬 패딩)이 사용자 에디터(2칸 기준 검사)에서 빨간 표시 → 줄마다 별도 `/* */`로 수정. **규칙: 여러 줄 주석에 정렬용 홀수 패딩 금지** (메모리에 전 프로젝트 공통으로 저장). VSCode 전역 설정 안내 별도 전달.
+2. **패널 우클릭 기본 브라우저 메뉴 차단** (.panel contextmenu.prevent).
+3. **링크 생성 시 통일도 스코프 필터** — 버그: 링크 생성 시 `src.params` 전체를 복사해 orientation을 꺼도 반전·회전이 통일됨 → 꺼진 범주의 키는 각자 값 유지하도록 수정.
+4. **Default 프리셋 이름 → "Default Unit"**.
+5. **프리셋 우클릭 메뉴** — Export SVG(추출) · Rename · Delete (Default는 Export만). fixed 위치, 기존 메뉴 스타일.
+6. **오버레이 액션 버튼 숨김** — SelectionOverlay/GroupOverlay에 `SHOW_ACTIONS=false` 플래그(v-if, 코드 보존). 기능은 유닛 **우클릭 컨텍스트 메뉴 상단**으로 이동: Flip H/V·Duplicate·Delete(단축키 병기) + 구분선 + Register unit preset (추후 register layout preset 자리).
+7. **블렌드 도구** (§57-0·§58 토론 확정 구현) — 툴바 스포이드 옆 버튼 → 팝업(direction h/v · repeat · gap px · scale). 단일 유닛 선택 필요. `blendFrom`: 진행축 크기·간격에 scale 누적 곱, 다른 축 고정(한 축은 지오메트리 compression, 다른 축은 복제가 담당). 결과 = **자동 그룹(`Blend-N`) + 자동 링크(size 제외 스코프)** — 사본별 크기 차이 보존하면서 grid/shape/color/orientation 동기화. 수치 검증: H 800→560→392→274 (×0.7), gap 30→21→14.7.
+8. **툴바 개편** — 하단 = 스와치 바(+커스텀) + 작업 도구 바(select·eyedrop·blend). 파일 그룹(export/save/open/reset 3단계)은 **FileBar.vue**로 분리해 대시보드 좌상단 배치(툴팁 하향 — IconButton `tipSide` prop 신설).

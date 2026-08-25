@@ -1,56 +1,23 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, reactive, watch, computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 
-// 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
-// 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide)
+// 대시보드 하단 중앙 — 스와치 바 + 작업 도구 바 (두 FloatingBar, gap 분리).
+// 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
 const props = defineProps({
   mode: String, fill: String,
   scope: Object, // 스포이드 범주 토글 { size, orientation, grid, shape, color }
 }); // mode: 'select' | 'eyedrop'
+const emit = defineEmits(['update:mode', 'fill', 'blend']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
-
-// 커스텀 컬러 hex 팝업 (스포이드/그리드 옵션창과 동일 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
-const customOpen = ref(false);
-let customIdle = null;
-function resetCustomIdle() {
-  clearTimeout(customIdle);
-  customIdle = setTimeout(closeCustom, 5000);
-}
-function toggleCustom() {
-  customOpen.value = !customOpen.value;
-  if (customOpen.value) resetCustomIdle();
-}
-function closeCustom() {
-  clearTimeout(customIdle);
-  customOpen.value = false;
-}
-watch(customOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
-});
-function applyHex(e) {
-  let t = e.target.value.trim();
-  if (!t) return;
-  if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
-}
-const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open', 'reset']);
 
 const TOOLS = [
   { key: 'select', tip: 'Select (V)', paths: ICONS.select },
   { key: 'eyedrop', tip: 'Eyedropper (I)', paths: ICONS.eyedrop },
 ];
-const ACTIONS = [
-  { key: 'export', tip: 'Export SVG', paths: ICONS.exportSvg },
-  { key: 'save', tip: 'Save JSON', paths: ICONS.save },
-  { key: 'open', tip: 'Open JSON', paths: ICONS.open },
-  { key: 'reset', tip: 'Reset dashboard', paths: ICONS.reset },
-];
-
-const fileEl = ref(null);
 
 // 스포이드 우클릭 → 범주 스코프 메뉴 (5초 무조작 시 자동 닫힘)
 const menuOpen = ref(false);
@@ -74,36 +41,46 @@ watch(menuOpen, (open) => {
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape', color: 'Color', orientation: 'Orientation' };
 
-// 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
-const resetStage = ref(0);
-let armTimer = null;
-const RESET_TIPS = [
-  'Reset dashboard',
-  'Click again to reset',
-  'FINAL WARNING — every unit will be vaporized. They had families.',
-];
-const RESET_TONES = ['default', 'danger', 'doom'];
-// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 해골
-const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.reset];
-function onAction(key) {
-  if (key === 'export') emit('export');
-  else if (key === 'save') emit('save');
-  else if (key === 'open') fileEl.value.click();
-  else if (key === 'reset') {
-    clearTimeout(armTimer);
-    if (resetStage.value >= 2) {
-      resetStage.value = 0;
-      emit('reset');
-    } else {
-      resetStage.value += 1;
-      armTimer = setTimeout(() => (resetStage.value = 0), resetStage.value === 2 ? 5000 : 3000);
-    }
-  }
+// 블렌드 도구 — 단일 유닛 선택 후 방향·반복·간격·배율로 반복 복제 (§59)
+const blendOpen = ref(false);
+const blendCfg = reactive({ axis: 'v', count: 4, gap: 20, scale: 0.8 });
+function toggleBlend() {
+  blendOpen.value = !blendOpen.value;
 }
-function onFile(e) {
-  const f = e.target.files[0];
-  if (f) emit('open', f);
-  e.target.value = '';
+function closeBlend() {
+  blendOpen.value = false;
+}
+watch(blendOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeBlend, { once: true }), 0);
+});
+function applyBlend() {
+  emit('blend', { ...blendCfg });
+  closeBlend();
+}
+
+// 커스텀 컬러 hex 팝업 (옵션창 공통 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
+const customOpen = ref(false);
+let customIdle = null;
+function resetCustomIdle() {
+  clearTimeout(customIdle);
+  customIdle = setTimeout(closeCustom, 5000);
+}
+function toggleCustom() {
+  customOpen.value = !customOpen.value;
+  if (customOpen.value) resetCustomIdle();
+}
+function closeCustom() {
+  clearTimeout(customIdle);
+  customOpen.value = false;
+}
+watch(customOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
+});
+function applyHex(e) {
+  let t = e.target.value.trim();
+  if (!t) return;
+  if (t[0] !== '#') t = '#' + t;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
 }
 </script>
 
@@ -118,7 +95,7 @@ function onFile(e) {
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></IconButton>
-      <!-- 자유 컬러: 팔레트 아이콘 → hex 입력 팝업 (스포이드/그리드 옵션창과 동일 형식) -->
+      <!-- 자유 컬러: 팔레트 아이콘 → hex 입력 팝업 -->
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.palette"
@@ -171,16 +148,38 @@ function onFile(e) {
           </label>
         </div>
       </div>
-      <span class="sep" />
-      <IconButton
-        v-for="a in ACTIONS"
-        :key="a.key"
-        :paths="a.key === 'reset' ? RESET_ICONS[resetStage] : a.paths"
-        :tip="a.key === 'reset' ? RESET_TIPS[resetStage] : a.tip"
-        :tone="a.key === 'reset' ? RESET_TONES[resetStage] : 'default'"
-        @click="onAction(a.key)"
-      />
-      <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
+      <!-- 블렌드 도구: 반복 복제 팝업 -->
+      <div class="toolWrap">
+        <IconButton
+          :paths="ICONS.blend"
+          :active="blendOpen"
+          :tip="blendOpen ? '' : 'Blend (repeat & scale)'"
+          @click="toggleBlend"
+        />
+        <div v-if="blendOpen" class="menu" @pointerdown.stop>
+          <div class="menuTitle">Blend</div>
+          <div class="menuRow">
+            <span class="rowLabel">direction</span>
+            <div class="segMini">
+              <button :class="{ on: blendCfg.axis === 'h' }" @click="blendCfg.axis = 'h'">h</button>
+              <button :class="{ on: blendCfg.axis === 'v' }" @click="blendCfg.axis = 'v'">v</button>
+            </div>
+          </div>
+          <label class="menuRow">
+            <span class="rowLabel">repeat</span>
+            <input class="numIn" type="number" min="1" max="100" v-model.number="blendCfg.count" />
+          </label>
+          <label class="menuRow">
+            <span class="rowLabel">gap (px)</span>
+            <input class="numIn" type="number" v-model.number="blendCfg.gap" />
+          </label>
+          <label class="menuRow">
+            <span class="rowLabel">scale</span>
+            <input class="numIn" type="number" step="0.05" min="0.05" max="3" v-model.number="blendCfg.scale" />
+          </label>
+          <button class="applyBtn" @click="applyBlend">apply</button>
+        </div>
+      </div>
     </FloatingBar>
   </div>
 </template>
@@ -216,5 +215,25 @@ function onFile(e) {
 .menuRow {
   display: flex; align-items: center; gap: var(--sp-3);
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
+}
+.rowLabel { color: var(--faint); width: 62px; }
+.numIn {
+  @include text-field;
+  width: 52px; padding: 2px 6px; text-align: right;
+}
+.segMini {
+  display: flex; border: 1px solid var(--line); border-radius: var(--radius);
+  button {
+    border: none; background: none; padding: 2px 9px;
+    font-size: var(--fs-xs); color: var(--faint); font-family: inherit; cursor: pointer;
+    &:not(:last-child) { border-right: 1px solid var(--line); }
+    &.on { @include active-outline-inset; }
+  }
+}
+.applyBtn {
+  @include bordered-control;
+  font-size: var(--fs-xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  padding: 5px 10px; margin-top: 2px;
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>

@@ -9,6 +9,9 @@ const props = defineProps({
 const emit = defineEmits(['resizeStart', 'rotateStart', 'action']);
 const px = (n) => n / props.scale;
 
+// 오버레이 액션 버튼 표시 여부 — §59에서 우클릭 컨텍스트 메뉴로 이동, 복귀 대비 보존
+const SHOW_ACTIONS = false;
+
 // 코너 바깥 회전 존 (단일 선택과 동일 UX — 90° 스텝, 선택 전체를 한 덩어리로 회전)
 const ROT = 18;
 const HIT = 14; // 핸들 히트 영역 (시각 8px보다 살짝 넓게)
@@ -32,7 +35,7 @@ const CURSORS = {
   <g :transform="`translate(${bounds.x} ${bounds.y})`">
     <rect class="box" :width="bounds.w" :height="bounds.h" />
     <text v-if="label" class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ label }}</text>
-    <OverlayActions :scale="scale" :transform="`translate(${bounds.w + px(12)} 0)`" @action="(k) => emit('action', k)" />
+    <OverlayActions v-if="SHOW_ACTIONS" :scale="scale" :transform="`translate(${bounds.w + px(12)} 0)`" @action="(k) => emit('action', k)" />
     <rect
       v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
       class="rotZone"

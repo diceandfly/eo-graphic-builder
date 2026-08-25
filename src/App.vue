@@ -53,6 +53,11 @@ function placePreset(preset) {
   const [wx, wy] = stageRef.value.centerWorld();
   docApi.createUnitFrom(preset.params, wx, wy);
 }
+// 프리셋 추출: 단독 유닛 SVG 다운로드
+function exportPreset(preset) {
+  const p = preset.params;
+  downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill });
+}
 
 function exportSvg() {
   const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
@@ -142,6 +147,7 @@ const stageActions = {
         @place-preset="placePreset"
         @delete-preset="presetsApi.remove"
         @rename-preset="presetsApi.rename"
+        @export-preset="exportPreset"
         @link="onLink"
         @fill="docApi.setFill"
       />

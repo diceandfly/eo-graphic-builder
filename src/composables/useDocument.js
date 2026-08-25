@@ -564,12 +564,19 @@ export function useDocument() {
       return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
-      doc.linkScopes[lid] = scope ? { ...linkScopeDefault(), ...scope } : linkScopeDefault();
-      // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일
+      const sc = scope ? { ...linkScopeDefault(), ...scope } : linkScopeDefault();
+      doc.linkScopes[lid] = sc;
+      // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일.
+      // 단, 스코프가 꺼진 범주(orientation 등)는 각 유닛의 값을 유지 (§58 드래프트 반영)
       const src = sel.find((u) => u.id === doc.activeId) ?? sel[0];
+      const patch = {};
+      for (const k in src.params) {
+        const cat = KEY_CAT[k];
+        if (!cat || sc[cat] !== false) patch[k] = src.params[k];
+      }
       for (const u of sel) {
         u.linkId = lid;
-        if (u !== src) Object.assign(u.params, { ...src.params });
+        if (u !== src) Object.assign(u.params, patch);
       }
       cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
       pruneMeta();
@@ -660,6 +667,43 @@ export function useDocument() {
     for (const c of copies) c.x += bb.maxX - bb.minX + 80;
     return copies;
   }
+  // 블렌드: 유닛을 축 방향으로 반복 복제 — 매 스텝 진행축 크기와 간격에 scale 누적.
+  // 결과 = 자동 그룹(Blend-N) + 자동 링크(size 제외 스코프 — 사본별 크기 차이가 블렌드의 본질).
+  function blendFrom(u, { axis = 'v', count = 4, gap = 20, scale = 0.8 }) {
+    count = clamp(Math.round(count), 1, 100);
+    scale = clamp(scale, 0.05, 3);
+    const created = [];
+    let cursor = axis === 'v' ? u.y + u.params.H : u.x + u.params.W;
+    let size = axis === 'v' ? u.params.H : u.params.W;
+    let g = gap;
+    for (let i = 0; i < count; i++) {
+      size *= scale;
+      const p = { ...u.params };
+      if (axis === 'v') p.H = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
+      else p.W = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
+      const x = axis === 'v' ? u.x : Math.round(cursor + g);
+      const y = axis === 'v' ? Math.round(cursor + g) : u.y;
+      const id = nextId++;
+      doc.units.push({ id, name: `Unit-${nextVersion++}`, x, y, groups: [], linkId: null, params: p });
+      const nu = doc.units[doc.units.length - 1];
+      normalize(nu.params);
+      created.push(nu);
+      cursor = axis === 'v' ? y + nu.params.H : x + nu.params.W;
+      g *= scale;
+    }
+    const all = [u, ...created];
+    const gid = nextGroup++;
+    for (const m of all) m.groups.push(gid);
+    doc.groupNames[gid] = `Blend-${gid}`;
+    const lid = nextLink++;
+    doc.linkScopes[lid] = { size: false, orientation: true, grid: true, shape: true, color: true };
+    for (const m of all) m.linkId = lid;
+    cleanupLinks();
+    pruneMeta();
+    setSelection(all.map((m) => m.id));
+    return created;
+  }
+
   // 멀티/그룹 리사이즈 후 파생 제약 정리
   function normalizeSelected() {
     for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
@@ -759,7 +803,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    renameGroup,
+    renameGroup, blendFrom,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

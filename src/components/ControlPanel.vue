@@ -25,7 +25,7 @@ const props = defineProps({
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
-  'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset',
+  'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset', 'exportPreset',
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -165,6 +165,18 @@ function commitPresetName(e) {
   editingPreset.value = null;
 }
 
+// 프리셋 우클릭 메뉴 — 추출(Export SVG)·이름변경·삭제 (Default는 추출만)
+const presetMenu = ref(null); // { x, y, p } — 뷰포트(fixed) 좌표
+function openPresetMenu(p, e) {
+  presetMenu.value = { x: e.clientX, y: e.clientY, p };
+}
+function closePresetMenu() {
+  presetMenu.value = null;
+}
+watch(presetMenu, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closePresetMenu, { once: true }), 0);
+});
+
 // 자유 컬러 hex 입력 (#RGB / #RRGGBB)
 function applyHex(e) {
   let t = e.target.value.trim();
@@ -175,7 +187,7 @@ function applyHex(e) {
 </script>
 
 <template>
-  <div class="panel">
+  <div class="panel" @contextmenu.prevent>
     <header class="brand">
       <svg class="logo" viewBox="0 0 57.87 27.92" height="15" aria-hidden="true">
         <g class="logoFill">
@@ -351,7 +363,11 @@ function applyHex(e) {
       </div>
       <div v-if="!presets.length" class="pEmpty">right-click a unit to register a preset</div>
       <div v-else-if="presetView === 'thumbs'" class="pGrid">
-        <div v-for="p in presets" :key="p.id" class="pCard" @click="emit('placePreset', p)">
+        <div
+          v-for="p in presets" :key="p.id" class="pCard"
+          @click="emit('placePreset', p)"
+          @contextmenu.prevent.stop="openPresetMenu(p, $event)"
+        >
           <svg class="pThumb" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
             <UnitGraphic :params="p.params" />
           </svg>
@@ -376,7 +392,11 @@ function applyHex(e) {
         </div>
       </div>
       <div v-else class="pList">
-        <div v-for="p in presets" :key="p.id" class="pRow" @click="emit('placePreset', p)">
+        <div
+          v-for="p in presets" :key="p.id" class="pRow"
+          @click="emit('placePreset', p)"
+          @contextmenu.prevent.stop="openPresetMenu(p, $event)"
+        >
           <svg class="pMini" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
             <UnitGraphic :params="p.params" />
           </svg>
@@ -402,6 +422,25 @@ function applyHex(e) {
       </div>
     </section>
     </template>
+
+    <!-- 프리셋 우클릭 메뉴 -->
+    <div
+      v-if="presetMenu"
+      class="pMenu"
+      :style="{ left: presetMenu.x + 'px', top: presetMenu.y + 'px' }"
+      @pointerdown.stop
+      @contextmenu.prevent
+    >
+      <button class="pMenuItem" @click="emit('exportPreset', presetMenu.p); closePresetMenu()">Export SVG</button>
+      <button
+        v-if="presetMenu.p.id !== 'default'"
+        class="pMenuItem" @click="startPresetRename(presetMenu.p); closePresetMenu()"
+      >Rename</button>
+      <button
+        v-if="presetMenu.p.id !== 'default'"
+        class="pMenuItem" @click="emit('deletePreset', presetMenu.p.id); closePresetMenu()"
+      >Delete</button>
+    </div>
   </div>
 </template>
 
@@ -526,6 +565,17 @@ section h2 {
   font: inherit; font-size: var(--fs-sm); line-height: 1; padding: 1px 5px;
   border-radius: var(--radius); cursor: pointer;
   &:hover { color: var(--danger); }
+}
+.pMenu {
+  position: fixed; z-index: 20;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 4px; display: flex; flex-direction: column;
+}
+.pMenuItem {
+  border: none; background: none; color: var(--text); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  padding: 6px 10px; text-align: left; border-radius: var(--radius); white-space: nowrap;
+  &:hover { color: var(--accent); }
 }
 .check {
   display: flex; align-items: center; gap: 8px;

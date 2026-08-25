@@ -5,6 +5,7 @@ import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
+import FileBar from './FileBar.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
@@ -156,6 +157,31 @@ function onRegisterPreset() {
   const p = props.actions.registerPreset(ctxMenu.value.u);
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
   closeCtx();
+}
+// 컨텍스트 메뉴 상단 액션 그룹 — 오버레이 버튼(숨김 상태)의 대체 표면 (§59)
+const CTX_ACTIONS = [
+  { key: 'flip', label: 'Flip horizontal (⇧H)' },
+  { key: 'flipv', label: 'Flip vertical (⇧V)' },
+  { key: 'dup', label: 'Duplicate (⇧D)' },
+  { key: 'del', label: 'Delete (D)' },
+];
+function onCtxAction(key) {
+  if (key === 'flip') props.actions.flipSelected('h');
+  else if (key === 'flipv') props.actions.flipSelected('v');
+  else if (key === 'dup') props.actions.duplicateSelectedOffset();
+  else if (key === 'del') props.actions.deleteSelected();
+  closeCtx();
+}
+
+// 블렌드 적용 (툴바 팝업에서) — 단일 유닛 선택 필요
+function onBlend(cfg) {
+  const u = activeUnit.value;
+  if (!u || props.doc.selectedIds.length !== 1) {
+    toast('Select a single unit to blend');
+    return;
+  }
+  const created = props.actions.blendFrom(u, cfg);
+  toast(`Blended ${created.length} ${cfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
 }
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
@@ -946,6 +972,9 @@ onBeforeUnmount(() => {
       :fill="activeUnit?.params.fill"
       :scope="eyedropScope"
       @fill="(c) => actions.setFill(c)"
+      @blend="onBlend"
+    />
+    <FileBar
       @export="actions.exportSvg()"
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"
@@ -970,6 +999,11 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
+      <button
+        v-for="a in CTX_ACTIONS" :key="a.key"
+        class="ctxItem" @click="onCtxAction(a.key)"
+      >{{ a.label }}</button>
+      <div class="ctxSep" />
       <button class="ctxItem" @click="onRegisterPreset">Register unit preset</button>
     </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
@@ -1009,6 +1043,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   &:hover { color: var(--accent); }
 }
+.ctxSep { height: 1px; background: var(--line); margin: 3px 4px; }
 .smartguide { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }

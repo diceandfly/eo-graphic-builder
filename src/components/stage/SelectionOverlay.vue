@@ -17,6 +17,9 @@ const W = computed(() => props.unit.params.W);
 const H = computed(() => props.unit.params.H);
 const px = (n) => n / props.scale; // 화면 px → 월드 단위
 
+// 오버레이 액션 버튼 표시 여부 — §59에서 우클릭 컨텍스트 메뉴로 이동, 복귀 대비 보존
+const SHOW_ACTIONS = false;
+
 const HANDLES = [
   { dir: 'nw', x: 0, y: 0 }, { dir: 'n', x: 0.5, y: 0 }, { dir: 'ne', x: 1, y: 0 },
   { dir: 'w', x: 0, y: 0.5 }, { dir: 'e', x: 1, y: 0.5 },
@@ -40,8 +43,8 @@ const ROT_ZONES = [
   <g :transform="`translate(${unit.x} ${unit.y})`" class="sel">
     <rect class="box" :width="W" :height="H" />
     <text class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
-    <!-- 액션 버튼: 우측변 상단 (공용 OverlayActions) -->
-    <OverlayActions :scale="scale" :transform="`translate(${W + px(12)} 0)`" @action="onAction" />
+    <!-- 액션 버튼: 우측변 상단 (공용 OverlayActions) — §59 컨텍스트 메뉴로 이동, 숨김 -->
+    <OverlayActions v-if="SHOW_ACTIONS" :scale="scale" :transform="`translate(${W + px(12)} 0)`" @action="onAction" />
 
     <rect
       v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
