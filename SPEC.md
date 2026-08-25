@@ -779,3 +779,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 67. 2026-08-25 — 프리셋 IO 버튼 패널 최상단 이동
 
 - export/import json 버튼을 UNIT PRESETS 섹션 밖, 패널 최상단(브랜드 헤더 바로 아래)으로 이동.
+
+## 68. 2026-08-25 — 프리셋 IO 최하단 + 부채 정리 ①②
+
+0. **프리셋 export/import json 버튼 → 패널 최하단** (§67 번복, 최종 위치).
+1. **부채 ① 브랜드 컬러 단일 출처화** — `constants.js BRAND_TOKENS`(이름→hex 맵)가 유일한 정의처. main.js가 부팅 시 CSS 1층 토큰(--eo-neon 등)으로 주입 — colors.css의 정적 1층 값은 첫 페인트용 폴백으로 강등(주석 명시). BRAND_COLORS/NAMES는 SWATCHES 구성표에서 파생. 이제 브랜드 색 변경은 한 곳에서.
+2. **부채 ② 링크 확산 헬퍼 통합** — `expandLinkByScope(ids, cat)` 신설, setFill('color')·rotate('orientation')의 인라인 스코프 검사를 대체. 링크 전파 표면은 ①미러 워처 ②expandLinkByScope/filterByLinkScope 두 헬퍼로 한정한다는 규칙을 코드 주석으로 박제. 회귀 검증: color off 미전파 / on 전파 재확인.
+- 남은 부채 로드맵: ③ ControlPanel 분리 → ④ 타입 분기 테이블 → ⑤ IndexedDB → ⑥ 회귀 스위트.
