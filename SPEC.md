@@ -826,3 +826,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **⇧D 재정의** — 복제 단축키 폐기(컨텍스트 메뉴 Duplicate 항목·단축키 표기 삭제) → **직전 행동 반복**. 등록 대상: 플립(⇧H/V·메뉴)·블렌드(B)·그리드 배열(G)·방향키 이동·오더(Q/W)·회전 90° 스텝·컬러 적용·**Alt+드래그 복제(같은 간격 체인 — 최신 사본 기준으로 반복, 일러 transform again 방식)**. 반복 시 "Repeated: {행동}" 토스트, 이력 없으면 안내.
 2. **파일 툴바 맨 왼쪽 매뉴얼 버튼** — 동그라미 ? 아이콘(help circle), 클릭 no-op 자리 확보(추후 기획).
 - 검증: Alt복제 dx300 → ⇧D×2 → x 2380/2680/2980 정확 체인, 플립 반복, nudge 반복(5→10px), 빈 이력 토스트.
+
+## 75. 2026-08-25 — rect px/cm 표기 토글 + fill/stroke 렌더 모드 + snap 토글 통합
+
+1. **px/cm 표기 토글** — SIZE 헤더 우측 세그먼트 칩(rect 전용, `params.unitMode` 영속). 내부 저장은 항상 px, 표시·입력만 dpi 기준 환산(px = cm×dpi/2.54, 소수 2자리). 적용 범위: SIZE W/H + GRID margin·gutter x/y(cm 스텝 0.01). **RATIO 태그 스왑**: px 모드 = 디지털 비율(16:9·9:16·4:5), cm 모드 = 출판 규격(A3·A4·A5·Letter). cm 모드에서 dpi 입력은 W/H 바로 아래 배치(좌라벨/우입력 정렬).
+2. **fill/stroke 렌더 모드** — 새 STYLE 섹션(mode 토글). fill(기본) = 면 채우기, stroke = 외곽선만(fill none). stroke 색 hex 입력+미리보기 칩, 두께 슬라이더 1~100px(px 고정 — cm 모드 무관). 기본값 HALO WHITE(#EFEAE1)·5px. **스와치/숫자키 컬러는 stroke 모드에서 외곽선 색에 적용**(setFill 분기 — 보이는 색을 바꿈). export/copy도 동일 분기(exportSvg objectBody).
+3. **snap 토글 폐기** — `gridOn`이 표시+스냅 겸용(grid on = 스냅 on). `snapOn` 파라미터·게이트 제거.
+- 구현: createRectParams(drawMode·stroke·strokeW·unitMode), RectGraphic 분기, ControlPanel(toDisp/fromDisp 환산·unitSeg·Style 섹션), NumberField step="any"(cm 소수 입력).
+- 검증: 1920px↔16.26cm 표시, 10.5cm 입력→1240px 저장, RATIO 스왑, stroke 전환 시 외곽선만 렌더, 숫자키 1→stroke에 EO NEON 적용(fill 유지), 새 rect 기본 EFEAE1/5px. 회귀 30/30 유지(fill 출력 불변).

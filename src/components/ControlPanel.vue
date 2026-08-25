@@ -151,6 +151,27 @@ function applyPhysical(pp) {
   const h = Math.round((pp.hmm * dpi.value) / 25.4);
   emit('setSize', { W: w, H: h }, sizeEach.value);
 }
+
+// ─── px/cm 표기 단위 (rect 전용, §75) — 내부 저장은 항상 px, dpi 기준 환산 표시 ───
+const isCm = computed(() => isRect.value && p.value.unitMode === 'cm');
+const unitSuffix = computed(() => (isCm.value ? 'cm' : 'px'));
+const round2 = (n) => Math.round(n * 100) / 100;
+const toDisp = (v) => (isCm.value ? round2((v * 2.54) / dpi.value) : v);
+const fromDisp = (v) => (isCm.value ? (v * dpi.value) / 2.54 : v);
+function setSizeField(key, v) {
+  emit('setSize', { [key]: Math.round(fromDisp(v)) }, sizeEach.value);
+}
+// 그리드 필드 (margin·gutter): 표시 단위 → px 환산·클램프 후 저장
+function setGridField(key, v, pxMin, pxMax) {
+  p.value[key] = Math.round(Math.min(pxMax, Math.max(pxMin, fromDisp(v))));
+}
+
+// stroke 색 hex 입력 — 가이드 색 입력과 동일 문법 (#RGB/#RRGGBB만 수용)
+function onStrokeHex(e) {
+  const t = e.target.value.trim();
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) p.value.stroke = t;
+  else e.target.value = p.value.stroke;
+}
 </script>
 
 <template>
@@ -182,46 +203,56 @@ function applyPhysical(pp) {
     <section>
       <div class="secHead">
         <h2>Size</h2>
-        <button
-          v-if="selected.length >= 2"
-          class="eachBtn" :class="{ on: eachMode }"
-          title="apply to each unit instead of the combined bounding box"
-          @click="eachMode = !eachMode"
-        >each</button>
+        <div class="headBtns">
+          <!-- rect 전용 px/cm 표기 토글 — SIZE·RATIO·GRID 표기에 공통 적용 (§75) -->
+          <div v-if="isRect" class="unitSeg">
+            <button :class="{ on: !isCm }" @click="p.unitMode = 'px'">px</button>
+            <button :class="{ on: isCm }" @click="p.unitMode = 'cm'">cm</button>
+          </div>
+          <button
+            v-if="selected.length >= 2"
+            class="eachBtn" :class="{ on: eachMode }"
+            title="apply to each unit instead of the combined bounding box"
+            @click="eachMode = !eachMode"
+          >each</button>
+        </div>
       </div>
       <NumberField
-        label="width (px)" :model-value="dispW" :min="UNIT_MIN" :max="UNIT_MAX"
+        :label="`width (${unitSuffix})`" :model-value="toDisp(dispW)"
+        :min="toDisp(UNIT_MIN)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('W')"
-        @update:model-value="(v) => emit('setSize', { W: v }, sizeEach)"
+        @update:model-value="(v) => setSizeField('W', v)"
       />
       <NumberField
-        label="height (px)" :model-value="dispH" :min="UNIT_MIN" :max="UNIT_MAX"
+        :label="`height (${unitSuffix})`" :model-value="toDisp(dispH)"
+        :min="toDisp(UNIT_MIN)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('H')"
-        @update:model-value="(v) => emit('setSize', { H: v }, sizeEach)"
+        @update:model-value="(v) => setSizeField('H', v)"
       />
+      <!-- cm 모드: 환산 기준 dpi를 치수 바로 아래 배치 (§75) -->
+      <div v-if="isCm" class="dpiRow dpiUnder">
+        <label class="dpiWrap">
+          <span>dpi</span>
+          <input
+            class="dpiInput" type="number" min="36" max="1200"
+            :value="dpi" @change="onDpi"
+          />
+        </label>
+      </div>
       <div class="ratioHead">ratio</div>
-      <!-- 직사각형: 디지털 비율 / 출판 규격 / dpi — 3행 구성 -->
+      <!-- 직사각형: px 모드 = 디지털 비율 / cm 모드 = 출판 규격 + dpi (단위 토글로 태그 스왑, §75) -->
       <template v-if="isRect">
-        <div class="ratioRow">
+        <div v-if="!isCm" class="ratioRow">
           <ChipRow
             :model-value="aspect" :chips="RECT_DIGITAL" :tol="ASPECT_TOL"
             @update:model-value="(v) => emit('setAspect', v, sizeEach)"
           />
         </div>
-        <div class="physRow">
+        <div v-else class="physRow">
           <button
             v-for="pp in RECT_PHYSICAL" :key="pp.label"
             class="physChip" @click="applyPhysical(pp)"
           >{{ pp.label }}</button>
-        </div>
-        <div class="dpiRow">
-          <label class="dpiWrap">
-            <span>dpi</span>
-            <input
-              class="dpiInput" type="number" min="36" max="1200"
-              :value="dpi" @change="onDpi"
-            />
-          </label>
         </div>
       </template>
       <div v-else class="ratioRow">
@@ -233,8 +264,29 @@ function applyPhysical(pp) {
       </div>
     </section>
 
-    <!-- 직사각형 전용: 레이아웃 그리드 (px 전용, fill은 컬러 툴바로) -->
+    <!-- 직사각형 전용: 렌더 스타일 — fill(면) / stroke(외곽선) 토글 (§75) -->
     <template v-if="isRect">
+    <section>
+      <h2>Style</h2>
+      <Toggle
+        label="mode" :model-value="p.drawMode"
+        :options="[{ value: 'fill', label: 'fill' }, { value: 'stroke', label: 'stroke' }]"
+        @update:model-value="(v) => (p.drawMode = v)"
+      />
+      <template v-if="p.drawMode === 'stroke'">
+        <div class="strokeRow">
+          <span class="rowLabel">stroke color</span>
+          <span class="colorPrev" :style="{ background: p.stroke }" />
+          <input
+            class="hexInput" type="text" spellcheck="false" placeholder="#RRGGBB"
+            :value="p.stroke" @change="onStrokeHex"
+          />
+        </div>
+        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable suffix="px" />
+      </template>
+    </section>
+
+    <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산) -->
     <section>
       <h2>Grid</h2>
       <Toggle
@@ -242,15 +294,23 @@ function applyPhysical(pp) {
         @update:model-value="(v) => (p.gridOn = v === 'on')"
       />
       <template v-if="p.gridOn">
-        <Toggle
-          label="snap" :model-value="p.snapOn ? 'on' : 'off'" :options="ON_OFF"
-          @update:model-value="(v) => (p.snapOn = v === 'on')"
+        <Slider
+          label="margin" :model-value="toDisp(p.margin)"
+          :min="0" :max="toDisp(200)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('margin', v, 0, 200)"
         />
-        <Slider label="margin" v-model="p.margin" :min="0" :max="200" :step="1" editable suffix="px" />
         <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" editable />
         <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" editable />
-        <Slider label="gutter x" v-model="p.gutterX" :min="0" :max="100" :step="1" editable suffix="px" />
-        <Slider label="gutter y" v-model="p.gutterY" :min="0" :max="100" :step="1" editable suffix="px" />
+        <Slider
+          label="gutter x" :model-value="toDisp(p.gutterX)"
+          :min="0" :max="toDisp(100)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('gutterX', v, 0, 100)"
+        />
+        <Slider
+          label="gutter y" :model-value="toDisp(p.gutterY)"
+          :min="0" :max="toDisp(100)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('gutterY', v, 0, 100)"
+        />
       </template>
     </section>
     </template>
@@ -374,6 +434,11 @@ section h2 {
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
 .physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .dpiRow { margin-top: 8px; }
+// 치수 바로 아래 dpi — NumberField 행과 동일한 좌라벨/우입력 정렬
+.dpiUnder {
+  margin: 0 0 10px;
+  .dpiWrap { justify-content: space-between; margin-left: 0; }
+}
 .physChip {
   @include bordered-control;
   font-size: var(--fs-xs); padding: 3px 9px;
@@ -392,5 +457,32 @@ section h2 {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
   padding: 2px 7px;
   &.on { border-color: var(--accent); color: var(--accent); }
+}
+.headBtns { display: flex; align-items: center; gap: 6px; }
+// px/cm 세그먼트 토글 — eachBtn과 동일 문법의 2분할 칩
+.unitSeg {
+  display: flex;
+  button {
+    @include bordered-control;
+    font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
+    padding: 2px 7px;
+    &:first-child { border-radius: var(--radius) 0 0 var(--radius); border-right-width: 0; }
+    &:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+    &.on { border-color: var(--accent); color: var(--accent); }
+    &.on + button { border-left-color: var(--accent); }
+  }
+}
+.strokeRow { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.rowLabel {
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
+  color: var(--faint); flex: 1;
+}
+.colorPrev {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: 2px;
+}
+.hexInput {
+  @include text-field;
+  width: 68px; padding: 3px 6px; text-align: right;
 }
 </style>

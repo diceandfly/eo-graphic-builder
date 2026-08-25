@@ -708,7 +708,7 @@ function onMove(e) {
       const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
       const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
       // 사각형 레이아웃 그리드 스냅: 마진 박스 엣지 + 컬럼/로우(거터 포함) 라인
-      if (o.type === 'rect' && o.params.gridOn && o.params.snapOn) {
+      if (o.type === 'rect' && o.params.gridOn) {
         const gl = rectGridLines(o.params);
         ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
         oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
@@ -836,7 +836,7 @@ function snapEdge(axis, pos, excludeUnits, SNAP) {
         ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]
         : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
     // 사각형 레이아웃 그리드 라인도 리사이즈 스냅 후보 (이동 스냅과 동일 규칙 — §71 픽스)
-    if (o.type === 'rect' && o.params.gridOn && o.params.snapOn) {
+    if (o.type === 'rect' && o.params.gridOn) {
       const gl = rectGridLines(o.params);
       if (axis === 'x') cands.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
       else cands.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));

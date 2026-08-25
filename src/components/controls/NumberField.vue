@@ -18,6 +18,7 @@ defineEmits(['update:modelValue']);
       placeholder="—"
       :min="min"
       :max="max"
+      step="any"
       @change="$emit('update:modelValue', Number($event.target.value))"
     />
   </label>

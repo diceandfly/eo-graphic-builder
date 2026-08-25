@@ -47,9 +47,12 @@ export function createRectParams(overrides = {}) {
     orientation: 0, // 회전(W/H 스왑) 공유 경로 호환용
     fill: '#3b3b3b',
     fillOn: true,
+    drawMode: 'fill', // 'fill' = 면 채우기 | 'stroke' = 외곽선만 (§75)
+    stroke: '#EFEAE1', // HALO WHITE — 다크 캔버스에서 보이는 기본값
+    strokeW: 5, // 외곽선 두께 (px 고정 — cm 표기 모드와 무관)
+    unitMode: 'px', // 패널 표기 단위 'px' | 'cm' — 내부 저장은 항상 px, dpi 기준 환산 표시
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
-    gridOn: true,
-    snapOn: true, // 유닛 이동 시 이 그리드 라인에 스냅
+    gridOn: true, // 표시 + 스냅 겸용 (별도 snap 토글 폐기, §75)
     margin: 20,
     rows: 2,
     cols: 2,
@@ -61,7 +64,7 @@ export function createRectParams(overrides = {}) {
 
 function migrateUnit(u) {
   if (!u.type) u.type = 'unit';
-  // 구버전 rect: 이후 추가된 키(snapOn 등)를 기본값으로 보충
+  // 구버전 rect: 이후 추가된 키(drawMode 등)를 기본값으로 보충
   if (u.type === 'rect' && u.params) u.params = { ...createRectParams(), ...u.params };
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
@@ -554,7 +557,12 @@ export function useDocument() {
   function setFill(color) {
     const base = doc.selectedIds.length ? doc.selectedIds : doc.activeId != null ? [doc.activeId] : [];
     const ids = expandLinkByScope(base, 'color');
-    for (const u of doc.units) if (ids.has(u.id)) u.params.fill = color;
+    for (const u of doc.units) {
+      if (!ids.has(u.id)) continue;
+      // rect가 stroke 모드면 스와치 적용 대상 = 외곽선 색 (보이는 색을 바꿈, §75)
+      if (u.type === 'rect' && u.params.drawMode === 'stroke') u.params.stroke = color;
+      else u.params.fill = color;
+    }
   }
 
   // ---- 그룹 (⌘G / ⌘⇧G) — 중첩 지원: u.groups = [안쪽 ... 바깥쪽] ----

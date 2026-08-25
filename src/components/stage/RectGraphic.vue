@@ -10,7 +10,14 @@ const grid = computed(() => (p.value.gridOn ? rectGridLines(p.value) : null));
 
 <template>
   <g>
+    <!-- drawMode: fill = 면 채우기 | stroke = 외곽선만 (§75) -->
     <rect
+      v-if="p.drawMode === 'stroke'"
+      :width="p.W" :height="p.H"
+      fill="none" :stroke="p.stroke" :stroke-width="p.strokeW"
+    />
+    <rect
+      v-else
       :width="p.W" :height="p.H"
       :fill="p.fillOn === false ? 'none' : p.fill"
     />

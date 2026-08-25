@@ -77,7 +77,10 @@ function exportPreset(preset) {
 function exportItem(u) {
   const p = u.params;
   if (u.type === 'rect') {
-    return { type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn };
+    return {
+      type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn,
+      drawMode: p.drawMode, stroke: p.stroke, strokeW: p.strokeW,
+    };
   }
   return {
     type: 'unit', x: u.x, y: u.y, W: p.W, H: p.H,
