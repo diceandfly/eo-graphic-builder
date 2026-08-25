@@ -14,7 +14,7 @@ defineProps({
   tone: { type: String, default: 'default' },
   disabled: Boolean,
 });
-defineEmits(['click', 'contextmenu']);
+defineEmits(['click', 'contextmenu', 'dblclick']);
 </script>
 
 <template>
@@ -24,6 +24,7 @@ defineEmits(['click', 'contextmenu']);
     :disabled="disabled"
     @click="$emit('click', $event)"
     @contextmenu="$emit('contextmenu', $event)"
+    @dblclick="$emit('dblclick', $event)"
   >
     <svg v-if="paths" viewBox="0 0 24 24"><path v-for="(d, i) in paths" :key="i" :d="d" /></svg>
     <slot />

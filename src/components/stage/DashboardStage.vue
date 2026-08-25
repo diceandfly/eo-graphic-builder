@@ -233,6 +233,14 @@ function onArrange() {
   toast(`Arranged ${n} blocks into a grid`);
 }
 
+// 직사각형 즉시 생성 (툴 버튼 더블클릭): 1920×800, 스테이지 중앙
+function onRectQuick() {
+  const r = el.value.getBoundingClientRect();
+  const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
+  props.actions.createRect(cx - 960, cy - 400, 1920, 800, currentColor.value || null);
+  mode.value = 'select';
+}
+
 // 스와치/숫자키 컬러: 선택이 있으면 적용, 없으면 현재 컬러만 지정 (그리기 툴 기본값)
 function onFill(c) {
   currentColor.value = c;
@@ -341,10 +349,6 @@ function onKeyDown(e) {
   const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5 };
   if (!mod && !e.shiftKey && DIGITS[e.code] != null) {
     onFill(BRAND_COLORS[DIGITS[e.code]]);
-    return;
-  }
-  if (!mod && !e.shiftKey && e.code === 'Digit7') {
-    onFill(customColor.value);
     return;
   }
   // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
@@ -1087,6 +1091,7 @@ onBeforeUnmount(() => {
       @fill="onFill"
       @blend="onBlend"
       @arrange="onArrange"
+      @rect-quick="onRectQuick"
       @update:custom-color="(c) => (customColor = c)"
     />
     <FileBar

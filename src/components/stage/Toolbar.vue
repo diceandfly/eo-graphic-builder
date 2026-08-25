@@ -17,7 +17,7 @@ const props = defineProps({
   arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
 }); // mode: 'select' | 'eyedrop' | 'rect'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor']);
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 // 어두운 색 칩은 바 배경과 구분되도록 얇은 그레이 스트로크
 const isDark = isDarkColor;
@@ -106,7 +106,7 @@ function onPick(c) {
       <div class="toolWrap">
         <IconButton
           :active="isCustomFill || customOpen"
-          :tip="customOpen ? '' : 'Custom color (7)'"
+          :tip="customOpen ? '' : 'Custom color'"
           @click="emit('fill', customColor)"
           @contextmenu="onCustomContext"
         ><span class="chip" :class="{ dark: isDark(customColor) }" :style="{ background: customColor }" /></IconButton>
@@ -196,12 +196,13 @@ function onPick(c) {
           <div class="menuNote">columns 0 = auto (√n)</div>
         </div>
       </div>
-      <!-- 직사각형 그리기 툴 (R): 드래그 = 그 크기로, 클릭 = 기본 크기로 생성 -->
+      <!-- 직사각형 그리기 툴 (R): 드래그 = 그 크기, 클릭 = 기본 크기, 버튼 더블클릭 = 1920×800 즉시 생성 -->
       <IconButton
         :paths="ICONS.rect"
         tip="Rectangle (R)"
         :active="mode === 'rect'"
         @click="emit('update:mode', 'rect')"
+        @dblclick="emit('rectQuick')"
       />
     </FloatingBar>
   </div>

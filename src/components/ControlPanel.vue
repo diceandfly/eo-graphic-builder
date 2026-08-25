@@ -7,8 +7,6 @@ import ChipRow from './controls/ChipRow.vue';
 import UnitGraphic from './stage/UnitGraphic.vue';
 import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
-import { BRAND_COLORS } from '../geometry/constants.js';
-import { isDarkColor } from '../utils/color.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
@@ -42,8 +40,6 @@ const mixed = (...keys) =>
   props.selected.some((u) => keys.some((k) => u.params[k] !== props.unit.params[k]));
 
 // 선택 전체가 이미 하나의 링크인지
-const colorOpen = ref(false);
-
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
   const lids = [...new Set(props.selected.map((u) => u.linkId))];
@@ -191,13 +187,6 @@ watch(presetMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closePresetMenu, { once: true }), 0);
 });
 
-// 자유 컬러 hex 입력 (#RGB / #RRGGBB)
-function applyHex(e) {
-  let t = e.target.value.trim();
-  if (!t) return;
-  if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
-}
 // 직사각형 비율 그룹 — 디지털(비율) + 피지컬(출판 규격, dpi 기반 실제 px 크기)
 const RECT_DIGITAL = [
   { label: '16:9', v: 16 / 9 },
@@ -401,37 +390,7 @@ function applyPhysical(pp) {
       />
     </section>
 
-    <section>
-      <h2>Color</h2>
-      <div class="colorRow">
-        <button
-          class="bigChip"
-          :style="{ background: mixed('fill') ? 'transparent' : p.fill }"
-          @click="colorOpen = !colorOpen"
-        >{{ mixed('fill') ? '—' : '' }}</button>
-        <span class="hex">{{ mixed('fill') ? 'mixed' : p.fill }}</span>
-      </div>
-      <div v-if="colorOpen" class="palette">
-        <button
-          v-for="c in BRAND_COLORS"
-          :key="c"
-          class="colorChip"
-          :class="{ on: !mixed('fill') && p.fill === c, dark: isDarkColor(c) }"
-          :style="{ background: c }"
-          @click="emit('fill', c); colorOpen = false"
-        />
-      </div>
-      <!-- 자유 컬러: hex 직접 입력 -->
-      <div v-if="colorOpen" class="hexRow">
-        <span class="hexLabel">custom</span>
-        <input
-          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-          :value="mixed('fill') ? '' : p.fill"
-          @keydown.enter="applyHex"
-          @change="applyHex"
-        />
-      </div>
-    </section>
+    <!-- COLOR 섹션 §65 제거 — 색 지정은 컬러 툴바/스포이드로 -->
     </template>
 
     <section v-if="selected.length >= 2">
@@ -459,6 +418,12 @@ function applyPhysical(pp) {
           class="viewToggle" v-model="presetView"
           :options="[{ value: 'thumbs', label: 'thumbs' }, { value: 'list', label: 'list' }]"
         />
+      </div>
+      <!-- 프리셋 라이브러리 JSON 입출력 — 리스트 상단 고정 -->
+      <div class="pIoRow">
+        <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
+        <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
+        <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
       </div>
       <div v-if="!presets.length" class="pEmpty">right-click a unit to register a preset</div>
       <div v-else-if="presetView === 'thumbs'" class="pGrid">
@@ -516,12 +481,6 @@ function applyPhysical(pp) {
             @click.stop="emit('deletePreset', p.id)"
           >×</button>
         </div>
-      </div>
-      <!-- 프리셋 라이브러리 JSON 입출력 -->
-      <div class="pIoRow">
-        <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
-        <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
-        <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
       </div>
     </section>
     </template>
@@ -614,31 +573,6 @@ section h2 {
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
-.colorRow { display: flex; align-items: center; gap: 10px; }
-.bigChip {
-  width: var(--swatch-big); height: var(--swatch-big); border: 1px solid var(--line);
-  padding: 0; cursor: pointer; color: var(--faint); font: inherit;
-  border-radius: var(--radius);
-}
-.bigChip:hover { border-color: var(--accent); }
-.hex { font-size: var(--fs-xs); color: var(--faint); letter-spacing: var(--ls-base); text-transform: uppercase; }
-.palette { display: flex; gap: 6px; margin-top: 10px; }
-.colorChip {
-  width: 18px; height: 18px; border: 1px solid var(--line);
-  padding: 0; cursor: pointer;
-  border-radius: var(--radius);
-}
-.colorChip.on { outline: 1px solid var(--text); outline-offset: 1px; }
-.colorChip.dark { box-shadow: inset 0 0 0 1px var(--faint); }
-.hexRow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.hexLabel {
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--faint);
-}
-.hexInput {
-  @include text-field;
-  width: 76px; padding: 3px 8px; text-transform: uppercase;
-}
 .scopeChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .scopeChip {
   @include bordered-control;
@@ -689,7 +623,7 @@ section h2 {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 4px; display: flex; flex-direction: column;
 }
-.pIoRow { display: flex; gap: 6px; margin-top: 12px; }
+.pIoRow { display: flex; gap: 6px; margin-bottom: 12px; }
 .pIoBtn {
   @include bordered-control;
   flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;

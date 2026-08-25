@@ -762,3 +762,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 5. **넘버링 타입 분리** — nextUnitVer/nextRectVer 독립 카운터 (Unit-N, Rect-N 각자 진행). 그룹은 기존 gid 시퀀스.
 6. **rect 개편 2차** — ① 툴 아이콘 세로형 ② **렌더 레이어: 사각형은 항상 유닛 아래**(타입 내에서는 배열 순서 = Q/W 대상) ③ RATIO: 디지털(16:9·9:16·4:5) + **피지컬**(A4·A5·Letter — **dpi 입력**(기본 300, localStorage 'eo.dpi') 기반 실제 px, A4@300=2480×3508 검증) ④ Fill/Stroke 섹션 삭제, **스트로크 전면 제거**(파라미터·렌더·export) — 색은 컬러 툴바로 ⑤ 그리드: **px 전용**(pct 삭제), 기본 **on**, **snap 토글(기본 on)** — 유닛 이동 시 마진 박스 엣지+컬럼/로우(거터 포함) 라인에 스냅(`geometry/rectGrid.js` 렌더·스냅 공유), 기본 margin 30(0–200)·rows 4(1–12)·cols 4(1–12)·gutterX/Y 20(0–100).
 7. 부채 해결 로드맵 착수 예정: ① BRAND_COLORS↔colors.css 단일화 ② 링크 전파 헬퍼 통합 ③ 패널 분리 ④ 타입 테이블 ⑤ IndexedDB ⑥ 회귀 스위트.
+
+## 65. 2026-08-25 — 패널 정리·프리셋 IO 상단 고정·스냅 마이그레이션 픽스
+
+1. **유닛 패널 COLOR 섹션 제거** — 색 지정은 컬러 툴바/스포이드로 일원화 (관련 스타일·상태 정리).
+2. **프리셋 export/import json 버튼을 리스트 상단으로 고정** (secHead 바로 아래).
+3. **BLACK 스와치 숨김** — BRAND_COLORS에서 #000000 제외(5색 복귀, 재도입 시 상수에 추가). **커스텀 컬러 단축키(7) 삭제** (툴팁 "Custom color").
+4. **rect**: 아이콘 가로형 복귀. 기본 margin **20**. **툴 버튼 더블클릭 = 1920×800 즉시 생성**(스테이지 중앙, IconButton dblclick emit 신설). **그리드 스냅 버그 픽스** — 원인: §63 생성 rect에 snapOn 필드 부재로 스냅 조건 상시 거짓 → migrateUnit에서 rect 파라미터를 createRectParams 기본값으로 보충. 검증: 유닛 드래그가 A4 rect 1컬럼 라인(x=407)에 정확 착지 — 겹친 두 그리드 중 가까운 라인 우선 동작 확인.

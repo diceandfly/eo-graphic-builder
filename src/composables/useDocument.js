@@ -49,7 +49,7 @@ export function createRectParams(overrides = {}) {
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
     gridOn: true,
     snapOn: true, // 유닛 이동 시 이 그리드 라인에 스냅
-    margin: 30,
+    margin: 20,
     rows: 4,
     cols: 4,
     gutterX: 20,
@@ -60,6 +60,8 @@ export function createRectParams(overrides = {}) {
 
 function migrateUnit(u) {
   if (!u.type) u.type = 'unit';
+  // 구버전 rect: 이후 추가된 키(snapOn 등)를 기본값으로 보충
+  if (u.type === 'rect' && u.params) u.params = { ...createRectParams(), ...u.params };
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   if (u.linkId === undefined) u.linkId = null;

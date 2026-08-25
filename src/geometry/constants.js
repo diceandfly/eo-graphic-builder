@@ -33,6 +33,7 @@ export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
 // 브랜드 스와치 (도형 fill) — styles/tokens/colors.css의 네임드 토큰과 값 동기 유지
 // EO NEON · WORLD GREEN · HORIZON BLUE · HALO WHITE · VOID GREY
-export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#8E8E8E', '#EFEAE1', '#000000'];
-// BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~6) 안내용
-export const BRAND_COLOR_NAMES = ['EO NEON', 'WORLD GREEN', 'HORIZON BLUE', 'VOID GREY', 'HALO WHITE', 'BLACK'];
+// BLACK(#000000)은 §65에서 일단 숨김 — 재도입 시 여기에 추가
+export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#8E8E8E', '#EFEAE1'];
+// BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~5) 안내용
+export const BRAND_COLOR_NAMES = ['EO NEON', 'WORLD GREEN', 'HORIZON BLUE', 'VOID GREY', 'HALO WHITE'];
