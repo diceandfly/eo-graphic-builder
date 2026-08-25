@@ -12,6 +12,7 @@ import AlignBar from './AlignBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { rectGridLines } from '../../geometry/rectGrid.js';
+import { layerOf, isPresetable } from '../../objects/registry.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -27,11 +28,10 @@ const el = ref(null);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 const activeUnit = computed(() => props.doc.units.find((u) => u.id === props.doc.activeId));
-// 렌더 z-오더: 사각형은 항상 유닛 아래 레이어 (타입 내에서는 배열 순서)
-const zOrdered = computed(() => [
-  ...props.doc.units.filter((u) => u.type === 'rect'),
-  ...props.doc.units.filter((u) => u.type !== 'rect'),
-]);
+// 렌더 z-오더: 레지스트리 layer 오름차순 (사각형 0 < 유닛 1), 타입 내에서는 배열 순서
+const zOrdered = computed(() =>
+  [...props.doc.units].sort((a, b) => layerOf(a) - layerOf(b))
+);
 const singleSelected = computed(
   () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
 );
@@ -176,9 +176,9 @@ watch(ctxMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
 });
 function onRegisterPreset() {
-  // 직사각형은 유닛 프리셋 대상 아님 (추후 layout preset에서)
-  if (ctxMenu.value.u.type === 'rect') {
-    toast('Rect objects are not unit presets — coming with layout presets');
+  // 프리셋 가능 타입(레지스트리)만 — rect 등은 추후 layout preset에서
+  if (!isPresetable(ctxMenu.value.u)) {
+    toast('This object type is not a unit preset — coming with layout presets');
     closeCtx();
     return;
   }

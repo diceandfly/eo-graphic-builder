@@ -1,4 +1,5 @@
 import { reactive, computed, watch, nextTick } from 'vue';
+import { namePrefix } from '../objects/registry.js';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
   BRAND_COLORS,
@@ -109,8 +110,9 @@ export function useDocument() {
     nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
     nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
   }
-  // 타입별 다음 이름
-  const nextName = (type) => (type === 'rect' ? `Rect-${nextRectVer++}` : `Unit-${nextUnitVer++}`);
+  // 타입별 다음 이름 (접두어는 오브젝트 레지스트리에서)
+  const nextName = (type) =>
+    `${namePrefix(type)}-${type === 'rect' ? nextRectVer++ : nextUnitVer++}`;
 
   // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 링크 스코프
   let saveTimer = null;
