@@ -91,6 +91,22 @@ const alignActive = computed(() => {
   }
   return blocks.size >= 2;
 });
+// 키 하이라이트 박스 = 키 유닛이 속한 블록(최외곽 그룹) 전체 bbox — 정렬 계산 기준과 동일 (§77)
+// 정렬 불가 상태(블록 1개 = 그룹 하나만 선택)에서는 표시하지 않음
+const keyRect = computed(() => {
+  const u = keyUnit.value;
+  if (!u || !alignActive.value) return null;
+  const g = props.actions.outermost(u);
+  const memberIds = g ? props.actions.groupMemberIds(g) : [u.id];
+  const members = props.doc.units.filter((x) => memberIds.includes(x.id));
+  const minX = Math.min(...members.map((m) => m.x));
+  const minY = Math.min(...members.map((m) => m.y));
+  return {
+    x: minX, y: minY,
+    w: Math.max(...members.map((m) => m.x + m.params.W)) - minX,
+    h: Math.max(...members.map((m) => m.y + m.params.H)) - minY,
+  };
+});
 // 선택이 하나의 최외곽 그룹 전체일 때 그 그룹 이름 (통합 bbox 라벨)
 const groupLabel = computed(() => {
   const ids = props.doc.selectedIds;
@@ -908,7 +924,8 @@ function onUp(e) {
   if (drag) {
     if (drag.kind === 'move' && keyCandidate != null) {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
-      if (moved < 4) props.doc.keyId = keyCandidate;
+      // 정렬 가능 상태(블록 2개 이상)에서만 키 지정 — 그룹 하나만 선택 시 무의미 (§77)
+      if (moved < 4 && alignActive.value) props.doc.keyId = keyCandidate;
     }
     // Alt+드래그 복제 종료 → ⇧D = 같은 간격으로 연속 복제 (최신 사본 기준 체인)
     if (drag.kind === 'move' && drag.altDup && drag.targets.length) {
@@ -1067,10 +1084,10 @@ onBeforeUnmount(() => {
         </g>
         <!-- 정렬 키 오브젝트: 두꺼운 스트로크 하이라이트 -->
         <rect
-          v-if="showBBox && keyUnit"
+          v-if="showBBox && keyRect"
           class="keySel"
-          :x="keyUnit.x" :y="keyUnit.y"
-          :width="keyUnit.params.W" :height="keyUnit.params.H"
+          :x="keyRect.x" :y="keyRect.y"
+          :width="keyRect.w" :height="keyRect.h"
         />
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
