@@ -385,7 +385,6 @@ function applyHex(e) {
             @click.stop="startPresetRename(p)"
           >{{ p.name }}</div>
           <button
-            v-if="p.id !== 'default'"
             class="pDel" title="delete preset"
             @click.stop="emit('deletePreset', p.id)"
           >×</button>
@@ -414,7 +413,6 @@ function applyHex(e) {
             @click.stop="startPresetRename(p)"
           >{{ p.name }}</span>
           <button
-            v-if="p.id !== 'default'"
             class="pDel" title="delete preset"
             @click.stop="emit('deletePreset', p.id)"
           >×</button>
@@ -437,7 +435,6 @@ function applyHex(e) {
         class="pMenuItem" @click="startPresetRename(presetMenu.p); closePresetMenu()"
       >Rename</button>
       <button
-        v-if="presetMenu.p.id !== 'default'"
         class="pMenuItem" @click="emit('deletePreset', presetMenu.p.id); closePresetMenu()"
       >Delete</button>
     </div>

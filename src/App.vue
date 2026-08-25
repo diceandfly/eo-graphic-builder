@@ -53,6 +53,14 @@ function placePreset(preset) {
   const [wx, wy] = stageRef.value.centerWorld();
   docApi.createUnitFrom(preset.params, wx, wy);
 }
+// 프리셋 삭제 — Default Unit은 영구 보존, 안내만
+function deletePreset(id) {
+  if (id === 'default') {
+    stageRef.value?.toast('Default Unit is permanent — it cannot be deleted');
+    return;
+  }
+  presetsApi.remove(id);
+}
 // 프리셋 추출: 단독 유닛 SVG 다운로드
 function exportPreset(preset) {
   const p = preset.params;
@@ -129,7 +137,7 @@ const stageActions = {
 
 <template>
   <div class="layout">
-    <aside class="side">
+    <aside class="side" @contextmenu.prevent>
       <ControlPanel
         :unit="panelUnit"
         :gutter-max="gutterMax"
@@ -145,7 +153,7 @@ const stageActions = {
         @rename-group="(gid, name) => docApi.renameGroup(gid, name)"
         @link-scope-toggle="onLinkScopeToggle"
         @place-preset="placePreset"
-        @delete-preset="presetsApi.remove"
+        @delete-preset="deletePreset"
         @rename-preset="presetsApi.rename"
         @export-preset="exportPreset"
         @link="onLink"

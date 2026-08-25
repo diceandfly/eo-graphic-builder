@@ -2,6 +2,7 @@
 import { ref, reactive, watch, computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
+import StepField from '../controls/StepField.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 
@@ -165,18 +166,18 @@ function applyHex(e) {
               <button :class="{ on: blendCfg.axis === 'v' }" @click="blendCfg.axis = 'v'">v</button>
             </div>
           </div>
-          <label class="menuRow">
+          <div class="menuRow">
             <span class="rowLabel">repeat</span>
-            <input class="numIn" type="number" min="1" max="100" v-model.number="blendCfg.count" />
-          </label>
-          <label class="menuRow">
+            <StepField v-model="blendCfg.count" :min="1" :max="100" :step="1" />
+          </div>
+          <div class="menuRow">
             <span class="rowLabel">gap (px)</span>
-            <input class="numIn" type="number" v-model.number="blendCfg.gap" />
-          </label>
-          <label class="menuRow">
+            <StepField v-model="blendCfg.gap" :min="0" :max="2000" :step="5" />
+          </div>
+          <div class="menuRow">
             <span class="rowLabel">scale</span>
-            <input class="numIn" type="number" step="0.05" min="0.05" max="3" v-model.number="blendCfg.scale" />
-          </label>
+            <StepField v-model="blendCfg.scale" :min="0.05" :max="3" :step="0.05" />
+          </div>
           <button class="applyBtn" @click="applyBlend">apply</button>
         </div>
       </div>

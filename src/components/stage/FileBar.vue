@@ -4,14 +4,13 @@ import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
 
-// 대시보드 좌상단 — 파일 작업 바 (export / save / open / reset). Toolbar에서 분리 (§59).
-const emit = defineEmits(['export', 'save', 'open', 'reset']);
+// 대시보드 좌상단 — 파일 작업 바 (save / open / reset). export는 우클릭 메뉴로 이동 (§60).
+const emit = defineEmits(['save', 'open', 'reset']);
 
 const ACTIONS = [
-  { key: 'export', tip: 'Export SVG', paths: ICONS.exportSvg },
   { key: 'save', tip: 'Save JSON', paths: ICONS.save },
   { key: 'open', tip: 'Open JSON', paths: ICONS.open },
-  { key: 'reset', tip: 'Reset dashboard', paths: ICONS.reset },
+  { key: 'reset', tip: 'Reset dashboard', paths: ICONS.resetArrow },
 ];
 
 const fileEl = ref(null);
@@ -25,12 +24,11 @@ const RESET_TIPS = [
   'FINAL WARNING — every unit will be vaporized. They had families.',
 ];
 const RESET_TONES = ['default', 'danger', 'doom'];
-// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 해골
-const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.reset];
+// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 식칼
+const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.cleaver];
 
 function onAction(key) {
-  if (key === 'export') emit('export');
-  else if (key === 'save') emit('save');
+  if (key === 'save') emit('save');
   else if (key === 'open') fileEl.value.click();
   else if (key === 'reset') {
     clearTimeout(armTimer);

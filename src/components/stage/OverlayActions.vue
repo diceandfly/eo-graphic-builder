@@ -72,7 +72,7 @@ function tipLeave() {
 .abtn rect { fill: var(--panel); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .abtn .icon path {
   fill: none; stroke: var(--text); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round;
+  stroke-linecap: square; stroke-linejoin: miter;
 }
 .abtn:hover rect { stroke: var(--accent); }
 .abtn:hover .icon path { stroke: var(--accent); }

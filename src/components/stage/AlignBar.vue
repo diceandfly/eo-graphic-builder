@@ -38,4 +38,6 @@ const BTNS = [
 <style scoped lang="scss">
 .alignbar { position: absolute; left: var(--sp-6); bottom: var(--sp-6); }
 .grid { display: grid; grid-template-columns: repeat(4, auto); gap: 2px; }
+// 정렬 아이콘은 라인 위주라 같은 16px에서도 가늘어 보임 — 광학 보정 +2px
+.grid :deep(.ib svg) { width: calc(var(--icon-size) + 2px); height: calc(var(--icon-size) + 2px); }
 </style>

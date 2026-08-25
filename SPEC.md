@@ -709,3 +709,18 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **오버레이 액션 버튼 숨김** — SelectionOverlay/GroupOverlay에 `SHOW_ACTIONS=false` 플래그(v-if, 코드 보존). 기능은 유닛 **우클릭 컨텍스트 메뉴 상단**으로 이동: Flip H/V·Duplicate·Delete(단축키 병기) + 구분선 + Register unit preset (추후 register layout preset 자리).
 7. **블렌드 도구** (§57-0·§58 토론 확정 구현) — 툴바 스포이드 옆 버튼 → 팝업(direction h/v · repeat · gap px · scale). 단일 유닛 선택 필요. `blendFrom`: 진행축 크기·간격에 scale 누적 곱, 다른 축 고정(한 축은 지오메트리 compression, 다른 축은 복제가 담당). 결과 = **자동 그룹(`Blend-N`) + 자동 링크(size 제외 스코프)** — 사본별 크기 차이 보존하면서 grid/shape/color/orientation 동기화. 수치 검증: H 800→560→392→274 (×0.7), gap 30→21→14.7.
 8. **툴바 개편** — 하단 = 스와치 바(+커스텀) + 작업 도구 바(select·eyedrop·blend). 파일 그룹(export/save/open/reset 3단계)은 **FileBar.vue**로 분리해 대시보드 좌상단 배치(툴팁 하향 — IconButton `tipSide` prop 신설).
+
+## 60. 2026-08-25 — 뷰 옵션 메뉴 확장·각진 아이콘·링크 배지 정리 (12건)
+
+1. **그룹 점선 간격 화면 고정** — 원인: `vector-effect: non-scaling-stroke`에서는 대시 패턴도 화면 좌표로 계산되는데 기존 코드가 `5/scale`로 역보정해 이중 보정 → 줌마다 간격 변동. 인라인 dasharray 제거, CSS `stroke-dasharray: 5 4` 고정.
+2. 그룹/멀티 bbox 숨김 — §54부터 showBBox 토글에 이미 포함(재검증 완료). 사용자 브라우저 구세션 추정.
+3. **블렌드 아이콘** — 좌→우 세로선 5개, 간격 등비 수렴(밀도 강화).
+4. **코너 바 우클릭 옵션 확장** — 바운딩박스 버튼: "Selection" 메뉴(Arrow nudge px 1~500 · Show link badges). 유닛 그리드 버튼: "Unit grid color" 메뉴(hex 입력 + reset to default) → 스테이지 `--unit-guide` 변수 오버라이드(UnitGraphic 가이드 전용 — 스마트가이드 색과 분리). `view` prefs(nudge·showLinks·guideColor)로 eo.prefs 영속. 방향키 = nudge px, Shift = 10배.
+5. **각진 아이콘 스타일** — stroke-linecap round→square, linejoin round→miter (IconButton·링크 배지·OverlayActions).
+6. **프리셋 빈 공간 우클릭 브라우저 메뉴 차단** — .panel이 aside 높이를 다 채우지 않아 밑 여백이 뚫려 있었음 → aside(.side)에 contextmenu.prevent.
+7. **Default Unit 삭제 버튼 상시 표시** — 클릭 시 "Default Unit is permanent" 토스트, 삭제는 불가(메뉴 Delete도 동일 경로).
+8. **Export SVG 툴바 아이콘 제거** → 유닛 우클릭 메뉴 3번째 그룹으로 이동 (액션 / 프리셋 등록 / Export). FileBar = save·open·reset 3버튼.
+9. **리셋 3단계 아이콘 해골 → 식칼** (`ICONS.cleaver`, 커스텀 패스). skull 패스 삭제.
+10. 정렬 툴바 — 이미 동일 컴포넌트(IconButton/FloatingBar)였음. 라인형 아이콘의 광학 보정으로 정렬 아이콘만 +2px.
+11. **링크 배지 번호 = 선택 문맥 기준** — 전역 누적 번호 폐기, 현재 보이는 링크들 안에서 1..k 재부여. 링크 1개면 숫자 없이 아이콘만.
+12. **StepField 컨트롤 신설** (`controls/StepField.vue`) — 네이티브 스피너 대신 상시 표시 토큰 스타일 ▴▾(필드 우측 분리 컬럼, 숫자 안 가림). 블렌드 팝업 3필드 적용.

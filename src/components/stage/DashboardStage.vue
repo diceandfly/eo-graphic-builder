@@ -50,12 +50,6 @@ const groupOutlines = computed(() => {
     };
   });
 });
-const dash = computed(() => `${5 / vp.scale} ${4 / vp.scale}`);
-// 링크 그룹 표시 번호 (linkId → 1..n 순번)
-const linkIndex = computed(() => {
-  const ids = [...new Set(props.doc.units.filter((u) => u.linkId).map((u) => u.linkId))].sort((a, b) => a - b);
-  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
-});
 // 현재 선택에 관련된 링크 그룹만 배지 표시
 const visibleLinkIds = computed(() => {
   const set = new Set();
@@ -64,6 +58,13 @@ const visibleLinkIds = computed(() => {
   }
   return set;
 });
+// 링크 번호는 전역 누적이 아니라 "지금 보이는 링크들" 안에서 1..k로 그때그때 부여.
+// 링크가 하나뿐이면 숫자 없이 아이콘만 (§60).
+const linkIndex = computed(() => {
+  const ids = [...visibleLinkIds.value].sort((a, b) => a - b);
+  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+});
+const showLinkNums = computed(() => visibleLinkIds.value.size >= 2);
 
 const keyUnit = computed(() =>
   props.doc.keyId != null && props.doc.selectedIds.includes(props.doc.keyId)
@@ -128,8 +129,10 @@ const eyedropScope = reactive({ size: true, orientation: true, grid: true, shape
 // 캔버스 그리드 설정 (그리드 버튼 우클릭 메뉴): 정방형 간격 + 이동 그리드 스냅
 const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
+// 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색
+const view = reactive({ nudge: 5, showLinks: true, guideColor: null, ...(prefs.view || {}) });
 watch(
-  () => JSON.stringify({ eyedropScope, grid: gridCfg }),
+  () => JSON.stringify({ eyedropScope, grid: gridCfg, view }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
@@ -288,11 +291,11 @@ function onKeyDown(e) {
     props.actions.setFill(BRAND_COLORS[DIGITS[e.code]]);
     return;
   }
-  // 방향키: 선택 유닛 5px 이동, Shift = 50px
+  // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (ARROWS[e.key] && props.doc.selectedIds.length) {
     e.preventDefault();
-    const step = e.shiftKey ? 50 : 5;
+    const step = e.shiftKey ? view.nudge * 10 : view.nudge;
     const [ax, ay] = ARROWS[e.key];
     props.actions.nudgeSelected(ax * step, ay * step);
     return;
@@ -829,6 +832,7 @@ onBeforeUnmount(() => {
     ref="el"
     class="stage"
     :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop' }"
+    :style="view.guideColor ? { '--unit-guide': view.guideColor } : {}"
     @wheel="onWheel"
     @pointerdown="onStageDown"
     @pointermove="onStageMove"
@@ -867,17 +871,19 @@ onBeforeUnmount(() => {
             v-for="(g, i) in groupOutlines" :key="'go' + i"
             class="groupLine"
             :x="g.x" :y="g.y" :width="g.w" :height="g.h"
-            :stroke-dasharray="dash"
           />
         </template>
-        <!-- 링크 배지 (선택 관련 링크만) -->
+        <!-- 링크 배지 (선택 관련 링크만, 뷰 옵션으로 숨김 가능) -->
         <g
-          v-for="u in doc.units.filter((x) => x.linkId && visibleLinkIds.has(x.linkId))"
+          v-for="u in view.showLinks ? doc.units.filter((x) => x.linkId && visibleLinkIds.has(x.linkId)) : []"
           :key="'lk' + u.id"
           class="linkBadge"
           :transform="`translate(${u.x + u.params.W} ${u.y})`"
         >
-          <text :x="-pxs(20)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end">{{ linkIndex[u.linkId] }}</text>
+          <text
+            v-if="showLinkNums"
+            :x="-pxs(20)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end"
+          >{{ linkIndex[u.linkId] }}</text>
           <g :transform="`translate(${-pxs(16)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
@@ -975,7 +981,6 @@ onBeforeUnmount(() => {
       @blend="onBlend"
     />
     <FileBar
-      @export="actions.exportSvg()"
       @save="actions.saveProject()"
       @open="(f) => actions.openProject(f)"
       @reset="onReset"
@@ -987,6 +992,7 @@ onBeforeUnmount(() => {
       :stage-grid="showStageGrid"
       :bbox="showBBox"
       :grid-cfg="gridCfg"
+      :view="view"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"
       @toggle-stage-grid="showStageGrid = !showStageGrid"
@@ -1005,6 +1011,8 @@ onBeforeUnmount(() => {
       >{{ a.label }}</button>
       <div class="ctxSep" />
       <button class="ctxItem" @click="onRegisterPreset">Register unit preset</button>
+      <div class="ctxSep" />
+      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG</button>
     </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
@@ -1017,11 +1025,15 @@ onBeforeUnmount(() => {
 .hit { cursor: default; }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.groupLine { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.7; }
+// non-scaling-stroke에서는 대시 패턴도 화면 좌표로 계산됨 — 고정값이 곧 화면 고정 간격
+.groupLine {
+  fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 5 4; opacity: 0.7;
+}
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
 .linkBadge path {
   fill: none; stroke: var(--link); stroke-width: 2;
-  stroke-linecap: round; stroke-linejoin: round;
+  stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: 600; }
 .toast {

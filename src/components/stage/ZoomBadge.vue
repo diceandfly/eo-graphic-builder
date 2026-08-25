@@ -5,34 +5,36 @@ import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
 import { STAGE_GRID_MIN, STAGE_GRID_MAX } from '../../geometry/constants.js';
 
-// 우하단 코너 바 — 바운딩박스 / 캔버스 그리드 / 유닛 그리드 토글 + 줌%
-// 캔버스 그리드 버튼 우클릭 → 격자 크기(정방형)·그리드 스냅 메뉴 (스포이드 스코프 메뉴와 동일 UX)
+// 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
+// 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
 const props = defineProps({
   scale: Number, guides: Boolean, stageGrid: Boolean, bbox: Boolean,
   gridCfg: Object, // { size, snap } — reactive 스토어 (깊은 변경으로 직접 편집)
+  view: Object,    // { nudge, showLinks, guideColor } — 뷰 옵션 reactive 스토어
 });
 defineEmits(['reset', 'toggleGuides', 'toggleStageGrid', 'toggleBbox']);
 const pct = computed(() => Math.round(props.scale * 100));
 
-// 그리드 설정 메뉴 (5초 무조작 시 자동 닫힘)
-const menuOpen = ref(false);
+// 옵션 메뉴 — 한 번에 하나만, 5초 무조작 시 자동 닫힘
+const openMenu = ref(null); // 'grid' | 'bbox' | 'unit' | null
 let idleTimer = null;
 function resetIdle() {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(closeMenu, 5000);
 }
-function onGridContext(e) {
+function onContext(key, e) {
   e.preventDefault();
-  menuOpen.value = !menuOpen.value;
-  if (menuOpen.value) resetIdle();
+  openMenu.value = openMenu.value === key ? null : key;
+  if (openMenu.value) resetIdle();
 }
 function closeMenu() {
   clearTimeout(idleTimer);
-  menuOpen.value = false;
+  openMenu.value = null;
 }
-watch(menuOpen, (open) => {
+watch(openMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
+
 function onSize(e) {
   const v = Number(e.target.value);
   if (Number.isFinite(v) && v > 0) {
@@ -40,20 +42,31 @@ function onSize(e) {
   }
   e.target.value = props.gridCfg.size;
 }
+function onNudge(e) {
+  const v = Number(e.target.value);
+  if (Number.isFinite(v) && v >= 1) props.view.nudge = Math.min(500, Math.round(v));
+  e.target.value = props.view.nudge;
+}
+function onGuideColor(e) {
+  let t = e.target.value.trim();
+  if (!t) { props.view.guideColor = null; return; }
+  if (t[0] !== '#') t = '#' + t;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) props.view.guideColor = t;
+}
 </script>
 
 <template>
   <div class="corner">
     <FloatingBar>
-      <div class="gridWrap">
+      <div class="optWrap">
         <IconButton
           :paths="ICONS.canvasGrid" :active="stageGrid" tip-align="right"
-          :tip="menuOpen ? '' : stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid'"
+          :tip="openMenu === 'grid' ? '' : stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid'"
           @click="$emit('toggleStageGrid')"
-          @contextmenu="onGridContext"
+          @contextmenu="onContext('grid', $event)"
         />
         <div
-          v-if="menuOpen && gridCfg"
+          v-if="openMenu === 'grid' && gridCfg"
           class="menu"
           @pointerdown.stop="resetIdle"
           @pointermove="resetIdle"
@@ -63,7 +76,7 @@ function onSize(e) {
           <label class="menuRow">
             <span>Size (px)</span>
             <input
-              class="sizeInput" type="number"
+              class="numInput" type="number"
               :min="STAGE_GRID_MIN" :max="STAGE_GRID_MAX"
               :value="gridCfg.size" @change="onSize"
             />
@@ -74,16 +87,58 @@ function onSize(e) {
           </label>
         </div>
       </div>
-      <IconButton
-        :paths="ICONS.boxSelect" :active="bbox" tip-align="right"
-        :tip="bbox ? 'Hide Bounding Box' : 'Show Bounding Box'"
-        @click="$emit('toggleBbox')"
-      />
-      <IconButton
-        :paths="ICONS.unitGrid" :active="guides" tip-align="right"
-        :tip="guides ? 'Hide Unit Grid' : 'Show Unit Grid'"
-        @click="$emit('toggleGuides')"
-      />
+      <div class="optWrap">
+        <IconButton
+          :paths="ICONS.boxSelect" :active="bbox" tip-align="right"
+          :tip="openMenu === 'bbox' ? '' : bbox ? 'Hide Bounding Box' : 'Show Bounding Box'"
+          @click="$emit('toggleBbox')"
+          @contextmenu="onContext('bbox', $event)"
+        />
+        <div
+          v-if="openMenu === 'bbox' && view"
+          class="menu"
+          @pointerdown.stop="resetIdle"
+          @pointermove="resetIdle"
+          @change="resetIdle"
+        >
+          <div class="menuTitle">Selection</div>
+          <label class="menuRow">
+            <span>Arrow nudge (px)</span>
+            <input class="numInput" type="number" min="1" max="500" :value="view.nudge" @change="onNudge" />
+          </label>
+          <label class="menuRow">
+            <input type="checkbox" v-model="view.showLinks" />
+            <span>Show link badges</span>
+          </label>
+        </div>
+      </div>
+      <div class="optWrap">
+        <IconButton
+          :paths="ICONS.unitGrid" :active="guides" tip-align="right"
+          :tip="openMenu === 'unit' ? '' : guides ? 'Hide Unit Grid' : 'Show Unit Grid'"
+          @click="$emit('toggleGuides')"
+          @contextmenu="onContext('unit', $event)"
+        />
+        <div
+          v-if="openMenu === 'unit' && view"
+          class="menu"
+          @pointerdown.stop="resetIdle"
+          @pointermove="resetIdle"
+          @change="resetIdle"
+        >
+          <div class="menuTitle">Unit grid color</div>
+          <div class="menuRow">
+            <span class="preview" :style="{ background: view.guideColor || 'var(--guide)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.guideColor || ''"
+              @keydown.enter="onGuideColor"
+              @change="onGuideColor"
+            />
+          </div>
+          <button class="miniBtn" @click="view.guideColor = null">reset to default</button>
+        </div>
+      </div>
       <IconButton class="zoom" tip="Reset zoom (100%)" tip-align="right" @click="$emit('reset')">
         {{ pct }}%
       </IconButton>
@@ -94,9 +149,9 @@ function onSize(e) {
 <style scoped lang="scss">
 .corner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); }
 .zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
-.gridWrap { position: relative; }
+.optWrap { position: relative; }
 .menu {
-  position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: calc(100% + 14px); right: 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 12px;
   display: flex; flex-direction: column; gap: var(--sp-3);
@@ -109,8 +164,22 @@ function onSize(e) {
   display: flex; align-items: center; gap: var(--sp-3);
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
-.sizeInput {
+.numInput {
   @include text-field;
   width: 52px; padding: 2px 6px; text-align: right;
+}
+.hexInput {
+  @include text-field;
+  width: 76px; padding: 3px 8px; text-transform: uppercase;
+}
+.preview {
+  width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.miniBtn {
+  @include bordered-control;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;
+  align-self: flex-start;
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>

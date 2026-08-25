@@ -49,5 +49,6 @@ const otf = computed(() =>
 
 <style scoped lang="scss">
 .seam { vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
-.guides line, .guides rect { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
+// --unit-guide: 스테이지 뷰 옵션(그리드 버튼 우클릭)으로 사용자 지정 가능, 기본은 --guide
+.guides line, .guides rect { stroke: var(--unit-guide, var(--guide)); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6; }
 </style>

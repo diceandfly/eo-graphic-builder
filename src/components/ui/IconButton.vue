@@ -43,7 +43,7 @@ defineEmits(['click', 'contextmenu']);
   svg {
     width: var(--icon-size); height: var(--icon-size);
     fill: none; stroke: var(--text); stroke-width: 2;
-    stroke-linecap: round; stroke-linejoin: round;
+    stroke-linecap: square; stroke-linejoin: miter;
   }
   &:hover { color: var(--accent); svg { stroke: var(--accent); } }
   &.active { background: var(--hover-bg); svg { stroke: var(--accent); } }
