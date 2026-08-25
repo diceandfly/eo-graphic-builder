@@ -780,6 +780,12 @@ function snapEdge(axis, pos, excludeUnits, SNAP) {
       axis === 'x'
         ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]
         : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+    // 사각형 레이아웃 그리드 라인도 리사이즈 스냅 후보 (이동 스냅과 동일 규칙 — §71 픽스)
+    if (o.type === 'rect' && o.params.gridOn && o.params.snapOn) {
+      const gl = rectGridLines(o.params);
+      if (axis === 'x') cands.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
+      else cands.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
+    }
     for (const c of cands) {
       const d = c - pos;
       if (Math.abs(d) < SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, pos: c, o };
