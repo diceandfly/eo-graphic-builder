@@ -260,15 +260,29 @@ async function onCopyPng() {
   }
 }
 
-// 블렌드 적용 (툴 버튼 좌클릭 / B 단축키) — 현재 blendCfg로 즉시 실행, 단일 유닛 선택 필요
+// 블렌드 적용 (툴 버튼 좌클릭 / B 단축키) — 현재 blendCfg로 즉시 실행.
+// 단일 유닛 = 유닛 블렌드, 단일 그룹(전체 선택) = 그룹 블렌드, 그 외 멀티 선택 = 경고 (§80)
 function onBlend() {
-  const u = activeUnit.value;
-  if (!u || props.doc.selectedIds.length !== 1) {
-    toast('Select a single unit to blend');
+  const ids = props.doc.selectedIds;
+  const sel = props.doc.units.filter((u) => ids.includes(u.id));
+  if (!sel.length) {
+    toast('Select a single unit or a single group to blend');
     return;
   }
-  const created = props.actions.blendFrom(u, { ...blendCfg });
-  toast(`Blended ${created.length} ${blendCfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
+  let created;
+  if (sel.length === 1) {
+    created = props.actions.blendFrom(sel[0], { ...blendCfg });
+  } else {
+    const gids = [...new Set(sel.map((u) => props.actions.outermost(u)))];
+    const singleGroup = gids.length === 1 && gids[0] != null &&
+      props.actions.groupMemberIds(gids[0]).length === ids.length;
+    if (!singleGroup) {
+      toast('Blend works on a single unit or a single group — not a mixed selection');
+      return;
+    }
+    created = props.actions.blendUnitsFrom(sel, { ...blendCfg });
+  }
+  toast(`Blended ${created.length} ${blendCfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped`);
   setLast('blend', () => onBlend());
 }
 

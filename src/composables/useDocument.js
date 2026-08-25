@@ -735,8 +735,8 @@ export function useDocument() {
     for (const c of copies) c.x += bb.maxX - bb.minX + 80;
     return copies;
   }
-  // 블렌드: 유닛을 축 방향으로 반복 복제 — 매 스텝 진행축 크기와 간격에 scale 누적.
-  // 결과 = 자동 그룹(Blend-N) + 자동 링크(size 제외 스코프 — 사본별 크기 차이가 블렌드의 본질).
+  // 블렌드: 유닛을 축 방향으로 반복 복제 — 매 스텝 진행축 크기에 scale 누적, 간격 고정.
+  // 결과 = 자동 그룹(Blend-N)만. 자동 링크는 §80에서 제거 — 필요하면 그룹 선택 후 패널 LINK로.
   function blendFrom(u, { axis = 'v', count = 4, gap = 20, scale = 0.8 }) {
     count = clamp(Math.round(count), 1, 100);
     scale = clamp(scale, 0.05, 3);
@@ -765,13 +765,57 @@ export function useDocument() {
     const gid = nextGroup++;
     for (const m of all) m.groups.push(gid);
     doc.groupNames[gid] = `Blend-${gid}`;
-    const lid = nextLink++;
-    // 기본 스코프에서 size까지 제외 — 사본별 크기 차이가 블렌드의 본질
-    doc.linkScopes[lid] = { ...linkScopeDefault(), size: false };
-    for (const m of all) m.linkId = lid;
-    cleanupLinks();
     pruneMeta();
     setSelection(all.map((m) => m.id));
+    return created;
+  }
+
+  // 그룹 블렌드 (§80): 단일 그룹 전체를 하나의 블록으로 축 방향 반복 복제.
+  // 진행축 치수·상대 배치만 배율 누적(교차축 유지), gap = 블록 bbox 사이 간격.
+  // 결과 = 사본별 서브그룹 + 전체 Blend-N 그룹(소스 포함). 링크 생성 없음.
+  function blendUnitsFrom(units, { axis = 'v', count = 4, gap = 20, scale = 0.8 }) {
+    count = clamp(Math.round(count), 1, 100);
+    scale = clamp(scale, 0.05, 3);
+    const bb = bboxOf(units);
+    const created = [];
+    let factor = 1;
+    let cursor = axis === 'v' ? bb.maxY : bb.maxX;
+    for (let i = 0; i < count; i++) {
+      factor *= scale;
+      const start = Math.round(cursor + gap);
+      const gid = nextGroup++;
+      let hi = start;
+      for (const u of units) {
+        const p = { ...u.params };
+        let x, y;
+        if (axis === 'v') {
+          p.H = clamp(Math.round(u.params.H * factor), UNIT_MIN, UNIT_MAX);
+          x = u.x;
+          y = start + Math.round((u.y - bb.minY) * factor);
+        } else {
+          p.W = clamp(Math.round(u.params.W * factor), UNIT_MIN, UNIT_MAX);
+          x = start + Math.round((u.x - bb.minX) * factor);
+          y = u.y;
+        }
+        const id = nextId++;
+        doc.units.push({
+          id, type: u.type, name: nextName(u.type),
+          x, y, groups: [gid], linkId: null, params: p,
+        });
+        const nu = doc.units[doc.units.length - 1];
+        normalize(nu.params);
+        created.push(nu);
+        const end = axis === 'v' ? nu.y + nu.params.H : nu.x + nu.params.W;
+        if (end > hi) hi = end;
+      }
+      cursor = hi;
+    }
+    // 소스의 기존 그룹 구조는 유지, 전체를 최외곽 Blend-N으로 감쌈
+    const outer = nextGroup++;
+    for (const m of [...units, ...created]) m.groups.push(outer);
+    doc.groupNames[outer] = `Blend-${outer}`;
+    pruneMeta();
+    setSelection([...units, ...created].map((m) => m.id));
     return created;
   }
 
@@ -925,7 +969,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    createRect, renameGroup, blendFrom, arrangeGrid, orderSelected,
+    createRect, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit,
