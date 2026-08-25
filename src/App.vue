@@ -4,7 +4,8 @@ import { useDocument } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { deriveUnit } from './geometry/derive.js';
-import { downloadSvg, downloadCompositeSvg } from './export/exportSvg.js';
+import { downloadSvg, downloadCompositeSvg, buildSelectionSvg } from './export/exportSvg.js';
+import { copyTextToClipboard, copySvgAsPng } from './utils/clipboard.js';
 import DashboardStage from './components/stage/DashboardStage.vue';
 import ControlPanel from './components/ControlPanel.vue';
 
@@ -83,15 +84,31 @@ function exportItem(u) {
     unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill,
   };
 }
-function exportSvg() {
+// 현재 선택 → export 아이템 목록 (다중 = 컴포지트, 아니면 활성 유닛)
+function selectionItems() {
   const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
-  if (sel.length > 1) {
-    // 다중 선택: 상대 배치를 보존한 컴포지트
-    downloadCompositeSvg(sel.map(exportItem));
-    return;
-  }
-  if (!active.value) return;
-  downloadSvg(exportItem(active.value));
+  if (sel.length > 1) return sel.map(exportItem);
+  return active.value ? [exportItem(active.value)] : [];
+}
+function exportSvg() {
+  const items = selectionItems();
+  if (!items.length) return;
+  if (items.length > 1) downloadCompositeSvg(items);
+  else downloadSvg(items[0]);
+}
+// 시스템 클립보드 복사 — SVG 텍스트(⌘C 겸용) / PNG 2x(⌘⇧C)
+async function copySelectionSvg() {
+  const items = selectionItems();
+  if (!items.length) return false;
+  await copyTextToClipboard(buildSelectionSvg(items).svg);
+  return true;
+}
+async function copySelectionPng() {
+  const items = selectionItems();
+  if (!items.length) return false;
+  const { svg, w, h } = buildSelectionSvg(items);
+  await copySvgAsPng(svg, w, h, 2);
+  return true;
 }
 const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언랩
 
@@ -143,7 +160,7 @@ function onLink(scope) {
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 const stageActions = {
-  ...docApi, exportSvg, saveProject, openProject,
+  ...docApi, exportSvg, saveProject, openProject, copySelectionSvg, copySelectionPng,
   registerPreset: (u) => presetsApi.register(u.params, u.name),
 };
 </script>

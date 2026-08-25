@@ -62,6 +62,19 @@ export function buildCompositeSvgString(items) {
   );
 }
 
+// 선택 아이템들 → { svg, w, h } (단일 = 원본 크기, 다중 = 컴포지트 bbox)
+export function buildSelectionSvg(items) {
+  if (items.length === 1) {
+    const i = items[0];
+    return { svg: buildSvgString(i), w: i.W, h: i.H };
+  }
+  const minX = Math.min(...items.map((i) => i.x));
+  const minY = Math.min(...items.map((i) => i.y));
+  const w = Math.max(...items.map((i) => i.x + i.W)) - minX;
+  const h = Math.max(...items.map((i) => i.y + i.H)) - minY;
+  return { svg: buildCompositeSvgString(items), w, h };
+}
+
 function download(str, name) {
   const blob = new Blob([str], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);

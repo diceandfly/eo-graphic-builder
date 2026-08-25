@@ -807,3 +807,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 원인: §64에서 그리드 스냅 후보를 **이동 경로에만** 추가하고 리사이즈 공용 `snapEdge`에는 누락.
 - 수정: snapEdge에 동일 규칙(마진 박스 엣지 + 컬럼/로우 라인, gridOn·snapOn 게이트) 추가 — 단일/통합/Alt 대칭 리사이즈 모두 적용.
 - 검증: sw 핸들 드래그 → 좌 950(거터 라인)·하단 390(로우 라인) 정확 착지 + 스마트가이드 2줄 표시.
+
+## 72. 2026-08-25 — Copy as SVG / PNG (시스템 클립보드)
+
+- **⌘C = 내부 복사 + 시스템 클립보드에 SVG 텍스트** (앱 내 ⌘V는 내부 클립보드만 읽으므로 상호 간섭 없음). 피그마 등 SVG 텍스트 파싱 툴에 벡터로 붙음. 일러스트레이터는 Export SVG file 경유가 정석.
+- **⌘⇧C = Copy as PNG (2x 고정)** — SVG 래스터화(캔버스) 후 image/png ClipboardItem. 캔버스 8192px 가드(초과 시 배율 자동 축소).
+- 컨텍스트 메뉴 Export 그룹 확장: [Copy as SVG (⌘C) / Copy as PNG (⌘⇧C) / Export SVG file].
+- 구현: `utils/clipboard.js`(copyTextToClipboard·copySvgAsPng), `exportSvg.buildSelectionSvg`(선택→svg+치수), App `selectionItems()` 공용화(exportSvg도 사용).
+- 검증: 가짜 클립보드 주입으로 SVG 텍스트(2.5KB)·PNG 블롭(26KB) 캡처 확인. ⚠ 브라우저 팬은 clipboard 권한 차단(NotAllowedError) — 실브라우저에서는 정상. Safari는 비동기 후 write의 사용자 제스처 제한 가능성 있음(크롬 기준 개발).

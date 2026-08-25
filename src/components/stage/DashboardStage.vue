@@ -208,6 +208,22 @@ function onCtxAction(key) {
   closeCtx();
 }
 
+// 시스템 클립보드 복사 (컨텍스트 메뉴 Export 그룹 + ⌘C/⌘⇧C)
+async function onCopySvg() {
+  try {
+    if (await props.actions.copySelectionSvg()) toast('Copied as SVG — paste into Figma etc.');
+  } catch {
+    toast('SVG copy failed (clipboard blocked?)');
+  }
+}
+async function onCopyPng() {
+  try {
+    if (await props.actions.copySelectionPng()) toast('Copied as PNG (2x)');
+  } catch {
+    toast('PNG copy failed (clipboard blocked?)');
+  }
+}
+
 // 블렌드 적용 (툴 버튼 좌클릭 / B 단축키) — 현재 blendCfg로 즉시 실행, 단일 유닛 선택 필요
 function onBlend() {
   const u = activeUnit.value;
@@ -304,7 +320,13 @@ function onKeyDown(e) {
     return;
   }
   if (mod && e.code === 'KeyC') {
-    props.actions.copyActive();
+    e.preventDefault();
+    if (e.shiftKey) {
+      onCopyPng(); // ⌘⇧C = 시스템 클립보드에 PNG(2x)
+    } else {
+      props.actions.copyActive(); // 내부 클립보드 (앱 내 ⌘V)
+      onCopySvg(); // + 시스템 클립보드에 SVG 텍스트 (외부 툴 붙여넣기)
+    }
     return;
   }
   if (mod && e.code === 'KeyG') {
@@ -1137,7 +1159,9 @@ onBeforeUnmount(() => {
         @click="onRegisterPreset"
       >Register unit preset</button>
       <div class="ctxSep" />
-      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG</button>
+      <button class="ctxItem" @click="onCopySvg(); closeCtx()">Copy as SVG (⌘C)</button>
+      <button class="ctxItem" @click="onCopyPng(); closeCtx()">Copy as PNG (⌘⇧C)</button>
+      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG file</button>
     </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
