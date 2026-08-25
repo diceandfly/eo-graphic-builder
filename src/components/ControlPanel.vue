@@ -194,6 +194,7 @@ const RECT_DIGITAL = [
   { label: '4:5', v: 4 / 5 }, // IG
 ];
 const RECT_PHYSICAL = [
+  { label: 'A3', wmm: 297, hmm: 420 },
   { label: 'A4', wmm: 210, hmm: 297 },
   { label: 'A5', wmm: 148, hmm: 210 },
   { label: 'Letter', wmm: 215.9, hmm: 279.4 },
@@ -259,7 +260,7 @@ function applyPhysical(pp) {
         @update:model-value="(v) => emit('setSize', { H: v }, sizeEach)"
       />
       <div class="ratioHead">ratio</div>
-      <!-- 직사각형: 디지털 비율 + 피지컬(출판) 규격 (dpi 기반 실제 px) -->
+      <!-- 직사각형: 디지털 비율 / 출판 규격 / dpi — 3행 구성 -->
       <template v-if="isRect">
         <div class="ratioRow">
           <ChipRow
@@ -267,12 +268,13 @@ function applyPhysical(pp) {
             @update:model-value="(v) => emit('setAspect', v, sizeEach)"
           />
         </div>
-        <div class="ratioHead physHead">physical</div>
         <div class="physRow">
           <button
             v-for="pp in RECT_PHYSICAL" :key="pp.label"
             class="physChip" @click="applyPhysical(pp)"
           >{{ pp.label }}</button>
+        </div>
+        <div class="dpiRow">
           <label class="dpiWrap">
             <span>dpi</span>
             <input
@@ -304,26 +306,11 @@ function applyPhysical(pp) {
           label="snap" :model-value="p.snapOn ? 'on' : 'off'" :options="ON_OFF"
           @update:model-value="(v) => (p.snapOn = v === 'on')"
         />
-        <Slider
-          label="margin" v-model="p.margin" :min="0" :max="200" :step="1"
-          :display="mixed('margin') ? '—' : `${p.margin}px`"
-        />
-        <Slider
-          label="rows" v-model="p.rows" :min="1" :max="12" :step="1"
-          :display="mixed('rows') ? '—' : String(p.rows)"
-        />
-        <Slider
-          label="cols" v-model="p.cols" :min="1" :max="12" :step="1"
-          :display="mixed('cols') ? '—' : String(p.cols)"
-        />
-        <Slider
-          label="gutter x" v-model="p.gutterX" :min="0" :max="100" :step="1"
-          :display="mixed('gutterX') ? '—' : `${p.gutterX}px`"
-        />
-        <Slider
-          label="gutter y" v-model="p.gutterY" :min="0" :max="100" :step="1"
-          :display="mixed('gutterY') ? '—' : `${p.gutterY}px`"
-        />
+        <Slider label="margin" v-model="p.margin" :min="0" :max="200" :step="1" editable suffix="px" />
+        <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" editable />
+        <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" editable />
+        <Slider label="gutter x" v-model="p.gutterX" :min="0" :max="100" :step="1" editable suffix="px" />
+        <Slider label="gutter y" v-model="p.gutterY" :min="0" :max="100" :step="1" editable suffix="px" />
       </template>
     </section>
     </template>
@@ -544,8 +531,8 @@ section h2 {
   margin: 0 0 14px;
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
-.physHead { margin-top: 10px; }
-.physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.dpiRow { margin-top: 8px; }
 .physChip {
   @include bordered-control;
   font-size: var(--fs-xs); padding: 3px 9px;

@@ -50,8 +50,8 @@ export function createRectParams(overrides = {}) {
     gridOn: true,
     snapOn: true, // 유닛 이동 시 이 그리드 라인에 스냅
     margin: 20,
-    rows: 4,
-    cols: 4,
+    rows: 2,
+    cols: 2,
     gutterX: 20,
     gutterY: 20,
     ...overrides,

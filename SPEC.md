@@ -769,3 +769,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **프리셋 export/import json 버튼을 리스트 상단으로 고정** (secHead 바로 아래).
 3. **BLACK 스와치 숨김** — BRAND_COLORS에서 #000000 제외(5색 복귀, 재도입 시 상수에 추가). **커스텀 컬러 단축키(7) 삭제** (툴팁 "Custom color").
 4. **rect**: 아이콘 가로형 복귀. 기본 margin **20**. **툴 버튼 더블클릭 = 1920×800 즉시 생성**(스테이지 중앙, IconButton dblclick emit 신설). **그리드 스냅 버그 픽스** — 원인: §63 생성 rect에 snapOn 필드 부재로 스냅 조건 상시 거짓 → migrateUnit에서 rect 파라미터를 createRectParams 기본값으로 보충. 검증: 유닛 드래그가 A4 rect 1컬럼 라인(x=407)에 정확 착지 — 겹친 두 그리드 중 가까운 라인 우선 동작 확인.
+
+## 66. 2026-08-25 — rect SIZE 3행 구성·그리드 입력 필드화
+
+1. **rect RATIO 재구성** — 3행: [16:9·9:16·4:5] / [**A3**·A4·A5·Letter — "physical" 라벨 제거] / [DPI 입력]. A3(297×420mm) 추가.
+2. **그리드 기본 rows 2 · cols 2** (기존 rect는 마이그레이션이 기존 값 유지 — 신규부터 적용).
+3. **Slider `editable` 확장** — 우측 값 표기를 입력 필드로(min/max 클램프, suffix 단위 표기, 스피너 없음 — 전역 CSS). rect 그리드 5개 슬라이더(margin/rows/cols/gutterX·Y) 전부 입력 필드화.
