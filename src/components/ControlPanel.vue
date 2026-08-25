@@ -165,15 +165,15 @@ function setSizeField(key, v) {
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
 }
-// 단위 전환 — 각 단위의 그리드 기본값 적용 (px 20/20/20 ↔ cm 2/0.5/0.5, §76)
+// 단위 전환 — 각 단위의 그리드 기본값 적용 (px 20/20/20 ↔ cm 0.6/0.2/0.2, §76)
 function setUnitMode(mode) {
   if (p.value.unitMode === mode) return;
   p.value.unitMode = mode;
   if (mode === 'cm') {
     const cmToPx = (v) => Math.round((v * dpi.value) / 2.54);
-    p.value.margin = cmToPx(2);
-    p.value.gutterX = cmToPx(0.5);
-    p.value.gutterY = cmToPx(0.5);
+    p.value.margin = cmToPx(0.6);
+    p.value.gutterX = cmToPx(0.2);
+    p.value.gutterY = cmToPx(0.2);
   } else {
     p.value.margin = 20;
     p.value.gutterX = 20;
