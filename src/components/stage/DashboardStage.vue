@@ -138,7 +138,7 @@ const eyedropScope = reactive({ size: true, orientation: true, grid: true, shape
 const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
 // 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색
-const view = reactive({ nudge: 5, showLinks: true, guideColor: null, ...(prefs.view || {}) });
+const view = reactive({ nudge: 5, showLinks: true, showGroups: true, guideColor: null, ...(prefs.view || {}) });
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
@@ -175,19 +175,15 @@ function closeCtx() {
 watch(ctxMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
 });
+// 유닛 프리셋 등록 가능 조건: 단일 선택 + 프리셋 가능 타입 — 아니면 메뉴 항목 비활성 (§70)
+const canRegisterPreset = computed(
+  () =>
+    !!ctxMenu.value &&
+    props.doc.selectedIds.length === 1 &&
+    isPresetable(ctxMenu.value.u)
+);
 function onRegisterPreset() {
-  // 프리셋 가능 타입(레지스트리)만 — rect 등은 추후 layout preset에서
-  if (!isPresetable(ctxMenu.value.u)) {
-    toast('This object type is not a unit preset — coming with layout presets');
-    closeCtx();
-    return;
-  }
-  // 유닛 프리셋은 단일 유닛 전용 — 그룹/멀티 선택은 배치 프리셋(추후 layout preset) 영역
-  if (props.doc.selectedIds.length !== 1) {
-    toast('Unit presets need a single unit — deselect the group first (⌘+click)');
-    closeCtx();
-    return;
-  }
+  if (!canRegisterPreset.value) return;
   const p = props.actions.registerPreset(ctxMenu.value.u);
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
   closeCtx();
@@ -966,8 +962,8 @@ onBeforeUnmount(() => {
             @contextmenu.prevent.stop="onUnitContext(u, $event)"
           />
         </g>
-        <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스 표시 토글 적용) -->
-        <template v-if="showBBox">
+        <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스·그룹 표시 토글 적용) -->
+        <template v-if="showBBox && view.showGroups">
           <rect
             v-for="(g, i) in groupOutlines" :key="'go' + i"
             class="groupLine"
@@ -1129,7 +1125,11 @@ onBeforeUnmount(() => {
         class="ctxItem" @click="onCtxAction(a.key)"
       >{{ a.label }}</button>
       <div class="ctxSep" />
-      <button class="ctxItem" @click="onRegisterPreset">Register unit preset</button>
+      <button
+        class="ctxItem" :class="{ off: !canRegisterPreset }"
+        :disabled="!canRegisterPreset"
+        @click="onRegisterPreset"
+      >Register unit preset</button>
       <div class="ctxSep" />
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG</button>
     </div>
@@ -1175,6 +1175,7 @@ onBeforeUnmount(() => {
   &:hover { color: var(--accent); }
 }
 .ctxSep { height: 1px; background: var(--line); margin: 3px 4px; }
+.ctxItem.off { color: var(--disabled); cursor: default; &:hover { color: var(--disabled); } }
 .smartguide { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }

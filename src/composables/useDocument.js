@@ -18,7 +18,7 @@ export function createParams(overrides = {}) {
     gutterMode: 'fixed', // 'fixed' | 'proportional'
     gutterPx: 10,
     g: 0.2,
-    rate: 1.618, // UI 표기 +1.03x (compression 슬라이더 환산값)
+    rate: 2, // 2:1 칩 = UI 표기 +1.67x (compression 슬라이더 환산값)
     direction: 'LtoS',
     // Shape
     dPct: 35,

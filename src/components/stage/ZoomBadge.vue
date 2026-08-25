@@ -107,6 +107,10 @@ function onGuideColor(e) {
             <input class="numInput" type="number" min="1" max="500" :value="view.nudge" @change="onNudge" />
           </label>
           <label class="menuRow">
+            <input type="checkbox" v-model="view.showGroups" />
+            <span>Show group outlines</span>
+          </label>
+          <label class="menuRow">
             <input type="checkbox" v-model="view.showLinks" />
             <span>Show link badges</span>
           </label>

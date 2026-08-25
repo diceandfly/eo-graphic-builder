@@ -186,7 +186,7 @@ const stageActions = {
   width: var(--panel-w); flex-shrink: 0; overflow-y: auto;
   margin: var(--sp-6) 0 var(--sp-6) var(--sp-6);
   height: calc(100vh - 2 * var(--sp-6)); box-sizing: border-box;
-  padding: 22px var(--panel-pad) 40px;
+  padding: 22px var(--panel-pad) 24px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;

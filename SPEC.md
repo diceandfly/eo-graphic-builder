@@ -793,3 +793,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **④ 오브젝트 타입 레지스트리** — `objects/registry.js`: OBJECT_TYPES{unit, rect}에 namePrefix·layer(z순서)·presetable·linkScoped 특성 정의 + 헬퍼(typeOf/layerOf/namePrefix/isPresetable/isLinkScoped). 적용: 이름 생성(useDocument)·z정렬(zOrdered)·프리셋 가드·스코프 칩 표시. 새 타입(이미지)은 레지스트리 한 항목+렌더 분기만 추가하면 됨.
 5. **⑤ IndexedDB 기반** — `utils/idb.js`('eo-store'/'blobs': putBlob·getBlob·deleteBlob·listBlobIds). **저장 아키텍처 결정: 문서 메타 JSON은 localStorage 유지(동기 복원), 대용량 바이너리만 IDB — 문서에는 blob id만.** 이미지 붙여넣기 라운드의 선행 기반.
 6. **⑥ 지오메트리 회귀 스위트** — `tests/geometry-regression.mjs` + `npm run test:geo`: 대표·경계 조합 30종의 export SVG 해시 스냅샷을 기준선(tests/baselines/geometry.json, 커밋 대상)과 비교. NaN/Infinity 하드 가드. 브라우저·의존성 0, node 단독 실행. 의도된 지오메트리 변경 시 `--update`로 기준선 갱신 후 커밋. eslint에 tests/ node 글로벌 추가.
+
+## 70. 2026-08-25 — 프리셋 메뉴 비활성·그룹 표시 토글·기본 압축 2:1
+
+1. **컨텍스트 메뉴 프리셋 항목 비활성화** — 단일 선택 + 프리셋 가능 타입이 아니면 "Register unit preset"이 회색 disabled (기존 토스트 안내 대체).
+2. **그룹 표시 토글** — bbox 버튼 우클릭 메뉴에 "Show group outlines" (링크 배지 위) 추가. `view.showGroups`(기본 on, eo.prefs 영속) — 그룹 점선 아웃라인 게이트.
+3. **패널 하단 여백 40→24px** — 멀티 선택 시 불필요한 스크롤 완화 (해상도별 편차는 잔존).
+4. **기본 pitch compression = 2:1** (rate 2, UI 표기 +1.67x, 2:1 칩 활성). **THREAD_MIN_RATIO 0.2%→0.1%** (극한 압축 최소폭 보정 절반). 회귀 스위트가 29/30 조합 변화를 정확 감지 → 의도 변경으로 기준선 갱신(운용 규칙 첫 적용 사례).
