@@ -7,7 +7,7 @@ import { ICONS } from '../../ui/icons.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
 // 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide)
-const props = defineProps({
+defineProps({
   mode: String, fill: String,
   scope: Object, // 스포이드 범주 토글 { size, grid, shape, color }
 }); // mode: 'select' | 'eyedrop'

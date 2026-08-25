@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$CLAUDE_FILE_PATHS\" in *src/*.js|*src/*.vue) npx eslint $CLAUDE_FILE_PATHS 2>&1 | head -30 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}

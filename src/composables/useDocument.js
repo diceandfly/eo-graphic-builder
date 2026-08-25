@@ -9,18 +9,18 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export function createParams(overrides = {}) {
   return {
     // Unit Size (캔버스 치수 — 회전 반영값)
-    W: 1200,
-    H: 675,
+    W: 960,
+    H: 810,
     orientation: 0, // 0 | 90 | 180 | 270 (시계방향)
     // Grid
-    cols: 8,
+    cols: 12,
     gutterMode: 'fixed', // 'fixed' | 'proportional'
-    gutterPx: 20,
+    gutterPx: 10,
     g: 0.2,
-    rate: 1.618,
+    rate: 1.618, // UI 표기 +1.03x (compression 슬라이더 환산값)
     direction: 'LtoS',
     // Shape
-    dPct: 50,
+    dPct: 35,
     a: 0.4,
     b: 0,
     threads: 'both',   // 'both' | 'one'
@@ -48,7 +48,7 @@ function migrateUnit(u) {
 
 export function useDocument() {
   // localStorage 자동 복원 (새로고침 안전망)
-  let savedUnits = null;
+  let savedUnits;
   let savedMeta = null;
   try {
     const raw = JSON.parse(localStorage.getItem(DOC_KEY) || 'null');

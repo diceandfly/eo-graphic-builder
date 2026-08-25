@@ -9,7 +9,7 @@ import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { BRAND_COLORS } from '../geometry/constants.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
-  D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MIN, B_MAX,
+  D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
   GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
   UNIT_MIN, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
 } from '../geometry/constants.js';
@@ -88,6 +88,7 @@ onBeforeUnmount(() => window.removeEventListener('eo:ratios', reloadRatios));
 const ratioInputOpen = ref(false);
 const ratioInput = ref('');
 const allAspects = computed(() => ASPECT_CHIPS.concat(customRatios.value));
+// eslint-disable-next-line no-unused-vars -- 커스텀 비율 + 버튼 숨김 상태, 복원 대비 유지
 function addRatio() {
   const t = ratioInput.value.trim();
   let v = null;

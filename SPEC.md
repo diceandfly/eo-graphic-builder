@@ -639,3 +639,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **CLAUDE.md "작업 원칙" 섹션 추가** — ① 명시 요청만 구현(레퍼런스 UI 임의 이식 금지, 추가 범위는 제안 후 승인 대기) ② 모드 구분(스펙/논의/분석 = 토론 모드, "구현/go" 전까지 편집 금지) ③ 검증 채널 일치(코드 리뷰 요청 시 소스 읽기, 브라우저 대체 금지).
 2. **커스텀 스킬 2종** — `.claude/skills/design-only/`(설계 토론 전용 모드, 종료 시 SPEC §기록) · `.claude/skills/source-review/`(소스 읽기 전용 리뷰, file:line 근거, node 수치 검증 허용). `/design-only`, `/source-review`로 호출.
 3. 훅(편집 후 자동 lint)은 프로젝트에 eslint/prettier 미도입이라 보류.
+
+## 53. 2026-08-25 — ESLint 도입 + 기본 유닛 파라미터 변경
+
+1. **ESLint 도입** — flat config(`eslint.config.js`): js recommended + vue essential. 조정: `multi-word-component-names` off(기존 네이밍), `no-mutating-props`는 `shallowOnly`(doc/scope를 reactive 스토어로 내려 깊은 변경하는 구조 허용), 미사용 인자 `_` 접두 허용. `npm run lint`. 편집 직후 자동 lint 훅(`.claude/settings.json` PostToolUse). 도입 시 발견된 실제 정리 4건 수정(미사용 import/변수, 무의미한 초기 대입).
+2. **기본 유닛 파라미터** — W 960 · H 810 · cols 12 · gutter 10px · compression **UI 표기 +1.03x**(내부 rate 1.618 = φ, 변경 없음) · shaft 35%. ⚠️ compression "1.03x"는 슬라이더 표기값이며 내부 rate와 환산 관계(rate = 1 + |v|/2.5×(RATE_MAX−1)) — 혼동 주의.
+3. `.claude/launch.json`에 `autoPort` 추가(5173 점유 시 자동 포트).
