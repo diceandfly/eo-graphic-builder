@@ -227,6 +227,12 @@ function onUnitDown(u, e) {
     mode.value = 'select';
     return;
   }
+  // ⌘(또는 Ctrl)+클릭 = 그룹 계층 무시하고 해당 유닛을 바로 선택 (딥 셀렉트)
+  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+    props.actions.selectOnly(u.id);
+    beginDrag(e, { kind: 'move', targets: [{ u, x0: u.x, y0: u.y }] });
+    return;
+  }
   const og = props.actions.outermost(u); // 최외곽 그룹 기준 선택
   const members = og ? props.actions.groupMemberIds(og) : [u.id];
   if (e.shiftKey) {
@@ -265,6 +271,12 @@ function onUnitDown(u, e) {
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
+}
+
+function onAlign(t) {
+  if (t === 'disth') props.actions.distributeSelected('h');
+  else if (t === 'distv') props.actions.distributeSelected('v');
+  else props.actions.alignSelected(t);
 }
 
 // 통합 바운딩박스 액션 버튼 — 선택 전체 대상
@@ -842,7 +854,7 @@ onBeforeUnmount(() => {
       @open="(f) => actions.openProject(f)"
       @reset="onReset"
     />
-    <AlignBar :active="doc.selectedIds.length >= 2" @align="(t) => actions.alignSelected(t)" />
+    <AlignBar :active="doc.selectedIds.length >= 2" @align="onAlign" />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"

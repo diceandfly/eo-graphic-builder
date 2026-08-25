@@ -339,6 +339,23 @@ export function useDocument() {
     if (p.gutterPx > max) p.gutterPx = Math.floor(max * 100) / 100;
   }
   function setSize(patch) {
+    // 멀티선택: 통합 bbox를 목표 치수로 비례 스케일 (앵커 = bbox 좌상단)
+    if (doc.selectedIds.length > 1) {
+      const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+      const bb = bboxOf(sel);
+      const sx = patch.W != null ? Math.max(patch.W, UNIT_MIN) / (bb.maxX - bb.minX) : 1;
+      const sy = patch.H != null ? Math.max(patch.H, UNIT_MIN) / (bb.maxY - bb.minY) : 1;
+      withGeomOp(() => {
+        for (const u of sel) {
+          u.x = bb.minX + (u.x - bb.minX) * sx;
+          u.y = bb.minY + (u.y - bb.minY) * sy;
+          u.params.W = clamp(Math.round(u.params.W * sx), UNIT_MIN, UNIT_MAX);
+          u.params.H = clamp(Math.round(u.params.H * sy), UNIT_MIN, UNIT_MAX);
+          normalize(u.params);
+        }
+      });
+      return;
+    }
     if (!active.value) return;
     const p = active.value.params;
     if (patch.W != null) p.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
@@ -346,6 +363,12 @@ export function useDocument() {
     normalize(p);
   }
   function setAspect(v) {
+    if (doc.selectedIds.length > 1) {
+      const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+      const bb = bboxOf(sel);
+      setSize({ H: (bb.maxX - bb.minX) / v });
+      return;
+    }
     if (active.value) setSize({ H: active.value.params.W / v });
   }
   // Δa/Δb 커플링: 합이 AB_SUM_MAX를 넘으면 반대쪽을 밀어냄
@@ -564,6 +587,31 @@ export function useDocument() {
       maxY: Math.max(...units.map((u) => u.y + u.params.H)),
     };
   }
+  // 등간격 배치 — 3블록 이상, 양 끝 고정, 사이 간격 균등
+  function distributeSelected(axis) {
+    const blocks = blocksOf(doc.selectedIds);
+    if (blocks.length < 3) return;
+    const items = blocks.map((b) => ({ b, bb: bboxOf(b) }));
+    const lo = axis === 'h' ? 'minX' : 'minY';
+    const hi = axis === 'h' ? 'maxX' : 'maxY';
+    items.sort((a, z) => a.bb[lo] - z.bb[lo]);
+    const first = items[0];
+    const last = items[items.length - 1];
+    const span = last.bb[hi] - first.bb[lo];
+    const sizes = items.reduce((t, i) => t + (i.bb[hi] - i.bb[lo]), 0);
+    const gap = (span - sizes) / (items.length - 1);
+    let cursor = first.bb[lo];
+    for (const it of items) {
+      const size = it.bb[hi] - it.bb[lo];
+      const d = cursor - it.bb[lo];
+      for (const u of it.b) {
+        if (axis === 'h') u.x += d;
+        else u.y += d;
+      }
+      cursor += size + gap;
+    }
+  }
+
   function alignSelected(type) {
     const blocks = blocksOf(doc.selectedIds);
     if (blocks.length < 2) return;
@@ -607,7 +655,7 @@ export function useDocument() {
   }
 
   return {
-    doc, active, gutterMax, alignSelected, resetDoc,
+    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,

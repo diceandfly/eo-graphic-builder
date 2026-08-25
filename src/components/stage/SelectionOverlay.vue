@@ -29,6 +29,7 @@ const CURSORS = {
 
 // 코너 바깥 회전 존 (드래그로 90° 스텝 회전) — GroupOverlay와 동일 규격
 const ROT = 18; // 존 크기 (화면 px)
+const HIT = 14; // 핸들 히트 영역 (시각 8px보다 살짝 넓게)
 const ROT_ZONES = [
   { x: 0, y: 0, ox: -1, oy: -1 }, { x: 1, y: 0, ox: 1, oy: -1 },
   { x: 0, y: 1, ox: -1, oy: 1 }, { x: 1, y: 1, ox: 1, oy: 1 },
@@ -45,26 +46,33 @@ const ROT_ZONES = [
     <rect
       v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
       class="rotZone"
-      :x="z.x * W + (z.ox < 0 ? -px(ROT) : 0)"
-      :y="z.y * H + (z.oy < 0 ? -px(ROT) : 0)"
+      :x="z.x * W + (z.ox < 0 ? -px(ROT + HIT / 2) : px(HIT / 2))"
+      :y="z.y * H + (z.oy < 0 ? -px(ROT + HIT / 2) : px(HIT / 2))"
       :width="px(ROT)" :height="px(ROT)"
       @pointerdown.stop.prevent="emit('rotateStart', $event)"
     />
-    <rect
-      v-for="h in HANDLES" :key="h.dir"
-      class="handle"
-      :x="h.x * W - px(4)" :y="h.y * H - px(4)"
-      :width="px(8)" :height="px(8)"
-      :style="{ cursor: CURSORS[h.dir] }"
-      @pointerdown.stop.prevent="emit('resizeStart', h.dir, $event)"
-    />
+    <g v-for="h in HANDLES" :key="h.dir">
+      <rect
+        class="handleHit"
+        :x="h.x * W - px(HIT / 2)" :y="h.y * H - px(HIT / 2)"
+        :width="px(HIT)" :height="px(HIT)"
+        :style="{ cursor: CURSORS[h.dir] }"
+        @pointerdown.stop.prevent="emit('resizeStart', h.dir, $event)"
+      />
+      <rect
+        class="handle"
+        :x="h.x * W - px(4)" :y="h.y * H - px(4)"
+        :width="px(8)" :height="px(8)"
+      />
+    </g>
   </g>
 </template>
 
 <style scoped lang="scss">
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .label { fill: var(--accent); font-family: inherit; user-select: none; }
-.handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.handleHit { fill: transparent; }
 .rotZone {
   fill: transparent;
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpolyline points='23 4 23 10 17 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 9 9, alias;

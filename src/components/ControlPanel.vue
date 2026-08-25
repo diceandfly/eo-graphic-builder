@@ -39,7 +39,21 @@ const linked = computed(() => {
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
 const p = computed(() => props.unit?.params);
-const aspect = computed(() => (p.value ? p.value.W / p.value.H : 1));
+// 멀티선택: SIZE는 통합 bbox 기준으로 표시·편집 (그룹을 하나의 대상처럼)
+const selBox = computed(() => {
+  if (props.selected.length < 2) return null;
+  const minX = Math.min(...props.selected.map((u) => u.x));
+  const minY = Math.min(...props.selected.map((u) => u.y));
+  return {
+    w: Math.max(...props.selected.map((u) => u.x + u.params.W)) - minX,
+    h: Math.max(...props.selected.map((u) => u.y + u.params.H)) - minY,
+  };
+});
+const dispW = computed(() => (selBox.value ? Math.round(selBox.value.w) : p.value?.W));
+const dispH = computed(() => (selBox.value ? Math.round(selBox.value.h) : p.value?.H));
+const aspect = computed(() =>
+  selBox.value ? selBox.value.w / selBox.value.h : p.value ? p.value.W / p.value.H : 1
+);
 
 // compression: 슬라이더 표기 -2.5x ~ +2.5x, 중앙 0(무압축) 스냅.
 // rate = 1 + |v|·(RATE_MAX-1)/COMP_SCALE, 부호 = 방향(+ = L→S)
@@ -142,13 +156,11 @@ function cancelRename() {
     <section>
       <h2>Size</h2>
       <NumberField
-        label="width (px)" :model-value="p.W" :min="UNIT_MIN" :max="UNIT_MAX"
-        :mixed="mixed('W')"
+        label="width (px)" :model-value="dispW" :min="UNIT_MIN" :max="UNIT_MAX"
         @update:model-value="(v) => emit('setSize', { W: v })"
       />
       <NumberField
-        label="height (px)" :model-value="p.H" :min="UNIT_MIN" :max="UNIT_MAX"
-        :mixed="mixed('H')"
+        label="height (px)" :model-value="dispH" :min="UNIT_MIN" :max="UNIT_MAX"
         @update:model-value="(v) => emit('setSize', { H: v })"
       />
       <div class="ratioHead">ratio</div>

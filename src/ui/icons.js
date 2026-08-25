@@ -31,6 +31,8 @@ export const ICONS = {
   alignTop: ['M3 5h18', 'M8 9v10', 'M14 9v6'],
   alignVCenter: ['M3 12h18', 'M8 5v14', 'M14 8v8'],
   alignBottom: ['M3 19h18', 'M8 5v10', 'M14 9v6'],
+  distributeH: ['M4 4v16', 'M20 4v16', 'M10 9h4', 'M12 7v10'],
+  distributeV: ['M4 4h16', 'M4 20h16', 'M9 10v4', 'M7 12h10'],
   // 바운딩박스 액션
   flipH: ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
   flipV: ['m3 8 4-4 4 4', 'M7 4v16', 'm21 16-4 4-4-4', 'M17 20V4'],
