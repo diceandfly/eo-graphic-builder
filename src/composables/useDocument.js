@@ -50,9 +50,13 @@ export function useDocument() {
   // localStorage 자동 복원 (새로고침 안전망)
   let savedUnits;
   let savedMeta = null;
+  let savedGroupNames = {};
+  let savedLinkScopes = {};
   try {
     const raw = JSON.parse(localStorage.getItem(DOC_KEY) || 'null');
     savedUnits = raw?.units ?? null;
+    savedGroupNames = raw?.groupNames ?? {};
+    savedLinkScopes = raw?.linkScopes ?? {};
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
   const initialUnits = (savedUnits ?? [{ id: 1, name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
@@ -66,6 +70,8 @@ export function useDocument() {
     activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
     selectedIds: [],
     keyId: null, // 정렬 기준(키 오브젝트) — 멀티선택 중 재클릭으로 지정
+    groupNames: savedGroupNames, // gid → 이름 (Group-N)
+    linkScopes: savedLinkScopes, // linkId → { size, orientation, grid, shape, color } 동기화 범주
   });
   recalcCounters();
   function recalcCounters() {
@@ -78,24 +84,38 @@ export function useDocument() {
     nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
   }
 
-  // 자동 저장 (500ms 디바운스)
+  // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 링크 스코프
   let saveTimer = null;
   watch(
-    () => JSON.stringify(doc.units),
+    () => JSON.stringify({ u: doc.units, g: doc.groupNames, l: doc.linkScopes }),
     (snap) => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        localStorage.setItem(DOC_KEY, JSON.stringify({ version: 1, savedAt: Date.now(), units: JSON.parse(snap) }));
+        const { u, g, l } = JSON.parse(snap);
+        localStorage.setItem(DOC_KEY, JSON.stringify({
+          version: 1, savedAt: Date.now(), units: u, groupNames: g, linkScopes: l,
+        }));
       }, 500);
     }
   );
 
+  // 존재하지 않는 gid/linkId의 메타 정리
+  function pruneMeta() {
+    const gids = new Set(doc.units.flatMap((u) => u.groups));
+    for (const k of Object.keys(doc.groupNames)) if (!gids.has(Number(k))) delete doc.groupNames[k];
+    const lids = new Set(doc.units.map((u) => u.linkId).filter(Boolean));
+    for (const k of Object.keys(doc.linkScopes)) if (!lids.has(Number(k))) delete doc.linkScopes[k];
+  }
+
   // JSON 프로젝트 로드 (파일 열기)
-  function loadProject(units) {
+  function loadProject(units, meta = {}) {
     doc.units.splice(0, doc.units.length, ...units.map(migrateUnit));
+    doc.groupNames = meta.groupNames ?? {};
+    doc.linkScopes = meta.linkScopes ?? {};
     doc.selectedIds = [];
     doc.activeId = units.length ? units[units.length - 1].id : null;
     recalcCounters();
+    pruneMeta();
   }
 
   // 스포이드: 소스 유닛의 파라미터를 선택된 유닛들에 흡수 (위치·이름 유지)
@@ -107,6 +127,10 @@ export function useDocument() {
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
+  // 파라미터 키 → 범주 역맵 (링크 스코프 필터용). 미분류 키(showGuides 등)는 항상 동기화.
+  const KEY_CAT = {};
+  for (const [cat, keys] of Object.entries(SCOPE_KEYS)) for (const k of keys) KEY_CAT[k] = cat;
+  const linkScopeDefault = () => ({ size: true, orientation: true, grid: true, shape: true, color: true });
   function absorbFrom(source, scope = null) {
     const keys = scope
       ? Object.entries(scope).filter(([, v]) => v).flatMap(([k]) => SCOPE_KEYS[k] || [])
@@ -114,13 +138,30 @@ export function useDocument() {
     if (!keys.length) return;
     const patch = {};
     for (const k of keys) patch[k] = source.params[k];
-    const ids = new Set(doc.selectedIds);
+    // 직접 대상(선택)은 전체 패치, 링크로만 딸려오는 멤버는 링크 스코프 필터 적용
+    const direct = new Set(doc.selectedIds);
+    const viaLink = new Map(); // id → linkId
     for (const u of doc.units) {
-      if (ids.has(u.id) && u.linkId) for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
+      if (direct.has(u.id) && u.linkId) {
+        for (const lid of linkMemberIds(u.linkId)) if (!direct.has(lid)) viaLink.set(lid, u.linkId);
+      }
     }
     for (const u of doc.units) {
-      if (u.id !== source.id && ids.has(u.id)) Object.assign(u.params, patch);
+      if (u.id === source.id) continue;
+      if (direct.has(u.id)) Object.assign(u.params, patch);
+      else if (viaLink.has(u.id)) Object.assign(u.params, filterByLinkScope(patch, viaLink.get(u.id)));
     }
+  }
+  // 링크 스코프가 꺼진 범주의 키를 patch에서 제거
+  function filterByLinkScope(patch, lid) {
+    const scope = doc.linkScopes[lid];
+    if (!scope) return patch;
+    const out = {};
+    for (const k in patch) {
+      const cat = KEY_CAT[k];
+      if (!cat || scope[cat] !== false) out[k] = patch[k];
+    }
+    return out;
   }
 
   const active = computed(() => doc.units.find((u) => u.id === doc.activeId) ?? null);
@@ -185,23 +226,37 @@ export function useDocument() {
     ([id, now], [oldId, old]) => {
       if (geomOp) return;
       if (mirrorGuard || id == null || id !== oldId || now === old) return;
-      // 대상: 멀티선택 미러링 + 링크 그룹 상시 동기화
-      const targets = new Set();
+      // 대상: 멀티선택 미러링(전체 패치) + 링크 그룹 상시 동기화(스코프 범주 필터)
+      const selT = new Set();
       if (doc.selectedIds.length >= 2 && doc.selectedIds.includes(id)) {
-        for (const sid of doc.selectedIds) targets.add(sid);
+        for (const sid of doc.selectedIds) selT.add(sid);
       }
+      const linkT = new Set();
       const me = doc.units.find((u) => u.id === id);
-      if (me?.linkId) for (const lid of linkMemberIds(me.linkId)) targets.add(lid);
-      targets.delete(id);
-      if (!targets.size) return;
+      if (me?.linkId) for (const lid of linkMemberIds(me.linkId)) linkT.add(lid);
+      selT.delete(id);
+      linkT.delete(id);
+      for (const t of selT) linkT.delete(t); // 선택에 포함된 유닛은 전체 패치 우선
+      if (!selT.size && !linkT.size) return;
       const prev = JSON.parse(old);
       const cur = JSON.parse(now);
       const patch = {};
       for (const k in cur) if (cur[k] !== prev[k]) patch[k] = cur[k];
       if (!Object.keys(patch).length) return;
+      // 링크 스코프: 꺼진 범주의 키는 링크 멤버에 전파하지 않음
+      let linkPatch = patch;
+      const scope = me?.linkId ? doc.linkScopes[me.linkId] : null;
+      if (scope) {
+        linkPatch = {};
+        for (const k in patch) {
+          const cat = KEY_CAT[k];
+          if (!cat || scope[cat] !== false) linkPatch[k] = patch[k];
+        }
+      }
       mirrorGuard = true;
       for (const u of doc.units) {
-        if (targets.has(u.id)) Object.assign(u.params, patch);
+        if (selT.has(u.id)) Object.assign(u.params, patch);
+        else if (linkT.has(u.id) && Object.keys(linkPatch).length) Object.assign(u.params, linkPatch);
       }
       mirrorGuard = false;
       // 멀티선택 편집이 여러 유닛에 퍼졌음을 1회성 토스트로 안내
@@ -212,17 +267,15 @@ export function useDocument() {
     }
   );
 
-  // ---- 히스토리 (undo/redo) — units 상태 스냅샷, 연속 조작은 350ms 디바운스로 병합 ----
-  const stack = [JSON.stringify(doc.units)];
+  // ---- 히스토리 (undo/redo) — units+메타 스냅샷, 연속 조작은 350ms 디바운스로 병합 ----
+  const histSnap = () => JSON.stringify({ u: doc.units, g: doc.groupNames, l: doc.linkScopes });
+  const stack = [histSnap()];
   let idx = 0;
   let pending = null;
-  watch(
-    () => JSON.stringify(doc.units),
-    (snap) => {
-      clearTimeout(pending);
-      pending = setTimeout(() => pushState(snap), 350);
-    }
-  );
+  watch(histSnap, (snap) => {
+    clearTimeout(pending);
+    pending = setTimeout(() => pushState(snap), 350);
+  });
   function pushState(snap) {
     if (snap === stack[idx]) return;
     stack.splice(idx + 1);
@@ -232,13 +285,15 @@ export function useDocument() {
   }
   function flushHistory() {
     clearTimeout(pending);
-    pushState(JSON.stringify(doc.units));
+    pushState(histSnap());
   }
   function applyState(snap) {
-    const arr = JSON.parse(snap);
-    doc.units.splice(0, doc.units.length, ...arr);
-    doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((u) => u.id === id));
-    if (!doc.units.find((u) => u.id === doc.activeId)) {
+    const { u, g, l } = JSON.parse(snap);
+    doc.units.splice(0, doc.units.length, ...u);
+    doc.groupNames = g ?? {};
+    doc.linkScopes = l ?? {};
+    doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((x) => x.id === id));
+    if (!doc.units.find((x) => x.id === doc.activeId)) {
       doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
     }
   }
@@ -276,6 +331,11 @@ export function useDocument() {
     const params = createParams();
     return pushUnit(params, Math.round(x - params.W / 2), Math.round(y - params.H / 2));
   }
+  // 프리셋 파라미터로 유닛 생성 (구버전 프리셋은 createParams 기본값으로 보충)
+  function createUnitFrom(params, x = 0, y = 0) {
+    const p = createParams({ ...params });
+    return pushUnit(p, Math.round(x - p.W / 2), Math.round(y - p.H / 2));
+  }
 
   function renameActive(name) {
     const t = name.trim();
@@ -293,6 +353,7 @@ export function useDocument() {
     const gcount = {};
     for (const u of doc.units) for (const g of u.groups) gcount[g] = (gcount[g] || 0) + 1;
     for (const u of doc.units) u.groups = u.groups.filter((g) => gcount[g] >= 2);
+    pruneMeta();
   }
 
   function duplicateActive() {
@@ -311,7 +372,10 @@ export function useDocument() {
     for (const u of units) {
       const id = nextId++;
       const groups = u.groups.map((g) => {
-        if (!gidMap.has(g)) gidMap.set(g, nextGroup++);
+        if (!gidMap.has(g)) {
+          gidMap.set(g, nextGroup++);
+          doc.groupNames[gidMap.get(g)] = doc.groupNames[g] ?? `Group-${gidMap.get(g)}`;
+        }
         return gidMap.get(g);
       });
       doc.units.push({
@@ -428,13 +492,15 @@ export function useDocument() {
     const p = active.value.params;
     isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
   }
-  // 스와치: 선택 유닛(없으면 활성)에 fill 적용
+  // 스와치: 선택 유닛(없으면 활성)에 fill 적용 — 링크 확산은 color 스코프가 켜진 링크만
   function setFill(color) {
     const ids = new Set(
       doc.selectedIds.length ? doc.selectedIds : doc.activeId != null ? [doc.activeId] : []
     );
     for (const u of doc.units) {
-      if (ids.has(u.id) && u.linkId) for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
+      if (ids.has(u.id) && u.linkId && doc.linkScopes[u.linkId]?.color !== false) {
+        for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
+      }
     }
     for (const u of doc.units) if (ids.has(u.id)) u.params.fill = color;
   }
@@ -465,6 +531,11 @@ export function useDocument() {
     }
     const gid = nextGroup++;
     for (const u of units) u.groups.push(gid); // 바깥 레이어로 추가 — 내부 구조 유지
+    doc.groupNames[gid] = `Group-${gid}`;
+  }
+  function renameGroup(gid, name) {
+    const t = String(name).trim();
+    if (t && doc.groupNames[gid] != null) doc.groupNames[gid] = t;
   }
   // 1레이어 언그룹: 선택된 유닛들의 최외곽 그룹만 벗김
   function ungroupSelected() {
@@ -474,6 +545,7 @@ export function useDocument() {
     for (const u of doc.units) {
       if (doc.selectedIds.includes(u.id) && outs.has(outermost(u))) u.groups.pop();
     }
+    pruneMeta();
   }
 
   // ---- 링크 (파라미터 상시 동기화) ----
@@ -487,9 +559,11 @@ export function useDocument() {
     const lids = [...new Set(sel.map((u) => u.linkId))];
     if (lids.length === 1 && lids[0] != null && linkMemberIds(lids[0]).length === sel.length) {
       for (const u of sel) u.linkId = null;
+      pruneMeta();
       return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
+      doc.linkScopes[lid] = linkScopeDefault();
       // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일
       const src = sel.find((u) => u.id === doc.activeId) ?? sel[0];
       for (const u of sel) {
@@ -497,6 +571,7 @@ export function useDocument() {
         if (u !== src) Object.assign(u.params, { ...src.params });
       }
       cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
+      pruneMeta();
       return { action: 'linked', count: sel.length, src: src.name };
     }
   }
@@ -513,7 +588,8 @@ export function useDocument() {
     const u = active.value;
     if (!u) return;
     const targets = [u];
-    if (u.linkId) {
+    // 링크 확산은 orientation 스코프가 켜진 링크만
+    if (u.linkId && doc.linkScopes[u.linkId]?.orientation !== false) {
       for (const m of doc.units) if (m.linkId === u.linkId && m !== u) targets.push(m);
     }
     withGeomOp(() => {
@@ -674,12 +750,15 @@ export function useDocument() {
     doc.activeId = doc.units[0].id;
     doc.selectedIds = [doc.units[0].id];
     doc.keyId = null;
+    doc.groupNames = {};
+    doc.linkScopes = {};
   }
 
   return {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
-    duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit,
+    duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
+    renameGroup,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

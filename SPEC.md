@@ -666,3 +666,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **캔버스 그리드 기본 80px** (STAGE_GRID).
 5. **⇧⌘+클릭 = 딥 셀렉트 멀티 토글** — 그룹 계층 무시하고 개별 유닛을 선택에 추가/제거 (⌘클릭 단일 딥 셀렉트와 병행).
 6. **스포이드 범주 Orientation 추가** — `['orientation', 'flipX']` (size에서 orientation 분리, §50의 flipX 제외 방침을 개정: 명시적 범주로 흡수 가능). 메뉴 순서 Size·Orientation·Grid·Shape Adjustment·Color.
+
+## 56. 2026-08-25 — 그룹 이름·링크 스코프·유닛 프리셋·커스텀 컬러 (8건 라운드)
+
+1. **D = 삭제 단축키** (Delete/Backspace와 동일, 입력 중 가드). 오버레이 툴팁 "Delete (D)".
+2. **스포이드 메뉴 Orientation 맨 아래로.**
+3. **그룹 이름** — 그룹 생성 시 `Group-{gid}` 자동 명명, `doc.groupNames`(gid→이름). 선택이 하나의 최외곽 그룹 전체면 패널 상단 이름이 그룹 이름으로 표시·인라인 편집(`renameGroup`). 복제 시 이름 승계. **문서 메타 통합**: groupNames·linkScopes가 자동저장/히스토리(undo)/JSON 저장·열기에 포함되도록 스냅샷 구조 확장(`{u,g,l}`), `pruneMeta()`로 고아 메타 정리.
+4. **커스텀 컬러 칩** — 툴바 스와치 6번째 + 패널 팔레트 끝에 무지개 칩(네이티브 `<input type="color">`). 현재 fill이 브랜드 외 색이면 칩이 그 색을 표시하고 active.
+5. **링크 동기화 스코프** — 링크별 `doc.linkScopes[lid] = {size, orientation, grid, shape, color}` (기본 전체 on, 구버전 링크는 스코프 없음=전체 on). LINK 섹션에 5개 칩(size/orient/grid/shape/color, bordered-control+accent active). 꺼진 범주는 전파 안 됨 — 적용 지점 3곳: ① 미러 워처(링크 멤버에만 필터, 멀티선택 브로드캐스트는 전체) ② `setFill`/`absorbFrom` 직접 확산 경로 ③ `rotate`의 링크 확산(orientation 스코프). ⚠️ 링크 확산은 워처 외에 직접 순회 경로가 있음을 주의.
+6. **패널 스크롤바** — 6px 슬림, thumb `--line`/hover `--faint`, Firefox `scrollbar-width: thin`.
+7. **유닛 프리셋** — `usePresets`(localStorage 'eo.presets'): 유닛 **우클릭 → "Register unit preset"** 컨텍스트 메뉴(스테이지 HTML 오버레이, 외부 클릭 닫힘)로 파라미터 1벌 등록(`Preset-N`). **선택 없음 패널 = 프리셋 브라우저**: NEW UNIT 버튼 + 썸네일 2컬럼/리스트 뷰 토글(localStorage 영속), 실제 파라미터로 SVG 프리뷰(UnitGraphic 재사용), 클릭=스테이지 중앙 배치(`createUnitFrom`), 호버 × 삭제. 배치 프리셋(패턴)은 Phase 2 템플릿에서.
+8. 세로 블렌딩은 프리셋 완성 후 추가 토론 예정 (§55 라운드 답변: geometry 확장 방식 권고).

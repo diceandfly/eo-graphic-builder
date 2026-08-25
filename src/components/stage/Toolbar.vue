@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
@@ -7,10 +7,11 @@ import { ICONS } from '../../ui/icons.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 도구 바 (두 FloatingBar, gap 분리)
 // 아이콘: 24 viewBox 스트로크 패스 (Feather/Lucide)
-defineProps({
+const props = defineProps({
   mode: String, fill: String,
-  scope: Object, // 스포이드 범주 토글 { size, grid, shape, color }
+  scope: Object, // 스포이드 범주 토글 { size, orientation, grid, shape, color }
 }); // mode: 'select' | 'eyedrop'
+const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open', 'reset']);
 
 const TOOLS = [
@@ -46,7 +47,7 @@ function closeMenu() {
 watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
-const SCOPE_LABELS = { size: 'Size', orientation: 'Orientation', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
+const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color', orientation: 'Orientation' };
 
 // 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
 const resetStage = ref(0);
@@ -92,6 +93,12 @@ function onFile(e) {
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></IconButton>
+      <!-- 자유 컬러: 네이티브 피커 (칩 클릭 = 피커 열기) -->
+      <IconButton :active="isCustomFill" tip="Custom color">
+        <label class="chip customChip" :style="isCustomFill ? { background: fill } : {}">
+          <input type="color" :value="fill || '#F9EE48'" @input="(e) => emit('fill', e.target.value)" />
+        </label>
+      </IconButton>
     </FloatingBar>
 
     <!-- 도구 바 -->
@@ -141,6 +148,11 @@ function onFile(e) {
 .chip {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);
+}
+.customChip {
+  cursor: pointer;
+  background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  input { position: absolute; opacity: 0; width: 0; height: 0; }
 }
 .toolWrap { position: relative; }
 .menu {

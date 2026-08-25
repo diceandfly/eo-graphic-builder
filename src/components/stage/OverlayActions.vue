@@ -16,7 +16,7 @@ const ACTIONS = [
   { key: 'flip', tip: 'Flip horizontal (⇧H)', paths: ICONS.flipH },
   { key: 'flipv', tip: 'Flip vertical (⇧V)', paths: ICONS.flipV },
   { key: 'dup', tip: 'Duplicate', paths: ICONS.duplicate },
-  { key: 'del', tip: 'Delete', paths: ICONS.trash },
+  { key: 'del', tip: 'Delete (D)', paths: ICONS.trash },
 ];
 
 const tip = ref(null);

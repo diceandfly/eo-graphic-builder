@@ -110,6 +110,24 @@ watch(
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
 const gapGuides = ref([]);   // [{ axis: 'x'|'y', at, segs: [[a,b],[c,d]] }] — 등간격 표시
 
+// 유닛 우클릭 컨텍스트 메뉴 — 프리셋 등록류 (저빈도·명명형 작업 전용 표면)
+const ctxMenu = ref(null); // { x, y, u } — 스테이지 로컬 px
+function onUnitContext(u, e) {
+  const [lx, ly] = local(e);
+  ctxMenu.value = { x: lx, y: ly, u };
+}
+function closeCtx() {
+  ctxMenu.value = null;
+}
+watch(ctxMenu, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
+});
+function onRegisterPreset() {
+  const p = props.actions.registerPreset(ctxMenu.value.u);
+  toast(`Registered "${p.name}" — browse presets when nothing is selected`);
+  closeCtx();
+}
+
 // ---- 드래그 상태 머신 (pan | move | resize) ----
 let drag = null;
 let keyCandidate = null; // 멀티선택 중 재클릭 → 정렬 키 오브젝트 후보
@@ -186,6 +204,12 @@ function onKeyDown(e) {
     return;
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selectedIds.length) {
+    e.preventDefault();
+    props.actions.deleteSelected();
+    return;
+  }
+  // D = 삭제 (Delete/Backspace와 동일)
+  if (!mod && !e.shiftKey && e.code === 'KeyD' && props.doc.selectedIds.length) {
     e.preventDefault();
     props.actions.deleteSelected();
     return;
@@ -772,6 +796,7 @@ onBeforeUnmount(() => {
             :width="u.params.W" :height="u.params.H"
             fill="transparent"
             @pointerdown.stop="onUnitDown(u, $event)"
+            @contextmenu.prevent.stop="onUnitContext(u, $event)"
           />
         </g>
         <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스 표시 토글 적용) -->
@@ -901,6 +926,15 @@ onBeforeUnmount(() => {
       @toggle-stage-grid="showStageGrid = !showStageGrid"
       @toggle-bbox="showBBox = !showBBox"
     />
+    <div
+      v-if="ctxMenu"
+      class="ctxMenu"
+      :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
+      @pointerdown.stop
+      @contextmenu.prevent
+    >
+      <button class="ctxItem" @click="onRegisterPreset">Register unit preset</button>
+    </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
 </template>
@@ -926,6 +960,18 @@ onBeforeUnmount(() => {
   border-radius: var(--radius);
 }
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
+.ctxMenu {
+  position: absolute; z-index: 10;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 4px; display: flex; flex-direction: column;
+}
+.ctxItem {
+  border: none; background: none; color: var(--text); cursor: pointer;
+  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  padding: 6px 10px; text-align: left; border-radius: var(--radius);
+  white-space: nowrap;
+  &:hover { color: var(--accent); }
+}
 .smartguide { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
