@@ -6,6 +6,11 @@ import globals from 'globals';
 // 목적: 미정의 변수·미사용 변수·export 누락 같은 "조용한 실패" 조기 경보.
 export default [
   { ignores: ['dist/**', 'node_modules/**'] },
+  // tests/는 node 실행 스크립트 (회귀 스위트)
+  {
+    files: ['tests/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+  },
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   {

@@ -1,0 +1,122 @@
+{
+  "default": {
+    "hash": "21028186c8ee6104",
+    "bytes": 2545
+  },
+  "cols-min": {
+    "hash": "44b6fd51403c6c50",
+    "bytes": 817
+  },
+  "cols-max": {
+    "hash": "59e73e2043d156b4",
+    "bytes": 4849
+  },
+  "rate-1": {
+    "hash": "7a9f1455df6208b7",
+    "bytes": 2537
+  },
+  "rate-max": {
+    "hash": "025f35258118f050",
+    "bytes": 2545
+  },
+  "dir-StoL": {
+    "hash": "3a9d15a2e7a37c36",
+    "bytes": 2495
+  },
+  "gutter-0": {
+    "hash": "ead5f968c6dcd5a9",
+    "bytes": 2545
+  },
+  "gutter-prop": {
+    "hash": "36e846ff88b8427f",
+    "bytes": 2545
+  },
+  "gutter-prop-min": {
+    "hash": "a3346211a236c6e2",
+    "bytes": 4849
+  },
+  "shaft-min": {
+    "hash": "9d65cbb647a56edb",
+    "bytes": 2544
+  },
+  "shaft-max": {
+    "hash": "c79e8401861d2742",
+    "bytes": 2520
+  },
+  "a-min": {
+    "hash": "588133c31e2e690a",
+    "bytes": 2544
+  },
+  "a-max": {
+    "hash": "a234ff905075840f",
+    "bytes": 2544
+  },
+  "b-max": {
+    "hash": "cecdb9b0e296af12",
+    "bytes": 2545
+  },
+  "ab-couple": {
+    "hash": "fb451c92f603c116",
+    "bytes": 2545
+  },
+  "threads-one": {
+    "hash": "1d50b74ad5746be8",
+    "bytes": 1373
+  },
+  "threadDir-RtoL": {
+    "hash": "1fa7df9966cc6dc5",
+    "bytes": 2545
+  },
+  "flipX": {
+    "hash": "9ca179c0a0334102",
+    "bytes": 2495
+  },
+  "flipX-StoL": {
+    "hash": "1fa7df9966cc6dc5",
+    "bytes": 2545
+  },
+  "orient-90": {
+    "hash": "40f2d1261820e67c",
+    "bytes": 2597
+  },
+  "orient-180": {
+    "hash": "182eb8f87f5e5123",
+    "bytes": 2605
+  },
+  "orient-270": {
+    "hash": "ea217036f358b22c",
+    "bytes": 2598
+  },
+  "tiny-1px": {
+    "hash": "34e3550f6ec7f830",
+    "bytes": 2249
+  },
+  "tiny-10px": {
+    "hash": "0d842e3929e0d630",
+    "bytes": 2300
+  },
+  "tiny-wide": {
+    "hash": "d72009f2a93c1a01",
+    "bytes": 2456
+  },
+  "tiny-tall": {
+    "hash": "7cd1c1299753c20c",
+    "bytes": 2427
+  },
+  "huge": {
+    "hash": "b2be241325c23249",
+    "bytes": 2717
+  },
+  "combo-compress-one": {
+    "hash": "e10ca16a29f324ae",
+    "bytes": 1936
+  },
+  "combo-flip-rot": {
+    "hash": "ef3da6f2ae612b55",
+    "bytes": 2557
+  },
+  "combo-prop-extreme": {
+    "hash": "1e9c3cee15c63a52",
+    "bytes": 2543
+  }
+}
