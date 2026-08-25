@@ -24,8 +24,8 @@ const RESET_TIPS = [
   'FINAL WARNING — every unit will be vaporized. They had families.',
 ];
 const RESET_TONES = ['default', 'danger', 'doom'];
-// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 식칼
-const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.cleaver];
+// 1·2단계 = 일반 리셋 화살표, 3단계(최후통첩)에서만 해적 해골
+const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.pirateSkull];
 
 function onAction(key) {
   if (key === 'save') emit('save');

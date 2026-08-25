@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import StepField from '../controls/StepField.vue';
@@ -10,7 +10,8 @@ import { ICONS } from '../../ui/icons.js';
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
 const props = defineProps({
   mode: String, fill: String,
-  scope: Object, // 스포이드 범주 토글 { size, orientation, grid, shape, color }
+  scope: Object,    // 스포이드 범주 토글 { size, orientation, grid, shape, color }
+  blendCfg: Object, // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
 }); // mode: 'select' | 'eyedrop'
 const emit = defineEmits(['update:mode', 'fill', 'blend']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
@@ -42,10 +43,10 @@ watch(menuOpen, (open) => {
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape', color: 'Color', orientation: 'Orientation' };
 
-// 블렌드 도구 — 단일 유닛 선택 후 방향·반복·간격·배율로 반복 복제 (§59)
+// 블렌드 도구 — 좌클릭/B = 현재 설정으로 즉시 적용, 우클릭 = 옵션 메뉴 (다른 툴 버튼과 동일 문법)
 const blendOpen = ref(false);
-const blendCfg = reactive({ axis: 'v', count: 4, gap: 20, scale: 0.8 });
-function toggleBlend() {
+function onBlendContext(e) {
+  e.preventDefault();
   blendOpen.value = !blendOpen.value;
 }
 function closeBlend() {
@@ -54,10 +55,6 @@ function closeBlend() {
 watch(blendOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeBlend, { once: true }), 0);
 });
-function applyBlend() {
-  emit('blend', { ...blendCfg });
-  closeBlend();
-}
 
 // 커스텀 컬러 hex 팝업 (옵션창 공통 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
 const customOpen = ref(false);
@@ -149,15 +146,16 @@ function applyHex(e) {
           </label>
         </div>
       </div>
-      <!-- 블렌드 도구: 반복 복제 팝업 -->
+      <!-- 블렌드 도구: 좌클릭/B = 즉시 적용, 우클릭 = 옵션 (표시 중엔 툴팁 억제) -->
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.blend"
           :active="blendOpen"
-          :tip="blendOpen ? '' : 'Blend (repeat & scale)'"
-          @click="toggleBlend"
+          :tip="blendOpen ? '' : 'Blend (B)'"
+          @click="emit('blend')"
+          @contextmenu="onBlendContext"
         />
-        <div v-if="blendOpen" class="menu" @pointerdown.stop>
+        <div v-if="blendOpen && blendCfg" class="menu" @pointerdown.stop>
           <div class="menuTitle">Blend</div>
           <div class="menuRow">
             <span class="rowLabel">direction</span>
@@ -178,7 +176,6 @@ function applyHex(e) {
             <span class="rowLabel">scale</span>
             <StepField v-model="blendCfg.scale" :min="0.05" :max="3" :step="0.05" />
           </div>
-          <button class="applyBtn" @click="applyBlend">apply</button>
         </div>
       </div>
     </FloatingBar>
@@ -211,7 +208,7 @@ function applyHex(e) {
 }
 .menuTitle {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 2px;
+  color: var(--faint); margin-bottom: 2px; white-space: nowrap;
 }
 .menuRow {
   display: flex; align-items: center; gap: var(--sp-3);
@@ -230,11 +227,5 @@ function applyHex(e) {
     &:not(:last-child) { border-right: 1px solid var(--line); }
     &.on { @include active-outline-inset; }
   }
-}
-.applyBtn {
-  @include bordered-control;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  padding: 5px 10px; margin-top: 2px;
-  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>

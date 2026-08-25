@@ -131,8 +131,10 @@ const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) 
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
 // 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색
 const view = reactive({ nudge: 5, showLinks: true, guideColor: null, ...(prefs.view || {}) });
+// 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
+const blendCfg = reactive({ axis: 'v', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
 watch(
-  () => JSON.stringify({ eyedropScope, grid: gridCfg, view }),
+  () => JSON.stringify({ eyedropScope, grid: gridCfg, view, blend: blendCfg }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
@@ -176,15 +178,15 @@ function onCtxAction(key) {
   closeCtx();
 }
 
-// 블렌드 적용 (툴바 팝업에서) — 단일 유닛 선택 필요
-function onBlend(cfg) {
+// 블렌드 적용 (툴 버튼 좌클릭 / B 단축키) — 현재 blendCfg로 즉시 실행, 단일 유닛 선택 필요
+function onBlend() {
   const u = activeUnit.value;
   if (!u || props.doc.selectedIds.length !== 1) {
     toast('Select a single unit to blend');
     return;
   }
-  const created = props.actions.blendFrom(u, cfg);
-  toast(`Blended ${created.length} ${cfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
+  const created = props.actions.blendFrom(u, { ...blendCfg });
+  toast(`Blended ${created.length} ${blendCfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
 }
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
@@ -302,6 +304,7 @@ function onKeyDown(e) {
   }
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
+  if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -977,6 +980,7 @@ onBeforeUnmount(() => {
       v-model:mode="mode"
       :fill="activeUnit?.params.fill"
       :scope="eyedropScope"
+      :blend-cfg="blendCfg"
       @fill="(c) => actions.setFill(c)"
       @blend="onBlend"
     />

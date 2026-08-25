@@ -52,8 +52,10 @@ function bump(d) {
 }
 .btns { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
 .btns button {
-  flex: 1; border: none; background: none; color: var(--faint); cursor: pointer;
-  font-size: 8px; line-height: 1; padding: 0 4px; font-family: inherit;
+  flex: 1; min-height: 10px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none; color: var(--faint); cursor: pointer;
+  font-size: 9px; line-height: 1; padding: 0 4px; font-family: inherit;
   &:hover { color: var(--accent); }
   &:first-child { border-bottom: 1px solid var(--line); }
 }

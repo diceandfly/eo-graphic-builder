@@ -158,7 +158,7 @@ function onGuideColor(e) {
 }
 .menuTitle {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 2px;
+  color: var(--faint); margin-bottom: 2px; white-space: nowrap;
 }
 .menuRow {
   display: flex; align-items: center; gap: var(--sp-3);

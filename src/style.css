@@ -1,6 +1,14 @@
 @import './styles/tokens/index.css';
 
 * { box-sizing: border-box; }
+
+/* 숫자 필드 네이티브 스피너 전역 제거 — 화살표가 필요한 곳은 StepField 컴포넌트 사용 */
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 html, body { margin: 0; padding: 0; }
 body {
   background: var(--bg);

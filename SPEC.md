@@ -724,3 +724,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 10. 정렬 툴바 — 이미 동일 컴포넌트(IconButton/FloatingBar)였음. 라인형 아이콘의 광학 보정으로 정렬 아이콘만 +2px.
 11. **링크 배지 번호 = 선택 문맥 기준** — 전역 누적 번호 폐기, 현재 보이는 링크들 안에서 1..k 재부여. 링크 1개면 숫자 없이 아이콘만.
 12. **StepField 컨트롤 신설** (`controls/StepField.vue`) — 네이티브 스피너 대신 상시 표시 토큰 스타일 ▴▾(필드 우측 분리 컬럼, 숫자 안 가림). 블렌드 팝업 3필드 적용.
+
+## 61. 2026-08-25 — 해적 해골·전역 스피너 제거·블렌드 상호작용 개편·등분 아이콘
+
+1. **리셋 3단계 아이콘 → 해적 해골** (`ICONS.pirateSkull`, 커스텀 졸리 로저: 두개골+눈+치아+교차 뼈). cleaver 삭제.
+2. **숫자 필드 네이티브 스피너 전역 제거** (style.css) — 화살표가 필요한 곳은 StepField만 사용.
+3. **블렌드 상호작용 개편** — 툴팁 "Blend (B)". **좌클릭/B 단축키 = 현재 설정으로 즉시 적용**, **우클릭 = 옵션 메뉴** (스포이드와 동일 문법, apply 버튼 삭제). `blendCfg`는 DashboardStage로 이동해 eo.prefs 영속. 기본 scale **0.5**. StepField 아래 화살표 잘림 수정(min-height+flex 정렬). 모든 팝업 menuTitle `white-space: nowrap`(스포이드 "Eyedropper picks" 줄바꿈 해결 — 창 폭이 타이틀에 맞게 늘어남).
+4. (3에 포함)
+5. **등분 아이콘 교체** — distributeH/V: 양끝 고정선 + 가운데 블록 (`['M4 4v16','M20 4v16','M12 8v8']` 형태) — "양 끝 사이 균등 배치" 의미 직관화.
