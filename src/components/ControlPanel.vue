@@ -46,6 +46,11 @@ const linked = computed(() => {
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
 const p = computed(() => props.unit?.params);
+// 직사각형 오브젝트: 전용 섹션(FILL/STROKE/GRID) 분기
+const isRect = computed(() => props.unit?.type === 'rect');
+const ON_OFF = [{ value: 'on', label: 'on' }, { value: 'off', label: 'off' }];
+// 링크 스코프 범주는 나사축 유닛 전용 — rect가 섞이면 칩 숨김 (rect 링크는 전체 동기화)
+const scopeChipsVisible = computed(() => props.selected.every((u) => u.type !== 'rect'));
 // 멀티선택: SIZE는 통합 bbox 기준으로 표시·편집 (그룹을 하나의 대상처럼)
 // EACH 토글 on이면 bbox 대신 개별 유닛 속성으로 표시·적용 (같은 값을 각자에게)
 const eachMode = ref(false);
@@ -185,6 +190,14 @@ function applyHex(e) {
   if (t[0] !== '#') t = '#' + t;
   if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
 }
+// rect 전용: 특정 파라미터 키에 hex 직접 적용 (fill / strokeColor)
+function applyHexTo(e, key) {
+  let t = e.target.value.trim();
+  if (!t) return;
+  if (t[0] !== '#') t = '#' + t;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) p.value[key] = t;
+  else e.target.value = p.value[key];
+}
 </script>
 
 <template>
@@ -243,6 +256,95 @@ function applyHex(e) {
       </div>
     </section>
 
+    <!-- 직사각형 전용 섹션 -->
+    <template v-if="isRect">
+    <section>
+      <h2>Fill</h2>
+      <Toggle
+        label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.fillOn = v === 'on')"
+      />
+      <div v-if="p.fillOn" class="palette">
+        <button
+          v-for="c in BRAND_COLORS" :key="'rf' + c"
+          class="colorChip" :class="{ on: !mixed('fill') && p.fill === c }"
+          :style="{ background: c }" @click="p.fill = c"
+        />
+      </div>
+      <div v-if="p.fillOn" class="hexRow">
+        <span class="hexLabel">custom</span>
+        <input
+          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+          :value="mixed('fill') ? '' : p.fill"
+          @keydown.enter="(e) => applyHexTo(e, 'fill')"
+          @change="(e) => applyHexTo(e, 'fill')"
+        />
+      </div>
+    </section>
+
+    <section>
+      <h2>Stroke</h2>
+      <Toggle
+        label="stroke" :model-value="p.strokeOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.strokeOn = v === 'on')"
+      />
+      <div v-if="p.strokeOn" class="palette">
+        <button
+          v-for="c in BRAND_COLORS" :key="'rs' + c"
+          class="colorChip" :class="{ on: !mixed('strokeColor') && p.strokeColor === c }"
+          :style="{ background: c }" @click="p.strokeColor = c"
+        />
+      </div>
+      <div v-if="p.strokeOn" class="hexRow">
+        <span class="hexLabel">custom</span>
+        <input
+          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+          :value="mixed('strokeColor') ? '' : p.strokeColor"
+          @keydown.enter="(e) => applyHexTo(e, 'strokeColor')"
+          @change="(e) => applyHexTo(e, 'strokeColor')"
+        />
+      </div>
+    </section>
+
+    <section>
+      <h2>Grid</h2>
+      <Toggle
+        label="grid" :model-value="p.gridOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.gridOn = v === 'on')"
+      />
+      <template v-if="p.gridOn">
+        <Toggle
+          label="unit" v-model="p.gridUnit"
+          :options="[{ value: 'px', label: 'px' }, { value: 'pct', label: '%' }]"
+        />
+        <Slider
+          label="margin" v-model="p.margin"
+          :min="0" :max="p.gridUnit === 'pct' ? 25 : 200" :step="p.gridUnit === 'pct' ? 0.5 : 1"
+          :display="mixed('margin') ? '—' : `${p.margin}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+        />
+        <Slider
+          label="rows" v-model="p.rows" :min="1" :max="24" :step="1"
+          :display="mixed('rows') ? '—' : String(p.rows)"
+        />
+        <Slider
+          label="cols" v-model="p.cols" :min="1" :max="24" :step="1"
+          :display="mixed('cols') ? '—' : String(p.cols)"
+        />
+        <Slider
+          label="gutter x" v-model="p.gutterX"
+          :min="0" :max="p.gridUnit === 'pct' ? 10 : 100" :step="p.gridUnit === 'pct' ? 0.5 : 1"
+          :display="mixed('gutterX') ? '—' : `${p.gutterX}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+        />
+        <Slider
+          label="gutter y" v-model="p.gutterY"
+          :min="0" :max="p.gridUnit === 'pct' ? 10 : 100" :step="p.gridUnit === 'pct' ? 0.5 : 1"
+          :display="mixed('gutterY') ? '—' : `${p.gutterY}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+        />
+      </template>
+    </section>
+    </template>
+
+    <template v-if="!isRect">
     <section>
       <h2>Grid</h2>
       <Slider
@@ -335,6 +437,7 @@ function applyHex(e) {
         />
       </div>
     </section>
+    </template>
 
     <section v-if="selected.length >= 2">
       <h2>Link</h2>
@@ -342,7 +445,7 @@ function applyHex(e) {
         {{ linked ? 'unlink parameters' : 'link parameters' }}
       </button>
       <!-- 링크 동기화 범주: 링크 전엔 드래프트, 링크 후엔 해당 링크의 스코프 편집 -->
-      <div class="scopeChips">
+      <div v-if="scopeChipsVisible" class="scopeChips">
         <button
           v-for="(label, key) in LINK_CATS" :key="key"
           class="scopeChip" :class="{ on: scopeOn(key) }"

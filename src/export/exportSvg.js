@@ -28,10 +28,20 @@ function unitBody({ W, H, unit, orientation = 0, fill = BRAND_COLORS[0] }) {
   return body;
 }
 
+// 오브젝트 타입 분기: 나사축 유닛 | 직사각형 (그리드 가이드는 export 미포함)
+function objectBody(i) {
+  if (i.type === 'rect') {
+    const fill = i.fillOn === false ? 'none' : i.fill || '#3b3b3b';
+    const stroke = i.strokeOn ? ` stroke="${i.strokeColor}" stroke-width="1"` : '';
+    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"${stroke}/>`;
+  }
+  return unitBody(i);
+}
+
 export function buildSvgString(args) {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${args.W}" height="${args.H}" viewBox="0 0 ${args.W} ${args.H}">` +
-    unitBody(args) +
+    objectBody(args) +
     `</svg>`
   );
 }
@@ -44,7 +54,7 @@ export function buildCompositeSvgString(items) {
   const w = Math.max(...items.map((i) => i.x + i.W)) - minX;
   const h = Math.max(...items.map((i) => i.y + i.H)) - minY;
   const body = items
-    .map((i) => `<g transform="translate(${f(i.x - minX)} ${f(i.y - minY)})">${unitBody(i)}</g>`)
+    .map((i) => `<g transform="translate(${f(i.x - minX)} ${f(i.y - minY)})">${objectBody(i)}</g>`)
     .join('');
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${f(w)}" height="${f(h)}" viewBox="0 0 ${f(w)} ${f(h)}">` +

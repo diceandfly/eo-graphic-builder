@@ -6,6 +6,7 @@ import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
 import FileBar from './FileBar.vue';
+import RectGraphic from './RectGraphic.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
@@ -106,7 +107,8 @@ const selBounds = computed(() => {
     h: Math.max(...sel.map((u) => u.y + u.params.H)) - minY,
   };
 });
-const mode = ref('select'); // 'select' | 'eyedrop'
+const mode = ref('select'); // 'select' | 'eyedrop' | 'rect'
+const rectPreview = ref(null); // 직사각형 드래그 생성 미리보기 (월드 좌표)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showStageGrid = ref(true); // 대시보드 배경 라인 그리드
 const pxs = (n) => n / vp.scale;
@@ -135,12 +137,14 @@ const view = reactive({ nudge: 5, showLinks: true, guideColor: null, ...(prefs.v
 const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
 const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
-// 현재 컬러 — 선택 없을 때 스와치로 지정, 이후 그리기 툴 기본값으로 사용 예정
+// 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
 const currentColor = ref(prefs.currentColor || null);
+// 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
+const customColor = ref(prefs.customColor || '#FF6B00');
 watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
-    currentColor: currentColor.value,
+    currentColor: currentColor.value, customColor: customColor.value,
   }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
@@ -166,6 +170,12 @@ watch(ctxMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
 });
 function onRegisterPreset() {
+  // 직사각형은 유닛 프리셋 대상 아님 (추후 layout preset에서)
+  if (ctxMenu.value.u.type === 'rect') {
+    toast('Rect objects are not unit presets — coming with layout presets');
+    closeCtx();
+    return;
+  }
   // 유닛 프리셋은 단일 유닛 전용 — 그룹/멀티 선택은 배치 프리셋(추후 layout preset) 영역
   if (props.doc.selectedIds.length !== 1) {
     toast('Unit presets need a single unit — deselect the group first (⌘+click)');
@@ -316,10 +326,14 @@ function onKeyDown(e) {
     props.actions.flipSelected(e.code === 'KeyH' ? 'h' : 'v');
     return;
   }
-  // 1~5 = 브랜드 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
-  const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4 };
+  // 1~6 = 브랜드 컬러, 7 = 커스텀 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
+  const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5 };
   if (!mod && !e.shiftKey && DIGITS[e.code] != null) {
     onFill(BRAND_COLORS[DIGITS[e.code]]);
+    return;
+  }
+  if (!mod && !e.shiftKey && e.code === 'Digit7') {
+    onFill(customColor.value);
     return;
   }
   // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
@@ -333,6 +347,7 @@ function onKeyDown(e) {
   }
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
+  if (!mod && !e.shiftKey && e.code === 'KeyR') mode.value = 'rect';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
 }
@@ -351,6 +366,9 @@ function onStageDown(e) {
   if (e.button === 1 || (e.button === 0 && spaceHeld.value)) {
     e.preventDefault();
     beginDrag(e, { kind: 'pan', x0: vp.x, y0: vp.y });
+  } else if (e.button === 0 && mode.value === 'rect') {
+    const [wx, wy] = props.viewport.toWorld(...local(e));
+    beginDrag(e, { kind: 'rectdraw', wx, wy });
   } else if (e.button === 0) {
     const [lx, ly] = local(e);
     beginDrag(e, { kind: 'marquee', lx, ly });
@@ -366,6 +384,12 @@ function onUnitDown(u, e) {
   }
   if (e.button !== 0) return;
   e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
+  if (mode.value === 'rect') {
+    // 그리기 모드: 유닛 위에서도 새 직사각형 드래그 시작
+    const [wx, wy] = props.viewport.toWorld(...local(e));
+    beginDrag(e, { kind: 'rectdraw', wx, wy });
+    return;
+  }
   if (mode.value === 'eyedrop') {
     // 스포이드: 클릭한 유닛의 파라미터를 선택된 유닛들에 흡수 후 선택툴 복귀
     props.actions.absorbFrom(u, { ...eyedropScope });
@@ -489,6 +513,14 @@ function onMove(e) {
   if (drag.kind === 'pan') {
     vp.x = drag.x0 + dxs;
     vp.y = drag.y0 + dys;
+    return;
+  }
+  if (drag.kind === 'rectdraw') {
+    const [wx, wy] = props.viewport.toWorld(...local(e));
+    rectPreview.value = {
+      x: Math.min(drag.wx, wx), y: Math.min(drag.wy, wy),
+      w: Math.abs(wx - drag.wx), h: Math.abs(wy - drag.wy),
+    };
     return;
   }
   if (drag.kind === 'marquee') {
@@ -806,6 +838,17 @@ function onUp(e) {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
       if (moved < 4) props.actions.deselect(); // 제자리 클릭 = 선택 해제
       marquee.value = null;
+    } else if (drag.kind === 'rectdraw') {
+      const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
+      const fill = currentColor.value || null;
+      if (moved < 4) {
+        props.actions.createRect(drag.wx, drag.wy, 300, 200, fill); // 클릭 = 기본 크기
+      } else if (rectPreview.value) {
+        const r = rectPreview.value;
+        props.actions.createRect(r.x, r.y, r.w, r.h, fill);
+      }
+      rectPreview.value = null;
+      mode.value = 'select';
     }
   }
   drag = null;
@@ -864,7 +907,7 @@ onBeforeUnmount(() => {
   <div
     ref="el"
     class="stage"
-    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop' }"
+    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', rectmode: mode === 'rect' }"
     :style="view.guideColor ? { '--unit-guide': view.guideColor } : {}"
     @wheel="onWheel"
     @pointerdown="onStageDown"
@@ -885,7 +928,9 @@ onBeforeUnmount(() => {
       <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
+          <RectGraphic v-if="u.type === 'rect'" :params="u.params" />
           <UnitGraphic
+            v-else
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
             :seam-width="Math.max(0, 1.2 - vp.scale)"
@@ -1000,6 +1045,13 @@ onBeforeUnmount(() => {
           />
         </template>
       </g>
+      <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
+        <rect
+          v-if="rectPreview"
+          class="rectDraw"
+          :x="rectPreview.x" :y="rectPreview.y" :width="rectPreview.w" :height="rectPreview.h"
+        />
+      </g>
       <rect
         v-if="marquee"
         class="marquee"
@@ -1012,9 +1064,11 @@ onBeforeUnmount(() => {
       :scope="eyedropScope"
       :blend-cfg="blendCfg"
       :arrange-cfg="arrangeCfg"
+      :custom-color="customColor"
       @fill="onFill"
       @blend="onBlend"
       @arrange="onArrange"
+      @update:custom-color="(c) => (customColor = c)"
     />
     <FileBar
       @save="actions.saveProject()"
@@ -1096,5 +1150,7 @@ onBeforeUnmount(() => {
 .gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
+.stage.rectmode, .stage.rectmode .hit { cursor: crosshair; }
+.rectDraw { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gridline { stroke: var(--stage-grid); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 </style>

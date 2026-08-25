@@ -38,7 +38,30 @@ export function createParams(overrides = {}) {
 const DOC_KEY = 'eo.doc';
 
 // 구버전 스키마 호환: groupId(단일) → groups(중첩 스택, 바깥쪽이 끝)
+// 직사각형 오브젝트 파라미터 (그리기 툴 R) — 레이아웃 프레임 성격
+export function createRectParams(overrides = {}) {
+  return {
+    W: 300,
+    H: 200,
+    orientation: 0, // 회전(W/H 스왑) 공유 경로 호환용
+    fill: '#3b3b3b',
+    fillOn: true,
+    strokeColor: '#EFEAE1', // HALO WHITE
+    strokeOn: false,
+    // 내부 레이아웃 그리드 (가이드 전용 — export 미포함)
+    gridOn: false,
+    gridUnit: 'px', // 'px' | 'pct'
+    margin: 20,
+    rows: 2,
+    cols: 3,
+    gutterX: 10,
+    gutterY: 10,
+    ...overrides,
+  };
+}
+
 function migrateUnit(u) {
+  if (!u.type) u.type = 'unit';
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   if (u.linkId === undefined) u.linkId = null;
@@ -59,7 +82,7 @@ export function useDocument() {
     savedLinkScopes = raw?.linkScopes ?? {};
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
-  const initialUnits = (savedUnits ?? [{ id: 1, name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
+  const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
 
   let nextId = 2;
   let nextVersion = 2;
@@ -149,6 +172,7 @@ export function useDocument() {
     }
     for (const u of doc.units) {
       if (u.id === source.id) continue;
+      if (u.type !== source.type) continue; // 타입이 다른 오브젝트에는 흡수 불가
       if (direct.has(u.id)) Object.assign(u.params, patch);
       else if (viaLink.has(u.id)) Object.assign(u.params, filterByLinkScope(patch, viaLink.get(u.id)));
     }
@@ -297,6 +321,7 @@ export function useDocument() {
     if (!doc.units.find((x) => x.id === doc.activeId)) {
       doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
     }
+    recalcCounters(); // undo/redo 시 이름·id 카운터도 스냅샷 기준으로 복원
   }
   function undo() {
     flushHistory();
@@ -314,19 +339,31 @@ export function useDocument() {
   // ---- 클립보드 (⌘C/⌘V) ----
   let clipboard = null;
   function copyActive() {
-    if (active.value) clipboard = { params: { ...active.value.params }, linkId: active.value.linkId };
+    if (active.value) {
+      clipboard = { type: active.value.type, params: { ...active.value.params }, linkId: active.value.linkId };
+    }
   }
   function pasteAt(x, y) {
     if (!clipboard) return;
     const p = clipboard.params;
-    pushUnit({ ...p }, Math.round(x - p.W / 2), Math.round(y - p.H / 2), clipboard.linkId);
+    pushUnit({ ...p }, Math.round(x - p.W / 2), Math.round(y - p.H / 2), clipboard.linkId, clipboard.type || 'unit');
   }
 
-  function pushUnit(params, x, y, linkId = null) {
+  function pushUnit(params, x, y, linkId = null, type = 'unit') {
     const id = nextId++;
-    doc.units.push({ id, name: `Unit-${nextVersion++}`, x, y, groups: [], linkId, params });
+    doc.units.push({
+      id, type, name: `${type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`,
+      x, y, groups: [], linkId, params,
+    });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
+  }
+  // 직사각형 생성 (그리기 툴) — fill 기본값은 현재 컬러(없으면 createRectParams 기본)
+  function createRect(x, y, W = 300, H = 200, fill = null) {
+    const params = createRectParams(fill ? { fill } : {});
+    params.W = clamp(Math.round(W), UNIT_MIN, UNIT_MAX);
+    params.H = clamp(Math.round(H), UNIT_MIN, UNIT_MAX);
+    return pushUnit(params, Math.round(x), Math.round(y), null, 'rect');
   }
   function createUnit(x = 0, y = 0) {
     const params = createParams();
@@ -360,11 +397,11 @@ export function useDocument() {
   function duplicateActive() {
     const src = active.value;
     if (!src) return;
-    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y, src.linkId);
+    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y, src.linkId, src.type);
   }
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    return pushUnit({ ...u.params }, u.x, u.y, u.linkId);
+    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type);
   }
   // 복수 유닛 동시 복제 — 상대 위치 그대로, 그룹 구조는 사본끼리 새 gid로 재구성, 링크 승계
   function duplicateUnits(units) {
@@ -380,7 +417,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, name: `Unit-${nextVersion++}`, x: u.x, y: u.y,
+        id, type: u.type, name: `${u.type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`, x: u.x, y: u.y,
         groups, linkId: u.linkId, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
@@ -558,6 +595,7 @@ export function useDocument() {
   function toggleLinkSelected(scope = null) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (sel.length < 2) return null;
+    if (new Set(sel.map((u) => u.type)).size > 1) return { action: 'mixed' }; // 타입 혼합 링크 불가
     const lids = [...new Set(sel.map((u) => u.linkId))];
     if (lids.length === 1 && lids[0] != null && linkMemberIds(lids[0]).length === sel.length) {
       for (const u of sel) u.linkId = null;
@@ -685,7 +723,10 @@ export function useDocument() {
       const x = axis === 'v' ? u.x : Math.round(cursor + gap);
       const y = axis === 'v' ? Math.round(cursor + gap) : u.y;
       const id = nextId++;
-      doc.units.push({ id, name: `Unit-${nextVersion++}`, x, y, groups: [], linkId: null, params: p });
+      doc.units.push({
+        id, type: u.type, name: `${u.type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`,
+        x, y, groups: [], linkId: null, params: p,
+      });
       const nu = doc.units[doc.units.length - 1];
       normalize(nu.params);
       created.push(nu);
@@ -829,7 +870,7 @@ export function useDocument() {
     nextGroup = 1;
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
-      id: nextId++, name: `Unit-${nextVersion++}`, x: 0, y: 0,
+      id: nextId++, type: 'unit', name: `Unit-${nextVersion++}`, x: 0, y: 0,
       groups: [], linkId: null, params: createParams(),
     });
     doc.activeId = doc.units[0].id;
@@ -843,7 +884,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    renameGroup, blendFrom, arrangeGrid,
+    createRect, renameGroup, blendFrom, arrangeGrid,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

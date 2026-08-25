@@ -743,3 +743,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **현재 컬러(currentColor)** — 선택 없을 때 스와치/숫자키는 유닛에 적용하지 않고 현재 컬러만 지정(스와치 활성 표시, eo.prefs 영속). 추후 그리기 툴 기본값으로 사용 예정. 선택 있으면 기존대로 적용+현재 컬러 갱신.
 7. **프리셋 등록 가드** — 그룹/멀티 선택 상태 등록 시도 시 에러 토스트(단일 유닛 전용, 배치는 추후 layout preset).
 8. 보류 항목(다음 라운드 토론): 이미지 붙여넣기(저장 용량·export 정책), 직사각형 그리기 툴 R(px/%·생성 방식).
+
+## 63. 2026-08-25 — 커스텀 컬러 픽커·직사각형 툴·언두 카운터·스와치 개편
+
+1. **언두 카운터 복원** — applyState에 recalcCounters() 추가: undo/redo 후 유닛·그룹·링크 번호가 스냅샷 기준으로 되돌아가 재생성 시 번호가 이어짐.
+1.5 **스와치 개편** — BRAND_COLORS 순서: EO NEON·WORLD GREEN·HORIZON BLUE·**VOID GREY(4)·HALO WHITE(5)** 스왑 + **BLACK #000000(6)** 추가. 단축키 1~6 자동 추종.
+2. **커스텀 컬러 픽커** (`controls/ColorPicker.vue`) — SV 패드+휴 바+hex, 전부 DOM/토큰 스타일(네이티브 창 폐기). 7번 스와치 칩 = 현재 커스텀 컬러 표시, **좌클릭/7 = 적용, 우클릭 = 픽커**(다른 툴 문법 통일). 드래그 라이브 적용, eo.prefs 영속(customColor).
+3. **그리드 배열 답변** — 현재 위치(읽기 순서) 기준 맞음. columns 옵션 = 열 개수 강제(0=√n 자동).
+4. **직사각형 툴 (R, 5번째 버튼)** — `type:'rect'` 오브젝트 도입: `createRectParams`(fill #3b3b3b·fillOn·strokeColor HALO WHITE·strokeOn off·gridOn off·**gridUnit px/% 토글**·margin·rows·cols·gutterX/Y). 드래그 = 그 크기, 클릭 = 300×200, fill 기본 = 현재 컬러. 생성 후 select 복귀. `RectGraphic.vue`(그리드 가이드 = export 미포함), 패널 SIZE+FILL/STROKE(6색+hex)+GRID 섹션. **타입 시스템**: units[].type('unit'|'rect'), 복제·복붙·블렌드·리셋 타입 보존, 이름 Rect-N. 가드: 스포이드 타입 간 흡수 불가, 링크 타입 혼합 불가(토스트), rect는 유닛 프리셋 등록 불가. rect-rect 링크는 전체 동기화(스코프 칩 숨김). export: 단일/컴포지트 rect 지원(도형만).
+5. 기술 부채 정리는 응답 참조 (localStorage 한계·BRAND_COLORS 이중 정의·링크 직접 확산 경로·타입 분기 산재·테스트 부재 등).

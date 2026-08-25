@@ -67,20 +67,29 @@ function exportPreset(preset) {
   downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill });
 }
 
+// 타입별 export 아이템 구성 (rect는 도형 정보만, 그리드 가이드 미포함)
+function exportItem(u) {
+  const p = u.params;
+  if (u.type === 'rect') {
+    return {
+      type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H,
+      fill: p.fill, fillOn: p.fillOn, strokeOn: p.strokeOn, strokeColor: p.strokeColor,
+    };
+  }
+  return {
+    type: 'unit', x: u.x, y: u.y, W: p.W, H: p.H,
+    unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill,
+  };
+}
 function exportSvg() {
   const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
   if (sel.length > 1) {
     // 다중 선택: 상대 배치를 보존한 컴포지트
-    downloadCompositeSvg(sel.map((u) => ({
-      x: u.x, y: u.y, W: u.params.W, H: u.params.H,
-      unit: deriveUnit(u.params).unit,
-      orientation: u.params.orientation, fill: u.params.fill,
-    })));
+    downloadCompositeSvg(sel.map(exportItem));
     return;
   }
   if (!active.value) return;
-  const p = active.value.params;
-  downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill });
+  downloadSvg(exportItem(active.value));
 }
 const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언랩
 
@@ -122,7 +131,9 @@ function onLink(scope) {
     stageRef.value.toast(
       r.action === 'linked'
         ? `Linked ${r.count} units — synced to "${r.src}"`
-        : `Unlinked ${r.count} units`
+        : r.action === 'mixed'
+          ? 'Cannot link different object types'
+          : `Unlinked ${r.count} units`
     );
   }
 }

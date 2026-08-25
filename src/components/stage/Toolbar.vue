@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import StepField from '../controls/StepField.vue';
+import ColorPicker from '../controls/ColorPicker.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 
@@ -10,11 +11,12 @@ import { ICONS } from '../../ui/icons.js';
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
 const props = defineProps({
   mode: String, fill: String,
-  scope: Object,      // 스포이드 범주 토글 { size, orientation, grid, shape, color }
-  blendCfg: Object,   // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
-  arrangeCfg: Object, // 그리드 배열 설정 { gap, columns(0=auto) }
-}); // mode: 'select' | 'eyedrop'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange']);
+  scope: Object,       // 스포이드 범주 토글 { size, orientation, grid, shape, color }
+  blendCfg: Object,    // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
+  arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
+  customColor: String, // 커스텀 컬러 (7번 스와치)
+}); // mode: 'select' | 'eyedrop' | 'rect'
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 
 const TOOLS = [
@@ -68,29 +70,21 @@ watch(arrangeOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeArrange, { once: true }), 0);
 });
 
-// 커스텀 컬러 hex 팝업 (옵션창 공통 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
+// 커스텀 컬러 (7번 스와치) — 좌클릭/7 = 현재 커스텀 컬러 적용, 우클릭 = 픽커 팝업
 const customOpen = ref(false);
-let customIdle = null;
-function resetCustomIdle() {
-  clearTimeout(customIdle);
-  customIdle = setTimeout(closeCustom, 5000);
-}
-function toggleCustom() {
+function onCustomContext(e) {
+  e.preventDefault();
   customOpen.value = !customOpen.value;
-  if (customOpen.value) resetCustomIdle();
 }
 function closeCustom() {
-  clearTimeout(customIdle);
   customOpen.value = false;
 }
 watch(customOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
 });
-function applyHex(e) {
-  let t = e.target.value.trim();
-  if (!t) return;
-  if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
+function onPick(c) {
+  emit('update:customColor', c);
+  emit('fill', c); // 라이브 적용 (선택 없으면 현재 컬러만 갱신됨)
 }
 </script>
 
@@ -105,30 +99,17 @@ function applyHex(e) {
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></IconButton>
-      <!-- 자유 컬러: 팔레트 아이콘 → hex 입력 팝업 -->
+      <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/7 = 적용, 우클릭 = 픽커 -->
       <div class="toolWrap">
         <IconButton
-          :paths="ICONS.palette"
           :active="isCustomFill || customOpen"
-          :tip="customOpen ? '' : 'Custom color'"
-          @click="toggleCustom"
-        />
-        <div
-          v-if="customOpen"
-          class="menu"
-          @pointerdown.stop="resetCustomIdle"
-          @pointermove="resetCustomIdle"
-        >
+          :tip="customOpen ? '' : 'Custom color (7)'"
+          @click="emit('fill', customColor)"
+          @contextmenu="onCustomContext"
+        ><span class="chip" :style="{ background: customColor }" /></IconButton>
+        <div v-if="customOpen" class="menu" @pointerdown.stop>
           <div class="menuTitle">Custom color</div>
-          <div class="menuRow">
-            <span class="preview" :style="{ background: fill }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="fill"
-              @keydown.enter="applyHex"
-              @change="applyHex"
-            />
-          </div>
+          <ColorPicker :model-value="customColor" @update:model-value="onPick" />
         </div>
       </div>
     </FloatingBar>
@@ -212,6 +193,13 @@ function applyHex(e) {
           <div class="menuNote">columns 0 = auto (√n)</div>
         </div>
       </div>
+      <!-- 직사각형 그리기 툴 (R): 드래그 = 그 크기로, 클릭 = 기본 크기로 생성 -->
+      <IconButton
+        :paths="ICONS.rect"
+        tip="Rectangle (R)"
+        :active="mode === 'rect'"
+        @click="emit('update:mode', 'rect')"
+      />
     </FloatingBar>
   </div>
 </template>
@@ -224,14 +212,6 @@ function applyHex(e) {
 .chip {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);
-}
-.preview {
-  width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
-  border: 1px solid var(--line); border-radius: var(--radius);
-}
-.hexInput {
-  @include text-field;
-  width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .toolWrap { position: relative; }
 .menu {
