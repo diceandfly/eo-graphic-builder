@@ -33,7 +33,25 @@ export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
 // 브랜드 스와치 (도형 fill) — styles/tokens/colors.css의 네임드 토큰과 값 동기 유지
 // EO NEON · WORLD GREEN · HORIZON BLUE · HALO WHITE · VOID GREY
-// BLACK(#000000)은 §65에서 일단 숨김 — 재도입 시 여기에 추가
-export const BRAND_COLORS = ['#F9EE48', '#55BB73', '#6ECBD6', '#8E8E8E', '#EFEAE1'];
+// ── 브랜드 컬러 단일 출처 (§68 부채 정리) ──
+// 여기가 유일한 정의처: main.js가 부팅 시 CSS 1층 토큰(--eo-neon 등)으로 주입한다.
+// colors.css의 1층 값은 첫 페인트용 폴백일 뿐 — 색 변경은 반드시 여기서.
+export const BRAND_TOKENS = {
+  'eo-neon': '#F9EE48',
+  'world-green': '#55BB73',
+  'horizon-blue': '#6ECBD6',
+  'space-black': '#0B0B0B',
+  'void-grey': '#8E8E8E',
+  'halo-white': '#EFEAE1',
+};
+// 스와치 구성 (표시 순서). BLACK(#000000)은 §65에서 숨김 — 재도입 시 여기에 추가.
+const SWATCHES = [
+  ['EO NEON', 'eo-neon'],
+  ['WORLD GREEN', 'world-green'],
+  ['HORIZON BLUE', 'horizon-blue'],
+  ['VOID GREY', 'void-grey'],
+  ['HALO WHITE', 'halo-white'],
+];
+export const BRAND_COLORS = SWATCHES.map(([, k]) => BRAND_TOKENS[k]);
 // BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~5) 안내용
-export const BRAND_COLOR_NAMES = ['EO NEON', 'WORLD GREEN', 'HORIZON BLUE', 'VOID GREY', 'HALO WHITE'];
+export const BRAND_COLOR_NAMES = SWATCHES.map(([n]) => n);
