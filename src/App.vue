@@ -69,10 +69,7 @@ function exportSvg() {
   const p = active.value.params;
   downloadSvg({ W: p.W, H: p.H, unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill });
 }
-function createUnit() {
-  const [wx, wy] = stageRef.value.centerWorld();
-  docApi.createUnit(wx, wy);
-}
+const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언랩
 
 // JSON 프로젝트 저장/열기 — 대시보드 작업 전체 (유닛·뷰포트·커스텀 비율)
 function saveProject() {
@@ -106,8 +103,8 @@ async function openProject(file) {
   }
 }
 
-function onLink() {
-  const r = docApi.toggleLinkSelected();
+function onLink(scope) {
+  const r = docApi.toggleLinkSelected(scope);
   if (r && stageRef.value) {
     stageRef.value.toast(
       r.action === 'linked'
@@ -121,7 +118,7 @@ docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 const stageActions = {
   ...docApi, exportSvg, saveProject, openProject,
-  registerPreset: (u) => presetsApi.register(u.params),
+  registerPreset: (u) => presetsApi.register(u.params, u.name),
 };
 </script>
 
@@ -134,7 +131,7 @@ const stageActions = {
         :selected="selectedUnits"
         :group="selectedGroup"
         :link-scope="linkScope"
-        :presets="presetsApi.presets"
+        :presets="presetList"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
@@ -144,7 +141,7 @@ const stageActions = {
         @link-scope-toggle="onLinkScopeToggle"
         @place-preset="placePreset"
         @delete-preset="presetsApi.remove"
-        @create="createUnit"
+        @rename-preset="presetsApi.rename"
         @link="onLink"
         @fill="docApi.setFill"
       />
@@ -154,15 +151,19 @@ const stageActions = {
 </template>
 
 <style scoped lang="scss">
-.layout { display: flex; height: 100vh; }
+.layout { display: flex; height: 100vh; background: var(--bg); }
+// 플로팅 카드 패널 — 툴바(FloatingBar)와 동일 문법: 뷰포트 상·좌·하 동일 간격
 .side {
   width: var(--panel-w); flex-shrink: 0; overflow-y: auto;
-  padding: 22px var(--panel-pad) 40px; border-right: 1px solid var(--line); background: var(--panel);
+  margin: var(--sp-6) 0 var(--sp-6) var(--sp-6);
+  height: calc(100vh - 2 * var(--sp-6)); box-sizing: border-box;
+  padding: 22px var(--panel-pad) 40px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
-  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  &::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
   &::-webkit-scrollbar-thumb:hover { background: var(--faint); }
 }
 </style>

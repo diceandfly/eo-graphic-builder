@@ -69,6 +69,19 @@ const keyUnit = computed(() =>
     ? props.doc.units.find((u) => u.id === props.doc.keyId)
     : null
 );
+// 정렬바 활성: 블록(최외곽 그룹 = 1블록) 2개 이상일 때만 — 그룹 하나만 선택 시 비활성
+const alignActive = computed(() => {
+  const ids = props.doc.selectedIds;
+  if (ids.length < 2) return false;
+  const blocks = new Set();
+  for (const u of props.doc.units) {
+    if (ids.includes(u.id)) {
+      const g = props.actions.outermost(u);
+      blocks.add(g ? 'g' + g : 'u' + u.id);
+    }
+  }
+  return blocks.size >= 2;
+});
 // 선택이 하나의 최외곽 그룹 전체일 때 그 그룹 이름 (통합 bbox 라벨)
 const groupLabel = computed(() => {
   const ids = props.doc.selectedIds;
@@ -938,7 +951,7 @@ onBeforeUnmount(() => {
       @open="(f) => actions.openProject(f)"
       @reset="onReset"
     />
-    <AlignBar :active="doc.selectedIds.length >= 2" @align="onAlign" />
+    <AlignBar :active="alignActive" @align="onAlign" />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"

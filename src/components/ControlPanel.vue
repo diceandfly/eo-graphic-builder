@@ -5,7 +5,7 @@ import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
 import UnitGraphic from './stage/UnitGraphic.vue';
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { BRAND_COLORS } from '../geometry/constants.js';
 import {
@@ -24,8 +24,8 @@ const props = defineProps({
   presets: { type: Array, default: () => [] }, // 유닛 프리셋 목록
 });
 const emit = defineEmits([
-  'setSize', 'setAspect', 'setA', 'setB', 'rename', 'create', 'link', 'fill',
-  'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset',
+  'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
+  'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset',
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -138,13 +138,32 @@ function cancelRename() {
   editingName.value = false;
 }
 
-// 링크 동기화 스코프 칩 (스포이드 범주와 동일 5종)
+// 링크 동기화 스코프 칩 (스포이드 범주와 동일 5종).
+// 링크 전에는 드래프트를 편집하고, "link parameters" 시 그 값으로 링크 생성.
 const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
-const scopeOn = (k) => (props.linkScope ? props.linkScope[k] !== false : true);
+const draftScope = reactive({ size: true, orientation: true, grid: true, shape: true, color: true });
+const scopeOn = (k) =>
+  linked.value ? (props.linkScope ? props.linkScope[k] !== false : true) : draftScope[k];
+function onScopeChip(k) {
+  if (linked.value) emit('linkScopeToggle', k);
+  else draftScope[k] = !draftScope[k];
+}
 
 // 프리셋 브라우저 뷰 모드 (썸네일 2컬럼 / 리스트) — localStorage 영속
 const presetView = ref(localStorage.getItem('eo.presetView') || 'thumbs');
 watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
+
+// 프리셋 이름 인라인 편집 (Default는 고정)
+const editingPreset = ref(null); // { id, draft }
+function startPresetRename(p) {
+  if (p.id === 'default') return;
+  editingPreset.value = { id: p.id, draft: p.name };
+}
+function commitPresetName(e) {
+  if (e && e.isComposing) return;
+  if (editingPreset.value) emit('renamePreset', editingPreset.value.id, editingPreset.value.draft);
+  editingPreset.value = null;
+}
 
 // 자유 컬러 hex 입력 (#RGB / #RRGGBB)
 function applyHex(e) {
@@ -158,7 +177,7 @@ function applyHex(e) {
 <template>
   <div class="panel">
     <header class="brand">
-      <svg class="logo" viewBox="0 0 57.87 27.92" height="18" aria-hidden="true">
+      <svg class="logo" viewBox="0 0 57.87 27.92" height="15" aria-hidden="true">
         <g class="logoFill">
           <path d="M27.66,12.58v-2.39h-6.65v-2.72l6.63-5.16V0H6.82c-.11,0-.22.04-.31.11L.02,5.25v2.2h6.63v2.73L0,15.34v2.39h6.65v2.72L.02,25.61v2.31h20.82c.11,0,.22-.04.31-.11l6.49-5.15v-2.2h-6.63v-2.73l6.65-5.16Z"/>
           <path d="M57.87,7.81L49.63.2h-10.55l-8.25,7.61v12.37s0,0,0,0l8.25,7.61h10.55l8.25-7.61s0,0,0,0V7.81s0,0,0,0ZM54.44,15.7h-5.21l-3.21,2.9v5.81h-3.34v-5.81l-3.21-2.9h-5.21v-3.4h5.21l3.21-2.9V3.58h3.34v5.81l3.21,2.9h5.21v3.4Z"/>
@@ -167,20 +186,17 @@ function applyHex(e) {
       <span>GRAPHIC BUILDER</span>
     </header>
 
-    <div class="unitRow">
-      <template v-if="unit">
-        <input
-          v-if="editingName"
-          v-focus
-          class="nameInput"
-          v-model="nameDraft"
-          @keydown.enter="(e) => { if (!e.isComposing) commitRename(); }"
-          @keydown.esc="cancelRename"
-          @blur="cancelRename"
-        />
-        <span v-else class="unitName" title="click to rename" @click="startRename">{{ group ? group.name : unit.name }}</span>
-      </template>
-      <button v-else class="ghost" @click="emit('create')">new unit</button>
+    <div v-if="unit" class="unitRow">
+      <input
+        v-if="editingName"
+        v-focus
+        class="nameInput"
+        v-model="nameDraft"
+        @keydown.enter="(e) => { if (!e.isComposing) commitRename(); }"
+        @keydown.esc="cancelRename"
+        @blur="cancelRename"
+      />
+      <span v-else class="unitName" title="click to rename" @click="startRename">{{ group ? group.name : unit.name }}</span>
     </div>
 
     <template v-if="unit">
@@ -309,15 +325,15 @@ function applyHex(e) {
 
     <section v-if="selected.length >= 2">
       <h2>Link</h2>
-      <button class="ghost" :class="{ linked }" @click="emit('link')">
+      <button class="ghost" :class="{ linked }" @click="emit('link', { ...draftScope })">
         {{ linked ? 'unlink parameters' : 'link parameters' }}
       </button>
-      <!-- 링크 동기화 범주: 켜진 범주만 멤버 간 상시 동기화 -->
-      <div v-if="linked" class="scopeChips">
+      <!-- 링크 동기화 범주: 링크 전엔 드래프트, 링크 후엔 해당 링크의 스코프 편집 -->
+      <div class="scopeChips">
         <button
           v-for="(label, key) in LINK_CATS" :key="key"
           class="scopeChip" :class="{ on: scopeOn(key) }"
-          @click="emit('linkScopeToggle', key)"
+          @click="onScopeChip(key)"
         >{{ label }}</button>
       </div>
     </section>
@@ -339,8 +355,24 @@ function applyHex(e) {
           <svg class="pThumb" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
             <UnitGraphic :params="p.params" />
           </svg>
-          <div class="pName">{{ p.name }}</div>
-          <button class="pDel" title="delete preset" @click.stop="emit('deletePreset', p.id)">×</button>
+          <input
+            v-if="editingPreset?.id === p.id"
+            v-focus class="pNameInput" v-model="editingPreset.draft"
+            @click.stop @pointerdown.stop
+            @keydown.enter="commitPresetName"
+            @keydown.esc="editingPreset = null"
+            @blur="editingPreset = null"
+          />
+          <div
+            v-else class="pName"
+            :title="p.id === 'default' ? '' : 'click to rename'"
+            @click.stop="startPresetRename(p)"
+          >{{ p.name }}</div>
+          <button
+            v-if="p.id !== 'default'"
+            class="pDel" title="delete preset"
+            @click.stop="emit('deletePreset', p.id)"
+          >×</button>
         </div>
       </div>
       <div v-else class="pList">
@@ -348,8 +380,24 @@ function applyHex(e) {
           <svg class="pMini" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
             <UnitGraphic :params="p.params" />
           </svg>
-          <span class="pName">{{ p.name }}</span>
-          <button class="pDel" title="delete preset" @click.stop="emit('deletePreset', p.id)">×</button>
+          <input
+            v-if="editingPreset?.id === p.id"
+            v-focus class="pNameInput" v-model="editingPreset.draft"
+            @click.stop @pointerdown.stop
+            @keydown.enter="commitPresetName"
+            @keydown.esc="editingPreset = null"
+            @blur="editingPreset = null"
+          />
+          <span
+            v-else class="pName"
+            :title="p.id === 'default' ? '' : 'click to rename'"
+            @click.stop="startPresetRename(p)"
+          >{{ p.name }}</span>
+          <button
+            v-if="p.id !== 'default'"
+            class="pDel" title="delete preset"
+            @click.stop="emit('deletePreset', p.id)"
+          >×</button>
         </div>
       </div>
     </section>
@@ -360,8 +408,8 @@ function applyHex(e) {
 <style scoped lang="scss">
 .panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 16px; font-weight: 700; letter-spacing: 0em; color: var(--text);
+  display: flex; align-items: center; gap: 9px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0em; color: var(--text);
   padding: 4px 2px 14px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
@@ -463,8 +511,15 @@ section h2 {
   &:hover .pDel { opacity: 1; }
 }
 .pMini { width: 34px; height: 26px; flex-shrink: 0; background: var(--bg); border-radius: var(--radius); }
-.pName { font-size: var(--fs-xs); color: var(--text); margin-top: 4px; }
+.pName { font-size: var(--fs-xs); color: var(--text); margin-top: 4px; cursor: text; }
+.pName:hover { color: var(--accent); }
 .pRow .pName { margin-top: 0; }
+.pNameInput {
+  @include text-field;
+  border-color: var(--accent); padding: 1px 5px; margin-top: 4px; width: 100%;
+  font-size: var(--fs-xs);
+}
+.pRow .pNameInput { margin-top: 0; flex: 1; min-width: 0; }
 .pDel {
   position: absolute; top: 3px; right: 3px; opacity: 0;
   border: none; background: var(--panel); color: var(--faint);

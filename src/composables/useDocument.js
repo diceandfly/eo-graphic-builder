@@ -552,8 +552,9 @@ export function useDocument() {
   function linkMemberIds(lid) {
     return doc.units.filter((u) => u.linkId === lid).map((u) => u.id);
   }
-  // 선택 전체가 이미 같은 링크면 해제, 아니면 새 링크로 통합
-  function toggleLinkSelected() {
+  // 선택 전체가 이미 같은 링크면 해제, 아니면 새 링크로 통합.
+  // scope: 링크 생성 시 초기 동기화 범주 (패널 드래프트 — 없으면 전체 on)
+  function toggleLinkSelected(scope = null) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (sel.length < 2) return null;
     const lids = [...new Set(sel.map((u) => u.linkId))];
@@ -563,7 +564,7 @@ export function useDocument() {
       return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
-      doc.linkScopes[lid] = linkScopeDefault();
+      doc.linkScopes[lid] = scope ? { ...linkScopeDefault(), ...scope } : linkScopeDefault();
       // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일
       const src = sel.find((u) => u.id === doc.activeId) ?? sel[0];
       for (const u of sel) {

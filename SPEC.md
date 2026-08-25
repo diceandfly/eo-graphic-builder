@@ -689,3 +689,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **네이밍**: compression rate → **pitch compression** (슬라이더+rate 칩을 gutter mode 위로 이동). Shape Adjustment → **Shape** (패널 헤더·스포이드 메뉴).
 7. **unit grid 아이콘** → lucide columns-3 (프레임+세로 2분할 — 실제 컬럼 가이드 형태). 대안: grid-3x3, ruler.
 8. **커스텀 컬러 재설계** — 무지개 칩+네이티브 피커 창 폐기. 툴바: **팔레트 아이콘**(lucide palette) 클릭 → 스포이드/그리드 옵션창과 동일 형식의 팝업(menuTitle + 프리뷰 칩 + **hex 입력**, 5초 무조작·외부 클릭 닫힘, text-field 믹스인·토큰 스타일). 패널 팔레트: 칩 아래 custom hex 입력 행. #RGB/#RRGGBB 검증.
+
+## 58. 2026-08-25 — 패널 플로팅 카드·링크 드래프트·프리셋 개편·정렬바 조건
+
+1. **.vscode 설정 추가** — `settings.json`(flat config 사용, formatOnSave off, 주입 SCSS 믹스인 관련 unknownAtRules 억제) + `extensions.json`(Volar·ESLint 권장). 에디터 진단 = 프로젝트 ESLint 단일 출처.
+2. **메인 패널 = 플로팅 카드** — 툴바와 동일 문법(보더·라운딩·--sp-6 간격)으로 상·좌·하 동일 간격 부유. 스크롤바 6→**4px**. 타이틀 로고 18→15px, 폰트 16→14px.
+3. **링크 스코프 드래프트** — 링크 전 멀티선택에서도 5범주 칩 상시 표시. 링크 전엔 패널 로컬 드래프트를 편집하고, "link parameters" 시 그 드래프트로 링크 생성(`toggleLinkSelected(scope)`), 링크 후엔 기존처럼 링크 스코프 직접 편집.
+4. **프리셋 이름 = 유닛 이름** (중복 시 " (2)" 접미). 리스트/썸네일에서 **이름 클릭 = 인라인 변경** (Enter 확정·blur 취소, Default 제외).
+5. **Default 프리셋** — 리스트 1번 고정(런타임 생성, 삭제·개명 불가, `createParams()` 현재 기본값 사용 — 기본값 개정 시 자동 추종). **NEW UNIT 버튼 제거** (`create` emit 폐기, 유닛 생성 = 프리셋 클릭).
+6. **정렬바 활성 조건 = 블록 2개 이상** (최외곽 그룹 1개 = 1블록 → 그룹 하나만 선택 시 비활성).
