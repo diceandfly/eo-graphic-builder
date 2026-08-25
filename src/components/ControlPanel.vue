@@ -398,6 +398,12 @@ function applyPhysical(pp) {
 
     <!-- 선택 없음: 새 유닛 + 프리셋 브라우저 -->
     <template v-else>
+    <!-- 프리셋 라이브러리 JSON 입출력 — 패널 최상단 -->
+    <div class="pIoRow">
+      <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
+      <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
+      <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
+    </div>
     <section>
       <div class="secHead">
         <h2>Unit Presets</h2>
@@ -405,12 +411,6 @@ function applyPhysical(pp) {
           class="viewToggle" v-model="presetView"
           :options="[{ value: 'thumbs', label: 'thumbs' }, { value: 'list', label: 'list' }]"
         />
-      </div>
-      <!-- 프리셋 라이브러리 JSON 입출력 — 리스트 상단 고정 -->
-      <div class="pIoRow">
-        <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
-        <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
-        <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
       </div>
       <div v-if="!presets.length" class="pEmpty">right-click a unit to register a preset</div>
       <div v-else-if="presetView === 'thumbs'" class="pGrid">
@@ -610,7 +610,7 @@ section h2 {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 4px; display: flex; flex-direction: column;
 }
-.pIoRow { display: flex; gap: 6px; margin-bottom: 12px; }
+.pIoRow { display: flex; gap: 6px; margin-bottom: -8px; }
 .pIoBtn {
   @include bordered-control;
   flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;

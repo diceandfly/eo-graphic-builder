@@ -775,3 +775,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **rect RATIO 재구성** — 3행: [16:9·9:16·4:5] / [**A3**·A4·A5·Letter — "physical" 라벨 제거] / [DPI 입력]. A3(297×420mm) 추가.
 2. **그리드 기본 rows 2 · cols 2** (기존 rect는 마이그레이션이 기존 값 유지 — 신규부터 적용).
 3. **Slider `editable` 확장** — 우측 값 표기를 입력 필드로(min/max 클램프, suffix 단위 표기, 스피너 없음 — 전역 CSS). rect 그리드 5개 슬라이더(margin/rows/cols/gutterX·Y) 전부 입력 필드화.
+
+## 67. 2026-08-25 — 프리셋 IO 버튼 패널 최상단 이동
+
+- export/import json 버튼을 UNIT PRESETS 섹션 밖, 패널 최상단(브랜드 헤더 바로 아래)으로 이동.
