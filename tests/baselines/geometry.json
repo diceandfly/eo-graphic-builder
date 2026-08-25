@@ -1,6 +1,6 @@
 {
   "default": {
-    "hash": "95993a254820a785",
+    "hash": "1fe7053253b20f89",
     "bytes": 2545
   },
   "cols-min": {
@@ -8,7 +8,7 @@
     "bytes": 817
   },
   "cols-max": {
-    "hash": "1e6c16b0c0d023ce",
+    "hash": "e288c11dae379fc4",
     "bytes": 4849
   },
   "rate-1": {
@@ -16,75 +16,75 @@
     "bytes": 2537
   },
   "rate-max": {
-    "hash": "0b98f3017c855916",
+    "hash": "2081a2624b43ca2f",
     "bytes": 2545
   },
   "dir-StoL": {
-    "hash": "1a489c7707ad5163",
-    "bytes": 2482
+    "hash": "4eea2b37232d434c",
+    "bytes": 2484
   },
   "gutter-0": {
-    "hash": "bd8f94f1b504ab10",
+    "hash": "23cf554200cd9a6c",
     "bytes": 2545
   },
   "gutter-prop": {
-    "hash": "8ea9867c039ab70d",
+    "hash": "52241ee96ed31d9e",
     "bytes": 2545
   },
   "gutter-prop-min": {
-    "hash": "fa9d3c254275c3a7",
+    "hash": "8e2bfef7ab36d8f7",
     "bytes": 4849
   },
   "shaft-min": {
-    "hash": "d01887b36ca2d25c",
+    "hash": "32d993256e51e500",
     "bytes": 2544
   },
   "shaft-max": {
-    "hash": "43e98f0b9c2ed57d",
+    "hash": "0ff6a8ab7f0bc4bd",
     "bytes": 2520
   },
   "a-min": {
-    "hash": "e0379771423f818d",
+    "hash": "b2b75cd5aa1f3dc9",
     "bytes": 2544
   },
   "a-max": {
-    "hash": "9ebbd5d0ef5383b8",
+    "hash": "5b2a913dd5da6bee",
     "bytes": 2545
   },
   "b-max": {
-    "hash": "ae340a89916fdbf4",
+    "hash": "088fa1f7258e7213",
     "bytes": 2546
   },
   "ab-couple": {
-    "hash": "bcf0eeae2db3455a",
+    "hash": "88111f155dcf831b",
     "bytes": 2547
   },
   "threads-one": {
-    "hash": "12b6df1c1932ed53",
+    "hash": "6f81a2780d1ddec8",
     "bytes": 1373
   },
   "threadDir-RtoL": {
-    "hash": "1b56efe4c5997c69",
+    "hash": "5278cc81091d0e84",
     "bytes": 2545
   },
   "flipX": {
-    "hash": "71a34cd0c4a7206c",
-    "bytes": 2482
+    "hash": "3df2eb438b309b78",
+    "bytes": 2484
   },
   "flipX-StoL": {
-    "hash": "1b56efe4c5997c69",
+    "hash": "5278cc81091d0e84",
     "bytes": 2545
   },
   "orient-90": {
-    "hash": "72c0caba6d5dee24",
+    "hash": "389bc0c2cbd993e4",
     "bytes": 2597
   },
   "orient-180": {
-    "hash": "891bc12be7783cf8",
+    "hash": "367ce992f4807cb7",
     "bytes": 2605
   },
   "orient-270": {
-    "hash": "c06647f2fa630fb1",
+    "hash": "8e51143e226baf45",
     "bytes": 2598
   },
   "tiny-1px": {
@@ -92,31 +92,31 @@
     "bytes": 2249
   },
   "tiny-10px": {
-    "hash": "6e00b945579709ed",
+    "hash": "521d4713838aa0af",
     "bytes": 2300
   },
   "tiny-wide": {
-    "hash": "a5855aa5b27675df",
+    "hash": "7910cb786c837f11",
     "bytes": 2465
   },
   "tiny-tall": {
-    "hash": "e2992c4eec5e1761",
+    "hash": "9f12993aa447fead",
     "bytes": 2427
   },
   "huge": {
-    "hash": "8818379d2bbf9730",
+    "hash": "08247a682a58acae",
     "bytes": 2717
   },
   "combo-compress-one": {
-    "hash": "303738edf4c6a0c9",
+    "hash": "fae1eff0227c7dbf",
     "bytes": 1936
   },
   "combo-flip-rot": {
-    "hash": "a1f4a6467c5e09af",
-    "bytes": 2543
+    "hash": "ef5ce9666665c069",
+    "bytes": 2545
   },
   "combo-prop-extreme": {
-    "hash": "7aa5feb19a9fdca2",
+    "hash": "7738e79a3be40e9d",
     "bytes": 2543
   }
 }

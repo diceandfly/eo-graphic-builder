@@ -106,7 +106,7 @@ function onPick(c) {
       <div class="toolWrap">
         <IconButton
           :active="isCustomFill || customOpen"
-          :tip="customOpen ? '' : 'Custom color'"
+          :tip="customOpen ? '' : 'Custom color (7)'"
           @click="emit('fill', customColor)"
           @contextmenu="onCustomContext"
         ><span class="chip" :class="{ dark: isDark(customColor) }" :style="{ background: customColor }" /></IconButton>

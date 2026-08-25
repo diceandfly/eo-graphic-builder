@@ -19,7 +19,7 @@ export const G_MIN = 0.2;        // proportional 거터 비율 하한
 export const G_MAX = 0.5;        // proportional 거터 비율 상한
 export const G_STEP = 0.005;     // proportional 거터 슬라이더 step
 export const GUTTER_MAX = 50;    // gutterPx 슬라이더 상한 (px) — min(GUTTER_MAX, W/cols)
-export const THREAD_MIN_RATIO = 0.001; // col 폭 < W·비율 이면 thread를 W·비율 폭 직사각형으로 렌더 (§70: 0.2%→0.1%)
+export const THREAD_MIN_RATIO = 0.0006; // col 폭 < W·비율 이면 thread를 W·비율 폭 직사각형으로 렌더 (§70: 0.2%→0.1%, §82: 0.06%)
 export const THREAD_OVERLAP = 1; // thread를 shaft 쪽으로 1px 파묻어 AA 유격 제거
 export const UNIT_MIN = 2;       // 유닛 W/H 내부 가드 하한 (px). 지오메트리는 1px까지 무충돌 — 블렌드 극한 수렴 허용(§80), 소실 방지 최소 가드만
 export const UNIT_MAX = 8000;    // 유닛 W/H 내부 가드 상한 (px)
@@ -43,15 +43,17 @@ export const BRAND_TOKENS = {
   'space-black': '#0B0B0B',
   'void-grey': '#8E8E8E',
   'halo-white': '#EFEAE1',
+  'black': '#000000',
 };
-// 스와치 구성 (표시 순서). BLACK(#000000)은 §65에서 숨김 — 재도입 시 여기에 추가.
+// 스와치 구성 (표시 순서). BLACK은 §65에서 숨겼다가 §82에서 6번으로 재도입.
 const SWATCHES = [
   ['EO NEON', 'eo-neon'],
   ['WORLD GREEN', 'world-green'],
   ['HORIZON BLUE', 'horizon-blue'],
   ['VOID GREY', 'void-grey'],
   ['HALO WHITE', 'halo-white'],
+  ['BLACK', 'black'],
 ];
 export const BRAND_COLORS = SWATCHES.map(([, k]) => BRAND_TOKENS[k]);
-// BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~5) 안내용
+// BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~6) 안내용
 export const BRAND_COLOR_NAMES = SWATCHES.map(([n]) => n);
