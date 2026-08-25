@@ -404,6 +404,12 @@ function onKeyDown(e) {
     doFlip(e.code === 'KeyH' ? 'h' : 'v');
     return;
   }
+  // Shift+E = Export SVG file (선택 필요 — 컨텍스트 메뉴와 동일 경로)
+  if (!mod && e.shiftKey && e.code === 'KeyE' && props.doc.selectedIds.length) {
+    e.preventDefault();
+    props.actions.exportSvg();
+    return;
+  }
   // 1~6 = 브랜드 컬러, 7 = 커스텀 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
   const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5 };
   if (!mod && !e.shiftKey && DIGITS[e.code] != null) {
@@ -1230,7 +1236,7 @@ onBeforeUnmount(() => {
       <div class="ctxSep" />
       <button class="ctxItem" @click="onCopySvg(); closeCtx()">Copy as SVG (⌘C)</button>
       <button class="ctxItem" @click="onCopyPng(); closeCtx()">Copy as PNG (⌘⇧C)</button>
-      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG file</button>
+      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG file (⇧E)</button>
     </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>

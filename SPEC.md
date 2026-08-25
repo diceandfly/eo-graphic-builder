@@ -852,3 +852,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 78. 2026-08-25 — 리셋 3단계 아이콘: 해적 해골 → 묘비
 
 - `icons.js` pirateSkull 삭제, `tombstone` 신설 (아치형 슬랩 + 지반선 + 십자 — 아치는 형태의 본질이라 곡선 유지). FileBar 리셋 3단계(doom)에서만 사용, 1·2단계는 기존 회전 화살표 유지.
+
+## 79. 2026-08-25 — ⇧E = Export SVG file 단축키
+
+- 선택이 있을 때 ⇧E로 즉시 SVG 파일 다운로드 (컨텍스트 메뉴 Export SVG file과 동일 경로 — 단일 = 원본 크기, 다중 = 컴포지트). 메뉴 라벨에 "(⇧E)" 표기 추가. isTyping 가드 적용(기존 keydown 공통).
+- 검증: 유닛 선택 + ⇧E → eo-unit-480x340.svg 다운로드 트리거 확인(앵커 가로채기).
+
+> 다음 세션 예정: **pattern manager** 진행 (Phase 2 템플릿 매니저 갈래 — §20·§22·§29-7 참고, /design-only 토론 후 구현).
