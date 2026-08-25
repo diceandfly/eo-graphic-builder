@@ -188,6 +188,28 @@ function onRegisterPreset() {
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
   closeCtx();
 }
+// 직전 행동 반복 (⇧D §74) — 반복 가능한 조작이 실행될 때마다 등록
+let lastAction = null; // { label, run }
+function setLast(label, run) {
+  lastAction = { label, run };
+}
+function repeatLast() {
+  if (!lastAction) {
+    toast('Nothing to repeat yet');
+    return;
+  }
+  lastAction.run();
+  toast(`Repeated: ${lastAction.label}`);
+}
+function doFlip(axis) {
+  props.actions.flipSelected(axis);
+  setLast(axis === 'h' ? 'flip horizontal' : 'flip vertical', () => props.actions.flipSelected(axis));
+}
+function doOrder(where) {
+  props.actions.orderSelected(where);
+  setLast(where === 'front' ? 'bring to top' : 'send to back', () => props.actions.orderSelected(where));
+}
+
 // 컨텍스트 메뉴: 오더 그룹 + 액션 그룹(오버레이 버튼의 대체 표면 §59)
 const CTX_ORDER = [
   { key: 'front', label: 'Bring to top (Q)' },
@@ -196,14 +218,12 @@ const CTX_ORDER = [
 const CTX_ACTIONS = [
   { key: 'flip', label: 'Flip horizontal (⇧H)' },
   { key: 'flipv', label: 'Flip vertical (⇧V)' },
-  { key: 'dup', label: 'Duplicate (⇧D)' },
   { key: 'del', label: 'Delete (D)' },
 ];
 function onCtxAction(key) {
-  if (key === 'front' || key === 'back') props.actions.orderSelected(key);
-  else if (key === 'flip') props.actions.flipSelected('h');
-  else if (key === 'flipv') props.actions.flipSelected('v');
-  else if (key === 'dup') props.actions.duplicateSelectedOffset();
+  if (key === 'front' || key === 'back') doOrder(key);
+  else if (key === 'flip') doFlip('h');
+  else if (key === 'flipv') doFlip('v');
   else if (key === 'del') props.actions.deleteSelected();
   closeCtx();
 }
@@ -233,6 +253,7 @@ function onBlend() {
   }
   const created = props.actions.blendFrom(u, { ...blendCfg });
   toast(`Blended ${created.length} ${blendCfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
+  setLast('blend', () => onBlend());
 }
 
 // 그리드 배열 적용 (툴 버튼 좌클릭 / G 단축키)
@@ -243,6 +264,7 @@ function onArrange() {
     return;
   }
   toast(`Arranged ${n} blocks into a grid`);
+  setLast('grid arrange', () => onArrange());
 }
 
 // 직사각형 즉시 생성 (툴 버튼 더블클릭): 1920×800, 스테이지 중앙
@@ -256,7 +278,10 @@ function onRectQuick() {
 // 스와치/숫자키 컬러: 선택이 있으면 적용, 없으면 현재 컬러만 지정 (그리기 툴 기본값)
 function onFill(c) {
   currentColor.value = c;
-  if (props.doc.selectedIds.length) props.actions.setFill(c);
+  if (props.doc.selectedIds.length) {
+    props.actions.setFill(c);
+    setLast(`apply ${c}`, () => props.actions.setFill(c));
+  }
 }
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
@@ -351,16 +376,16 @@ function onKeyDown(e) {
     props.actions.deleteSelected();
     return;
   }
-  // Shift+D = 선택 복제 (bbox 폭 + 80px 우측)
-  if (!mod && e.shiftKey && e.code === 'KeyD' && props.doc.selectedIds.length) {
+  // Shift+D = 직전 행동 반복 (§74)
+  if (!mod && e.shiftKey && e.code === 'KeyD') {
     e.preventDefault();
-    props.actions.duplicateSelectedOffset();
+    repeatLast();
     return;
   }
   // Shift+H / Shift+V = 화면축 좌우/상하 반전 (선택 대상 전체)
   if (!mod && e.shiftKey && (e.code === 'KeyH' || e.code === 'KeyV') && props.doc.selectedIds.length) {
     e.preventDefault();
-    props.actions.flipSelected(e.code === 'KeyH' ? 'h' : 'v');
+    doFlip(e.code === 'KeyH' ? 'h' : 'v');
     return;
   }
   // 1~6 = 브랜드 컬러, 7 = 커스텀 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
@@ -376,6 +401,8 @@ function onKeyDown(e) {
     const step = e.shiftKey ? view.nudge * 10 : view.nudge;
     const [ax, ay] = ARROWS[e.key];
     props.actions.nudgeSelected(ax * step, ay * step);
+    setLast(`nudge ${ax * step || ''}${ax ? 'px x' : ''}${ay * step || ''}${ay ? 'px y' : ''}`.trim(),
+      () => props.actions.nudgeSelected(ax * step, ay * step));
     return;
   }
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
@@ -383,8 +410,8 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyR') mode.value = 'rect';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
-  if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) props.actions.orderSelected('front');
-  if (!mod && !e.shiftKey && e.code === 'KeyW' && props.doc.selectedIds.length) props.actions.orderSelected('back');
+  if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) doOrder('front');
+  if (!mod && !e.shiftKey && e.code === 'KeyW' && props.doc.selectedIds.length) doOrder('back');
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -479,7 +506,11 @@ function onUnitDown(u, e) {
     props.doc.activeId = u.id;
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
-  beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
+  beginDrag(e, {
+    kind: 'move',
+    targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })),
+    altDup: !!e.altKey, // 복제 드래그 — 종료 시 "같은 간격 복제" 반복 등록 (§74)
+  });
 }
 
 function onAlign(t) {
@@ -583,7 +614,9 @@ function onMove(e) {
     const steps = Math.round(deg / 90);
     while (drag.applied !== steps) {
       const d = steps > drag.applied ? 1 : -1;
-      drag.group ? props.actions.rotateSelected(d) : props.actions.rotate(d);
+      const g = drag.group;
+      g ? props.actions.rotateSelected(d) : props.actions.rotate(d);
+      setLast(`rotate ${d > 0 ? '+' : '−'}90°`, () => (g ? props.actions.rotateSelected(d) : props.actions.rotate(d)));
       drag.applied += d;
     }
     return;
@@ -876,6 +909,25 @@ function onUp(e) {
     if (drag.kind === 'move' && keyCandidate != null) {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
       if (moved < 4) props.doc.keyId = keyCandidate;
+    }
+    // Alt+드래그 복제 종료 → ⇧D = 같은 간격으로 연속 복제 (최신 사본 기준 체인)
+    if (drag.kind === 'move' && drag.altDup && drag.targets.length) {
+      const ddx = drag.targets[0].u.x - drag.targets[0].x0;
+      const ddy = drag.targets[0].u.y - drag.targets[0].y0;
+      let lastIds = drag.targets.map((t) => t.u.id);
+      setLast('duplicate again', () => {
+        const units = props.doc.units.filter((u) => lastIds.includes(u.id));
+        if (!units.length) return;
+        const copies =
+          units.length > 1
+            ? props.actions.duplicateUnits(units)
+            : [props.actions.duplicateFrom(units[0])];
+        for (const c of copies) {
+          c.x += ddx;
+          c.y += ddy;
+        }
+        lastIds = copies.map((c) => c.id);
+      });
     }
     if (drag.kind === 'resize') {
       props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)

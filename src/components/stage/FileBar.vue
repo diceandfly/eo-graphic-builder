@@ -8,6 +8,7 @@ import { ICONS } from '../../ui/icons.js';
 const emit = defineEmits(['save', 'open', 'reset']);
 
 const ACTIONS = [
+  { key: 'manual', tip: 'Manual — coming soon', paths: ICONS.manual }, // 자리만 확보 (§74)
   { key: 'save', tip: 'Save JSON', paths: ICONS.save },
   { key: 'open', tip: 'Open JSON', paths: ICONS.open },
   { key: 'reset', tip: 'Reset dashboard', paths: ICONS.resetArrow },
@@ -28,6 +29,7 @@ const RESET_TONES = ['default', 'danger', 'doom'];
 const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.pirateSkull];
 
 function onAction(key) {
+  if (key === 'manual') return; // 빈 버튼 — 추후 기획
   if (key === 'save') emit('save');
   else if (key === 'open') fileEl.value.click();
   else if (key === 'reset') {
