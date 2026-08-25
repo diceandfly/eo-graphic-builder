@@ -879,3 +879,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **BLACK(#000000) 6번 스와치 재도입** (§65에서 숨겼던 것) — BRAND_TOKENS에 'black' 추가, 단축키 6. 다크 칩 inset 스트로크 자동 적용.
 3. **커스텀 컬러 단축키 7** — Digit7 = 현재 커스텀 컬러 적용(선택 없으면 현재 컬러 지정), 툴팁 "Custom color (7)".
 - 검증: 스와치 7칩(브랜드6+커스텀1), 키 6 → #000000, 키 7 → 저장된 커스텀(#7B2FF7) 적용, 언두 원복.
+
+## 83. 2026-08-25 — 스와치 칩 스트로크 통일
+
+- 다크 칩 전용 inset 스트로크(--faint 1px, 티가 강함) 폐기 → **전 칩 공통** `inset 1px, VOID GREY 40%`(color-mix) 은은한 링. isDark 분기·utils/color 사용처 제거(유틸 자체는 보존).

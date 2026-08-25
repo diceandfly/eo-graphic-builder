@@ -6,7 +6,6 @@ import StepField from '../controls/StepField.vue';
 import ColorPicker from '../controls/ColorPicker.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
-import { isDarkColor } from '../../utils/color.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 작업 도구 바 (두 FloatingBar, gap 분리).
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
@@ -19,8 +18,6 @@ const props = defineProps({
 }); // mode: 'select' | 'eyedrop' | 'rect'
 const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
-// 어두운 색 칩은 바 배경과 구분되도록 얇은 그레이 스트로크
-const isDark = isDarkColor;
 
 const TOOLS = [
   { key: 'select', tip: 'Select (V)', paths: ICONS.select },
@@ -101,7 +98,7 @@ function onPick(c) {
         :active="fill === c"
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
-      ><span class="chip" :class="{ dark: isDark(c) }" :style="{ background: c }" /></IconButton>
+      ><span class="chip" :style="{ background: c }" /></IconButton>
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/7 = 적용, 우클릭 = 픽커 -->
       <div class="toolWrap">
         <IconButton
@@ -109,7 +106,7 @@ function onPick(c) {
           :tip="customOpen ? '' : 'Custom color (7)'"
           @click="emit('fill', customColor)"
           @contextmenu="onCustomContext"
-        ><span class="chip" :class="{ dark: isDark(customColor) }" :style="{ background: customColor }" /></IconButton>
+        ><span class="chip" :style="{ background: customColor }" /></IconButton>
         <div v-if="customOpen" class="menu" @pointerdown.stop>
           <div class="menuTitle">Custom color</div>
           <ColorPicker :model-value="customColor" @update:model-value="onPick" />
@@ -216,7 +213,8 @@ function onPick(c) {
 .chip {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);
-  &.dark { box-shadow: inset 0 0 0 1px var(--faint); }
+  // 전 칩 공통 은은한 inset 스트로크 — VOID GREY 40% (다크 전용 규칙 폐기, §83)
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
 }
 .toolWrap { position: relative; }
 .menu {
