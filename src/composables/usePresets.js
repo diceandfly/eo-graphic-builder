@@ -45,5 +45,39 @@ export function usePresets() {
     if (p && t && t !== p.name) p.name = uniqueName(t);
   }
 
-  return { presets, register, remove, rename };
+  // 전체 프리셋 JSON 내보내기/가져오기 (Default 제외, 가져오기는 병합 + 이름 중복 접미)
+  function exportJson() {
+    const data = { version: 1, presets: stored.map((p) => ({ name: p.name, params: p.params })) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'eo-presets.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  async function importJson(file) {
+    let list;
+    try {
+      const data = JSON.parse(await file.text());
+      list = Array.isArray(data) ? data : data.presets;
+    } catch {
+      return 0;
+    }
+    if (!Array.isArray(list)) return 0;
+    let n = 0;
+    for (const p of list) {
+      if (p && p.params && Number.isFinite(p.params.W)) {
+        stored.push({
+          id: Date.now() + n,
+          name: uniqueName(String(p.name || 'Preset').trim() || 'Preset'),
+          params: { ...p.params },
+        });
+        n += 1;
+      }
+    }
+    return n;
+  }
+
+  return { presets, register, remove, rename, exportJson, importJson };
 }

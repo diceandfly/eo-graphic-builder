@@ -752,3 +752,13 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **그리드 배열 답변** — 현재 위치(읽기 순서) 기준 맞음. columns 옵션 = 열 개수 강제(0=√n 자동).
 4. **직사각형 툴 (R, 5번째 버튼)** — `type:'rect'` 오브젝트 도입: `createRectParams`(fill #3b3b3b·fillOn·strokeColor HALO WHITE·strokeOn off·gridOn off·**gridUnit px/% 토글**·margin·rows·cols·gutterX/Y). 드래그 = 그 크기, 클릭 = 300×200, fill 기본 = 현재 컬러. 생성 후 select 복귀. `RectGraphic.vue`(그리드 가이드 = export 미포함), 패널 SIZE+FILL/STROKE(6색+hex)+GRID 섹션. **타입 시스템**: units[].type('unit'|'rect'), 복제·복붙·블렌드·리셋 타입 보존, 이름 Rect-N. 가드: 스포이드 타입 간 흡수 불가, 링크 타입 혼합 불가(토스트), rect는 유닛 프리셋 등록 불가. rect-rect 링크는 전체 동기화(스코프 칩 숨김). export: 단일/컴포지트 rect 지원(도형만).
 5. 기술 부채 정리는 응답 참조 (localStorage 한계·BRAND_COLORS 이중 정의·링크 직접 확산 경로·타입 분기 산재·테스트 부재 등).
+
+## 64. 2026-08-25 — 프리셋 IO·오더 조정·넘버링 분리·rect 개편 2차
+
+1. **프리셋 라이브러리 JSON 입출력** — 브라우저 하단 "export json / import json" 버튼. 내보내기 = Default 제외 전체(`eo-presets.json`), 가져오기 = 병합(이름 중복 " (2)" 접미, 유효성 검사, 토스트 안내).
+2. **툴바 실측 답변** — 전 바 버튼 32×32·바 높이 42px 동일(정렬바만 2행이라 76). 착시 원인은 §60의 정렬 아이콘 +2px 광학 보정 가능성.
+3. **다크 스와치 스트로크** — 휘도 0.22 미만 칩(BLACK 등)에 inset 1px `--faint` 스트로크(툴바+패널 팔레트, `utils/color.js isDarkColor`). **커스텀 컬러 기본값 #3b3b3b.**
+4. **z-오더 조정** — 우클릭 메뉴 최상단 오더 그룹: Bring to top **(Q)** / Send to back **(W)**. `orderSelected`: 선택을 배열 끝/앞으로(상대 순서 유지).
+5. **넘버링 타입 분리** — nextUnitVer/nextRectVer 독립 카운터 (Unit-N, Rect-N 각자 진행). 그룹은 기존 gid 시퀀스.
+6. **rect 개편 2차** — ① 툴 아이콘 세로형 ② **렌더 레이어: 사각형은 항상 유닛 아래**(타입 내에서는 배열 순서 = Q/W 대상) ③ RATIO: 디지털(16:9·9:16·4:5) + **피지컬**(A4·A5·Letter — **dpi 입력**(기본 300, localStorage 'eo.dpi') 기반 실제 px, A4@300=2480×3508 검증) ④ Fill/Stroke 섹션 삭제, **스트로크 전면 제거**(파라미터·렌더·export) — 색은 컬러 툴바로 ⑤ 그리드: **px 전용**(pct 삭제), 기본 **on**, **snap 토글(기본 on)** — 유닛 이동 시 마진 박스 엣지+컬럼/로우(거터 포함) 라인에 스냅(`geometry/rectGrid.js` 렌더·스냅 공유), 기본 margin 30(0–200)·rows 4(1–12)·cols 4(1–12)·gutterX/Y 20(0–100).
+7. 부채 해결 로드맵 착수 예정: ① BRAND_COLORS↔colors.css 단일화 ② 링크 전파 헬퍼 통합 ③ 패널 분리 ④ 타입 테이블 ⑤ IndexedDB ⑥ 회귀 스위트.

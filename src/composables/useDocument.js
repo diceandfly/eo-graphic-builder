@@ -38,7 +38,7 @@ export function createParams(overrides = {}) {
 const DOC_KEY = 'eo.doc';
 
 // 구버전 스키마 호환: groupId(단일) → groups(중첩 스택, 바깥쪽이 끝)
-// 직사각형 오브젝트 파라미터 (그리기 툴 R) — 레이아웃 프레임 성격
+// 직사각형 오브젝트 파라미터 (그리기 툴 R) — 레이아웃 프레임 성격. 스트로크 없음 (§64).
 export function createRectParams(overrides = {}) {
   return {
     W: 300,
@@ -46,16 +46,14 @@ export function createRectParams(overrides = {}) {
     orientation: 0, // 회전(W/H 스왑) 공유 경로 호환용
     fill: '#3b3b3b',
     fillOn: true,
-    strokeColor: '#EFEAE1', // HALO WHITE
-    strokeOn: false,
-    // 내부 레이아웃 그리드 (가이드 전용 — export 미포함)
-    gridOn: false,
-    gridUnit: 'px', // 'px' | 'pct'
-    margin: 20,
-    rows: 2,
-    cols: 3,
-    gutterX: 10,
-    gutterY: 10,
+    // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
+    gridOn: true,
+    snapOn: true, // 유닛 이동 시 이 그리드 라인에 스냅
+    margin: 30,
+    rows: 4,
+    cols: 4,
+    gutterX: 20,
+    gutterY: 20,
     ...overrides,
   };
 }
@@ -85,7 +83,8 @@ export function useDocument() {
   const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
 
   let nextId = 2;
-  let nextVersion = 2;
+  let nextUnitVer = 2; // 유닛/사각형 넘버링 분리 (§64)
+  let nextRectVer = 1;
   let nextGroup = 1;
   let nextLink = 1;
   const doc = reactive({
@@ -98,14 +97,18 @@ export function useDocument() {
   });
   recalcCounters();
   function recalcCounters() {
-    nextId = doc.units.reduce((m, u) => Math.max(m, u.id), 0) + 1;
-    nextVersion = doc.units.reduce((m, u) => {
+    const maxVer = (units) => units.reduce((m, u) => {
       const mt = u.name.match(/(?:v|-)(\d+)$/);
       return Math.max(m, mt ? Number(mt[1]) : 0);
     }, 0) + 1;
+    nextId = doc.units.reduce((m, u) => Math.max(m, u.id), 0) + 1;
+    nextUnitVer = maxVer(doc.units.filter((u) => u.type !== 'rect'));
+    nextRectVer = maxVer(doc.units.filter((u) => u.type === 'rect'));
     nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
     nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
   }
+  // 타입별 다음 이름
+  const nextName = (type) => (type === 'rect' ? `Rect-${nextRectVer++}` : `Unit-${nextUnitVer++}`);
 
   // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 링크 스코프
   let saveTimer = null;
@@ -351,10 +354,7 @@ export function useDocument() {
 
   function pushUnit(params, x, y, linkId = null, type = 'unit') {
     const id = nextId++;
-    doc.units.push({
-      id, type, name: `${type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`,
-      x, y, groups: [], linkId, params,
-    });
+    doc.units.push({ id, type, name: nextName(type), x, y, groups: [], linkId, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -417,7 +417,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, type: u.type, name: `${u.type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`, x: u.x, y: u.y,
+        id, type: u.type, name: nextName(u.type), x: u.x, y: u.y,
         groups, linkId: u.linkId, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
@@ -724,7 +724,7 @@ export function useDocument() {
       const y = axis === 'v' ? Math.round(cursor + gap) : u.y;
       const id = nextId++;
       doc.units.push({
-        id, type: u.type, name: `${u.type === 'rect' ? 'Rect' : 'Unit'}-${nextVersion++}`,
+        id, type: u.type, name: nextName(u.type),
         x, y, groups: [], linkId: null, params: p,
       });
       const nu = doc.units[doc.units.length - 1];
@@ -744,6 +744,17 @@ export function useDocument() {
     pruneMeta();
     setSelection(all.map((m) => m.id));
     return created;
+  }
+
+  // z-오더 조정 (Q/W): 선택을 배열 끝(앞으로)/처음(뒤로) — 상대 순서 유지.
+  // 렌더는 타입 레이어(사각형 < 유닛) 안에서 배열 순서를 따름.
+  function orderSelected(where) {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (!sel.length) return 0;
+    const rest = doc.units.filter((u) => !doc.selectedIds.includes(u.id));
+    const arr = where === 'front' ? [...rest, ...sel] : [...sel, ...rest];
+    doc.units.splice(0, doc.units.length, ...arr);
+    return sel.length;
   }
 
   // 스마트 그리드 배열 (G): 선택 블록들을 선택 bbox 좌상단 기준 그리드로 재배치.
@@ -866,11 +877,12 @@ export function useDocument() {
   // 대시보드 초기화 — 기본 유닛 1개, 이름/카운터도 v1부터 재시작 (undo로 복구 가능)
   function resetDoc() {
     nextId = 1;
-    nextVersion = 1;
+    nextUnitVer = 1;
+    nextRectVer = 1;
     nextGroup = 1;
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
-      id: nextId++, type: 'unit', name: `Unit-${nextVersion++}`, x: 0, y: 0,
+      id: nextId++, type: 'unit', name: nextName('unit'), x: 0, y: 0,
       groups: [], linkId: null, params: createParams(),
     });
     doc.activeId = doc.units[0].id;
@@ -884,7 +896,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    createRect, renameGroup, blendFrom, arrangeGrid,
+    createRect, renameGroup, blendFrom, arrangeGrid, orderSelected,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

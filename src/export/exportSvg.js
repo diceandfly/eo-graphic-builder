@@ -32,8 +32,7 @@ function unitBody({ W, H, unit, orientation = 0, fill = BRAND_COLORS[0] }) {
 function objectBody(i) {
   if (i.type === 'rect') {
     const fill = i.fillOn === false ? 'none' : i.fill || '#3b3b3b';
-    const stroke = i.strokeOn ? ` stroke="${i.strokeColor}" stroke-width="1"` : '';
-    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"${stroke}/>`;
+    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"/>`;
   }
   return unitBody(i);
 }

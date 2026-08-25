@@ -8,6 +8,7 @@ import UnitGraphic from './stage/UnitGraphic.vue';
 import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { BRAND_COLORS } from '../geometry/constants.js';
+import { isDarkColor } from '../utils/color.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
@@ -26,7 +27,14 @@ const props = defineProps({
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
   'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset', 'exportPreset',
+  'exportPresets', 'importPresets',
 ]);
+const presetFileEl = ref(null);
+function onPresetFile(e) {
+  const f = e.target.files[0];
+  if (f) emit('importPresets', f);
+  e.target.value = '';
+}
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
 const mixed = (...keys) =>
@@ -190,13 +198,28 @@ function applyHex(e) {
   if (t[0] !== '#') t = '#' + t;
   if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
 }
-// rect 전용: 특정 파라미터 키에 hex 직접 적용 (fill / strokeColor)
-function applyHexTo(e, key) {
-  let t = e.target.value.trim();
-  if (!t) return;
-  if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) p.value[key] = t;
-  else e.target.value = p.value[key];
+// 직사각형 비율 그룹 — 디지털(비율) + 피지컬(출판 규격, dpi 기반 실제 px 크기)
+const RECT_DIGITAL = [
+  { label: '16:9', v: 16 / 9 },
+  { label: '9:16', v: 9 / 16 },
+  { label: '4:5', v: 4 / 5 }, // IG
+];
+const RECT_PHYSICAL = [
+  { label: 'A4', wmm: 210, hmm: 297 },
+  { label: 'A5', wmm: 148, hmm: 210 },
+  { label: 'Letter', wmm: 215.9, hmm: 279.4 },
+];
+const dpi = ref(Number(localStorage.getItem('eo.dpi')) || 300);
+function onDpi(e) {
+  const v = Number(e.target.value);
+  if (Number.isFinite(v) && v >= 36) dpi.value = Math.min(1200, Math.round(v));
+  e.target.value = dpi.value;
+  localStorage.setItem('eo.dpi', String(dpi.value));
+}
+function applyPhysical(pp) {
+  const w = Math.round((pp.wmm * dpi.value) / 25.4);
+  const h = Math.round((pp.hmm * dpi.value) / 25.4);
+  emit('setSize', { W: w, H: h }, sizeEach.value);
 }
 </script>
 
@@ -247,7 +270,30 @@ function applyHexTo(e, key) {
         @update:model-value="(v) => emit('setSize', { H: v }, sizeEach)"
       />
       <div class="ratioHead">ratio</div>
-      <div class="ratioRow">
+      <!-- 직사각형: 디지털 비율 + 피지컬(출판) 규격 (dpi 기반 실제 px) -->
+      <template v-if="isRect">
+        <div class="ratioRow">
+          <ChipRow
+            :model-value="aspect" :chips="RECT_DIGITAL" :tol="ASPECT_TOL"
+            @update:model-value="(v) => emit('setAspect', v, sizeEach)"
+          />
+        </div>
+        <div class="ratioHead physHead">physical</div>
+        <div class="physRow">
+          <button
+            v-for="pp in RECT_PHYSICAL" :key="pp.label"
+            class="physChip" @click="applyPhysical(pp)"
+          >{{ pp.label }}</button>
+          <label class="dpiWrap">
+            <span>dpi</span>
+            <input
+              class="dpiInput" type="number" min="36" max="1200"
+              :value="dpi" @change="onDpi"
+            />
+          </label>
+        </div>
+      </template>
+      <div v-else class="ratioRow">
         <ChipRow
           :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
           @update:model-value="(v) => emit('setAspect', v, sizeEach)"
@@ -256,56 +302,8 @@ function applyHexTo(e, key) {
       </div>
     </section>
 
-    <!-- 직사각형 전용 섹션 -->
+    <!-- 직사각형 전용: 레이아웃 그리드 (px 전용, fill은 컬러 툴바로) -->
     <template v-if="isRect">
-    <section>
-      <h2>Fill</h2>
-      <Toggle
-        label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
-        @update:model-value="(v) => (p.fillOn = v === 'on')"
-      />
-      <div v-if="p.fillOn" class="palette">
-        <button
-          v-for="c in BRAND_COLORS" :key="'rf' + c"
-          class="colorChip" :class="{ on: !mixed('fill') && p.fill === c }"
-          :style="{ background: c }" @click="p.fill = c"
-        />
-      </div>
-      <div v-if="p.fillOn" class="hexRow">
-        <span class="hexLabel">custom</span>
-        <input
-          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-          :value="mixed('fill') ? '' : p.fill"
-          @keydown.enter="(e) => applyHexTo(e, 'fill')"
-          @change="(e) => applyHexTo(e, 'fill')"
-        />
-      </div>
-    </section>
-
-    <section>
-      <h2>Stroke</h2>
-      <Toggle
-        label="stroke" :model-value="p.strokeOn ? 'on' : 'off'" :options="ON_OFF"
-        @update:model-value="(v) => (p.strokeOn = v === 'on')"
-      />
-      <div v-if="p.strokeOn" class="palette">
-        <button
-          v-for="c in BRAND_COLORS" :key="'rs' + c"
-          class="colorChip" :class="{ on: !mixed('strokeColor') && p.strokeColor === c }"
-          :style="{ background: c }" @click="p.strokeColor = c"
-        />
-      </div>
-      <div v-if="p.strokeOn" class="hexRow">
-        <span class="hexLabel">custom</span>
-        <input
-          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-          :value="mixed('strokeColor') ? '' : p.strokeColor"
-          @keydown.enter="(e) => applyHexTo(e, 'strokeColor')"
-          @change="(e) => applyHexTo(e, 'strokeColor')"
-        />
-      </div>
-    </section>
-
     <section>
       <h2>Grid</h2>
       <Toggle
@@ -314,31 +312,28 @@ function applyHexTo(e, key) {
       />
       <template v-if="p.gridOn">
         <Toggle
-          label="unit" v-model="p.gridUnit"
-          :options="[{ value: 'px', label: 'px' }, { value: 'pct', label: '%' }]"
+          label="snap" :model-value="p.snapOn ? 'on' : 'off'" :options="ON_OFF"
+          @update:model-value="(v) => (p.snapOn = v === 'on')"
         />
         <Slider
-          label="margin" v-model="p.margin"
-          :min="0" :max="p.gridUnit === 'pct' ? 25 : 200" :step="p.gridUnit === 'pct' ? 0.5 : 1"
-          :display="mixed('margin') ? '—' : `${p.margin}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+          label="margin" v-model="p.margin" :min="0" :max="200" :step="1"
+          :display="mixed('margin') ? '—' : `${p.margin}px`"
         />
         <Slider
-          label="rows" v-model="p.rows" :min="1" :max="24" :step="1"
+          label="rows" v-model="p.rows" :min="1" :max="12" :step="1"
           :display="mixed('rows') ? '—' : String(p.rows)"
         />
         <Slider
-          label="cols" v-model="p.cols" :min="1" :max="24" :step="1"
+          label="cols" v-model="p.cols" :min="1" :max="12" :step="1"
           :display="mixed('cols') ? '—' : String(p.cols)"
         />
         <Slider
-          label="gutter x" v-model="p.gutterX"
-          :min="0" :max="p.gridUnit === 'pct' ? 10 : 100" :step="p.gridUnit === 'pct' ? 0.5 : 1"
-          :display="mixed('gutterX') ? '—' : `${p.gutterX}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+          label="gutter x" v-model="p.gutterX" :min="0" :max="100" :step="1"
+          :display="mixed('gutterX') ? '—' : `${p.gutterX}px`"
         />
         <Slider
-          label="gutter y" v-model="p.gutterY"
-          :min="0" :max="p.gridUnit === 'pct' ? 10 : 100" :step="p.gridUnit === 'pct' ? 0.5 : 1"
-          :display="mixed('gutterY') ? '—' : `${p.gutterY}${p.gridUnit === 'pct' ? '%' : 'px'}`"
+          label="gutter y" v-model="p.gutterY" :min="0" :max="100" :step="1"
+          :display="mixed('gutterY') ? '—' : `${p.gutterY}px`"
         />
       </template>
     </section>
@@ -421,7 +416,7 @@ function applyHexTo(e, key) {
           v-for="c in BRAND_COLORS"
           :key="c"
           class="colorChip"
-          :class="{ on: !mixed('fill') && p.fill === c }"
+          :class="{ on: !mixed('fill') && p.fill === c, dark: isDarkColor(c) }"
           :style="{ background: c }"
           @click="emit('fill', c); colorOpen = false"
         />
@@ -522,6 +517,12 @@ function applyHexTo(e, key) {
           >×</button>
         </div>
       </div>
+      <!-- 프리셋 라이브러리 JSON 입출력 -->
+      <div class="pIoRow">
+        <button class="pIoBtn" @click="emit('exportPresets')">export json</button>
+        <button class="pIoBtn" @click="presetFileEl.click()">import json</button>
+        <input ref="presetFileEl" type="file" accept=".json,application/json" hidden @change="onPresetFile" />
+      </div>
     </section>
     </template>
 
@@ -584,6 +585,21 @@ section h2 {
   margin: 0 0 14px;
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
+.physHead { margin-top: 10px; }
+.physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.physChip {
+  @include bordered-control;
+  font-size: var(--fs-xs); padding: 3px 9px;
+  &:hover { border-color: var(--accent); color: var(--accent); }
+}
+.dpiWrap {
+  display: flex; align-items: center; gap: 5px; margin-left: 4px;
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint);
+}
+.dpiInput {
+  @include text-field;
+  width: 48px; padding: 3px 6px; text-align: right;
+}
 .eachBtn {
   @include bordered-control;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
@@ -613,6 +629,7 @@ section h2 {
   border-radius: var(--radius);
 }
 .colorChip.on { outline: 1px solid var(--text); outline-offset: 1px; }
+.colorChip.dark { box-shadow: inset 0 0 0 1px var(--faint); }
 .hexRow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .hexLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
@@ -671,6 +688,13 @@ section h2 {
   position: fixed; z-index: 20;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 4px; display: flex; flex-direction: column;
+}
+.pIoRow { display: flex; gap: 6px; margin-top: 12px; }
+.pIoBtn {
+  @include bordered-control;
+  flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  padding: 5px 0;
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 .pMenuItem {
   border: none; background: none; color: var(--text); cursor: pointer;

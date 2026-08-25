@@ -61,6 +61,11 @@ function deletePreset(id) {
   }
   presetsApi.remove(id);
 }
+// 프리셋 라이브러리 가져오기 (병합)
+async function importPresets(file) {
+  const n = await presetsApi.importJson(file);
+  stageRef.value?.toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
+}
 // 프리셋 추출: 단독 유닛 SVG 다운로드
 function exportPreset(preset) {
   const p = preset.params;
@@ -71,10 +76,7 @@ function exportPreset(preset) {
 function exportItem(u) {
   const p = u.params;
   if (u.type === 'rect') {
-    return {
-      type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H,
-      fill: p.fill, fillOn: p.fillOn, strokeOn: p.strokeOn, strokeColor: p.strokeColor,
-    };
+    return { type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn };
   }
   return {
     type: 'unit', x: u.x, y: u.y, W: p.W, H: p.H,
@@ -167,6 +169,8 @@ const stageActions = {
         @delete-preset="deletePreset"
         @rename-preset="presetsApi.rename"
         @export-preset="exportPreset"
+        @export-presets="presetsApi.exportJson"
+        @import-presets="importPresets"
         @link="onLink"
         @fill="docApi.setFill"
       />

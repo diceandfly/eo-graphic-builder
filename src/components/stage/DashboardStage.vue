@@ -11,6 +11,7 @@ import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
+import { rectGridLines } from '../../geometry/rectGrid.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -26,6 +27,11 @@ const el = ref(null);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 const activeUnit = computed(() => props.doc.units.find((u) => u.id === props.doc.activeId));
+// 렌더 z-오더: 사각형은 항상 유닛 아래 레이어 (타입 내에서는 배열 순서)
+const zOrdered = computed(() => [
+  ...props.doc.units.filter((u) => u.type === 'rect'),
+  ...props.doc.units.filter((u) => u.type !== 'rect'),
+]);
 const singleSelected = computed(
   () => props.doc.selectedIds.length === 1 && props.doc.selectedIds[0] === props.doc.activeId
 );
@@ -140,7 +146,7 @@ const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
 // 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
-const customColor = ref(prefs.customColor || '#FF6B00');
+const customColor = ref(prefs.customColor || '#3b3b3b');
 watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
@@ -186,7 +192,11 @@ function onRegisterPreset() {
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
   closeCtx();
 }
-// 컨텍스트 메뉴 상단 액션 그룹 — 오버레이 버튼(숨김 상태)의 대체 표면 (§59)
+// 컨텍스트 메뉴: 오더 그룹 + 액션 그룹(오버레이 버튼의 대체 표면 §59)
+const CTX_ORDER = [
+  { key: 'front', label: 'Bring to top (Q)' },
+  { key: 'back', label: 'Send to back (W)' },
+];
 const CTX_ACTIONS = [
   { key: 'flip', label: 'Flip horizontal (⇧H)' },
   { key: 'flipv', label: 'Flip vertical (⇧V)' },
@@ -194,7 +204,8 @@ const CTX_ACTIONS = [
   { key: 'del', label: 'Delete (D)' },
 ];
 function onCtxAction(key) {
-  if (key === 'flip') props.actions.flipSelected('h');
+  if (key === 'front' || key === 'back') props.actions.orderSelected(key);
+  else if (key === 'flip') props.actions.flipSelected('h');
   else if (key === 'flipv') props.actions.flipSelected('v');
   else if (key === 'dup') props.actions.duplicateSelectedOffset();
   else if (key === 'del') props.actions.deleteSelected();
@@ -350,6 +361,8 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyR') mode.value = 'rect';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
+  if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) props.actions.orderSelected('front');
+  if (!mod && !e.shiftKey && e.code === 'KeyW' && props.doc.selectedIds.length) props.actions.orderSelected('back');
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -639,6 +652,12 @@ function onMove(e) {
     for (const o of others) {
       const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
       const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+      // 사각형 레이아웃 그리드 스냅: 마진 박스 엣지 + 컬럼/로우(거터 포함) 라인
+      if (o.type === 'rect' && o.params.gridOn && o.params.snapOn) {
+        const gl = rectGridLines(o.params);
+        ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
+        oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
+      }
       for (const c of ox) for (const m of mineX) {
         const d = c - m;
         if (Math.abs(d) < SNAP && (!bestX || Math.abs(d) < Math.abs(bestX.d))) bestX = { d, pos: c, o };
@@ -927,7 +946,7 @@ onBeforeUnmount(() => {
       </defs>
       <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
-        <g v-for="u in doc.units" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
+        <g v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <RectGraphic v-if="u.type === 'rect'" :params="u.params" />
           <UnitGraphic
             v-else
@@ -1095,6 +1114,11 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
+      <button
+        v-for="a in CTX_ORDER" :key="a.key"
+        class="ctxItem" @click="onCtxAction(a.key)"
+      >{{ a.label }}</button>
+      <div class="ctxSep" />
       <button
         v-for="a in CTX_ACTIONS" :key="a.key"
         class="ctxItem" @click="onCtxAction(a.key)"
