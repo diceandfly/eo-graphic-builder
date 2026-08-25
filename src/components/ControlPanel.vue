@@ -161,9 +161,24 @@ const fromDisp = (v) => (isCm.value ? (v * dpi.value) / 2.54 : v);
 function setSizeField(key, v) {
   emit('setSize', { [key]: Math.round(fromDisp(v)) }, sizeEach.value);
 }
-// 그리드 필드 (margin·gutter): 표시 단위 → px 환산·클램프 후 저장
-function setGridField(key, v, pxMin, pxMax) {
-  p.value[key] = Math.round(Math.min(pxMax, Math.max(pxMin, fromDisp(v))));
+// 그리드 필드 (margin·gutter): 표시 단위 기준 클램프 → px 환산 저장
+function setGridField(key, v, lo, hi) {
+  p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
+}
+// 단위 전환 — 각 단위의 그리드 기본값 적용 (px 20/20/20 ↔ cm 2/0.5/0.5, §76)
+function setUnitMode(mode) {
+  if (p.value.unitMode === mode) return;
+  p.value.unitMode = mode;
+  if (mode === 'cm') {
+    const cmToPx = (v) => Math.round((v * dpi.value) / 2.54);
+    p.value.margin = cmToPx(2);
+    p.value.gutterX = cmToPx(0.5);
+    p.value.gutterY = cmToPx(0.5);
+  } else {
+    p.value.margin = 20;
+    p.value.gutterX = 20;
+    p.value.gutterY = 20;
+  }
 }
 
 // stroke 색 hex 입력 — 가이드 색 입력과 동일 문법 (#RGB/#RRGGBB만 수용)
@@ -206,8 +221,8 @@ function onStrokeHex(e) {
         <div class="headBtns">
           <!-- rect 전용 px/cm 표기 토글 — SIZE·RATIO·GRID 표기에 공통 적용 (§75) -->
           <div v-if="isRect" class="unitSeg">
-            <button :class="{ on: !isCm }" @click="p.unitMode = 'px'">px</button>
-            <button :class="{ on: isCm }" @click="p.unitMode = 'cm'">cm</button>
+            <button :class="{ on: !isCm }" @click="setUnitMode('px')">px</button>
+            <button :class="{ on: isCm }" @click="setUnitMode('cm')">cm</button>
           </div>
           <button
             v-if="selected.length >= 2"
@@ -294,22 +309,23 @@ function onStrokeHex(e) {
         @update:model-value="(v) => (p.gridOn = v === 'on')"
       />
       <template v-if="p.gridOn">
+        <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
         <Slider
           label="margin" :model-value="toDisp(p.margin)"
-          :min="0" :max="toDisp(200)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
-          @update:model-value="(v) => setGridField('margin', v, 0, 200)"
+          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
         />
         <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" editable />
         <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" editable />
         <Slider
           label="gutter x" :model-value="toDisp(p.gutterX)"
-          :min="0" :max="toDisp(100)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
-          @update:model-value="(v) => setGridField('gutterX', v, 0, 100)"
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
         />
         <Slider
           label="gutter y" :model-value="toDisp(p.gutterY)"
-          :min="0" :max="toDisp(100)" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
-          @update:model-value="(v) => setGridField('gutterY', v, 0, 100)"
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
         />
       </template>
     </section>
@@ -448,9 +464,13 @@ section h2 {
   display: flex; align-items: center; gap: 5px; margin-left: 4px;
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint);
 }
+// NumberField 입력과 동일 규격 (W/H 행과 가로 정렬, §76)
 .dpiInput {
   @include text-field;
-  width: 48px; padding: 3px 6px; text-align: right;
+  width: 58px; padding: 3px 8px; text-align: right;
+  -moz-appearance: textfield; appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
 .eachBtn {
   @include bordered-control;

@@ -834,3 +834,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **snap 토글 폐기** — `gridOn`이 표시+스냅 겸용(grid on = 스냅 on). `snapOn` 파라미터·게이트 제거.
 - 구현: createRectParams(drawMode·stroke·strokeW·unitMode), RectGraphic 분기, ControlPanel(toDisp/fromDisp 환산·unitSeg·Style 섹션), NumberField step="any"(cm 소수 입력).
 - 검증: 1920px↔16.26cm 표시, 10.5cm 입력→1240px 저장, RATIO 스왑, stroke 전환 시 외곽선만 렌더, 숫자키 1→stroke에 EO NEON 적용(fill 유지), 새 rect 기본 EFEAE1/5px. 회귀 30/30 유지(fill 출력 불변).
+
+## 76. 2026-08-25 — rect 단위 전환 시 그리드 기본값 스왑 + cm 조절 범위 + dpi 필드 정렬
+
+1. **단위 전환 = 그리드 기본값 스왑** — px→cm: margin 2cm·gutter 0.5cm 자동 적용, cm→px: margin 20px·gutter 20px 복원. (px 잔값이 0.17cm처럼 표기되는 어색함 제거)
+2. **cm 모드 조절 범위** — margin 0~5cm, gutter x/y 0~2cm (px 모드는 기존 0~200/0~100 유지). 클램프는 표시 단위 기준으로 변경.
+3. **dpi 입력 필드** — W/H NumberField와 동일 규격(58px 폭·패딩)으로 가로 정렬, 스피너 제거.
+4. **환산 정확성 검증(사용자 의심 건)** — A3 @300dpi = 3508×4961px = 29.70×42.00cm. margin 1cm 입력 → 118px 저장 = 0.999cm = 폭 대비 3.36% (실물 A3의 1cm/29.7cm = 3.37%와 일치). 수식·지오메트리(양측 1:1 적용) 모두 정상 — 화면에서 커 보이는 것은 모니터 ppi/줌 배율에 따른 절대 크기 차이일 뿐 비율·인쇄 치수는 정확.
