@@ -182,6 +182,22 @@ export function useDocument() {
       else if (viaLink.has(u.id)) Object.assign(u.params, filterByLinkScope(patch, viaLink.get(u.id)));
     }
   }
+  // ── 링크 확산 공용 헬퍼 (§68 부채 정리) ──
+  // 링크 전파 표면은 두 종류뿐이어야 한다:
+  //  1) 미러 워처 (아래 watch) — 패널 편집의 패치를 스코프 필터로 전파
+  //  2) 직접 확산 — 반드시 expandLinkByScope / filterByLinkScope 를 거칠 것.
+  //     현재 사용처: setFill('color') · rotate('orientation') · absorbFrom(filterByLinkScope)
+  // 새 기능이 링크로 퍼져야 한다면 이 두 헬퍼 외의 경로를 만들지 말 것.
+  // cat 범주가 켜진 링크의 멤버 id들로 집합을 확장
+  function expandLinkByScope(ids, cat) {
+    const out = new Set(ids);
+    for (const u of doc.units) {
+      if (out.has(u.id) && u.linkId && doc.linkScopes[u.linkId]?.[cat] !== false) {
+        for (const lid of linkMemberIds(u.linkId)) out.add(lid);
+      }
+    }
+    return out;
+  }
   // 링크 스코프가 꺼진 범주의 키를 patch에서 제거
   function filterByLinkScope(patch, lid) {
     const scope = doc.linkScopes[lid];
@@ -534,14 +550,8 @@ export function useDocument() {
   }
   // 스와치: 선택 유닛(없으면 활성)에 fill 적용 — 링크 확산은 color 스코프가 켜진 링크만
   function setFill(color) {
-    const ids = new Set(
-      doc.selectedIds.length ? doc.selectedIds : doc.activeId != null ? [doc.activeId] : []
-    );
-    for (const u of doc.units) {
-      if (ids.has(u.id) && u.linkId && doc.linkScopes[u.linkId]?.color !== false) {
-        for (const lid of linkMemberIds(u.linkId)) ids.add(lid);
-      }
-    }
+    const base = doc.selectedIds.length ? doc.selectedIds : doc.activeId != null ? [doc.activeId] : [];
+    const ids = expandLinkByScope(base, 'color');
     for (const u of doc.units) if (ids.has(u.id)) u.params.fill = color;
   }
 
@@ -636,11 +646,9 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
-    const targets = [u];
-    // 링크 확산은 orientation 스코프가 켜진 링크만
-    if (u.linkId && doc.linkScopes[u.linkId]?.orientation !== false) {
-      for (const m of doc.units) if (m.linkId === u.linkId && m !== u) targets.push(m);
-    }
+    // 링크 확산은 orientation 스코프가 켜진 링크만 (공용 헬퍼 경유)
+    const ids = expandLinkByScope([u.id], 'orientation');
+    const targets = [u, ...doc.units.filter((m) => m !== u && ids.has(m.id))];
     withGeomOp(() => {
       for (const t of targets) {
         const p = t.params;
