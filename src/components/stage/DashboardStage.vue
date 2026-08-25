@@ -99,7 +99,7 @@ const PREFS_KEY = 'eo.prefs';
 let prefs;
 try { prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { prefs = {}; }
 // 스포이드 범주 스코프 (우클릭 메뉴)
-const eyedropScope = reactive({ size: true, grid: true, shape: true, color: true, ...(prefs.eyedropScope || {}) });
+const eyedropScope = reactive({ size: true, orientation: true, grid: true, shape: true, color: true, ...(prefs.eyedropScope || {}) });
 // 캔버스 그리드 설정 (그리드 버튼 우클릭 메뉴): 정방형 간격 + 이동 그리드 스냅
 const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
@@ -248,6 +248,11 @@ function onUnitDown(u, e) {
     // 스포이드: 클릭한 유닛의 파라미터를 선택된 유닛들에 흡수 후 선택툴 복귀
     props.actions.absorbFrom(u, { ...eyedropScope });
     mode.value = 'select';
+    return;
+  }
+  // ⇧⌘+클릭 = 딥 셀렉트 멀티 토글 (그룹 계층 무시하고 개별 유닛을 선택에 추가/제거)
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
+    props.actions.toggleSelect(u.id);
     return;
   }
   // ⌘(또는 Ctrl)+클릭 = 그룹 계층 무시하고 해당 유닛을 바로 선택 (딥 셀렉트)

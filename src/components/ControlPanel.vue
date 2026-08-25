@@ -322,7 +322,7 @@ section h2 {
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
 .eachBtn {
   @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
   padding: 2px 7px;
   &.on { border-color: var(--accent); color: var(--accent); }
 }

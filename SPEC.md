@@ -657,3 +657,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 7. **바운딩박스 show/hide** — 코너 바 맨 왼쪽(lucide box-select). off면 Selection/Group 오버레이·그룹 점선·키 하이라이트 숨김 (조작은 유지).
 8. **단축키** — ⇧H/⇧V = 화면축 좌우/상하 반전(`flipSelected`, 오버레이 툴팁에 표기), 1~5 = 브랜드 컬러 적용(스와치 툴팁에 `EO NEON (1)` 형식 병기, `BRAND_COLOR_NAMES` 추가). 입력 필드 포커스 중엔 기존 `isTyping` 가드로 차단, V/I 도구 전환은 Shift 미조합일 때만.
 - 버그 픽스: 이벤트명 `toggleBBox`처럼 대문자 연속이면 케밥 리스너와 매칭 실패 → `toggleBbox`로 명명 (Vue emit 네이밍 주의 사례).
+
+## 55. 2026-08-25 — 기본값·칩·코너바 조정 + 딥 멀티선택 + 스포이드 Orientation
+
+1. **each 토글 소문자 표기** (uppercase 제거 — fixed/prop 등 토글 계열과 통일).
+2. **기본 유닛 960×800** (6:5). 비율 칩 확장: **12:5**(맨 앞)·**6:5**(4:3과 1:1 사이, 기본 세팅 대응) 추가.
+3. **코너 바 순서**: 캔버스 그리드 → 바운딩박스 → 유닛 그리드 → 줌%.
+4. **캔버스 그리드 기본 80px** (STAGE_GRID).
+5. **⇧⌘+클릭 = 딥 셀렉트 멀티 토글** — 그룹 계층 무시하고 개별 유닛을 선택에 추가/제거 (⌘클릭 단일 딥 셀렉트와 병행).
+6. **스포이드 범주 Orientation 추가** — `['orientation', 'flipX']` (size에서 orientation 분리, §50의 flipX 제외 방침을 개정: 명시적 범주로 흡수 가능). 메뉴 순서 Size·Orientation·Grid·Shape Adjustment·Color.

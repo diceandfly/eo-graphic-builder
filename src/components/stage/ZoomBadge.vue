@@ -45,11 +45,6 @@ function onSize(e) {
 <template>
   <div class="corner">
     <FloatingBar>
-      <IconButton
-        :paths="ICONS.boxSelect" :active="bbox" tip-align="right"
-        :tip="bbox ? 'Hide Bounding Box' : 'Show Bounding Box'"
-        @click="$emit('toggleBbox')"
-      />
       <div class="gridWrap">
         <IconButton
           :paths="ICONS.canvasGrid" :active="stageGrid" tip-align="right"
@@ -79,6 +74,11 @@ function onSize(e) {
           </label>
         </div>
       </div>
+      <IconButton
+        :paths="ICONS.boxSelect" :active="bbox" tip-align="right"
+        :tip="bbox ? 'Hide Bounding Box' : 'Show Bounding Box'"
+        @click="$emit('toggleBbox')"
+      />
       <IconButton
         :paths="ICONS.unitGrid" :active="guides" tip-align="right"
         :tip="guides ? 'Hide Unit Grid' : 'Show Unit Grid'"

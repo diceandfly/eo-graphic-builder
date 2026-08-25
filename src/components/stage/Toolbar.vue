@@ -46,7 +46,7 @@ function closeMenu() {
 watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
-const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
+const SCOPE_LABELS = { size: 'Size', orientation: 'Orientation', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color' };
 
 // 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
 const resetStage = ref(0);

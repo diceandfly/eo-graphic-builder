@@ -10,7 +10,7 @@ export function createParams(overrides = {}) {
   return {
     // Unit Size (캔버스 치수 — 회전 반영값)
     W: 960,
-    H: 810,
+    H: 800, // 6:5 (비율 칩 기본)
     orientation: 0, // 0 | 90 | 180 | 270 (시계방향)
     // Grid
     cols: 12,
@@ -101,7 +101,8 @@ export function useDocument() {
   // 스포이드: 소스 유닛의 파라미터를 선택된 유닛들에 흡수 (위치·이름 유지)
   // scope: { size, grid, shape, color } — 켜진 범주의 키만 흡수 (없으면 전체)
   const SCOPE_KEYS = {
-    size: ['W', 'H', 'orientation'],
+    size: ['W', 'H'],
+    orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
     grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'],
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
