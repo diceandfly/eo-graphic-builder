@@ -29,8 +29,12 @@ function bump(d) {
   <div class="sf">
     <input type="number" :value="modelValue" @change="onChange" @keydown.stop />
     <div class="btns">
-      <button tabindex="-1" @click="bump(1)">▴</button>
-      <button tabindex="-1" @click="bump(-1)">▾</button>
+      <button tabindex="-1" @click="bump(1)">
+        <svg viewBox="0 0 8 6"><path d="M4 1 7 5H1z" /></svg>
+      </button>
+      <button tabindex="-1" @click="bump(-1)">
+        <svg viewBox="0 0 8 6"><path d="M1 1h6L4 5z" /></svg>
+      </button>
     </div>
   </div>
 </template>
@@ -54,9 +58,10 @@ function bump(d) {
 .btns button {
   flex: 1; min-height: 10px;
   display: flex; align-items: center; justify-content: center;
-  border: none; background: none; color: var(--faint); cursor: pointer;
-  font-size: 9px; line-height: 1; padding: 0 4px; font-family: inherit;
-  &:hover { color: var(--accent); }
+  border: none; background: none; cursor: pointer; padding: 0 4px;
   &:first-child { border-bottom: 1px solid var(--line); }
+  // 위/아래 동일한 SVG 삼각형 — 글리프(▴▾) 크기 편차 제거
+  svg { width: 7px; height: 5px; fill: var(--faint); }
+  &:hover svg { fill: var(--accent); }
 }
 </style>

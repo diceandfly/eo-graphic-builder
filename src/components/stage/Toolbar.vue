@@ -10,10 +10,11 @@ import { ICONS } from '../../ui/icons.js';
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
 const props = defineProps({
   mode: String, fill: String,
-  scope: Object,    // 스포이드 범주 토글 { size, orientation, grid, shape, color }
-  blendCfg: Object, // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
+  scope: Object,      // 스포이드 범주 토글 { size, orientation, grid, shape, color }
+  blendCfg: Object,   // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
+  arrangeCfg: Object, // 그리드 배열 설정 { gap, columns(0=auto) }
 }); // mode: 'select' | 'eyedrop'
-const emit = defineEmits(['update:mode', 'fill', 'blend']);
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 
 const TOOLS = [
@@ -43,7 +44,7 @@ watch(menuOpen, (open) => {
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape', color: 'Color', orientation: 'Orientation' };
 
-// 블렌드 도구 — 좌클릭/B = 현재 설정으로 즉시 적용, 우클릭 = 옵션 메뉴 (다른 툴 버튼과 동일 문법)
+// 블렌드/배열 도구 — 좌클릭·단축키 = 현재 설정으로 즉시 적용, 우클릭 = 옵션 메뉴
 const blendOpen = ref(false);
 function onBlendContext(e) {
   e.preventDefault();
@@ -54,6 +55,17 @@ function closeBlend() {
 }
 watch(blendOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeBlend, { once: true }), 0);
+});
+const arrangeOpen = ref(false);
+function onArrangeContext(e) {
+  e.preventDefault();
+  arrangeOpen.value = !arrangeOpen.value;
+}
+function closeArrange() {
+  arrangeOpen.value = false;
+}
+watch(arrangeOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeArrange, { once: true }), 0);
 });
 
 // 커스텀 컬러 hex 팝업 (옵션창 공통 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
@@ -178,6 +190,28 @@ function applyHex(e) {
           </div>
         </div>
       </div>
+      <!-- 그리드 배열: 좌클릭/G = 즉시 적용, 우클릭 = 옵션 -->
+      <div class="toolWrap">
+        <IconButton
+          :paths="ICONS.arrange"
+          :active="arrangeOpen"
+          :tip="arrangeOpen ? '' : 'Grid arrange (G)'"
+          @click="emit('arrange')"
+          @contextmenu="onArrangeContext"
+        />
+        <div v-if="arrangeOpen && arrangeCfg" class="menu" @pointerdown.stop>
+          <div class="menuTitle">Grid arrange</div>
+          <div class="menuRow">
+            <span class="rowLabel">gap (px)</span>
+            <StepField v-model="arrangeCfg.gap" :min="0" :max="2000" :step="5" />
+          </div>
+          <div class="menuRow">
+            <span class="rowLabel">columns</span>
+            <StepField v-model="arrangeCfg.columns" :min="0" :max="50" :step="1" />
+          </div>
+          <div class="menuNote">columns 0 = auto (√n)</div>
+        </div>
+      </div>
     </FloatingBar>
   </div>
 </template>
@@ -215,6 +249,7 @@ function applyHex(e) {
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
 .rowLabel { color: var(--faint); width: 62px; }
+.menuNote { font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; }
 .numIn {
   @include text-field;
   width: 52px; padding: 2px 6px; text-align: right;

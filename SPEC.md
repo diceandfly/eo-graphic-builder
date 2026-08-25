@@ -732,3 +732,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **블렌드 상호작용 개편** — 툴팁 "Blend (B)". **좌클릭/B 단축키 = 현재 설정으로 즉시 적용**, **우클릭 = 옵션 메뉴** (스포이드와 동일 문법, apply 버튼 삭제). `blendCfg`는 DashboardStage로 이동해 eo.prefs 영속. 기본 scale **0.5**. StepField 아래 화살표 잘림 수정(min-height+flex 정렬). 모든 팝업 menuTitle `white-space: nowrap`(스포이드 "Eyedropper picks" 줄바꿈 해결 — 창 폭이 타이틀에 맞게 늘어남).
 4. (3에 포함)
 5. **등분 아이콘 교체** — distributeH/V: 양끝 고정선 + 가운데 블록 (`['M4 4v16','M20 4v16','M12 8v8']` 형태) — "양 끝 사이 균등 배치" 의미 직관화.
+
+## 62. 2026-08-25 — 아이콘 직각화·그리드 배열 툴·현재 컬러·기본값 조정
+
+1. **아이콘 직각화 (A안)** — icons.js 전 패스에서 장식용 라운드 코너(아크) 제거: save·open·duplicate·trash·unitGrid·boxSelect(코너 브래킷화)·eyedrop·exportSvg·해골(다각형 두개골). palette는 각진 "겹친 스와치 3장"으로 메타포 교체. 원형이 본질인 resetArrow(회전)·link(사슬)만 곡선 유지.
+2. **StepField 화살표** — 글리프(▴▾, 크기 편차) → 동일 SVG 삼각형 7×5px.
+3. **블렌드**: 배율은 유닛 크기에만, **간격은 고정**(g×scale 제거). 기본 방향 **h**.
+4. **링크 기본 스코프**: color·orientation **off** (`linkScopeDefault`·패널 드래프트·블렌드 자동 링크 동일).
+5. **그리드 배열 툴 (4번째 버튼, G)** — `arrangeGrid({gap, columns})`: 선택 블록들을 선택 bbox 좌상단 기준 그리드 재배치. 읽기 순서(중심 y→x, 행 허용치=평균높이/2) 보존, 셀 = 행/열별 최대 치수, columns 0=auto(⌈√n⌉). 좌클릭/G=적용, 우클릭=옵션(gap·columns), eo.prefs 영속. 1블록 이하 안내 토스트. 검증: 5블록 → 3열 그리드(컬럼폭 960/480, gap 40).
+6. **현재 컬러(currentColor)** — 선택 없을 때 스와치/숫자키는 유닛에 적용하지 않고 현재 컬러만 지정(스와치 활성 표시, eo.prefs 영속). 추후 그리기 툴 기본값으로 사용 예정. 선택 있으면 기존대로 적용+현재 컬러 갱신.
+7. **프리셋 등록 가드** — 그룹/멀티 선택 상태 등록 시도 시 에러 토스트(단일 유닛 전용, 배치는 추후 layout preset).
+8. 보류 항목(다음 라운드 토론): 이미지 붙여넣기(저장 용량·export 정책), 직사각형 그리기 툴 R(px/%·생성 방식).

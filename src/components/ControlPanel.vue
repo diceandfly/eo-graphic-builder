@@ -141,7 +141,8 @@ function cancelRename() {
 // 링크 동기화 스코프 칩 (스포이드 범주와 동일 5종).
 // 링크 전에는 드래프트를 편집하고, "link parameters" 시 그 값으로 링크 생성.
 const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
-const draftScope = reactive({ size: true, orientation: true, grid: true, shape: true, color: true });
+// 기본: color·orientation off (useDocument linkScopeDefault와 동일 값 유지)
+const draftScope = reactive({ size: true, orientation: false, grid: true, shape: true, color: false });
 const scopeOn = (k) =>
   linked.value ? (props.linkScope ? props.linkScope[k] !== false : true) : draftScope[k];
 function onScopeChip(k) {

@@ -130,7 +130,8 @@ export function useDocument() {
   // 파라미터 키 → 범주 역맵 (링크 스코프 필터용). 미분류 키(showGuides 등)는 항상 동기화.
   const KEY_CAT = {};
   for (const [cat, keys] of Object.entries(SCOPE_KEYS)) for (const k of keys) KEY_CAT[k] = cat;
-  const linkScopeDefault = () => ({ size: true, orientation: true, grid: true, shape: true, color: true });
+  // 기본: color·orientation은 off (사용자 확정 §62 — 개별성 유지가 더 흔한 사용례)
+  const linkScopeDefault = () => ({ size: true, orientation: false, grid: true, shape: true, color: false });
   function absorbFrom(source, scope = null) {
     const keys = scope
       ? Object.entries(scope).filter(([, v]) => v).flatMap(([k]) => SCOPE_KEYS[k] || [])
@@ -675,33 +676,72 @@ export function useDocument() {
     const created = [];
     let cursor = axis === 'v' ? u.y + u.params.H : u.x + u.params.W;
     let size = axis === 'v' ? u.params.H : u.params.W;
-    let g = gap;
     for (let i = 0; i < count; i++) {
       size *= scale;
       const p = { ...u.params };
       if (axis === 'v') p.H = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
       else p.W = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
-      const x = axis === 'v' ? u.x : Math.round(cursor + g);
-      const y = axis === 'v' ? Math.round(cursor + g) : u.y;
+      // 배율은 유닛 크기에만 적용, 간격은 고정 (§62)
+      const x = axis === 'v' ? u.x : Math.round(cursor + gap);
+      const y = axis === 'v' ? Math.round(cursor + gap) : u.y;
       const id = nextId++;
       doc.units.push({ id, name: `Unit-${nextVersion++}`, x, y, groups: [], linkId: null, params: p });
       const nu = doc.units[doc.units.length - 1];
       normalize(nu.params);
       created.push(nu);
       cursor = axis === 'v' ? y + nu.params.H : x + nu.params.W;
-      g *= scale;
     }
     const all = [u, ...created];
     const gid = nextGroup++;
     for (const m of all) m.groups.push(gid);
     doc.groupNames[gid] = `Blend-${gid}`;
     const lid = nextLink++;
-    doc.linkScopes[lid] = { size: false, orientation: true, grid: true, shape: true, color: true };
+    // 기본 스코프에서 size까지 제외 — 사본별 크기 차이가 블렌드의 본질
+    doc.linkScopes[lid] = { ...linkScopeDefault(), size: false };
     for (const m of all) m.linkId = lid;
     cleanupLinks();
     pruneMeta();
     setSelection(all.map((m) => m.id));
     return created;
+  }
+
+  // 스마트 그리드 배열 (G): 선택 블록들을 선택 bbox 좌상단 기준 그리드로 재배치.
+  // 읽기 순서(위→아래, 왼→오른쪽) 보존, 셀 크기 = 해당 행/열의 블록 최대 치수, 간격 = gap.
+  // columns 0 = 자동 (ceil(sqrt(n))).
+  function arrangeGrid({ gap = 40, columns = 0 } = {}) {
+    const blocks = blocksOf(doc.selectedIds);
+    if (blocks.length < 2) return 0;
+    const items = blocks.map((b) => ({ b, bb: bboxOf(b) }));
+    const avgH = items.reduce((t, i) => t + (i.bb.maxY - i.bb.minY), 0) / items.length;
+    items.sort((a, z) => {
+      const ay = (a.bb.minY + a.bb.maxY) / 2;
+      const zy = (z.bb.minY + z.bb.maxY) / 2;
+      if (Math.abs(ay - zy) > avgH / 2) return ay - zy;
+      return (a.bb.minX + a.bb.maxX) / 2 - (z.bb.minX + z.bb.maxX) / 2;
+    });
+    const cols = clamp(Math.round(columns) || Math.ceil(Math.sqrt(items.length)), 1, items.length);
+    const rows = Math.ceil(items.length / cols);
+    const colW = Array(cols).fill(0);
+    const rowH = Array(rows).fill(0);
+    items.forEach((it, i) => {
+      colW[i % cols] = Math.max(colW[i % cols], it.bb.maxX - it.bb.minX);
+      rowH[Math.floor(i / cols)] = Math.max(rowH[Math.floor(i / cols)], it.bb.maxY - it.bb.minY);
+    });
+    const origin = bboxOf(doc.units.filter((u) => doc.selectedIds.includes(u.id)));
+    let i = 0;
+    let ys = origin.minY;
+    for (let r = 0; r < rows; r++) {
+      let xs = origin.minX;
+      for (let c = 0; c < cols && i < items.length; c++, i++) {
+        const it = items[i];
+        const dx = xs - it.bb.minX;
+        const dy = ys - it.bb.minY;
+        for (const u of it.b) { u.x += dx; u.y += dy; }
+        xs += colW[c] + gap;
+      }
+      ys += rowH[r] + gap;
+    }
+    return items.length;
   }
 
   // 멀티/그룹 리사이즈 후 파생 제약 정리
@@ -803,7 +843,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    renameGroup, blendFrom,
+    renameGroup, blendFrom, arrangeGrid,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds,

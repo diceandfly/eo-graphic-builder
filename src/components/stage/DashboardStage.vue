@@ -132,9 +132,16 @@ const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토�
 // 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색
 const view = reactive({ nudge: 5, showLinks: true, guideColor: null, ...(prefs.view || {}) });
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
-const blendCfg = reactive({ axis: 'v', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
+const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
+// 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
+const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
+// 현재 컬러 — 선택 없을 때 스와치로 지정, 이후 그리기 툴 기본값으로 사용 예정
+const currentColor = ref(prefs.currentColor || null);
 watch(
-  () => JSON.stringify({ eyedropScope, grid: gridCfg, view, blend: blendCfg }),
+  () => JSON.stringify({
+    eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
+    currentColor: currentColor.value,
+  }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
 const smartGuides = ref([]); // [{ axis: 'v'|'h', pos, from, to }] — 월드 좌표
@@ -159,6 +166,12 @@ watch(ctxMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
 });
 function onRegisterPreset() {
+  // 유닛 프리셋은 단일 유닛 전용 — 그룹/멀티 선택은 배치 프리셋(추후 layout preset) 영역
+  if (props.doc.selectedIds.length !== 1) {
+    toast('Unit presets need a single unit — deselect the group first (⌘+click)');
+    closeCtx();
+    return;
+  }
   const p = props.actions.registerPreset(ctxMenu.value.u);
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
   closeCtx();
@@ -187,6 +200,22 @@ function onBlend() {
   }
   const created = props.actions.blendFrom(u, { ...blendCfg });
   toast(`Blended ${created.length} ${blendCfg.axis === 'v' ? 'vertical' : 'horizontal'} copies — grouped & linked (size unsynced)`);
+}
+
+// 그리드 배열 적용 (툴 버튼 좌클릭 / G 단축키)
+function onArrange() {
+  const n = props.actions.arrangeGrid({ ...arrangeCfg });
+  if (!n) {
+    toast('Select 2+ items to arrange');
+    return;
+  }
+  toast(`Arranged ${n} blocks into a grid`);
+}
+
+// 스와치/숫자키 컬러: 선택이 있으면 적용, 없으면 현재 컬러만 지정 (그리기 툴 기본값)
+function onFill(c) {
+  currentColor.value = c;
+  if (props.doc.selectedIds.length) props.actions.setFill(c);
 }
 
 // ---- 드래그 상태 머신 (pan | move | resize) ----
@@ -287,10 +316,10 @@ function onKeyDown(e) {
     props.actions.flipSelected(e.code === 'KeyH' ? 'h' : 'v');
     return;
   }
-  // 1~5 = 브랜드 컬러 적용 (선택 대상)
+  // 1~5 = 브랜드 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
   const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4 };
-  if (!mod && !e.shiftKey && DIGITS[e.code] != null && props.doc.selectedIds.length) {
-    props.actions.setFill(BRAND_COLORS[DIGITS[e.code]]);
+  if (!mod && !e.shiftKey && DIGITS[e.code] != null) {
+    onFill(BRAND_COLORS[DIGITS[e.code]]);
     return;
   }
   // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
@@ -305,6 +334,7 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
+  if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
 }
 function onKeyUp(e) {
   if (e.code === 'Space') spaceHeld.value = false;
@@ -978,11 +1008,13 @@ onBeforeUnmount(() => {
     </svg>
     <Toolbar
       v-model:mode="mode"
-      :fill="activeUnit?.params.fill"
+      :fill="doc.selectedIds.length ? activeUnit?.params.fill : currentColor"
       :scope="eyedropScope"
       :blend-cfg="blendCfg"
-      @fill="(c) => actions.setFill(c)"
+      :arrange-cfg="arrangeCfg"
+      @fill="onFill"
       @blend="onBlend"
+      @arrange="onArrange"
     />
     <FileBar
       @save="actions.saveProject()"
