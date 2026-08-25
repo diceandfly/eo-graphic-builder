@@ -139,12 +139,20 @@ function cancelRename() {
 }
 
 // 링크 동기화 스코프 칩 (스포이드 범주와 동일 5종)
-const LINK_CATS = { size: 'size', orientation: 'orient', grid: 'grid', shape: 'shape', color: 'color' };
+const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
 const scopeOn = (k) => (props.linkScope ? props.linkScope[k] !== false : true);
 
 // 프리셋 브라우저 뷰 모드 (썸네일 2컬럼 / 리스트) — localStorage 영속
 const presetView = ref(localStorage.getItem('eo.presetView') || 'thumbs');
 watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
+
+// 자유 컬러 hex 입력 (#RGB / #RRGGBB)
+function applyHex(e) {
+  let t = e.target.value.trim();
+  if (!t) return;
+  if (t[0] !== '#') t = '#' + t;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
+}
 </script>
 
 <template>
@@ -213,6 +221,14 @@ watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
         :display="mixed('cols') ? '—' : String(p.cols)"
       />
+      <Slider
+        label="pitch compression" :model-value="compVal"
+        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
+        :snap-to="0" :snap-radius="COMP_SNAP"
+        :display="mixed('rate', 'direction') ? '—' : compDisplay"
+        @update:model-value="setComp"
+      />
+      <ChipRow v-model="p.rate" />
       <Toggle
         label="gutter mode" v-model="p.gutterMode"
         :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
@@ -229,18 +245,10 @@ watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
         :min="G_MIN" :max="G_MAX" :step="G_STEP"
         :display="mixed('g') ? '—' : p.g.toFixed(3)"
       />
-      <Slider
-        label="compression rate" :model-value="compVal"
-        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
-        :snap-to="0" :snap-radius="COMP_SNAP"
-        :display="mixed('rate', 'direction') ? '—' : compDisplay"
-        @update:model-value="setComp"
-      />
-      <ChipRow v-model="p.rate" />
     </section>
 
     <section>
-      <h2>Shape Adjustment</h2>
+      <h2>Shape</h2>
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1"
@@ -286,15 +294,16 @@ watch(presetView, (v) => localStorage.setItem('eo.presetView', v));
           :style="{ background: c }"
           @click="emit('fill', c); colorOpen = false"
         />
-        <!-- 자유 컬러: 네이티브 피커 -->
-        <label
-          class="colorChip custom"
-          :class="{ on: !mixed('fill') && !BRAND_COLORS.includes(p.fill) }"
-          :style="!BRAND_COLORS.includes(p.fill) ? { background: p.fill } : {}"
-          title="custom color"
-        >
-          <input type="color" :value="p.fill" @input="(e) => emit('fill', e.target.value)" />
-        </label>
+      </div>
+      <!-- 자유 컬러: hex 직접 입력 -->
+      <div v-if="colorOpen" class="hexRow">
+        <span class="hexLabel">custom</span>
+        <input
+          class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+          :value="mixed('fill') ? '' : p.fill"
+          @keydown.enter="applyHex"
+          @change="applyHex"
+        />
       </div>
     </section>
 
@@ -416,10 +425,14 @@ section h2 {
   border-radius: var(--radius);
 }
 .colorChip.on { outline: 1px solid var(--text); outline-offset: 1px; }
-.colorChip.custom {
-  display: inline-block; cursor: pointer;
-  background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
-  input { position: absolute; opacity: 0; width: 0; height: 0; }
+.hexRow { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.hexLabel {
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
+  color: var(--faint);
+}
+.hexInput {
+  @include text-field;
+  width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .scopeChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .scopeChip {

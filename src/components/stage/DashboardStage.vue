@@ -69,6 +69,17 @@ const keyUnit = computed(() =>
     ? props.doc.units.find((u) => u.id === props.doc.keyId)
     : null
 );
+// 선택이 하나의 최외곽 그룹 전체일 때 그 그룹 이름 (통합 bbox 라벨)
+const groupLabel = computed(() => {
+  const ids = props.doc.selectedIds;
+  if (ids.length < 2) return null;
+  const units = props.doc.units.filter((u) => ids.includes(u.id));
+  const gids = [...new Set(units.map((u) => props.actions.outermost(u)))];
+  if (gids.length !== 1 || gids[0] == null) return null;
+  const gid = gids[0];
+  if (props.actions.groupMemberIds(gid).length !== ids.length) return null;
+  return props.doc.groupNames[gid] ?? `Group-${gid}`;
+});
 const selBounds = computed(() => {
   const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
   if (sel.length < 2) return null;
@@ -113,6 +124,12 @@ const gapGuides = ref([]);   // [{ axis: 'x'|'y', at, segs: [[a,b],[c,d]] }] —
 // 유닛 우클릭 컨텍스트 메뉴 — 프리셋 등록류 (저빈도·명명형 작업 전용 표면)
 const ctxMenu = ref(null); // { x, y, u } — 스테이지 로컬 px
 function onUnitContext(u, e) {
+  // 좌클릭과 동일한 선택 동작: 미선택 유닛이면 최외곽 그룹 기준으로 선택 (기존 선택 안이면 유지)
+  if (!props.doc.selectedIds.includes(u.id)) {
+    const og = props.actions.outermost(u);
+    props.actions.setSelection(og ? props.actions.groupMemberIds(og) : [u.id]);
+    props.doc.activeId = u.id;
+  }
   const [lx, ly] = local(e);
   ctxMenu.value = { x: lx, y: ly, u };
 }
@@ -212,6 +229,12 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyD' && props.doc.selectedIds.length) {
     e.preventDefault();
     props.actions.deleteSelected();
+    return;
+  }
+  // Shift+D = 선택 복제 (bbox 폭 + 80px 우측)
+  if (!mod && e.shiftKey && e.code === 'KeyD' && props.doc.selectedIds.length) {
+    e.preventDefault();
+    props.actions.duplicateSelectedOffset();
     return;
   }
   // Shift+H / Shift+V = 화면축 좌우/상하 반전 (선택 대상 전체)
@@ -831,6 +854,7 @@ onBeforeUnmount(() => {
         <GroupOverlay
           v-if="showBBox && selBounds"
           :bounds="selBounds"
+          :label="groupLabel"
           :scale="vp.scale"
           @resize-start="onGroupResizeStart"
           @rotate-start="(e) => onRotateStart(e, true)"

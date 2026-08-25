@@ -30,7 +30,14 @@ export const ICONS = {
   ], // 바운딩박스 표시 토글 (lucide box-select)
   // 뷰
   canvasGrid: ['M4 9h16', 'M4 15h16', 'M10 3 8 21', 'M16 3l-2 18'],
-  unitGrid: ['M3 3h7v7H3z', 'M14 3h7v7h-7z', 'M14 14h7v7h-7z', 'M3 14h7v7H3z'],
+  unitGrid: [
+    'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z',
+    'M9 3v18', 'M15 3v18',
+  ], // 유닛 컬럼 가이드 (lucide columns-3)
+  palette: [
+    'M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z',
+    'M13.5 6.5h.01', 'M17.5 10.5h.01', 'M8.5 7.5h.01', 'M6.5 12.5h.01',
+  ], // 커스텀 컬러 (lucide palette)
   // 정렬
   alignLeft: ['M5 3v18', 'M9 8h10', 'M9 14h6'],
   alignHCenter: ['M12 3v18', 'M5 8h14', 'M8 14h8'],

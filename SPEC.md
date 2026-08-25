@@ -677,3 +677,15 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **패널 스크롤바** — 6px 슬림, thumb `--line`/hover `--faint`, Firefox `scrollbar-width: thin`.
 7. **유닛 프리셋** — `usePresets`(localStorage 'eo.presets'): 유닛 **우클릭 → "Register unit preset"** 컨텍스트 메뉴(스테이지 HTML 오버레이, 외부 클릭 닫힘)로 파라미터 1벌 등록(`Preset-N`). **선택 없음 패널 = 프리셋 브라우저**: NEW UNIT 버튼 + 썸네일 2컬럼/리스트 뷰 토글(localStorage 영속), 실제 파라미터로 SVG 프리뷰(UnitGraphic 재사용), 클릭=스테이지 중앙 배치(`createUnitFrom`), 호버 × 삭제. 배치 프리셋(패턴)은 Phase 2 템플릿에서.
 8. 세로 블렌딩은 프리셋 완성 후 추가 토론 예정 (§55 라운드 답변: geometry 확장 방식 권고).
+
+## 57. 2026-08-25 — 그룹 라벨·우클릭 선택·네이밍 정리·커스텀 컬러 재설계
+
+0. **세로 블렌딩 방향 메모**: 기본 유닛 지오메트리는 변경하지 않고, **툴바 스포이드 옆 별도 도구**로 만드는 방향을 사용자가 선호 — 기획 토론 시 전제.
+1. (커밋 관례 유지 — 라운드마다 커밋·푸시 중.)
+2. **그룹 이름 라벨** — 통합 바운딩박스 좌상단에 그룹 이름 표시(선택이 하나의 최외곽 그룹 전체일 때, SelectionOverlay 라벨과 동일 규격). GroupOverlay `label` prop.
+3. **링크 스코프 칩**: orient → **orientation**, 맨 마지막으로 (size·grid·shape·color·orientation — 스포이드 메뉴와 동일 순서).
+4. **우클릭 = 선택 + 메뉴** — 미선택 유닛 우클릭 시 좌클릭과 동일한 그룹 기준 선택(바운딩박스 활성) 후 컨텍스트 메뉴 표시. 기존 선택 안이면 선택 유지.
+5. **⇧D = 복제** (duplicateSelectedOffset). 툴팁 "Duplicate (⇧D)".
+6. **네이밍**: compression rate → **pitch compression** (슬라이더+rate 칩을 gutter mode 위로 이동). Shape Adjustment → **Shape** (패널 헤더·스포이드 메뉴).
+7. **unit grid 아이콘** → lucide columns-3 (프레임+세로 2분할 — 실제 컬럼 가이드 형태). 대안: grid-3x3, ruler.
+8. **커스텀 컬러 재설계** — 무지개 칩+네이티브 피커 창 폐기. 툴바: **팔레트 아이콘**(lucide palette) 클릭 → 스포이드/그리드 옵션창과 동일 형식의 팝업(menuTitle + 프리뷰 칩 + **hex 입력**, 5초 무조작·외부 클릭 닫힘, text-field 믹스인·토큰 스타일). 패널 팔레트: 칩 아래 custom hex 입력 행. #RGB/#RRGGBB 검증.

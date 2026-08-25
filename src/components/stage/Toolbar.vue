@@ -12,6 +12,31 @@ const props = defineProps({
   scope: Object, // 스포이드 범주 토글 { size, orientation, grid, shape, color }
 }); // mode: 'select' | 'eyedrop'
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
+
+// 커스텀 컬러 hex 팝업 (스포이드/그리드 옵션창과 동일 UX: 5초 무조작 자동 닫힘 + 외부 클릭 닫힘)
+const customOpen = ref(false);
+let customIdle = null;
+function resetCustomIdle() {
+  clearTimeout(customIdle);
+  customIdle = setTimeout(closeCustom, 5000);
+}
+function toggleCustom() {
+  customOpen.value = !customOpen.value;
+  if (customOpen.value) resetCustomIdle();
+}
+function closeCustom() {
+  clearTimeout(customIdle);
+  customOpen.value = false;
+}
+watch(customOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
+});
+function applyHex(e) {
+  let t = e.target.value.trim();
+  if (!t) return;
+  if (t[0] !== '#') t = '#' + t;
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('fill', t);
+}
 const emit = defineEmits(['update:mode', 'fill', 'export', 'save', 'open', 'reset']);
 
 const TOOLS = [
@@ -47,7 +72,7 @@ function closeMenu() {
 watch(menuOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
 });
-const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape Adjustment', color: 'Color', orientation: 'Orientation' };
+const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape', color: 'Color', orientation: 'Orientation' };
 
 // 리셋 3단계 확인: 1차 경고 → 2차 최후통첩 → 3차 실행. 각 단계 타임아웃 시 해제.
 const resetStage = ref(0);
@@ -93,12 +118,32 @@ function onFile(e) {
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
       ><span class="chip" :style="{ background: c }" /></IconButton>
-      <!-- 자유 컬러: 네이티브 피커 (칩 클릭 = 피커 열기) -->
-      <IconButton :active="isCustomFill" tip="Custom color">
-        <label class="chip customChip" :style="isCustomFill ? { background: fill } : {}">
-          <input type="color" :value="fill || '#F9EE48'" @input="(e) => emit('fill', e.target.value)" />
-        </label>
-      </IconButton>
+      <!-- 자유 컬러: 팔레트 아이콘 → hex 입력 팝업 (스포이드/그리드 옵션창과 동일 형식) -->
+      <div class="toolWrap">
+        <IconButton
+          :paths="ICONS.palette"
+          :active="isCustomFill || customOpen"
+          :tip="customOpen ? '' : 'Custom color'"
+          @click="toggleCustom"
+        />
+        <div
+          v-if="customOpen"
+          class="menu"
+          @pointerdown.stop="resetCustomIdle"
+          @pointermove="resetCustomIdle"
+        >
+          <div class="menuTitle">Custom color</div>
+          <div class="menuRow">
+            <span class="preview" :style="{ background: fill }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="fill"
+              @keydown.enter="applyHex"
+              @change="applyHex"
+            />
+          </div>
+        </div>
+      </div>
     </FloatingBar>
 
     <!-- 도구 바 -->
@@ -149,10 +194,13 @@ function onFile(e) {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);
 }
-.customChip {
-  cursor: pointer;
-  background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
-  input { position: absolute; opacity: 0; width: 0; height: 0; }
+.preview {
+  width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.hexInput {
+  @include text-field;
+  width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .toolWrap { position: relative; }
 .menu {

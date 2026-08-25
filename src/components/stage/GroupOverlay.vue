@@ -4,6 +4,7 @@ import OverlayActions from './OverlayActions.vue';
 const props = defineProps({
   bounds: Object, // { x, y, w, h } 월드 좌표
   scale: Number,
+  label: String,  // 선택이 하나의 그룹 전체일 때 그룹 이름 (좌상단 라벨)
 });
 const emit = defineEmits(['resizeStart', 'rotateStart', 'action']);
 const px = (n) => n / props.scale;
@@ -30,6 +31,7 @@ const CURSORS = {
 <template>
   <g :transform="`translate(${bounds.x} ${bounds.y})`">
     <rect class="box" :width="bounds.w" :height="bounds.h" />
+    <text v-if="label" class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ label }}</text>
     <OverlayActions :scale="scale" :transform="`translate(${bounds.w + px(12)} 0)`" @action="(k) => emit('action', k)" />
     <rect
       v-for="(z, i) in ROT_ZONES" :key="'rz' + i"
@@ -58,6 +60,7 @@ const CURSORS = {
 
 <style scoped lang="scss">
 .box { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.label { fill: var(--accent); font-family: inherit; user-select: none; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
 .handleHit { fill: transparent; }
 .rotZone {
