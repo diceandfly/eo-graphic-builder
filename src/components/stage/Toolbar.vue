@@ -98,7 +98,7 @@ function onPick(c) {
         :active="fill === c"
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
-      ><span class="chip" :style="{ background: c }" /></IconButton>
+      ><span class="chip" :class="{ boost: c === '#000000' }" :style="{ background: c }" /></IconButton>
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/7 = 적용, 우클릭 = 픽커 -->
       <div class="toolWrap">
         <IconButton
@@ -215,6 +215,8 @@ function onPick(c) {
   border-radius: var(--radius);
   // 전 칩 공통 은은한 inset 스트로크 — VOID GREY 40% (다크 전용 규칙 폐기, §83)
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
+  // BLACK 칩 광학 보정: 다크 배경에서 수축되어 보여 8% 확대 (§83)
+  &.boost { transform: scale(1.08); }
 }
 .toolWrap { position: relative; }
 .menu {
