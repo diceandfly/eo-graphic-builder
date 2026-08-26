@@ -15,14 +15,13 @@ const props = defineProps({
   blendCfg: Object,    // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
   arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
+  recentColors: Array, // 최근 사용 커스텀 컬러 (팝업 하단 슬롯, §85)
+  rectQuickCfg: Object, // 사각형 더블클릭 즉시 생성 크기 { w, h } (§85)
 }); // mode: 'select' | 'eyedrop' | 'rect'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick']);
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick', 'commitCustom']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 
-const TOOLS = [
-  { key: 'select', tip: 'Select (V)', paths: ICONS.select },
-  { key: 'eyedrop', tip: 'Eyedropper (I)', paths: ICONS.eyedrop },
-];
+// 도구 순서: select → rect → eyedrop → blend → arrange (§85에서 rect를 스포이드 왼쪽으로)
 
 // 스포이드 우클릭 → 범주 스코프 메뉴 (5초 무조작 시 자동 닫힘)
 const menuOpen = ref(false);
@@ -81,11 +80,25 @@ function closeCustom() {
 }
 watch(customOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
+  else emit('commitCustom', props.customColor); // 팝업 닫힘 = 최근 컬러 슬롯에 자동 저장 (§85)
 });
 function onPick(c) {
   emit('update:customColor', c);
   emit('fill', c); // 라이브 적용 (선택 없으면 현재 컬러만 갱신됨)
 }
+
+// 사각 툴 우클릭 → 더블클릭 즉시 생성 크기 편집 (§85)
+const rectOpen = ref(false);
+function onRectContext(e) {
+  e.preventDefault();
+  rectOpen.value = !rectOpen.value;
+}
+function closeRect() {
+  rectOpen.value = false;
+}
+watch(rectOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeRect, { once: true }), 0);
+});
 </script>
 
 <template>
@@ -98,7 +111,7 @@ function onPick(c) {
         :active="fill === c"
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
-      ><span class="chip" :class="{ boost: c === '#000000' }" :style="{ background: c }" /></IconButton>
+      ><span class="chip" :class="{ boost: BRAND_COLOR_NAMES[i] === 'SPACE BLACK' }" :style="{ background: c }" /></IconButton>
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/7 = 적용, 우클릭 = 픽커 -->
       <div class="toolWrap">
         <IconButton
@@ -110,23 +123,59 @@ function onPick(c) {
         <div v-if="customOpen" class="menu" @pointerdown.stop>
           <div class="menuTitle">Custom color</div>
           <ColorPicker :model-value="customColor" @update:model-value="onPick" />
+          <!-- 최근 사용 커스텀 컬러 슬롯 (팝업 닫힐 때 자동 저장, 최대 6) -->
+          <div v-if="recentColors && recentColors.length" class="recentRow">
+            <button
+              v-for="rc in recentColors" :key="rc"
+              class="recentChip" :style="{ background: rc }" :title="rc"
+              @click="onPick(rc)"
+            />
+          </div>
         </div>
       </div>
     </FloatingBar>
 
     <!-- 도구 바 -->
     <FloatingBar>
-      <div v-for="t in TOOLS" :key="t.key" class="toolWrap">
+      <IconButton
+        :paths="ICONS.select" tip="Select (V)"
+        :active="mode === 'select'"
+        @click="emit('update:mode', 'select')"
+      />
+      <!-- 직사각형 툴 (R): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
+      <div class="toolWrap">
         <IconButton
-          :paths="t.paths"
-          :tip="menuOpen && t.key === 'eyedrop' ? '' : t.tip"
-          :active="mode === t.key"
-          @click="emit('update:mode', t.key)"
-          @contextmenu="onToolContext(t.key, $event)"
+          :paths="ICONS.rect"
+          :tip="rectOpen ? '' : 'Rectangle (R)'"
+          :active="mode === 'rect' || rectOpen"
+          @click="emit('update:mode', 'rect')"
+          @dblclick="emit('rectQuick')"
+          @contextmenu="onRectContext"
+        />
+        <div v-if="rectOpen && rectQuickCfg" class="menu" @pointerdown.stop>
+          <div class="menuTitle">Quick rectangle</div>
+          <div class="menuRow">
+            <span class="rowLabel">width (px)</span>
+            <StepField v-model="rectQuickCfg.w" :min="50" :max="8000" :step="10" />
+          </div>
+          <div class="menuRow">
+            <span class="rowLabel">height (px)</span>
+            <StepField v-model="rectQuickCfg.h" :min="50" :max="8000" :step="10" />
+          </div>
+          <div class="menuNote">double-click the tool to create</div>
+        </div>
+      </div>
+      <div class="toolWrap">
+        <IconButton
+          :paths="ICONS.eyedrop"
+          :tip="menuOpen ? '' : 'Eyedropper (I)'"
+          :active="mode === 'eyedrop'"
+          @click="emit('update:mode', 'eyedrop')"
+          @contextmenu="onToolContext('eyedrop', $event)"
         />
         <!-- 스포이드 스코프 메뉴: 버튼 기준 중앙 정렬, 표시 중엔 툴팁 억제 -->
         <div
-          v-if="t.key === 'eyedrop' && menuOpen && scope"
+          v-if="menuOpen && scope"
           class="menu"
           @pointerdown.stop="resetIdle"
           @pointermove="resetIdle"
@@ -193,14 +242,6 @@ function onPick(c) {
           <div class="menuNote">columns 0 = auto (√n)</div>
         </div>
       </div>
-      <!-- 직사각형 그리기 툴 (R): 드래그 = 그 크기, 클릭 = 기본 크기, 버튼 더블클릭 = 1920×800 즉시 생성 -->
-      <IconButton
-        :paths="ICONS.rect"
-        tip="Rectangle (R)"
-        :active="mode === 'rect'"
-        @click="emit('update:mode', 'rect')"
-        @dblclick="emit('rectQuick')"
-      />
     </FloatingBar>
   </div>
 </template>
@@ -215,8 +256,16 @@ function onPick(c) {
   border-radius: var(--radius);
   // 전 칩 공통 은은한 inset 스트로크 — VOID GREY 40% (다크 전용 규칙 폐기, §83)
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
-  // BLACK 칩 광학 보정: 다크 배경에서 수축되어 보여 8% 확대 (§83)
+  // SPACE BLACK 칩 광학 보정: 다크 배경에서 수축되어 보여 8% 확대 (§83)
   &.boost { transform: scale(1.08); }
+}
+// 최근 커스텀 컬러 슬롯 — 스와치 칩과 동일 문법의 소형 칩
+.recentRow { display: flex; gap: 6px; margin-top: 2px; }
+.recentChip {
+  width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
+  &:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 }
 .toolWrap { position: relative; }
 .menu {

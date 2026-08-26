@@ -208,11 +208,11 @@ const stageActions = {
 </template>
 
 <style scoped lang="scss">
-.layout { display: flex; height: 100vh; background: var(--bg); }
-// 플로팅 카드 패널 — 툴바(FloatingBar)와 동일 문법: 뷰포트 상·좌·하 동일 간격
+.layout { display: flex; height: 100vh; background: var(--bg); position: relative; }
+// 플로팅 카드 패널 — 스테이지 위 오버레이: 주변 여백으로 캔버스가 그대로 비침 (§85)
 .side {
-  width: var(--panel-w); flex-shrink: 0; overflow-y: auto;
-  margin: var(--sp-6) 0 var(--sp-6) var(--sp-6);
+  position: absolute; left: var(--sp-6); top: var(--sp-6); z-index: 10;
+  width: var(--panel-w); overflow-y: auto;
   height: calc(100vh - 2 * var(--sp-6)); box-sizing: border-box;
   padding: 22px var(--panel-pad) 24px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);

@@ -43,16 +43,15 @@ export const BRAND_TOKENS = {
   'space-black': '#0B0B0B',
   'void-grey': '#8E8E8E',
   'halo-white': '#EFEAE1',
-  'black': '#000000',
 };
-// 스와치 구성 (표시 순서). BLACK은 §65에서 숨겼다가 §82에서 6번으로 재도입.
+// 스와치 구성 (표시 순서). 6번은 §82 BLACK(#000000) → §85 SPACE BLACK으로 교체.
 const SWATCHES = [
   ['EO NEON', 'eo-neon'],
   ['WORLD GREEN', 'world-green'],
   ['HORIZON BLUE', 'horizon-blue'],
   ['VOID GREY', 'void-grey'],
   ['HALO WHITE', 'halo-white'],
-  ['BLACK', 'black'],
+  ['SPACE BLACK', 'space-black'],
 ];
 export const BRAND_COLORS = SWATCHES.map(([, k]) => BRAND_TOKENS[k]);
 // BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~6) 안내용

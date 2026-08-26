@@ -68,5 +68,6 @@ function onFile(e) {
 </template>
 
 <style scoped lang="scss">
-.fileCorner { position: absolute; left: var(--sp-6); top: var(--sp-6); }
+// 패널이 스테이지 위 오버레이가 되면서(§85) 파일바는 패널 오른쪽 옆에 배치
+.fileCorner { position: absolute; left: calc(var(--panel-w) + 2 * var(--sp-6)); top: var(--sp-6); }
 </style>

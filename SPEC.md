@@ -887,3 +887,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 84. 2026-08-25 — THREAD_MIN_RATIO 0.1% 복구
 
 - §82의 0.06% 실험을 되돌려 0.1%(0.001)로 복구. 기준선 갱신 — §82 이전 커밋(1cd6171)의 baselines와 바이트 동일함을 git diff로 교차 확인 (완전 복구 증명).
+
+## 85. 2026-08-25 — 뷰 옵션 확장 · SPACE BLACK · 최근 커스텀 컬러 · 툴 재배치 · 패널 오버레이
+
+1. **캔버스 그리드 우클릭 메뉴 확장** — Grid color(격자 라인색)·Background(스테이지 배경색) hex 입력(+미리보기, 빈 값 = 기본 복귀) + "reset to defaults"(크기·스냅·두 색 일괄 초기화). `view.stageGridColor/stageBgColor`(eo.prefs 영속), 스테이지 인라인 --stage-grid/background 오버라이드.
+2. **6번 스와치 BLACK(#000000) → SPACE BLACK(#0B0B0B)** — 'black' 토큰 제거, 광학 8% 부스트는 SPACE BLACK 이름 기준으로 유지.
+3. **최근 커스텀 컬러 슬롯** — 픽커 팝업 하단, 팝업이 닫힐 때 현재 커스텀 컬러 자동 저장(중복 제거, 최대 6, eo.prefs.recentColors). 슬롯 클릭 = 커스텀 컬러로 지정+적용.
+4. **툴 순서 재배치** — select → **rect** → eyedrop → blend → arrange. rect 우클릭 = **Quick rectangle 메뉴**(더블클릭 즉시 생성 크기 w/h, 기본 1920×800, eo.prefs.rectQuick 영속).
+5. **메인 패널 오버레이 전환** — flex 사이드바 → 스테이지 위 absolute 플로팅 카드. 주변 여백으로 캔버스가 그대로 비침(기존 블랙 솔리드 제거). 스테이지가 전체 폭이 되어 FileBar는 패널 오른쪽 옆(left = panel-w + 2·sp-6)으로 이동.
+- 검증: 그리드 메뉴 5행·색 반영·리셋, recent 슬롯 저장/표시, rect 우클릭 메뉴에서 400×300 설정 후 더블클릭 생성 정확, 오버레이 레이아웃/파일바 위치 스크린샷 확인. 회귀 30/30.

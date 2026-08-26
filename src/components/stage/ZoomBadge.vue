@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
-import { STAGE_GRID_MIN, STAGE_GRID_MAX } from '../../geometry/constants.js';
+import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX } from '../../geometry/constants.js';
 
 // 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
 // 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
@@ -47,11 +47,24 @@ function onNudge(e) {
   if (Number.isFinite(v) && v >= 1) props.view.nudge = Math.min(500, Math.round(v));
   e.target.value = props.view.nudge;
 }
-function onGuideColor(e) {
-  let t = e.target.value.trim();
-  if (!t) { props.view.guideColor = null; return; }
-  if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) props.view.guideColor = t;
+// hex 컬러 입력 공통 처리 — 빈 값 = 기본색 복귀(null)
+function hexSetter(key) {
+  return (e) => {
+    let t = e.target.value.trim();
+    if (!t) { props.view[key] = null; return; }
+    if (t[0] !== '#') t = '#' + t;
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) props.view[key] = t;
+  };
+}
+const onGuideColor = hexSetter('guideColor');
+const onStageGridColor = hexSetter('stageGridColor');
+const onStageBgColor = hexSetter('stageBgColor');
+// 캔버스 그리드 옵션 일괄 초기화 (크기·스냅·격자색·배경색 — §85)
+function resetGridDefaults() {
+  props.gridCfg.size = STAGE_GRID;
+  props.gridCfg.snap = false;
+  props.view.stageGridColor = null;
+  props.view.stageBgColor = null;
 }
 </script>
 
@@ -85,6 +98,25 @@ function onGuideColor(e) {
             <input type="checkbox" v-model="gridCfg.snap" />
             <span>Snap to grid</span>
           </label>
+          <div class="menuRow">
+            <span class="rowGrow">Grid color</span>
+            <span class="preview" :style="{ background: view.stageGridColor || 'var(--stage-grid)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.stageGridColor || ''"
+              @keydown.enter="onStageGridColor" @change="onStageGridColor"
+            />
+          </div>
+          <div class="menuRow">
+            <span class="rowGrow">Background</span>
+            <span class="preview" :style="{ background: view.stageBgColor || 'var(--bg)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.stageBgColor || ''"
+              @keydown.enter="onStageBgColor" @change="onStageBgColor"
+            />
+          </div>
+          <button class="miniBtn" @click="resetGridDefaults">reset to defaults</button>
         </div>
       </div>
       <div class="optWrap">
@@ -176,6 +208,7 @@ function onGuideColor(e) {
   @include text-field;
   width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
+.rowGrow { flex: 1; }
 .preview {
   width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
   border: 1px solid var(--line); border-radius: var(--radius);

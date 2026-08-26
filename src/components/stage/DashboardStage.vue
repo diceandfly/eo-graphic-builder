@@ -153,8 +153,12 @@ const eyedropScope = reactive({ size: true, orientation: true, grid: true, shape
 // 캔버스 그리드 설정 (그리드 버튼 우클릭 메뉴): 정방형 간격 + 이동 그리드 스냅
 const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
-// 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색
-const view = reactive({ nudge: 5, showLinks: true, showGroups: true, guideColor: null, ...(prefs.view || {}) });
+// 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색 · 캔버스 격자/배경 색 (§85)
+const view = reactive({
+  nudge: 5, showLinks: true, showGroups: true, guideColor: null,
+  stageGridColor: null, stageBgColor: null,
+  ...(prefs.view || {}),
+});
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
@@ -163,10 +167,20 @@ const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
 const customColor = ref(prefs.customColor || '#3b3b3b');
+// 최근 사용 커스텀 컬러 (픽커 팝업 하단 슬롯, 팝업 닫힐 때 자동 저장 — §85)
+const recentColors = ref(Array.isArray(prefs.recentColors) ? prefs.recentColors : []);
+function commitRecentColor(c) {
+  if (!c) return;
+  const arr = [c, ...recentColors.value.filter((x) => x !== c)].slice(0, 6);
+  recentColors.value = arr;
+}
+// 사각형 더블클릭 즉시 생성 크기 (사각 툴 우클릭 메뉴에서 편집 — §85)
+const rectQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}) });
 watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
     currentColor: currentColor.value, customColor: customColor.value,
+    recentColors: recentColors.value, rectQuick: rectQuickCfg,
   }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
@@ -297,11 +311,12 @@ function onArrange() {
   setLast('grid arrange', () => onArrange());
 }
 
-// 직사각형 즉시 생성 (툴 버튼 더블클릭): 1920×800, 스테이지 중앙
+// 직사각형 즉시 생성 (툴 버튼 더블클릭): rectQuickCfg 크기, 스테이지 중앙 (§85)
 function onRectQuick() {
   const r = el.value.getBoundingClientRect();
   const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
-  props.actions.createRect(cx - 960, cy - 400, 1920, 800, currentColor.value || null);
+  const { w, h } = rectQuickCfg;
+  props.actions.createRect(cx - w / 2, cy - h / 2, w, h, currentColor.value || null);
   mode.value = 'select';
 }
 
@@ -1048,7 +1063,11 @@ onBeforeUnmount(() => {
     ref="el"
     class="stage"
     :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', rectmode: mode === 'rect' }"
-    :style="view.guideColor ? { '--unit-guide': view.guideColor } : {}"
+    :style="{
+      ...(view.guideColor ? { '--unit-guide': view.guideColor } : {}),
+      ...(view.stageGridColor ? { '--stage-grid': view.stageGridColor } : {}),
+      ...(view.stageBgColor ? { background: view.stageBgColor } : {}),
+    }"
     @wheel="onWheel"
     @pointerdown="onStageDown"
     @pointermove="onStageMove"
@@ -1205,11 +1224,14 @@ onBeforeUnmount(() => {
       :blend-cfg="blendCfg"
       :arrange-cfg="arrangeCfg"
       :custom-color="customColor"
+      :recent-colors="recentColors"
+      :rect-quick-cfg="rectQuickCfg"
       @fill="onFill"
       @blend="onBlend"
       @arrange="onArrange"
       @rect-quick="onRectQuick"
       @update:custom-color="(c) => (customColor = c)"
+      @commit-custom="commitRecentColor"
     />
     <FileBar
       @save="actions.saveProject()"
