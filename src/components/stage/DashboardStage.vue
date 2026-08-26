@@ -185,7 +185,7 @@ const PREFS_KEY = 'eo.prefs';
 let prefs;
 try { prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { prefs = {}; }
 // 스포이드 범주 스코프 (우클릭 메뉴)
-const eyedropScope = reactive({ size: true, orientation: true, grid: true, shape: true, color: true, ...(prefs.eyedropScope || {}) });
+const eyedropScope = reactive({ size: true, orientation: false, grid: true, shape: true, color: true, ...(prefs.eyedropScope || {}) });
 // 캔버스 그리드 설정 (그리드 버튼 우클릭 메뉴): 정방형 간격 + 이동 그리드 스냅
 const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) });
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
@@ -202,7 +202,7 @@ const seamW = computed(() =>
   view.seamOn && vp.scale < view.seamCutoff / 100 ? Math.max(0, 1.2 - vp.scale) : 0
 );
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
-const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
+const blendCfg = reactive({ axis: 'h', count: 7, gap: 30, scale: 0.4, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
 const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
 // 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
@@ -217,7 +217,7 @@ function commitRecentColor(c) {
   recentColors.value = arr;
 }
 // 프레임 더블클릭 즉시 생성 크기 (프레임 툴 우클릭 메뉴에서 편집 — §85·§92)
-const frameQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
+const frameQuickCfg = reactive({ w: 1920, h: 1080, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
 // 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.
 // work = 캔버스 데이터 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
 const pickScope = (src) => ({
@@ -1445,7 +1445,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped lang="scss">
-.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--bg); user-select: none; -webkit-user-select: none; }
+.stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--stage-bg); user-select: none; -webkit-user-select: none; }
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }

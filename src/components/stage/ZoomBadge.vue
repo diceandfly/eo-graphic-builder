@@ -82,10 +82,10 @@ function resetGridDefaults() {
           @pointermove="resetIdle"
           @change="resetIdle"
         >
-          <div class="menuTitle">Canvas grid</div>
+          <div class="menuTitle">Canvas grid setting</div>
           <div class="menuRow">
             <span class="rowGrow">Canvas color</span>
-            <ColorField v-model="view.stageBgColor" fallback="var(--bg)" />
+            <ColorField v-model="view.stageBgColor" fallback="var(--stage-bg)" />
           </div>
           <div class="menuRow">
             <span class="rowGrow">Grid color</span>
@@ -119,7 +119,7 @@ function resetGridDefaults() {
           @pointermove="resetIdle"
           @change="resetIdle"
         >
-          <div class="menuTitle">Selection</div>
+          <div class="menuTitle">Bounding box setting</div>
           <label class="menuRow">
             <span class="rowGrow">Arrow nudge (px)</span>
             <StepField :model-value="view.nudge" :min="1" :max="500" :step="1" @update:model-value="setNudge" />
