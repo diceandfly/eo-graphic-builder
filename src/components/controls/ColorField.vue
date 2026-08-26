@@ -110,7 +110,7 @@ watch(open, (o) => {
             @contextmenu.prevent="emit('removeRecent', rc)"
           />
         </div>
-        <div class="recentNote">recently applied · right-click to remove</div>
+        <div class="recentNote">right-click to remove</div>
       </template>
     </div>
   </div>

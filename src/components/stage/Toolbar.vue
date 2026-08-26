@@ -94,7 +94,7 @@ function onPick(c) {
                 @contextmenu.prevent="removeRecentColor(rc)"
               />
             </div>
-            <div class="menuNote">recently applied · right-click to remove</div>
+            <div class="menuNote">right-click to remove</div>
           </template>
         </div>
       </div>
