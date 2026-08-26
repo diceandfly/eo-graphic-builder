@@ -4,6 +4,7 @@ import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
 import { blurActive } from '../../utils/dom.js';
+import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popupBus.js';
 
 // 대시보드 좌상단 — 파일 작업 바 (manual / save / open / reset). export는 우클릭 메뉴로 이동 (§60).
 // 우클릭 메뉴 (§86): manual = 리소스 모니터 토글, save/open = JSON 저장·불러오기 범위 토글
@@ -21,6 +22,11 @@ const SCOPE_LABELS = {
   viewport: 'Viewport setting',
 };
 const openMenu = ref(null); // 'manual' | 'save' | 'open' | null
+let idleTimer = null;
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(closeCtxMenu, POPUP_IDLE_MS); // 무조작 자동 닫힘 (§97 통일)
+}
 function onContext(key, e) {
   if (!['manual', 'save', 'open'].includes(key)) return;
   e.preventDefault();
@@ -28,10 +34,16 @@ function onContext(key, e) {
 }
 function closeCtxMenu() {
   blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
+  clearTimeout(idleTimer);
   openMenu.value = null;
 }
 watch(openMenu, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtxMenu, { once: true }), 0);
+  clearTimeout(idleTimer);
+  if (open) {
+    registerPopup(closeCtxMenu); // 다른 열린 팝업 자동 닫기 (§97)
+    resetIdle();
+    setTimeout(() => window.addEventListener('pointerdown', closeCtxMenu, { once: true }), 0);
+  } else unregisterPopup(closeCtxMenu);
 });
 
 const ACTIONS = [
@@ -90,21 +102,21 @@ function onFile(e) {
           @contextmenu="onContext(a.key, $event)"
         />
         <!-- 각 메뉴는 자기 버튼(a.key) 아래에만 — v-for 안이라 키 매칭 필수 (§86 픽스) -->
-        <div v-if="a.key === 'manual' && openMenu === 'manual' && view" class="menu" @pointerdown.stop>
+        <div v-if="a.key === 'manual' && openMenu === 'manual' && view" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">View utilities</div>
           <label class="menuRow">
             <input type="checkbox" v-model="view.resMon" />
             <span>Resource monitor</span>
           </label>
         </div>
-        <div v-if="a.key === 'save' && openMenu === 'save' && saveScope" class="menu" @pointerdown.stop>
+        <div v-if="a.key === 'save' && openMenu === 'save' && saveScope" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Save to JSON</div>
           <label v-for="(label, k) in SCOPE_LABELS" :key="k" class="menuRow">
             <input type="checkbox" v-model="saveScope[k]" />
             <span>{{ label }}</span>
           </label>
         </div>
-        <div v-if="a.key === 'open' && openMenu === 'open' && openScope" class="menu" @pointerdown.stop>
+        <div v-if="a.key === 'open' && openMenu === 'open' && openScope" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Load from JSON</div>
           <label v-for="(label, k) in SCOPE_LABELS" :key="k" class="menuRow">
             <input type="checkbox" v-model="openScope[k]" />

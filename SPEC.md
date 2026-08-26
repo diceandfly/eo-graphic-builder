@@ -985,3 +985,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
    - 캔버스: 배경 **#090909**(신설 토큰 --stage-bg, 앱 --bg와 분리), 그리드 **#3B3B3B**(--stage-grid), 사이즈 80·스냅 해제(기존값)
    - 바운딩박스: 넛지 5·그룹/링크 표시 체크(기존값) / 유닛: unit min 2px·**thread min 1px@960**(비율 1/960, 기준선 갱신)·가이드색 유지
 4. **팝업 타이틀** — Canvas grid setting / Bounding box setting / Unit setting.
+
+## 97. 2026-08-25 — 팝업 전역 배타·아이들 통일 + 정렬 바 복구·하단 3종 재배치
+
+1. **팝업 전역 배타** — `utils/popupBus.js`(registerPopup/unregisterPopup): 새 팝업이 열리면 직전 팝업 자동 닫힘. Toolbar·ZoomBadge·FileBar 전부 연결(중첩 팝오버인 ColorField 픽커는 제외 — 부모 메뉴가 닫혀버리므로).
+2. **Toolbar 팝업 단일 상태 리팩토링** — menuOpen/blendOpen/arrangeOpen/customOpen/frameOpen 5개 ref → `openPopup` 하나('scope'|'blend'|'arrange'|'custom'|'frame'). 툴바 내부 배타는 구조적으로 보장.
+3. **무조작 자동 닫힘 통일** — 기존: 스포이드·코너 바만 5초, 나머지 없음 → 전 팝업 `POPUP_IDLE_MS = 5000`(popupBus 단일 출처). 모든 메뉴에 pointerdown/move/change 아이들 리셋.
+4. **정렬 바 복구** — §85 패널 오버레이 이후 좌하단 정렬 바가 패널 뒤에 가려져 있던 회귀. 패널 오른쪽 옆(bottom, FileBar와 동일 문법)으로 이동. **하단 3종 배치**: [정렬 = 패널 옆] [스와치+도구 = 캔버스 가용영역 중앙(패널 폭 보정)] [코너 바 = 우하단].
+- 검증: 블렌드→그리드 크로스 배타, 그리드→프레임 퀵 내부 배타, 프레임 퀵·파일바 저장 메뉴 5초 아이들 자동 닫힘, 하단 3종 배치 스크린샷.

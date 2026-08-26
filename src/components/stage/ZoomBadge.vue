@@ -7,6 +7,7 @@ import ColorField from '../controls/ColorField.vue';
 import { ICONS } from '../../ui/icons.js';
 import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_RATIO } from '../../geometry/constants.js';
 import { blurActive } from '../../utils/dom.js';
+import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popupBus.js';
 
 // 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
 // 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
@@ -25,7 +26,7 @@ const openMenu = ref(null); // 'grid' | 'bbox' | 'unit' | null
 let idleTimer = null;
 function resetIdle() {
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(closeMenu, 5000);
+  idleTimer = setTimeout(closeMenu, POPUP_IDLE_MS);
 }
 function onContext(key, e) {
   e.preventDefault();
@@ -38,7 +39,10 @@ function closeMenu() {
   openMenu.value = null;
 }
 watch(openMenu, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
+  if (open) {
+    registerPopup(closeMenu); // 다른 열린 팝업 자동 닫기 (§97)
+    setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
+  } else unregisterPopup(closeMenu);
 });
 
 // 정수 필드 콜백 (StepField — §89에서 스테퍼 통일)

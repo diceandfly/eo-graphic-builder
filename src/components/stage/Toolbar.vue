@@ -7,6 +7,7 @@ import ColorPicker from '../controls/ColorPicker.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 import { blurActive } from '../../utils/dom.js';
+import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popupBus.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 작업 도구 바 (두 FloatingBar, gap 분리).
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
@@ -25,86 +26,38 @@ const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props
 
 // 도구 순서: select → frame → eyedrop → blend → arrange (§85에서 스포이드 왼쪽 배치, §92에서 rect→frame)
 
-// 스포이드 우클릭 → 범주 스코프 메뉴 (5초 무조작 시 자동 닫힘)
-const menuOpen = ref(false);
+// ── 팝업 공통 관리 (§97): 단일 상태 + 5초 무조작 자동 닫힘 + 전역 배타 ──
+// 'scope' | 'blend' | 'arrange' | 'custom' | 'frame'
+const openPopup = ref(null);
 let idleTimer = null;
 function resetIdle() {
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(closeMenu, 5000);
+  idleTimer = setTimeout(closePopup, POPUP_IDLE_MS);
 }
-function onToolContext(key, e) {
-  if (key !== 'eyedrop') return;
-  e.preventDefault();
-  menuOpen.value = !menuOpen.value;
-  if (menuOpen.value) resetIdle();
+function togglePopup(key, e) {
+  e?.preventDefault();
+  openPopup.value = openPopup.value === key ? null : key;
 }
-function closeMenu() {
+function closePopup() {
   blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   clearTimeout(idleTimer);
-  menuOpen.value = false;
+  openPopup.value = null;
 }
-watch(menuOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeMenu, { once: true }), 0);
+watch(openPopup, (open) => {
+  clearTimeout(idleTimer);
+  if (open) {
+    registerPopup(closePopup); // 다른 열린 팝업 자동 닫기 (§97)
+    resetIdle();
+    setTimeout(() => window.addEventListener('pointerdown', closePopup, { once: true }), 0);
+  } else unregisterPopup(closePopup);
 });
 const SCOPE_LABELS = { size: 'Size', grid: 'Grid', shape: 'Shape', color: 'Color', orientation: 'Orientation' };
 
-// 블렌드/배열 도구 — 좌클릭·단축키 = 현재 설정으로 즉시 적용, 우클릭 = 옵션 메뉴
-const blendOpen = ref(false);
-function onBlendContext(e) {
-  e.preventDefault();
-  blendOpen.value = !blendOpen.value;
-}
-function closeBlend() {
-  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
-  blendOpen.value = false;
-}
-watch(blendOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeBlend, { once: true }), 0);
-});
-const arrangeOpen = ref(false);
-function onArrangeContext(e) {
-  e.preventDefault();
-  arrangeOpen.value = !arrangeOpen.value;
-}
-function closeArrange() {
-  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
-  arrangeOpen.value = false;
-}
-watch(arrangeOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeArrange, { once: true }), 0);
-});
-
-// 커스텀 컬러 (7번 스와치) — 좌클릭/7 = 현재 커스텀 컬러 적용, 우클릭 = 픽커 팝업
-const customOpen = ref(false);
-function onCustomContext(e) {
-  e.preventDefault();
-  customOpen.value = !customOpen.value;
-}
-function closeCustom() {
-  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
-  customOpen.value = false;
-}
-watch(customOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
-});
 function onPick(c) {
   emit('update:customColor', c);
   emit('fill', c); // 라이브 적용 (선택 없으면 현재 컬러만 갱신됨)
 }
 
-// 프레임 툴 우클릭 → 더블클릭 즉시 생성 크기 편집 (§85)
-const frameOpen = ref(false);
-function onFrameContext(e) {
-  e.preventDefault();
-  frameOpen.value = !frameOpen.value;
-}
-function closeFrame() {
-  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
-  frameOpen.value = false;
-}
-watch(frameOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeFrame, { once: true }), 0);
-});
 </script>
 
 <template>
@@ -121,12 +74,12 @@ watch(frameOpen, (open) => {
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/7 = 적용, 우클릭 = 픽커 -->
       <div class="toolWrap">
         <IconButton
-          :active="isCustomFill || customOpen"
-          :tip="customOpen ? '' : 'Custom color (7)'"
+          :active="isCustomFill || openPopup === 'custom'"
+          :tip="openPopup === 'custom' ? '' : 'Custom color (7)'"
           @click="emit('fill', customColor)"
-          @contextmenu="onCustomContext"
+          @contextmenu="togglePopup('custom', $event)"
         ><span class="chip" :style="{ background: customColor }" /></IconButton>
-        <div v-if="customOpen" class="menu" @pointerdown.stop>
+        <div v-if="openPopup === 'custom'" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Custom color</div>
           <ColorPicker :model-value="customColor" @update:model-value="onPick" />
           <!-- 최근 사용 컬러 슬롯 (오브젝트에 실제 적용된 비 브랜드 컬러 자동 저장, 최대 6 — §86) -->
@@ -160,13 +113,13 @@ watch(frameOpen, (open) => {
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.frame"
-          :tip="frameOpen ? '' : 'Frame (F)'"
-          :active="mode === 'frame' || frameOpen"
+          :tip="openPopup === 'frame' ? '' : 'Frame (F)'"
+          :active="mode === 'frame' || openPopup === 'frame'"
           @click="emit('update:mode', 'frame')"
           @dblclick="emit('frameQuick')"
-          @contextmenu="onFrameContext"
+          @contextmenu="togglePopup('frame', $event)"
         />
-        <div v-if="frameOpen && frameQuickCfg" class="menu" @pointerdown.stop>
+        <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Quick frame</div>
           <div class="menuRow">
             <span class="rowLabel">width (px)</span>
@@ -182,14 +135,14 @@ watch(frameOpen, (open) => {
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.eyedrop"
-          :tip="menuOpen ? '' : 'Eyedropper (I)'"
+          :tip="openPopup === 'scope' ? '' : 'Eyedropper (I)'"
           :active="mode === 'eyedrop'"
           @click="emit('update:mode', 'eyedrop')"
-          @contextmenu="onToolContext('eyedrop', $event)"
+          @contextmenu="togglePopup('scope', $event)"
         />
         <!-- 스포이드 스코프 메뉴: 버튼 기준 중앙 정렬, 표시 중엔 툴팁 억제 -->
         <div
-          v-if="menuOpen && scope"
+          v-if="openPopup === 'scope' && scope"
           class="menu"
           @pointerdown.stop="resetIdle"
           @pointermove="resetIdle"
@@ -206,12 +159,12 @@ watch(frameOpen, (open) => {
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.blend"
-          :active="blendOpen"
-          :tip="blendOpen ? '' : 'Blend (B)'"
+          :active="openPopup === 'blend'"
+          :tip="openPopup === 'blend' ? '' : 'Blend (B)'"
           @click="emit('blend')"
-          @contextmenu="onBlendContext"
+          @contextmenu="togglePopup('blend', $event)"
         />
-        <div v-if="blendOpen && blendCfg" class="menu" @pointerdown.stop>
+        <div v-if="openPopup === 'blend' && blendCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Blend</div>
           <div class="menuRow">
             <span class="rowLabel">direction</span>
@@ -238,12 +191,12 @@ watch(frameOpen, (open) => {
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.arrange"
-          :active="arrangeOpen"
-          :tip="arrangeOpen ? '' : 'Grid arrange (G)'"
+          :active="openPopup === 'arrange'"
+          :tip="openPopup === 'arrange' ? '' : 'Grid arrange (G)'"
           @click="emit('arrange')"
-          @contextmenu="onArrangeContext"
+          @contextmenu="togglePopup('arrange', $event)"
         />
-        <div v-if="arrangeOpen && arrangeCfg" class="menu" @pointerdown.stop>
+        <div v-if="openPopup === 'arrange' && arrangeCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Grid arrange</div>
           <div class="menuRow">
             <span class="rowLabel">gap (px)</span>
@@ -261,8 +214,11 @@ watch(frameOpen, (open) => {
 </template>
 
 <style scoped lang="scss">
+// 하단 바 3종 배치 (§97): [정렬 = 패널 옆] [스와치+도구 = 캔버스 가용영역 중앙] [코너 바 = 우하단]
 .toolbarWrap {
-  position: absolute; left: 50%; bottom: var(--sp-6); transform: translateX(-50%);
+  position: absolute; bottom: var(--sp-6);
+  left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2);
+  transform: translateX(-50%);
   display: flex; align-items: center; gap: var(--sp-4);
 }
 .chip {

@@ -36,7 +36,8 @@ const BTNS = [
 </template>
 
 <style scoped lang="scss">
-.alignbar { position: absolute; left: var(--sp-6); bottom: var(--sp-6); }
+// 패널 오버레이(§85) 이후 좌하단이 패널에 가려짐 — 패널 오른쪽 옆으로 이동 (§97, FileBar와 동일 문법)
+.alignbar { position: absolute; left: calc(var(--panel-w) + 2 * var(--sp-6)); bottom: var(--sp-6); }
 .grid { display: grid; grid-template-columns: repeat(4, auto); gap: 2px; }
 // 정렬 아이콘은 라인 위주라 같은 16px에서도 가늘어 보임 — 광학 보정 +2px
 .grid :deep(.ib svg) { width: calc(var(--icon-size) + 2px); height: calc(var(--icon-size) + 2px); }
