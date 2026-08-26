@@ -319,34 +319,50 @@ function setStrokeColor(c) {
       </template>
     </section>
 
-    <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산) -->
+    <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산). on/off 옵션 폐기 — 상시 표시 (§131) -->
     <section>
       <h2>Grid</h2>
-      <Toggle
-        label="grid" :model-value="p.gridOn ? 'on' : 'off'" :options="ON_OFF"
-        @update:model-value="(v) => (p.gridOn = v === 'on')"
+      <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
+      <Slider
+        :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
+        :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+        :arrow-step="isCm ? 0.01 : 5"
+        @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
       />
-      <template v-if="p.gridOn">
-        <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
-        <Slider
-          :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
-          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
-          :arrow-step="isCm ? 0.01 : 5"
-          @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
+      <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
+      <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
+      <!-- §131: row gutter(=Y) 먼저, cols gutter(=X) 다음 — rows·cols 순서와 짝 -->
+      <Slider
+        :label="`row gutter (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
+        :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+        :arrow-step="isCm ? 0.01 : 5"
+        @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
+      />
+      <Slider
+        :label="`cols gutter (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
+        :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+        :arrow-step="isCm ? 0.01 : 5"
+        @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
+      />
+      <!-- 그리드 컴프레션 (§131): 유닛 컴프레션과 동일 부호 규약 (±2.5x, 0 균등) -->
+      <Toggle
+        label="compression" :model-value="p.compOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.compOn = v === 'on')"
+      />
+      <template v-if="p.compOn">
+        <Toggle
+          label="comp mode" v-model="p.compMode"
+          :options="[{ value: 'dir', label: 'dir' }, { value: 'sym', label: 'sym' }]"
         />
-        <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
-        <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
         <Slider
-          :label="`gutter x (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
-          :arrow-step="isCm ? 0.01 : 5"
-          @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
+          label="comp cols" v-model="p.compX"
+          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
         />
         <Slider
-          :label="`gutter y (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
-          :arrow-step="isCm ? 0.01 : 5"
-          @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
+          label="comp rows" v-model="p.compY"
+          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
         />
       </template>
     </section>

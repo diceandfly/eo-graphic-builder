@@ -52,12 +52,17 @@ export function createFrameParams(overrides = {}) {
     strokeW: 5, // 외곽선 두께 (px 고정 — cm 표기 모드와 무관)
     unitMode: 'px', // 패널 표기 단위 'px' | 'cm' — 내부 저장은 항상 px, dpi 기준 환산 표시
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
-    gridOn: true, // 표시 + 스냅 겸용 (별도 snap 토글 폐기, §75)
+    gridOn: true, // §131: on/off 옵션 폐기 — 상시 on (마이그레이션에서 강제)
     margin: 20,
     rows: 2,
     cols: 2,
     gutterX: 20,
     gutterY: 20,
+    // 그리드 컴프레션 (§131) — compX/Y: 부호 있는 압축값(±2.5, 0 균등), 유닛과 동일 매핑
+    compOn: false,
+    compMode: 'dir', // 'dir' 한 방향 등비 | 'sym' 중앙 대칭
+    compX: 0,
+    compY: 0,
     ...overrides,
   };
 }
@@ -72,6 +77,7 @@ function migrateUnit(u) {
   // 구버전 frame: 이후 추가된 키를 기본값으로 보충 + drawMode(배타) → fillOn/strokeOn(독립) 이관 (§110)
   if (u.type === 'frame' && u.params) {
     u.params = { ...createFrameParams(), ...u.params };
+    u.params.gridOn = true; // §131: 그리드 on/off 폐기 — 구버전 off 저장분도 상시 on
     if (u.params.drawMode) {
       u.params.strokeOn = u.params.drawMode === 'stroke';
       u.params.fillOn = u.params.drawMode !== 'stroke';

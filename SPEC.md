@@ -1185,3 +1185,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **어레인지 axis 토글** — 팝업에 axis: **grid | x | y** 세그 추가 (기본 grid, eo.prefs·저장 파일 동승). x/y = 블록들을 해당 축 좌표순으로 gap 간격 재배치, **교차축 불변** — columns 행은 grid에서만 표시. 토스트 "Arranged N blocks along x/y". 프레임 소유 유닛 동반(carry)은 공통.
 2. **쉐입 슬라이더 화살표 단위** — shaft size·thread top/bottom width 화살표 5(%) 단위.
 - 검증: doc 스위트 +2(x축 gap·y 불변 / y축·x 불변) = 23 그린, 팝업 세그 렌더·columns 조건 표시·G 적용 토스트 확인.
+
+## 131. 2026-08-26 — 프레임 그리드: on/off 폐기·컴프레션(dir/sym·cols/rows)·거터 리네이밍
+
+1. **그리드 on/off 옵션 폐기** — 상시 표시·스냅 (마이그레이션에서 구버전 off 저장분도 강제 on, gridOn 필드는 호환용 유지).
+2. **그리드 컴프레션** — `compOn`(기본 off) + `compMode`('dir' 한 방향 등비 | 'sym' 중앙 대칭) + `compX`(comp cols)·`compY`(comp rows) 슬라이더 각각 (±2.5x·0 중앙 스냅·화살표 0.05 — 유닛 컴프레션과 동일 부호 규약: dir + = 앞쪽 넓게, sym + = 중앙 넓게). 가중 등비 분배는 frameGridLines(compWeights)에서 계산 — 렌더·스냅 자동 공유, comp off = 종전 좌표와 동일(검증).
+3. **거터 리네이밍·순서** — gutter x/y → **row gutter**(=Y)·**cols gutter**(=X), rows·cols 다음에 row→cols 순으로 배치.
+- 검증: node — 균등=종전 좌표 일치·dir± 미러·sym 중앙대칭(라인 쌍 합=W)·rows 축 반영. 브라우저 — 패널 순서/라벨·comp on 시 3컨트롤 노출·sym 그리드 렌더 스크린샷. geo 30·doc 23 그린.
