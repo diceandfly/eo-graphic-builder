@@ -1259,3 +1259,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **리소스 모니터** — 코너 바 폭(160px)에 3항목 등분 고정(grid 3×1fr, 셀별 grid-column 고정) — 자릿수 변동·mem/fps 등장 시에도 라벨·항목 위치 무이동.
 2. **패널 칩 세로폭 통일(사용자 추가 요청)** — 비율 칩(ChipRow 25→21)·링크 스코프 칩(20→21)·출판 규격 칩(physChip)을 §140 토글 세그와 동일한 **21px 고정**(패딩 세로 0 + inline-flex center). 비율 칩 축소는 세로 길이 절감에도 기여.
 - 검증: ratio/phys/scope 칩 모두 21px, resmon width 160·grid 적용.
+
+## 142. 2026-08-26 — comp dir/sym 토글 화살표 아이콘화
+
+- dir/sym 텍스트 → 스트로크 화살표 아이콘 (ICONS.compDir '→' / compSym '↔', 24 viewBox·stroke 2·square cap — 아이콘 사전 공통 문법). 버튼 동일 폭 28px·기존 높이 19px(+컨테이너 보더) 유지, title 툴팁으로 의미 보존.

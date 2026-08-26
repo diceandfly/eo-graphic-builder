@@ -9,6 +9,7 @@ import LinkSection from './panel/LinkSection.vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { isLinkScoped, typeOf } from '../objects/registry.js';
 import ColorField from './controls/ColorField.vue';
+import { ICONS } from '../ui/icons.js';
 import { useRecentColors } from '../composables/useRecentColors.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
@@ -392,8 +393,12 @@ function setStrokeColor(c) {
           >
             <template #aux>
               <span class="modeSeg">
-                <button :class="{ on: p.compModeY === 'dir' }" @click="setCompMode('compModeY', 'dir')">dir</button>
-                <button :class="{ on: p.compModeY === 'sym' }" @click="setCompMode('compModeY', 'sym')">sym</button>
+                <button :class="{ on: p.compModeY === 'dir' }" title="directional" @click="setCompMode('compModeY', 'dir')">
+                  <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compDir" :key="d" :d="d" /></svg>
+                </button>
+                <button :class="{ on: p.compModeY === 'sym' }" title="symmetrical" @click="setCompMode('compModeY', 'sym')">
+                  <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compSym" :key="d" :d="d" /></svg>
+                </button>
               </span>
             </template>
           </Slider>
@@ -408,8 +413,12 @@ function setStrokeColor(c) {
           >
             <template #aux>
               <span class="modeSeg">
-                <button :class="{ on: p.compModeX === 'dir' }" @click="setCompMode('compModeX', 'dir')">dir</button>
-                <button :class="{ on: p.compModeX === 'sym' }" @click="setCompMode('compModeX', 'sym')">sym</button>
+                <button :class="{ on: p.compModeX === 'dir' }" title="directional" @click="setCompMode('compModeX', 'dir')">
+                  <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compDir" :key="d" :d="d" /></svg>
+                </button>
+                <button :class="{ on: p.compModeX === 'sym' }" title="symmetrical" @click="setCompMode('compModeX', 'sym')">
+                  <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compSym" :key="d" :d="d" /></svg>
+                </button>
               </span>
             </template>
           </Slider>
@@ -608,16 +617,23 @@ section > :last-child { margin-bottom: 0; }
   }
 }
 .strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; } /* §138 */
-// §134·§135: comp dir/sym 인라인 미니 세그 — Toggle .seg와 동일 문법 (활성 = active-outline-inset)
+// §134·§135·§142: comp dir/sym 인라인 미니 세그 — Toggle .seg와 동일 문법 (활성 = active-outline-inset).
+// §142: 텍스트 대신 스트로크 화살표 아이콘(→ / ↔), 두 버튼 동일 폭·기존 높이(19px+보더) 유지
 .modeSeg {
   display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius);
   button {
     border: none; background: none; color: var(--faint); cursor: pointer;
-    font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-    padding: 3px 9px;
+    width: 28px; height: 19px;
+    display: inline-flex; align-items: center; justify-content: center; padding: 0;
     &:not(:last-child) { border-right: 1px solid var(--line); }
     &.on { @include active-outline-inset; }
+    &:hover { color: var(--accent); }
   }
+}
+.segIco {
+  width: 12px; height: 12px;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: square; stroke-linejoin: miter;
 }
 .rowLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
