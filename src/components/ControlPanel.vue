@@ -171,6 +171,17 @@ const fromDisp = (v) => (isCm.value ? (v * dpi.value) / 2.54 : v);
 function setSizeField(key, v) {
   emit('setSize', { [key]: Math.round(fromDisp(v)) }, sizeEach.value);
 }
+// 그리드 컴프레션 (§132): 잠금 시 rows·cols 동기 편집
+function setCompAxis(key, v) {
+  if (p.value.compLock) {
+    p.value.compX = v;
+    p.value.compY = v;
+  } else p.value[key] = v;
+}
+function setCompLock(v) {
+  p.value.compLock = v === 'on';
+  if (p.value.compLock) p.value.compX = p.value.compY; // 켜는 순간 rows 값으로 통일
+}
 // 그리드 필드 (margin·gutter): 표시 단위 기준 클램프 → px 환산 저장
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
@@ -322,6 +333,7 @@ function setStrokeColor(c) {
     <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산). on/off 옵션 폐기 — 상시 표시 (§131) -->
     <section>
       <h2>Grid</h2>
+      <!-- §132 확정 순서: margin → gutter rows/cols → rows/cols → compression 블록 -->
       <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
       <Slider
         :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
@@ -329,40 +341,46 @@ function setStrokeColor(c) {
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
       />
-      <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
-      <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
-      <!-- §131: row gutter(=Y) 먼저, cols gutter(=X) 다음 — rows·cols 순서와 짝 -->
       <Slider
-        :label="`row gutter (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
+        :label="`gutter rows (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
       />
       <Slider
-        :label="`cols gutter (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
+        :label="`gutter cols (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
       />
+      <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
+      <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
       <!-- 그리드 컴프레션 (§131): 유닛 컴프레션과 동일 부호 규약 (±2.5x, 0 균등) -->
       <Toggle
         label="compression" :model-value="p.compOn ? 'on' : 'off'" :options="ON_OFF"
         @update:model-value="(v) => (p.compOn = v === 'on')"
       />
       <template v-if="p.compOn">
+        <Slider
+          label="comp rows" :model-value="p.compY"
+          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
+          @update:model-value="(v) => setCompAxis('compY', v)"
+        />
+        <Slider
+          label="comp cols" :model-value="p.compX"
+          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
+          @update:model-value="(v) => setCompAxis('compX', v)"
+        />
         <Toggle
           label="comp mode" v-model="p.compMode"
-          :options="[{ value: 'dir', label: 'dir' }, { value: 'sym', label: 'sym' }]"
+          :options="[{ value: 'dir', label: 'directional' }, { value: 'sym', label: 'symmetrical' }]"
         />
-        <Slider
-          label="comp cols" v-model="p.compX"
-          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
-        />
-        <Slider
-          label="comp rows" v-model="p.compY"
-          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
+        <!-- §132: 잠금 on = rows·cols 값 동기화 (켜는 순간 rows 값으로 통일) -->
+        <Toggle
+          label="comp lock rows-cols" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"
+          @update:model-value="setCompLock"
         />
       </template>
     </section>

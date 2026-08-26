@@ -63,6 +63,7 @@ export function createFrameParams(overrides = {}) {
     compMode: 'dir', // 'dir' 한 방향 등비 | 'sym' 중앙 대칭
     compX: 0,
     compY: 0,
+    compLock: false, // §132: rows-cols 값 동기화 잠금
     ...overrides,
   };
 }

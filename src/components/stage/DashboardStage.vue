@@ -138,6 +138,13 @@ function toggleFrameMode() {
 const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
+const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
+// 코너 바 아이콘 = 마스터 토글: 유닛·프레임 그리드 동시 (개별 토글은 우클릭 메뉴)
+function toggleAllGrids() {
+  const on = !(showGuides.value || showFrameGrid.value);
+  showGuides.value = on;
+  showFrameGrid.value = on;
+}
 const showStageGrid = ref(true); // 대시보드 배경 라인 그리드
 const pxs = (n) => n / vp.scale;
 
@@ -1252,7 +1259,7 @@ onBeforeUnmount(() => {
           v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`"
           :style="mode === 'select' && frameMode && u.type !== 'frame' ? { pointerEvents: 'none' } : null"
         >
-          <FrameGraphic v-if="u.type === 'frame'" :params="u.params" />
+          <FrameGraphic v-if="u.type === 'frame'" :params="u.params" :show-grid="showFrameGrid" />
           <UnitGraphic
             v-else
             :params="u.params"
@@ -1413,14 +1420,18 @@ onBeforeUnmount(() => {
     <ManagerBar />
     <ZoomBadge
       :scale="vp.scale"
-      :guides="showGuides"
+      :guides="showGuides || showFrameGrid"
+      :unit-grid="showGuides"
+      :frame-grid="showFrameGrid"
       :stage-grid="showStageGrid"
       :bbox="showBBox"
       :grid-cfg="gridCfg"
       :limits="limitsCfg"
       :view="view"
       @reset="resetZoom"
-      @toggle-guides="showGuides = !showGuides"
+      @toggle-guides="toggleAllGrids"
+      @toggle-unit-grid="showGuides = !showGuides"
+      @toggle-frame-grid="showFrameGrid = !showFrameGrid"
       @toggle-stage-grid="showStageGrid = !showStageGrid"
       @toggle-bbox="showBBox = !showBBox"
     />

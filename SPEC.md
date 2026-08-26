@@ -1192,3 +1192,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **그리드 컴프레션** — `compOn`(기본 off) + `compMode`('dir' 한 방향 등비 | 'sym' 중앙 대칭) + `compX`(comp cols)·`compY`(comp rows) 슬라이더 각각 (±2.5x·0 중앙 스냅·화살표 0.05 — 유닛 컴프레션과 동일 부호 규약: dir + = 앞쪽 넓게, sym + = 중앙 넓게). 가중 등비 분배는 frameGridLines(compWeights)에서 계산 — 렌더·스냅 자동 공유, comp off = 종전 좌표와 동일(검증).
 3. **거터 리네이밍·순서** — gutter x/y → **row gutter**(=Y)·**cols gutter**(=X), rows·cols 다음에 row→cols 순으로 배치.
 - 검증: node — 균등=종전 좌표 일치·dir± 미러·sym 중앙대칭(라인 쌍 합=W)·rows 축 반영. 브라우저 — 패널 순서/라벨·comp on 시 3컨트롤 노출·sym 그리드 렌더 스크린샷. geo 30·doc 23 그린.
+
+## 132. 2026-08-26 — 그리드 표시 토글 통합·컬러 라벨 공용화·패널 GRID 순서 확정·COMP LOCK
+
+1. **그리드 표시 문법(§131 후속)** — 코너 바 그리드 아이콘 좌클릭 = **유닛+프레임 그리드 마스터 토글**(둘 중 하나라도 켜져 있으면 활성 표시, 클릭 시 동시 on/off). 우클릭 메뉴에 **Unit grid / Frame grid 개별 체크박스** 추가. 프레임 그리드 표시는 FrameGraphic `showGrid` 프롭(뷰 상태)으로 이관 — 파라미터 gridOn은 호환 필드로만 잔존.
+2. **컬러 라벨** — "Unit grid color" → **"Unit/frame grid color"** (적용은 종전부터 --unit-guide 공유라 라벨만 정정).
+3. **패널 GRID 순서 확정(사용자안)** — margin → gutter rows → gutter cols → rows → cols → compression → comp rows → comp cols → comp mode(directional/symmetrical 풀네임) → **comp lock rows-cols**. 거터 라벨 row/cols gutter → gutter rows/cols로 재정정.
+4. **COMP LOCK** — `compLock`(기본 off): 켜는 순간 cols 값을 rows 값으로 통일, 잠금 중엔 어느 쪽을 편집해도 양축 동기.
+- 검증: 패널 라벨 순서 = 사용자안 일치, lock on 동기(0.8)·잠금 편집 동기(1.2/1.2), 마스터 토글 5→0→5 라인, 메뉴 개별 토글로 프레임만 off, geo 30·doc 23 그린.

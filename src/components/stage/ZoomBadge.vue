@@ -12,12 +12,12 @@ import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popup
 // 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
 // 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
 const props = defineProps({
-  scale: Number, guides: Boolean, stageGrid: Boolean, bbox: Boolean,
+  scale: Number, guides: Boolean, unitGrid: Boolean, frameGrid: Boolean, stageGrid: Boolean, bbox: Boolean,
   gridCfg: Object, // { size, snap } — reactive 스토어 (깊은 변경으로 직접 편집)
   view: Object,    // { nudge, showLinks, guideColor } — 뷰 옵션 reactive 스토어
   limits: Object,  // { unitMin, threadMinPx } — 지오메트리 하한 (문서 px 절대값, §108)
 });
-defineEmits(['reset', 'toggleGuides', 'toggleStageGrid', 'toggleBbox']);
+defineEmits(['reset', 'toggleGuides', 'toggleUnitGrid', 'toggleFrameGrid', 'toggleStageGrid', 'toggleBbox']);
 const pct = computed(() => Math.round(props.scale * 100));
 
 // 옵션 메뉴 — 한 번에 하나만, 5초 무조작 시 자동 닫힘
@@ -138,7 +138,7 @@ function resetGridDefaults() {
       <div class="optWrap">
         <IconButton
           :paths="ICONS.unitGrid" :active="guides" tip-align="right"
-          :tip="openMenu === 'unit' ? '' : guides ? 'Hide Unit Grid' : 'Show Unit Grid'"
+          :tip="openMenu === 'unit' ? '' : guides ? 'Hide unit/frame grid' : 'Show unit/frame grid'"
           @click="$emit('toggleGuides')"
           @contextmenu="onContext('unit', $event)"
         />
@@ -159,9 +159,18 @@ function resetGridDefaults() {
             <StepField v-model="limits.threadMinPx" :min="0" :max="50" :step="0.5" />
           </label>
           <div class="menuRow">
-            <span class="rowGrow">Unit grid color</span>
+            <span class="rowGrow">Unit/frame grid color</span>
             <ColorField v-model="view.guideColor" fallback="var(--guide)" />
           </div>
+          <!-- §132: 개별 표시 토글 — 코너 아이콘 좌클릭은 둘 다 켜고 끄는 마스터 -->
+          <label class="menuRow">
+            <input type="checkbox" :checked="unitGrid" @change="$emit('toggleUnitGrid')" />
+            <span>Unit grid</span>
+          </label>
+          <label class="menuRow">
+            <input type="checkbox" :checked="frameGrid" @change="$emit('toggleFrameGrid')" />
+            <span>Frame grid</span>
+          </label>
           <button class="miniBtn" @click="resetUnitDefaults">reset to default</button>
         </div>
       </div>

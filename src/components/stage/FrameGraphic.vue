@@ -3,10 +3,13 @@ import { computed } from 'vue';
 import { frameAttrs, frameGridLines } from '../../geometry/frameGrid.js';
 
 // 프레임 오브젝트 렌더 (§92: rect에서 재정의) — 그리드는 가이드 전용(export 미포함).
-const props = defineProps({ params: Object });
+const props = defineProps({
+  params: Object,
+  showGrid: { type: Boolean, default: true }, // §132: 그리드 표시는 뷰 토글 (파라미터 gridOn 폐기)
+});
 const p = computed(() => props.params);
 const attrs = computed(() => frameAttrs(p.value)); // 렌더·export 단일 경로 (§120)
-const grid = computed(() => (p.value.gridOn ? frameGridLines(p.value) : null));
+const grid = computed(() => (props.showGrid ? frameGridLines(p.value) : null));
 </script>
 
 <template>
