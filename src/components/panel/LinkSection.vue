@@ -59,7 +59,8 @@ section h2 {
 .scopeChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .scopeChip {
   @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 0 8px;
+  height: 21px; display: inline-flex; align-items: center; // §141: 토글 세그와 동일 세로폭
   color: var(--faint);
   &.on { border-color: var(--accent); color: var(--accent); }
 }

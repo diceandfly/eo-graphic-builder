@@ -27,7 +27,8 @@ const isActive = (v) => Math.abs(props.modelValue - v) < props.tol;
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } /* §138 */
 .chip {
   @include bordered-control;
-  padding: 5px 9px; min-width: 34px;
+  padding: 0 9px; min-width: 34px;
+  height: 21px; display: inline-flex; align-items: center; justify-content: center; // §141: 토글 세그와 동일 세로폭
   &.on { @include active-filled; }
 }
 </style>

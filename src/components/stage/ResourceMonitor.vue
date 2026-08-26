@@ -36,21 +36,27 @@ const fpsHot = computed(() => fps.value != null && fps.value < 30);
 
 <template>
   <div class="resmon">
-    <span class="cell" :class="{ hot: objHot }"><span class="k">obj</span>{{ count }}</span>
-    <span v-if="mem != null" class="cell" :class="{ hot: memHot }"><span class="k">mem</span>{{ mem }}<span class="k">mb</span></span>
-    <span v-if="fps != null" class="cell" :class="{ hot: fpsHot }"><span class="k">fps</span>{{ fps }}</span>
+    <span class="cell cObj" :class="{ hot: objHot }"><span class="k">obj</span>{{ count }}</span>
+    <span v-if="mem != null" class="cell cMem" :class="{ hot: memHot }"><span class="k">mem</span>{{ mem }}<span class="k">mb</span></span>
+    <span v-if="fps != null" class="cell cFps" :class="{ hot: fpsHot }"><span class="k">fps</span>{{ fps }}</span>
   </div>
 </template>
 
 <style scoped lang="scss">
 .resmon {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + var(--bar-h, 42px) + 10px);
-  display: flex; gap: 12px; pointer-events: none;
+  /* §141: 3항목을 코너 바 폭(160px)에 등분 고정 — 자릿수 변동에도 전체 텍스트 밀림 없음 */
+  width: 160px;
+  display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base);
   /* §111: 흰색+오파시티 — 커스텀 캔버스 색 등 대부분의 배경에서 가독 */
   color: color-mix(in srgb, #ffffff 55%, transparent); font-variant-numeric: tabular-nums;
 }
+/* 각 셀 = 고정 슬롯(라벨 좌측 고정, 숫자는 오른쪽으로 증가) — mem/fps 등장·자릿수 변동에도 무이동 */
 .cell { display: inline-flex; align-items: baseline; gap: 3px; }
+.cObj { grid-column: 1; }
+.cMem { grid-column: 2; }
+.cFps { grid-column: 3; }
 .cell.hot { color: var(--danger); }
 .k { text-transform: uppercase; opacity: 0.7; }
 </style>

@@ -1253,3 +1253,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **헤더 버튼 세로폭** — eachBtn·unitSeg를 Toggle 세그와 동일 21px(패딩 3px 9px + 고정 높이)로 통일. secHead 고정 높이 21+4 = 총 25px 유지 — 늘어난 버튼 높이를 하단 마진에서 상쇄해 행간 무영향(절충안).
 2. **shaft size 표기** — "40 % × UNIT HEIGHT" → **"UNIT HEIGHT × [40] %"** (Slider `prefix` 어도른먼트 신설 — 필드 앞 표기).
 - 검증: each 21 = 세그 총높이 21 = 헤더 21, 첫 필드 top 불변, SHAFT SIZE 행 표기 확인.
+
+## 141. 2026-08-26 — 리소스 모니터 고정 슬롯·패널 칩 세로폭 21px 통일
+
+1. **리소스 모니터** — 코너 바 폭(160px)에 3항목 등분 고정(grid 3×1fr, 셀별 grid-column 고정) — 자릿수 변동·mem/fps 등장 시에도 라벨·항목 위치 무이동.
+2. **패널 칩 세로폭 통일(사용자 추가 요청)** — 비율 칩(ChipRow 25→21)·링크 스코프 칩(20→21)·출판 규격 칩(physChip)을 §140 토글 세그와 동일한 **21px 고정**(패딩 세로 0 + inline-flex center). 비율 칩 축소는 세로 길이 절감에도 기여.
+- 검증: ratio/phys/scope 칩 모두 21px, resmon width 160·grid 적용.

@@ -566,7 +566,8 @@ section > :last-child { margin-bottom: 0; }
 }
 .physChip {
   @include bordered-control;
-  font-size: var(--fs-xs); padding: 3px 9px;
+  font-size: var(--fs-xs); padding: 0 9px;
+  height: 21px; display: inline-flex; align-items: center; // §141: 토글 세그와 동일 세로폭
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
 .dpiWrap {
