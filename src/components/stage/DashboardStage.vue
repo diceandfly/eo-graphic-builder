@@ -15,6 +15,7 @@ import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
+import { useRecentColors } from '../../composables/useRecentColors.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -210,13 +211,9 @@ const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
 const customColor = ref(prefs.customColor || '#3b3b3b');
-// 최근 사용 커스텀 컬러 (픽커 팝업 하단 슬롯, 팝업 닫힐 때 자동 저장 — §85)
-const recentColors = ref(Array.isArray(prefs.recentColors) ? prefs.recentColors : []);
-function commitRecentColor(c) {
-  if (!c) return;
-  const arr = [c, ...recentColors.value.filter((x) => x !== c)].slice(0, 6);
-  recentColors.value = arr;
-}
+// 최근 사용 컬러 — 공유 스토어(§110: 패널 stroke 팝업과 공용). 영속은 아래 prefs 워처.
+const { recentColors, commitRecentColor } = useRecentColors();
+if (Array.isArray(prefs.recentColors)) recentColors.value = prefs.recentColors;
 // 프레임 더블클릭 즉시 생성 크기 (프레임 툴 우클릭 메뉴에서 편집 — §85·§92)
 const frameQuickCfg = reactive({ w: 1920, h: 1080, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
 // 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.

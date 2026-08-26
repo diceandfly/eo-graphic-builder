@@ -10,16 +10,12 @@ const grid = computed(() => (p.value.gridOn ? frameGridLines(p.value) : null));
 
 <template>
   <g>
-    <!-- drawMode: fill = 면 채우기 | stroke = 외곽선만 (§75) -->
+    <!-- fill/stroke 독립 토글 (§110) — 조합 자유 (둘 다 off면 그리드 가이드만 남음) -->
     <rect
-      v-if="p.drawMode === 'stroke'"
       :width="p.W" :height="p.H"
-      fill="none" :stroke="p.stroke" :stroke-width="p.strokeW"
-    />
-    <rect
-      v-else
-      :width="p.W" :height="p.H"
-      :fill="p.fillOn === false ? 'none' : p.fill"
+      :fill="p.fillOn ? p.fill : 'none'"
+      :stroke="p.strokeOn ? p.stroke : 'none'"
+      :stroke-width="p.strokeOn ? p.strokeW : 0"
     />
     <g v-if="grid" class="rgrid">
       <!-- 마진 프레임 -->

@@ -8,6 +8,8 @@ import PresetBrowser from './panel/PresetBrowser.vue';
 import LinkSection from './panel/LinkSection.vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { isLinkScoped, typeOf } from '../objects/registry.js';
+import ColorField from './controls/ColorField.vue';
+import { useRecentColors } from '../composables/useRecentColors.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
@@ -181,11 +183,14 @@ function setUnitMode(mode) {
   }
 }
 
-// stroke 색 hex 입력 — 가이드 색 입력과 동일 문법 (#RGB/#RRGGBB만 수용)
-function onStrokeHex(e) {
-  const t = e.target.value.trim();
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) p.value.stroke = t;
-  else e.target.value = p.value.stroke;
+// stroke 색 (§110) — 공유 픽커 팝업(ColorField) + 최근 컬러, 적용 색은 recents에 편입(디바운스)
+const { recentColors, commitRecentColor } = useRecentColors();
+let strokeRecentTimer = null;
+function setStrokeColor(c) {
+  if (!c) return; // 빈 hex(기본 복귀)는 stroke 색엔 의미 없음 — 유지
+  p.value.stroke = c;
+  clearTimeout(strokeRecentTimer);
+  strokeRecentTimer = setTimeout(() => commitRecentColor(c), 500);
 }
 </script>
 
@@ -283,18 +288,21 @@ function onStrokeHex(e) {
     <template v-if="isFrame">
     <section>
       <h2>Style</h2>
+      <!-- §110: fill/stroke 독립 on·off — stroke on일 때만 색·두께 확장 옵션 -->
       <Toggle
-        label="mode" :model-value="p.drawMode"
-        :options="[{ value: 'fill', label: 'fill' }, { value: 'stroke', label: 'stroke' }]"
-        @update:model-value="(v) => (p.drawMode = v)"
+        label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.fillOn = v === 'on')"
       />
-      <template v-if="p.drawMode === 'stroke'">
+      <Toggle
+        label="stroke" :model-value="p.strokeOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.strokeOn = v === 'on')"
+      />
+      <template v-if="p.strokeOn">
         <div class="strokeRow">
           <span class="rowLabel">stroke color</span>
-          <span class="colorPrev" :style="{ background: p.stroke }" />
-          <input
-            class="hexInput" type="text" spellcheck="false" placeholder="#RRGGBB"
-            :value="p.stroke" @change="onStrokeHex"
+          <ColorField
+            :model-value="p.stroke" :recents="recentColors" side="right" :fallback="p.stroke"
+            @update:model-value="setStrokeColor"
           />
         </div>
         <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable suffix="px" />
@@ -492,7 +500,7 @@ section h2 {
     &.on + button { border-left-color: var(--accent); }
   }
 }
-.strokeRow { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
 .rowLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
   color: var(--faint); flex: 1;

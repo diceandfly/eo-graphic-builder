@@ -1054,3 +1054,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **Thread min 계약(§108 확정)**: 값이 N이면 어떤 상황(렌더·export·프리셋 썸네일·블렌드 사본)에서도 문서 px 기준 N px 미만으로 그려질 스레드를 N px로 보정. 줌 배율은 무관(화면 px 아님 — export와 1:1 일치가 원칙).
 - **Unit min**: 기본값 2 → **20px**, 스테퍼 화살표 단위 0.5 → **5**, 범위 1~200. (기존 저장 prefs는 사용자 값 유지, reset to default로 신값 적용)
 - 검증: reset → 20/1, ▲ 클릭 → 25.
+
+## 110. 2026-08-25 — 프레임 STYLE: fill/stroke 독립 토글 + stroke 색 공유 픽커 팝업
+
+1. **배타 MODE(fill|stroke) 폐기 → 독립 on/off 2토글** — fill on/off(확장 옵션 없음) + stroke on/off(on일 때 색·두께 확장). 조합 자유(둘 다 off = 그리드 가이드만). params: drawMode 삭제, strokeOn 신설(구버전 drawMode는 migrateUnit에서 이관). 렌더·export 단일 rect에 fill/stroke 속성 조합. setFill 스와치 규칙: fill off + stroke on일 때만 외곽선 색에 적용.
+2. **stroke 색 = 공유 픽커 팝업** — hex 행 대신 ColorField(side="right", 패널 오른쪽으로 팝업). ColorField에 recents·side 프롭 추가 — **최근 컬러를 컬러 툴바와 단일 스토어 공유**(composables/useRecentColors 모듈 싱글턴으로 승격, 영속은 기존 eo.prefs 워처). stroke에 적용한 색도 recents에 편입(500ms 디바운스).
+- 검증: fill+stroke 동시 렌더(#3b3b3b + #EFEAE1/5), 칩 클릭 → 우측 팝업, SV 픽 → stroke 적용·자동 닫힘·fill 유지, 픽한 색이 툴바 커스텀 팝업 recents에 공유(#B38C47). 회귀 30/30.

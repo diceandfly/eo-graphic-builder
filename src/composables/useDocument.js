@@ -46,8 +46,8 @@ export function createFrameParams(overrides = {}) {
     H: 200,
     orientation: 0, // 회전(W/H 스왑) 공유 경로 호환용
     fill: '#3b3b3b',
-    fillOn: true,
-    drawMode: 'fill', // 'fill' = 면 채우기 | 'stroke' = 외곽선만 (§75)
+    fillOn: true,   // §110: fill/stroke 독립 토글 (배타 drawMode 폐기)
+    strokeOn: false,
     stroke: '#EFEAE1', // HALO WHITE — 다크 캔버스에서 보이는 기본값
     strokeW: 5, // 외곽선 두께 (px 고정 — cm 표기 모드와 무관)
     unitMode: 'px', // 패널 표기 단위 'px' | 'cm' — 내부 저장은 항상 px, dpi 기준 환산 표시
@@ -69,8 +69,15 @@ function migrateUnit(u) {
     u.type = 'frame';
     if (u.name) u.name = u.name.replace(/^Rect-/, 'Frame-');
   }
-  // 구버전 frame: 이후 추가된 키(drawMode 등)를 기본값으로 보충
-  if (u.type === 'frame' && u.params) u.params = { ...createFrameParams(), ...u.params };
+  // 구버전 frame: 이후 추가된 키를 기본값으로 보충 + drawMode(배타) → fillOn/strokeOn(독립) 이관 (§110)
+  if (u.type === 'frame' && u.params) {
+    u.params = { ...createFrameParams(), ...u.params };
+    if (u.params.drawMode) {
+      u.params.strokeOn = u.params.drawMode === 'stroke';
+      u.params.fillOn = u.params.drawMode !== 'stroke';
+      delete u.params.drawMode;
+    }
+  }
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   if (u.linkId === undefined) u.linkId = null;
@@ -577,8 +584,8 @@ export function useDocument() {
     const ids = expandLinkByScope(base, 'color');
     for (const u of doc.units) {
       if (!ids.has(u.id)) continue;
-      // rect가 stroke 모드면 스와치 적용 대상 = 외곽선 색 (보이는 색을 바꿈, §75)
-      if (u.type === 'frame' && u.params.drawMode === 'stroke') u.params.stroke = color;
+      // 프레임이 스트로크 전용(fill off)이면 스와치 적용 대상 = 외곽선 색 (보이는 색을 바꿈, §75·§110)
+      if (u.type === 'frame' && !u.params.fillOn && u.params.strokeOn) u.params.stroke = color;
       else u.params.fill = color;
     }
   }

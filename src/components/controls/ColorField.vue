@@ -10,6 +10,8 @@ import { blurActive } from '../../utils/dom.js';
 const props = defineProps({
   modelValue: String,               // hex 또는 null(기본색)
   fallback: { type: String, default: '#888888' }, // 미표시(null) 시 칩에 보여줄 CSS 색
+  recents: { type: Array, default: null }, // 최근 사용 컬러 슬롯 (§110 — 컬러 툴바와 공유)
+  side: { type: String, default: 'left' }, // 팝오버 방향 'left' | 'right' (패널처럼 좌측 클리핑 시 right)
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -56,14 +58,22 @@ watch(open, (o) => {
       :value="modelValue || ''"
       @keydown.enter="onHex" @change="onHex"
     />
-    <!-- 플로팅 픽커 — 메뉴 흐름 밖(칩 왼쪽), 픽 후 자동 닫힘 -->
+    <!-- 플로팅 픽커 — 메뉴 흐름 밖(side 방향), 픽 후 자동 닫힘 -->
     <div
-      v-if="open" class="pop"
+      v-if="open" class="pop" :class="side"
       @pointerdown.stop
       @pointerup="onPopUp"
       @keydown.enter="open = false"
     >
       <ColorPicker :model-value="modelValue || '#888888'" @update:model-value="onPick" />
+      <!-- 최근 사용 컬러 (컬러 툴바와 동일 소스·문법, §110) -->
+      <div v-if="recents && recents.length" class="recentRow">
+        <button
+          v-for="rc in recents" :key="rc"
+          class="recentChip" :style="{ background: rc }" :title="rc"
+          @click="onPick(rc)"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -83,8 +93,18 @@ watch(open, (o) => {
   width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .pop {
-  position: absolute; right: calc(100% + 12px); top: 0;
+  position: absolute; top: 0;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  &.left { right: calc(100% + 12px); }
+  &.right { left: calc(100% + 12px); }
+}
+.recentRow { display: flex; gap: 6px; }
+.recentChip {
+  width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
+  &:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 }
 </style>

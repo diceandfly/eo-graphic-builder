@@ -31,11 +31,9 @@ function unitBody({ W, H, unit, orientation = 0, fill = BRAND_COLORS[0] }) {
 // 오브젝트 타입 분기: 나사축 유닛 | 프레임 (그리드 가이드는 export 미포함)
 function objectBody(i) {
   if (i.type === 'frame') {
-    if (i.drawMode === 'stroke') {
-      return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="none" stroke="${i.stroke || '#3b3b3b'}" stroke-width="${f(i.strokeW ?? 2)}"/>`;
-    }
     const fill = i.fillOn === false ? 'none' : i.fill || '#3b3b3b';
-    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"/>`;
+    const stroke = i.strokeOn ? ` stroke="${i.stroke || '#3b3b3b'}" stroke-width="${f(i.strokeW ?? 2)}"` : '';
+    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"${stroke}/>`;
   }
   return unitBody(i);
 }

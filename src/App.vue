@@ -79,7 +79,7 @@ function exportItem(u) {
   if (u.type === 'frame') {
     return {
       type: 'frame', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn,
-      drawMode: p.drawMode, stroke: p.stroke, strokeW: p.strokeW,
+      strokeOn: p.strokeOn, stroke: p.stroke, strokeW: p.strokeW,
     };
   }
   return {
