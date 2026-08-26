@@ -10,6 +10,7 @@ import FrameGraphic from './FrameGraphic.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
+import ManagerBar from './ManagerBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
@@ -1401,6 +1402,7 @@ onBeforeUnmount(() => {
     />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" @align="onAlign" />
+    <ManagerBar />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides"

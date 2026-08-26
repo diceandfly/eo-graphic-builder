@@ -999,3 +999,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - §95의 V 토글은 사용감 불편으로 폐기. **명시 매핑**: V = 어느 상태서든 유닛 셀렉트, A = 어느 상태서든 프레임 셀렉트(재입력 무동작 — 해제는 V만). Illustrator의 V(검은 화살표)/A(흰 화살표) 도구 쌍 문법과 일치.
 - 토스트: "Frame select (A) — V returns to units" / "Unit select (V)". 선택툴 우클릭 토글은 유지.
 - 검증: A 진입, A 재입력 유지, V 해제, 그리기 툴(F)에서 A → 프레임 셀렉트 직행.
+
+## 99. 2026-08-25 — 우상단 매니저 바 자리 확보 (레이어·패턴)
+
+- `ManagerBar.vue` 신설: 대시보드 우상단(FileBar와 동일 문법, right 정렬) — **레이어 매니저**(겹친 시트 다이아 스택 아이콘) + **패턴 매니저**(중첩 다이아 모티프 아이콘). 클릭 no-op, 툴팁 "coming soon" — §74 매뉴얼 버튼과 같은 자리 확보 패턴. 패턴 매니저는 Phase 2 진입점 예정.
