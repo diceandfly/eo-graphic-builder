@@ -23,13 +23,10 @@ import { ICONS } from '../../ui/icons.js';
 
 <style scoped lang="scss">
 .managerCorner { position: absolute; right: var(--sp-6); top: var(--sp-6); }
-// 윤곽 스트로크판 — non-scaling-stroke로 화면 px 두께 고정
+// 솔리드 심볼 확정 (§106) — 필 밀도 광학 보정으로 13px 고정
 .eoSym {
-  width: var(--icon-size); height: var(--icon-size);
-  polygon {
-    fill: none; stroke: var(--text); stroke-width: 1.2;
-    vector-effect: non-scaling-stroke; stroke-linejoin: miter;
-  }
+  width: 13px; height: 13px;
+  polygon { fill: var(--text); }
 }
-.managerCorner button:hover .eoSym polygon { stroke: var(--accent); }
+.managerCorner button:hover .eoSym polygon { fill: var(--accent); }
 </style>

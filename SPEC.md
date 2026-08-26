@@ -1035,4 +1035,4 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 ## 106. 2026-08-25 — 패턴 아이콘 = EO 심볼 스트로크판
 
-- 필 심볼 단독 사용이 스트로크 아이콘 셋과 이질적. 1차: 전단 3단 바 라인 재해석 → 사용자 요청으로 **원본 폴리곤 윤곽 스트로크판**(fill none, non-scaling-stroke 1.2px) 채택 — 16px에서도 심볼 인지 유지 확인. ICONS.pattern(3단 바)은 미사용 보존, 필 원본은 assets 보존.
+- 필 심볼 단독 사용이 이질적이라 대안 탐색: ① 전단 3단 바 라인 재해석 ② 원본 폴리곤 윤곽 스트로크판(non-scaling 1.2px) 시안 비교 → **최종: 솔리드 심볼 13px 고정**(필 밀도 광학 보정). ICONS.pattern(3단 바)은 미사용 보존, 원본 SVG는 assets 보존.
