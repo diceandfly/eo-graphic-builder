@@ -31,18 +31,26 @@ const selectedGroup = computed(() => {
   return { gid, name: doc.groupNames[gid] ?? `Group-${gid}` };
 });
 
-// 선택 전체가 하나의 링크일 때 그 링크의 동기화 스코프 (없으면 null → 패널이 전체 on으로 표시)
-const currentLinkId = computed(() => {
+// 선택이 공유하는 단일 링크그룹 (전체/서브셋 무관) — 패널 칩은 이 그룹의 스코프를 표시 (§129)
+const sharedLinkId = computed(() => {
   if (selectedUnits.value.length < 2) return null;
   const lids = [...new Set(selectedUnits.value.map((u) => u.linkId))];
-  return lids.length === 1 && lids[0] != null &&
-    docApi.linkMemberIds(lids[0]).length === selectedUnits.value.length
-    ? lids[0] : null;
+  return lids.length === 1 && lids[0] != null ? lids[0] : null;
 });
-const linkScope = computed(() => (currentLinkId.value ? doc.linkScopes[currentLinkId.value] ?? null : null));
+const isLinkSubset = computed(
+  () => sharedLinkId.value != null
+    && docApi.linkMemberIds(sharedLinkId.value).length !== selectedUnits.value.length
+);
+const linkScope = computed(() => (sharedLinkId.value ? doc.linkScopes[sharedLinkId.value] ?? null : null));
 function onLinkScopeToggle(cat) {
-  const lid = currentLinkId.value;
+  const lid = sharedLinkId.value;
   if (!lid) return;
+  // §129: 서브셋 선택에서 칩 조작 = 선택분을 새 링크그룹으로 분리 (원본 스코프 + 해당 칩 토글)
+  if (isLinkSubset.value) {
+    const r = docApi.splitLinkSelected(cat);
+    if (r) stageRef.value?.toast(`Split ${r.count} units into a new link group`);
+    return;
+  }
   if (!doc.linkScopes[lid]) {
     doc.linkScopes[lid] = { size: true, orientation: true, grid: true, shape: true, color: true };
   }

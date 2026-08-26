@@ -212,7 +212,52 @@ function centerIn(u, f) {
   });
 }
 
-// 9. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
+// 9. 링크그룹: 서브셋 언링크·분리·1멤버 자동 소멸 (§129)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  const u2 = api.createUnit(3000, 0);
+  const u3 = api.createUnit(6000, 0);
+  const u4 = api.createUnit(9000, 0);
+  api.setSelection([u1.id, u2.id, u3.id, u4.id]);
+  api.toggleLinkSelected({ color: false });
+  const lid0 = u1.linkId;
+  ok('링크: 4유닛 링크 생성', () => {
+    assert.ok(lid0 != null);
+    assert.ok([u2, u3, u4].every((u) => u.linkId === lid0));
+  });
+  // 서브셋 분리: u3·u4 선택 + 칩(color) 조작 → 새 그룹, 스코프 = 원본 복사 + color 토글
+  api.setSelection([u3.id, u4.id]);
+  const r = api.splitLinkSelected('color');
+  ok('링크: 서브셋 칩 조작 = 새 링크그룹 분리', () => {
+    assert.equal(r.count, 2);
+    assert.ok(u3.linkId === u4.linkId && u3.linkId !== lid0);
+    assert.equal(u1.linkId, lid0);
+    assert.equal(api.doc.linkScopes[u3.linkId].color, true);  // 원본 false → 토글 on
+    assert.equal(api.doc.linkScopes[lid0].color, false);      // 원본 불변
+  });
+  // 서브셋 언링크: 그룹(u1·u2)에서 u2만... 은 single 경로 — 여기선 3멤버 그룹에서 2개 언링크 시 잔여 1개 자동 소멸 확인
+  const u5 = api.createUnit(12000, 0);
+  api.setSelection([u1.id, u2.id, u5.id]);
+  api.toggleLinkSelected(); // u1·u2(기존 lid0)+u5 → 혼합이라 새 그룹 생성 경로
+  const lidB = u1.linkId;
+  api.setSelection([u1.id, u2.id]);
+  api.toggleLinkSelected(); // 서브셋 언링크 (§129)
+  ok('링크: 서브셋 언링크 + 잔여 1멤버 그룹 자동 소멸', () => {
+    assert.equal(u1.linkId, null);
+    assert.equal(u2.linkId, null);
+    assert.equal(u5.linkId, null); // 홀로 남은 u5 — cleanupLinks로 소멸
+    assert.equal(api.doc.linkScopes[lidB], undefined); // 스코프 메타도 정리
+  });
+  // 삭제로 1멤버가 남는 경우도 소멸
+  api.setSelection([u3.id]);
+  api.deleteSelected();
+  ok('링크: 삭제로 1멤버 남으면 그룹 소멸', () => {
+    assert.equal(u4.linkId, null);
+  });
+}
+
+// 10. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
 {
   const api = fresh();
   const u = api.doc.units[0];

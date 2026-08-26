@@ -645,8 +645,11 @@ export function useDocument() {
     if (sel.length < 2) return null;
     if (new Set(sel.map((u) => u.type)).size > 1) return { action: 'mixed' }; // 타입 혼합 링크 불가
     const lids = [...new Set(sel.map((u) => u.linkId))];
-    if (lids.length === 1 && lids[0] != null && linkMemberIds(lids[0]).length === sel.length) {
+    // §129: 전체든 서브셋이든 단일 링크그룹 소속 선택이면 = 언링크 (서브셋은 선택분만 이탈,
+    // 남은 멤버가 1개면 cleanupLinks가 그룹 자동 소멸). 버튼 라벨(unlink parameters)과 일치.
+    if (lids.length === 1 && lids[0] != null) {
       for (const u of sel) u.linkId = null;
+      cleanupLinks();
       pruneMeta();
       return { action: 'unlinked', count: sel.length };
     } else {
@@ -669,6 +672,24 @@ export function useDocument() {
       pruneMeta();
       return { action: 'linked', count: sel.length, src: src.name };
     }
+  }
+  // §129: 링크그룹 서브셋 분리 — 선택된 멤버들을 새 링크그룹으로 (스코프 = 원본 복사 + cat 토글).
+  // 진입점은 서브셋 선택 상태의 스코프 칩 조작. 원본 그룹은 남은 멤버가 1개면 자동 소멸.
+  function splitLinkSelected(cat = null) {
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    if (sel.length < 2) return null;
+    const lids = [...new Set(sel.map((u) => u.linkId))];
+    if (lids.length !== 1 || lids[0] == null) return null;
+    if (linkMemberIds(lids[0]).length === sel.length) return null; // 전체 선택은 일반 토글 경로
+    const base = doc.linkScopes[lids[0]] ?? { size: true, orientation: true, grid: true, shape: true, color: true };
+    const sc = { ...base };
+    if (cat) sc[cat] = sc[cat] === false; // on(!==false) ↔ off 토글
+    const lid = nextLink++;
+    doc.linkScopes[lid] = sc;
+    for (const u of sel) u.linkId = lid;
+    cleanupLinks();
+    pruneMeta();
+    return { count: sel.length, lid };
   }
   // 단일 유닛을 자기 링크에서 제거 (나머지 멤버는 유지, 1개만 남으면 자동 해체)
   function unlinkUnit(id) {
@@ -1081,7 +1102,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
-    toggleLinkSelected, linkMemberIds, unlinkUnit,
+    toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
     undo, redo, registerHistoryExtra, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom, setNotifier,
     restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)
