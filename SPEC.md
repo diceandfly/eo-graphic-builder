@@ -924,3 +924,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
    - 저장 기본: work만 on / 열기 기본: 전체 on. 설정 로드는 eo.prefs에 키 단위 병합 후 'eo:prefs'로 라이브 반영.
 2. **유닛 그리드 우클릭 = UNIT SETTING 팝업** — 그룹 분할 없이 단일 구조: Unit min(px) → Thread min(%) → Unit grid color → reset to default(하한 2px/0.1% + 가이드 색 일괄 복구).
 - 검증: 팝업 구조·reset(9→2 복구), 저장 JSON v3 키(camera + tools 8키 + viewSettings 3키), 파일 주입 로드 — camera transform(123,45,0.77) 자동 복원·stageBgColor 라이브 반영·tools 병합·유닛 보존.
+
+## 89. 2026-08-25 — Thread min px 입력 전환 · 하한 소수점 허용 · 코너 바 팝업 스테퍼 통일
+
+1. **Thread min = px 입력** — UI는 px(선택 유닛 W 기준 환산 표시·입력), 내부는 비율 저장(닮은꼴 보존 논의 §88 답변의 절충안). refW = 활성 유닛 W(rect·무선택이면 960). 상한 비율 5% 유지.
+2. **기본값 상향** — THREAD_MIN_RATIO = 2/960 (기본 유닛에서 2px 상당, §70의 0.1%≈1px에서 상향). 회귀 27/30 조합 변화 → 의도 변경으로 기준선 갱신.
+3. **하한 소수점 허용** — Unit min 0.1~50px(소수 2자리), Thread min px 소수 입력.
+4. **코너 바 팝업 입력칸 스테퍼 통일** — Grid size·Arrow nudge·Unit min·Thread min·seam 컷오프 전부 StepField(작업 툴바 팝업과 동일한 SVG 삼각형 화살표)로 교체. numInput 스타일 제거.
+- 검증: 960 유닛에서 0.96px 표시(구 비율 환산 정확) → ▲ 스텝 +0.1 → 1.06, Unit min 1.5 소수 유지, reset → 2px(비율 0.002083) 저장, 4개 팝업 모두 스테퍼 렌더.

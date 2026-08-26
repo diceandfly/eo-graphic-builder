@@ -197,6 +197,11 @@ const limitsCfg = reactive({
 });
 LIMITS.unitMin = limitsCfg.unitMin;
 LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
+// thread min px 환산 기준: 선택(활성) 유닛의 W, rect·무선택이면 기본 유닛 960 (§89)
+const threadRefW = computed(() => {
+  const u = activeUnit.value;
+  return u && u.type !== 'rect' ? u.params.W : 960;
+});
 watch(limitsCfg, () => {
   LIMITS.unitMin = limitsCfg.unitMin;
   LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
@@ -1305,6 +1310,7 @@ onBeforeUnmount(() => {
       :bbox="showBBox"
       :grid-cfg="gridCfg"
       :limits="limitsCfg"
+      :ref-w="threadRefW"
       :view="view"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"
