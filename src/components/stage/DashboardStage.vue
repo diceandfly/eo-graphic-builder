@@ -311,14 +311,15 @@ function doOrder(where) {
 }
 
 // 컨텍스트 메뉴: 오더 그룹 + 액션 그룹(오버레이 버튼의 대체 표면 §59)
-const CTX_ORDER = [
-  { key: 'front', label: 'Bring to top (Q)' },
-  { key: 'back', label: 'Send to back (W)' },
-];
+// §100: 1그룹 = delete·flip, 2그룹 = 오더
 const CTX_ACTIONS = [
+  { key: 'del', label: 'Delete (D)' },
   { key: 'flip', label: 'Flip horizontal (⇧H)' },
   { key: 'flipv', label: 'Flip vertical (⇧V)' },
-  { key: 'del', label: 'Delete (D)' },
+];
+const CTX_ORDER = [
+  { key: 'front', label: 'Bring to front (Q)' },
+  { key: 'back', label: 'Send to back (W)' },
 ];
 function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
@@ -1425,12 +1426,12 @@ onBeforeUnmount(() => {
       @contextmenu.prevent
     >
       <button
-        v-for="a in CTX_ORDER" :key="a.key"
+        v-for="a in CTX_ACTIONS" :key="a.key"
         class="ctxItem" @click="onCtxAction(a.key)"
       >{{ a.label }}</button>
       <div class="ctxSep" />
       <button
-        v-for="a in CTX_ACTIONS" :key="a.key"
+        v-for="a in CTX_ORDER" :key="a.key"
         class="ctxItem" @click="onCtxAction(a.key)"
       >{{ a.label }}</button>
       <div class="ctxSep" />

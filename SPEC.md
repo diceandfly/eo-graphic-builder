@@ -1003,3 +1003,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 99. 2026-08-25 — 우상단 매니저 바 자리 확보 (레이어·패턴)
 
 - `ManagerBar.vue` 신설: 대시보드 우상단(FileBar와 동일 문법, right 정렬) — **레이어 매니저**(겹친 시트 다이아 스택 아이콘) + **패턴 매니저**(중첩 다이아 모티프 아이콘). 클릭 no-op, 툴팁 "coming soon" — §74 매뉴얼 버튼과 같은 자리 확보 패턴. 패턴 매니저는 Phase 2 진입점 예정.
+
+## 100. 2026-08-25 — 컨텍스트 메뉴 그룹 순서 재조정
+
+- [Delete · Flip H · Flip V] / [Bring to front · Send to back] / [Register unit preset] / [Copy SVG · Copy PNG · Export SVG] 순으로 변경 (§59의 오더 우선 배치 대체). "Bring to top" 라벨도 "Bring to front"로 정리.
