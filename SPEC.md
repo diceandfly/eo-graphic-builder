@@ -1017,3 +1017,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **× 삭제 2단계** — 리셋 버튼과 동일 문법: 1클릭 = 무장(danger 색/배경, 툴팁 "click again to delete"), 3초 내 재클릭 = 삭제, 타임아웃 시 해제. 모달 확인창은 툴 문법에 없어 배제. 우클릭 메뉴의 Delete는 "메뉴 열기→선택"이라는 명시적 2단계가 이미 있어 그대로 둠.
 2. **썸네일 seam 0.75px 상시** — 프리셋 렌더는 소형이라 AA 유격이 도드라짐. 썸네일·리스트 미니 모두 seam-width 0.75px 고정 적용 (non-scaling-stroke라 화면 px 기준).
 - 검증: seam 0.75px 계산값, 1클릭 무장(삭제 안 됨)·3초 해제·재클릭 삭제.
+
+## 103. 2026-08-25 — 패턴 아이콘 3차 교체 + 프리셋 조작 히스토리 편입
+
+1. **패턴 매니저 아이콘** — 중첩 정방형 → **겹친 타일 3장**(스와치 컬렉션, 기존 palette 지오메트리).
+2. **프리셋 등록/삭제/이름변경 = ⌘Z 히스토리 편입** — `useDocument.registerHistoryExtra(get, set)` 훅 신설: 외부 상태를 히스토리 스냅샷 x 필드로 동봉(스냅샷 = {u,g,l,x}). App이 usePresets.serialize/restore를 등록. 등록 시점에 초기 스냅샷을 x 포함으로 재작성해 "첫 조작이 프리셋 등록"인 경우도 undo 가능. 프리셋 변경 전용 워처가 같은 350ms 디바운스 푸시를 공유, applyState의 restore→워처 재발화는 snap 동일성 가드로 루프 차단.
+- 검증: 등록→⌘Z 제거→⌘⇧Z 복귀, 삭제→⌘Z 복원.

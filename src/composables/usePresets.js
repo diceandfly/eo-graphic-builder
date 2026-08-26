@@ -33,6 +33,13 @@ export function usePresets() {
     stored.push(preset);
     return preset;
   }
+  // 히스토리 편입용 직렬화/복원 (§103) — Default 제외 저장분만
+  function serialize() {
+    return JSON.parse(JSON.stringify(stored));
+  }
+  function restore(list) {
+    stored.splice(0, stored.length, ...(Array.isArray(list) ? list : []));
+  }
   function remove(id) {
     if (id === 'default') return;
     const i = stored.findIndex((p) => p.id === id);
@@ -79,5 +86,5 @@ export function usePresets() {
     return n;
   }
 
-  return { presets, register, remove, rename, exportJson, importJson };
+  return { presets, register, remove, rename, exportJson, importJson, serialize, restore };
 }

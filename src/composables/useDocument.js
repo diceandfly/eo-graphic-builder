@@ -324,14 +324,26 @@ export function useDocument() {
   );
 
   // ---- 히스토리 (undo/redo) — units+메타 스냅샷, 연속 조작은 350ms 디바운스로 병합 ----
-  const histSnap = () => JSON.stringify({ u: doc.units, g: doc.groupNames, l: doc.linkScopes });
+  // §103: registerHistoryExtra로 외부 상태(프리셋 라이브러리)도 같은 스택에 편입 가능
+  let extraHist = null; // { get: () => serializable, set: (v) => void }
+  const histSnap = () => JSON.stringify({
+    u: doc.units, g: doc.groupNames, l: doc.linkScopes,
+    ...(extraHist ? { x: extraHist.get() } : {}),
+  });
   const stack = [histSnap()];
   let idx = 0;
   let pending = null;
-  watch(histSnap, (snap) => {
+  function scheduleHistPush() {
     clearTimeout(pending);
-    pending = setTimeout(() => pushState(snap), 350);
-  });
+    pending = setTimeout(() => pushState(histSnap()), 350);
+  }
+  watch(histSnap, scheduleHistPush);
+  function registerHistoryExtra(get, set) {
+    extraHist = { get, set };
+    // 편집 전(초기 스냅샷 1장)이면 x 포함으로 재작성 — 첫 조작이 프리셋 등록이어도 undo 가능
+    if (stack.length === 1 && idx === 0) stack[0] = histSnap();
+    watch(() => JSON.stringify(get()), scheduleHistPush);
+  }
   function pushState(snap) {
     if (snap === stack[idx]) return;
     stack.splice(idx + 1);
@@ -344,7 +356,8 @@ export function useDocument() {
     pushState(histSnap());
   }
   function applyState(snap) {
-    const { u, g, l } = JSON.parse(snap);
+    const { u, g, l, x } = JSON.parse(snap);
+    if (extraHist && x !== undefined) extraHist.set(x);
     doc.units.splice(0, doc.units.length, ...u);
     doc.groupNames = g ?? {};
     doc.linkScopes = l ?? {};
@@ -978,7 +991,7 @@ export function useDocument() {
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit,
-    undo, redo, copyActive, pasteAt, renameActive,
+    undo, redo, registerHistoryExtra, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom, setNotifier,
     restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)
   };

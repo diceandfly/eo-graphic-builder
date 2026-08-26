@@ -203,6 +203,12 @@ function onUnlinkOne() {
 
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
+// 프리셋 등록/삭제/이름변경도 ⌘Z 히스토리에 편입 (§103)
+docApi.registerHistoryExtra(
+  () => presetsApi.serialize(),
+  (v) => presetsApi.restore(v)
+);
+
 const stageActions = {
   ...docApi, exportSvg, saveProject, openProject, copySelectionSvg, copySelectionPng,
   registerPreset: (u) => presetsApi.register(u.params, u.name),
