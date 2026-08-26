@@ -941,5 +941,5 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 ## 91. 2026-08-25 — 저배율 격자 소실 픽스 + ColorField 팝오버 + Auto seam stroke 라벨
 
-1. **저배율 격자 소실 픽스** — `<pattern>` 내부에서 vector-effect: non-scaling-stroke가 무시되어(타일 별도 래스터화) 12%대 줌부터 격자 선이 0.1px대로 사라지던 문제. 패턴 좌표계에서 `stroke-width = 1/scale` 수동 보정으로 전 배율 화면 1px 유지. 검증: 10% 줌 스크린샷.
+1. **저배율 격자 소실 픽스 + 페이드** — `<pattern>` 내부에서 vector-effect: non-scaling-stroke가 무시되어(타일 별도 래스터화) 12%대 줌부터 격자 선이 0.1px대로 사라지던 문제. 패턴 좌표계에서 `stroke-width = 1/scale` 수동 보정으로 전 배율 화면 1px 유지. 추가로 15%→5% 구간 선형 오파시티 페이드(바닥 0.15) — 극저배율 격자 노이즈 완화, 점진 감쇠로 줌 제스처와 연속(검증: 20%/15%=1.0, 10%=0.575, 5% 이하=0.15).
 2. ColorField 팝오버 형태(§90 개정 항목 참고) · seam 토글 라벨 "Auto seam stroke"(동작은 기존 자동 온오프 그대로 — 별도 auto 토글은 상태 중복이라 도입 안 함).

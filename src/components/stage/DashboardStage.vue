@@ -1147,7 +1147,11 @@ onBeforeUnmount(() => {
           <path class="gridline" :d="`M ${gridCfg.size} 0 H 0 V ${gridCfg.size}`" :stroke-width="1 / vp.scale" />
         </pattern>
       </defs>
-      <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
+      <!-- 저배율 페이드 (§91): 15%→5% 선형 감쇠, 바닥 0.15 — 극저배율에서 격자 노이즈 완화 -->
+      <rect
+        v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)"
+        :opacity="vp.scale >= 0.15 ? 1 : 0.15 + (Math.max(0, vp.scale - 0.05) / 0.1) * 0.85"
+      />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <g v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
           <RectGraphic v-if="u.type === 'rect'" :params="u.params" />
