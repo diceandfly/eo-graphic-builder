@@ -13,7 +13,12 @@ defineProps({
 });
 const emit = defineEmits(['save', 'open', 'reset']);
 
-const SCOPE_LABELS = { objects: 'Objects & groups', viewport: 'Viewport', workspace: 'Workspace settings' };
+// 저장/열기 범위 — 어떤 계통의 정보인지 구체 항목으로 표기 (§87)
+const SCOPE_LABELS = {
+  objects: 'Canvas — units · groups · links',
+  viewport: 'Camera — zoom & pan position',
+  workspace: 'Workspace — tools · colors · view options',
+};
 const openMenu = ref(null); // 'manual' | 'save' | 'open' | null
 function onContext(key, e) {
   if (!['manual', 'save', 'open'].includes(key)) return;

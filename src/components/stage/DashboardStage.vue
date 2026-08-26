@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { UNIT_MIN, UNIT_MAX, STAGE_GRID, BRAND_COLORS } from '../../geometry/constants.js';
+import { LIMITS, UNIT_MAX, STAGE_GRID, BRAND_COLORS } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
@@ -186,12 +186,26 @@ const rectQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}) });
 // 프로젝트 JSON 저장/열기 범위 (저장·열기 버튼 우클릭 메뉴 — §86)
 const saveScope = reactive({ objects: true, viewport: true, workspace: false, ...(prefs.saveScope || {}) });
 const openScope = reactive({ objects: true, viewport: true, workspace: true, ...(prefs.openScope || {}) });
+// 지오메트리 하한 (유닛 그리드 버튼 우클릭 메뉴 — §87). LIMITS(플레인)로 흘려보내고
+// 변경 시 params 객체 교체로 파생 캐시를 무효화해 즉시 재렌더.
+const limitsCfg = reactive({
+  unitMin: LIMITS.unitMin, threadMinRatio: LIMITS.threadMinRatio, ...(prefs.limits || {}),
+});
+LIMITS.unitMin = limitsCfg.unitMin;
+LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
+watch(limitsCfg, () => {
+  LIMITS.unitMin = limitsCfg.unitMin;
+  LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
+  props.actions.withGeomOp(() => {
+    for (const u of props.doc.units) u.params = { ...u.params };
+  });
+});
 watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
     currentColor: currentColor.value, customColor: customColor.value,
     recentColors: recentColors.value, rectQuick: rectQuickCfg,
-    saveScope, openScope,
+    saveScope, openScope, limits: limitsCfg,
   }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
@@ -752,8 +766,8 @@ function onMove(e) {
       for (const t of snaps) {
         t.u.x = Math.round(ax + (t.x0 - ax) * sx);
         t.u.y = Math.round(ay + (t.y0 - ay) * sy);
-        t.u.params.W = clamp(Math.round(t.W0 * sx), UNIT_MIN, UNIT_MAX);
-        t.u.params.H = clamp(Math.round(t.H0 * sy), UNIT_MIN, UNIT_MAX);
+        t.u.params.W = clamp(Math.round(t.W0 * sx), LIMITS.unitMin, UNIT_MAX);
+        t.u.params.H = clamp(Math.round(t.H0 * sy), LIMITS.unitMin, UNIT_MAX);
       }
     });
     return;
@@ -885,8 +899,8 @@ function onMove(e) {
     }
   }
   smartGuides.value = rGuides;
-  W = clamp(Math.round(W), UNIT_MIN, UNIT_MAX);
-  H = clamp(Math.round(H), UNIT_MIN, UNIT_MAX);
+  W = clamp(Math.round(W), LIMITS.unitMin, UNIT_MAX);
+  H = clamp(Math.round(H), LIMITS.unitMin, UNIT_MAX);
   p.W = W;
   p.H = H;
   if (e.altKey) {
@@ -1066,6 +1080,7 @@ function applyPrefsFromStorage() {
   Object.assign(rectQuickCfg, p2.rectQuick || {});
   Object.assign(saveScope, p2.saveScope || {});
   Object.assign(openScope, p2.openScope || {});
+  Object.assign(limitsCfg, p2.limits || {});
 }
 
 onMounted(() => {
@@ -1285,6 +1300,7 @@ onBeforeUnmount(() => {
       :stage-grid="showStageGrid"
       :bbox="showBBox"
       :grid-cfg="gridCfg"
+      :limits="limitsCfg"
       :view="view"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"

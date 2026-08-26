@@ -23,6 +23,9 @@ export const THREAD_MIN_RATIO = 0.001; // col 폭 < W·비율 이면 thread를 W
 export const THREAD_OVERLAP = 1; // thread를 shaft 쪽으로 1px 파묻어 AA 유격 제거
 export const UNIT_MIN = 2;       // 유닛 W/H 내부 가드 하한 (px). 지오메트리는 1px까지 무충돌 — 블렌드 극한 수렴 허용(§80), 소실 방지 최소 가드만
 export const UNIT_MAX = 8000;    // 유닛 W/H 내부 가드 상한 (px)
+// 런타임 조정 가능한 지오메트리 하한 (§87) — 기본값 = 위 상수, 줌% 우클릭 메뉴에서 편집.
+// geometry 순수성 유지를 위해 플레인 객체(Vue 의존 없음). 소비처는 호출 시점에 읽는다.
+export const LIMITS = { unitMin: UNIT_MIN, threadMinRatio: THREAD_MIN_RATIO };
 export const ASPECT_TOL = 0.01;  // 비율 프리셋 칩 활성 판정 허용오차
 export const COMP_SCALE = 2.5;   // compression 슬라이더 표기 범위 (±2.5x)
 export const COMP_SNAP = 0.1;    // 중앙 0 스냅 반경 (표기 단위)

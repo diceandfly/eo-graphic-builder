@@ -11,6 +11,7 @@ const props = defineProps({
   scale: Number, guides: Boolean, stageGrid: Boolean, bbox: Boolean,
   gridCfg: Object, // { size, snap } — reactive 스토어 (깊은 변경으로 직접 편집)
   view: Object,    // { nudge, showLinks, guideColor } — 뷰 옵션 reactive 스토어
+  limits: Object,  // { unitMin, threadMinRatio } — 지오메트리 하한 (§87)
 });
 defineEmits(['reset', 'toggleGuides', 'toggleStageGrid', 'toggleBbox']);
 const pct = computed(() => Math.round(props.scale * 100));
@@ -59,6 +60,17 @@ function hexSetter(key) {
 const onGuideColor = hexSetter('guideColor');
 const onStageGridColor = hexSetter('stageGridColor');
 const onStageBgColor = hexSetter('stageBgColor');
+// 지오메트리 하한 입력 (§87) — 유닛 그리드 메뉴
+function onUnitMin(e) {
+  const v = Number(e.target.value);
+  if (Number.isFinite(v) && v >= 1) props.limits.unitMin = Math.min(50, Math.round(v));
+  e.target.value = props.limits.unitMin;
+}
+function onThreadMin(e) {
+  const v = Number(e.target.value); // 표기 = % (내부 비율 ×100)
+  if (Number.isFinite(v) && v >= 0 && v <= 5) props.limits.threadMinRatio = Math.round(v * 1000) / 100000;
+  e.target.value = (props.limits.threadMinRatio * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
 // seam 보정 컷오프 (%) 입력 (§86)
 function onSeamCutoff(e) {
   const v = Number(e.target.value);
@@ -93,6 +105,15 @@ function resetGridDefaults() {
         >
           <div class="menuTitle">Canvas grid</div>
           <div class="menuRow">
+            <span class="rowGrow">Canvas color</span>
+            <span class="preview" :style="{ background: view.stageBgColor || 'var(--bg)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.stageBgColor || ''"
+              @keydown.enter="onStageBgColor" @change="onStageBgColor"
+            />
+          </div>
+          <div class="menuRow">
             <span class="rowGrow">Grid color</span>
             <span class="preview" :style="{ background: view.stageGridColor || 'var(--stage-grid)' }" />
             <input
@@ -102,7 +123,7 @@ function resetGridDefaults() {
             />
           </div>
           <label class="menuRow">
-            <span class="rowGrow">Size (px)</span>
+            <span class="rowGrow">Grid size (px)</span>
             <input
               class="numInput" type="number"
               :min="STAGE_GRID_MIN" :max="STAGE_GRID_MAX"
@@ -113,15 +134,6 @@ function resetGridDefaults() {
             <input type="checkbox" v-model="gridCfg.snap" />
             <span>Snap to grid</span>
           </label>
-          <div class="menuRow">
-            <span class="rowGrow">Background</span>
-            <span class="preview" :style="{ background: view.stageBgColor || 'var(--bg)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.stageBgColor || ''"
-              @keydown.enter="onStageBgColor" @change="onStageBgColor"
-            />
-          </div>
           <button class="miniBtn" @click="resetGridDefaults">reset to defaults</button>
         </div>
       </div>
@@ -179,6 +191,19 @@ function resetGridDefaults() {
             />
           </div>
           <button class="miniBtn" @click="view.guideColor = null">reset to default</button>
+          <!-- 지오메트리 하한 (§87) — export 결과에 영향, eo.prefs(워크스페이스) 저장 -->
+          <div v-if="limits" class="menuTitle sect">Geometry limits</div>
+          <label v-if="limits" class="menuRow">
+            <span class="rowGrow">Unit min (px)</span>
+            <input class="numInput" type="number" min="1" max="50" :value="limits.unitMin" @change="onUnitMin" />
+          </label>
+          <label v-if="limits" class="menuRow">
+            <span class="rowGrow">Thread min (%)</span>
+            <input
+              class="numInput" type="number" min="0" max="5" step="0.01"
+              :value="+(limits.threadMinRatio * 100).toFixed(3)" @change="onThreadMin"
+            />
+          </label>
         </div>
       </div>
       <div class="optWrap">
@@ -243,6 +268,7 @@ function resetGridDefaults() {
   width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .rowGrow { flex: 1; }
+.sect { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
 .preview {
   width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
   border: 1px solid var(--line); border-radius: var(--radius);

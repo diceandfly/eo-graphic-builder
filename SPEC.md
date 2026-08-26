@@ -905,3 +905,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **캔버스 그리드 메뉴 재배열** — Grid color → Size → Snap → Background → reset.
 5. **리소스 모니터** — 매뉴얼 버튼 우클릭 "View utilities > Resource monitor" 토글. 코너 바 상단에 숫자만: FPS(rAF 0.5s 창) · MEM(JS 힙 MB, 크롬 계열만 — 미지원 브라우저는 자동 생략) · OBJ(오브젝트 수). CPU 사용률은 웹 페이지에서 측정 불가라 제외.
 - 검증: 그리드 메뉴 순서, seam(100% 줌에서 0 / 컷오프 200%로 올리면 0.2 활성 / 토글 off 0), 모니터 표시(fps·obj), 저장 JSON v2에 workspace{prefs,customRatios} 포함, 열기 메뉴 존재, 커스텀 컬러 적용 시 recents 저장. 회귀 30/30.
+
+## 87. 2026-08-25 — 지오메트리 하한 런타임화 · 메뉴 정리 · 모니터 강조
+
+1. **지오메트리 하한 런타임 조정** — `constants.LIMITS { unitMin, threadMinRatio }`(플레인 객체, geometry Vue-무의존 유지). UNIT_MIN/THREAD_MIN_RATIO 소비처 전부 LIMITS 참조로 전환(unit.js·useDocument·DashboardStage·ControlPanel). **유닛 그리드 버튼 우클릭 메뉴**에 "Geometry limits" 섹션(Unit min px 1~50 · Thread min % 0~5) — 줌 팝업 대신 유닛 그리드 배치는 사용자 결정. eo.prefs.limits 영속(워크스페이스 저장에 포함), 변경 시 params 객체 교체로 파생 캐시 무효화(withGeomOp 래핑). 회귀 스위트는 기본값 기준 30/30 유지.
+2. **캔버스 그리드 메뉴 순서** — Canvas color(배경, 라벨 변경) → Grid color → Grid size → Snap → reset.
+3. **저장/열기 범위 라벨 구체화** — "Canvas — units · groups · links" / "Camera — zoom & pan position" / "Workspace — tools · colors · view options".
+4. **리소스 모니터** — OBJ / MEM / FPS 순서로 변경 + 성능 저하 시 해당 항목 danger 색 강조 (OBJ>2000 · MEM 힙 사용률>70% · FPS<30). FPS는 첫 측정 전 미표시.
+- 검증: 메뉴 순서·라벨, Thread min 0.06 입력 → prefs.limits 0.0006 반영, 모니터 "OBJ 1 · MEM 51MB · FPS 0(빨강)" 스크린샷 — 숨김 팬에서 rAF 정지로 FPS 0 = hot 강조 동작 확인.

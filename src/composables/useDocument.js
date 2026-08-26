@@ -1,7 +1,7 @@
 import { reactive, computed, watch, nextTick } from 'vue';
 import { namePrefix } from '../objects/registry.js';
 import {
-  A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, UNIT_MIN, UNIT_MAX,
+  A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, LIMITS, UNIT_MAX,
   BRAND_COLORS,
 } from '../geometry/constants.js';
 
@@ -384,8 +384,8 @@ export function useDocument() {
   // 직사각형 생성 (그리기 툴) — fill 기본값은 현재 컬러(없으면 createRectParams 기본)
   function createRect(x, y, W = 300, H = 200, fill = null) {
     const params = createRectParams(fill ? { fill } : {});
-    params.W = clamp(Math.round(W), UNIT_MIN, UNIT_MAX);
-    params.H = clamp(Math.round(H), UNIT_MIN, UNIT_MAX);
+    params.W = clamp(Math.round(W), LIMITS.unitMin, UNIT_MAX);
+    params.H = clamp(Math.round(H), LIMITS.unitMin, UNIT_MAX);
     return pushUnit(params, Math.round(x), Math.round(y), null, 'rect');
   }
   function createUnit(x = 0, y = 0) {
@@ -472,22 +472,22 @@ export function useDocument() {
       if (each) {
         withGeomOp(() => {
           for (const u of sel) {
-            if (patch.W != null) u.params.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
-            if (patch.H != null) u.params.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
+            if (patch.W != null) u.params.W = clamp(Math.round(patch.W), LIMITS.unitMin, UNIT_MAX);
+            if (patch.H != null) u.params.H = clamp(Math.round(patch.H), LIMITS.unitMin, UNIT_MAX);
             normalize(u.params);
           }
         });
         return;
       }
       const bb = bboxOf(sel);
-      const sx = patch.W != null ? Math.max(patch.W, UNIT_MIN) / (bb.maxX - bb.minX) : 1;
-      const sy = patch.H != null ? Math.max(patch.H, UNIT_MIN) / (bb.maxY - bb.minY) : 1;
+      const sx = patch.W != null ? Math.max(patch.W, LIMITS.unitMin) / (bb.maxX - bb.minX) : 1;
+      const sy = patch.H != null ? Math.max(patch.H, LIMITS.unitMin) / (bb.maxY - bb.minY) : 1;
       withGeomOp(() => {
         for (const u of sel) {
           u.x = bb.minX + (u.x - bb.minX) * sx;
           u.y = bb.minY + (u.y - bb.minY) * sy;
-          u.params.W = clamp(Math.round(u.params.W * sx), UNIT_MIN, UNIT_MAX);
-          u.params.H = clamp(Math.round(u.params.H * sy), UNIT_MIN, UNIT_MAX);
+          u.params.W = clamp(Math.round(u.params.W * sx), LIMITS.unitMin, UNIT_MAX);
+          u.params.H = clamp(Math.round(u.params.H * sy), LIMITS.unitMin, UNIT_MAX);
           normalize(u.params);
         }
       });
@@ -495,8 +495,8 @@ export function useDocument() {
     }
     if (!active.value) return;
     const p = active.value.params;
-    if (patch.W != null) p.W = clamp(Math.round(patch.W), UNIT_MIN, UNIT_MAX);
-    if (patch.H != null) p.H = clamp(Math.round(patch.H), UNIT_MIN, UNIT_MAX);
+    if (patch.W != null) p.W = clamp(Math.round(patch.W), LIMITS.unitMin, UNIT_MAX);
+    if (patch.H != null) p.H = clamp(Math.round(patch.H), LIMITS.unitMin, UNIT_MAX);
     normalize(p);
   }
   function setAspect(v, each = false) {
@@ -506,7 +506,7 @@ export function useDocument() {
         // 각 유닛이 자기 W 기준으로 목표 비율 (H = W / v)
         withGeomOp(() => {
           for (const u of sel) {
-            u.params.H = clamp(Math.round(u.params.W / v), UNIT_MIN, UNIT_MAX);
+            u.params.H = clamp(Math.round(u.params.W / v), LIMITS.unitMin, UNIT_MAX);
             normalize(u.params);
           }
         });
@@ -746,8 +746,8 @@ export function useDocument() {
     for (let i = 0; i < count; i++) {
       size *= scale;
       const p = { ...u.params };
-      if (axis === 'v') p.H = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
-      else p.W = clamp(Math.round(size), UNIT_MIN, UNIT_MAX);
+      if (axis === 'v') p.H = clamp(Math.round(size), LIMITS.unitMin, UNIT_MAX);
+      else p.W = clamp(Math.round(size), LIMITS.unitMin, UNIT_MAX);
       // 배율은 유닛 크기에만 적용, 간격은 고정 (§62)
       const x = axis === 'v' ? u.x : Math.round(cursor + gap);
       const y = axis === 'v' ? Math.round(cursor + gap) : u.y;
@@ -789,11 +789,11 @@ export function useDocument() {
         const p = { ...u.params };
         let x, y;
         if (axis === 'v') {
-          p.H = clamp(Math.round(u.params.H * factor), UNIT_MIN, UNIT_MAX);
+          p.H = clamp(Math.round(u.params.H * factor), LIMITS.unitMin, UNIT_MAX);
           x = u.x;
           y = start + Math.round((u.y - bb.minY) * factor);
         } else {
-          p.W = clamp(Math.round(u.params.W * factor), UNIT_MIN, UNIT_MAX);
+          p.W = clamp(Math.round(u.params.W * factor), LIMITS.unitMin, UNIT_MAX);
           x = start + Math.round((u.x - bb.minX) * factor);
           y = u.y;
         }

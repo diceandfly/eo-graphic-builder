@@ -1,12 +1,14 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
-// 리소스 모니터 (§86) — 보기 툴바(우하단 코너 바) 상단, 숫자만 간결 표시.
-// FPS = rAF 카운트(0.5초 창) / MEM = JS 힙 MB(크롬 계열만 노출, 미지원 시 생략) / OBJ = 오브젝트 수
-defineProps({ count: Number });
+// 리소스 모니터 (§86) — 보기 툴바(우하단 코너 바) 상단, OBJ / MEM / FPS 순 (§87).
+// 상당한 성능 저하 시 해당 항목을 danger 색으로 강조:
+// OBJ > 2000 (스트레스 테스트 기준 체감 저하 구간) · MEM 힙 사용률 > 70% · FPS < 30
+const props = defineProps({ count: Number });
 
-const fps = ref(0);
+const fps = ref(null); // 첫 측정 창(0.5s) 전에는 미표시
 const mem = ref(null);
+const memHot = ref(false);
 let rafId = 0;
 let frames = 0;
 let last = performance.now();
@@ -18,19 +20,25 @@ function loop(now) {
     frames = 0;
     last = now;
     const m = performance.memory;
-    mem.value = m ? Math.round(m.usedJSHeapSize / 1048576) : null;
+    if (m) {
+      mem.value = Math.round(m.usedJSHeapSize / 1048576);
+      memHot.value = m.usedJSHeapSize / m.jsHeapSizeLimit > 0.7;
+    }
   }
   rafId = requestAnimationFrame(loop);
 }
 onMounted(() => { rafId = requestAnimationFrame(loop); });
 onBeforeUnmount(() => cancelAnimationFrame(rafId));
+
+const objHot = computed(() => props.count > 2000);
+const fpsHot = computed(() => fps.value != null && fps.value < 30);
 </script>
 
 <template>
   <div class="resmon">
-    <span class="cell"><span class="k">fps</span>{{ fps }}</span>
-    <span v-if="mem != null" class="cell"><span class="k">mem</span>{{ mem }}<span class="k">mb</span></span>
-    <span class="cell"><span class="k">obj</span>{{ count }}</span>
+    <span class="cell" :class="{ hot: objHot }"><span class="k">obj</span>{{ count }}</span>
+    <span v-if="mem != null" class="cell" :class="{ hot: memHot }"><span class="k">mem</span>{{ mem }}<span class="k">mb</span></span>
+    <span v-if="fps != null" class="cell" :class="{ hot: fpsHot }"><span class="k">fps</span>{{ fps }}</span>
   </div>
 </template>
 
@@ -42,5 +50,6 @@ onBeforeUnmount(() => cancelAnimationFrame(rafId));
   color: var(--faint); font-variant-numeric: tabular-nums;
 }
 .cell { display: inline-flex; align-items: baseline; gap: 3px; }
+.cell.hot { color: var(--danger); }
 .k { text-transform: uppercase; opacity: 0.7; }
 </style>

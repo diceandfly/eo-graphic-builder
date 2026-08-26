@@ -12,7 +12,7 @@ import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
   GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
-  UNIT_MIN, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
+  LIMITS, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
 } from '../geometry/constants.js';
 
 const props = defineProps({
@@ -234,13 +234,13 @@ function onStrokeHex(e) {
       </div>
       <NumberField
         :label="`width (${unitSuffix})`" :model-value="toDisp(dispW)"
-        :min="toDisp(UNIT_MIN)" :max="toDisp(UNIT_MAX)"
+        :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('W')"
         @update:model-value="(v) => setSizeField('W', v)"
       />
       <NumberField
         :label="`height (${unitSuffix})`" :model-value="toDisp(dispH)"
-        :min="toDisp(UNIT_MIN)" :max="toDisp(UNIT_MAX)"
+        :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('H')"
         @update:model-value="(v) => setSizeField('H', v)"
       />
