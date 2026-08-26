@@ -82,23 +82,22 @@ function onFile(e) {
           @click="onAction(a.key)"
           @contextmenu="onContext(a.key, $event)"
         />
-        <!-- manual 우클릭: 뷰 유틸 -->
-        <div v-if="openMenu === 'manual' && view" class="menu" @pointerdown.stop>
+        <!-- 각 메뉴는 자기 버튼(a.key) 아래에만 — v-for 안이라 키 매칭 필수 (§86 픽스) -->
+        <div v-if="a.key === 'manual' && openMenu === 'manual' && view" class="menu" @pointerdown.stop>
           <div class="menuTitle">View utilities</div>
           <label class="menuRow">
             <input type="checkbox" v-model="view.resMon" />
             <span>Resource monitor</span>
           </label>
         </div>
-        <!-- save/open 우클릭: JSON에 포함/적용할 범위 -->
-        <div v-if="openMenu === 'save' && saveScope" class="menu" @pointerdown.stop>
+        <div v-if="a.key === 'save' && openMenu === 'save' && saveScope" class="menu" @pointerdown.stop>
           <div class="menuTitle">Save to JSON</div>
           <label v-for="(label, k) in SCOPE_LABELS" :key="k" class="menuRow">
             <input type="checkbox" v-model="saveScope[k]" />
             <span>{{ label }}</span>
           </label>
         </div>
-        <div v-if="openMenu === 'open' && openScope" class="menu" @pointerdown.stop>
+        <div v-if="a.key === 'open' && openMenu === 'open' && openScope" class="menu" @pointerdown.stop>
           <div class="menuTitle">Load from JSON</div>
           <label v-for="(label, k) in SCOPE_LABELS" :key="k" class="menuRow">
             <input type="checkbox" v-model="openScope[k]" />
