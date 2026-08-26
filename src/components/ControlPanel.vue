@@ -465,7 +465,7 @@ function setStrokeColor(c) {
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
-        suffix="% × UNIT HEIGHT" :mixed="mixed('dPct')"
+        prefix="UNIT HEIGHT ×" suffix="%" :mixed="mixed('dPct')"
       />
       <Slider
         label="thread top width" :model-value="aPct"
@@ -550,10 +550,11 @@ section > :last-child { margin-bottom: 0; }
 .compSet { margin-bottom: 10px; }
 .compSet :deep(.row) { margin-bottom: 6px; }
 .compSet :deep(.chips) { margin-bottom: 0; }
-// §139: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(18+7) 불변 (멀티선택 시 밀림 방지)
+// §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).
+// 버튼 세로폭은 Toggle 세그와 동일(§140) — 늘어난 만큼 하단 마진에서 상쇄해 행간 유지.
 .secHead {
   display: flex; justify-content: space-between; align-items: center;
-  height: 18px; margin-bottom: 7px;
+  height: 21px; margin-bottom: 4px;
   h2 { margin: 0; }
 }
 .physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
@@ -588,7 +589,7 @@ section > :last-child { margin-bottom: 0; }
 .eachBtn {
   @include bordered-control;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
-  padding: 2px 7px;
+  padding: 3px 9px; height: 21px; // §140: Toggle 세그(컨테이너 보더 포함 21px)와 동일 세로폭
   &.on { border-color: var(--accent); color: var(--accent); }
 }
 .headBtns { display: flex; align-items: center; gap: 6px; }
@@ -598,7 +599,7 @@ section > :last-child { margin-bottom: 0; }
   button {
     @include bordered-control;
     font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
-    padding: 2px 7px;
+    padding: 3px 9px; height: 21px; // §140: Toggle 세그와 동일 세로폭
     &:first-child { border-radius: var(--radius) 0 0 var(--radius); border-right-width: 0; }
     &:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
     &.on { border-color: var(--accent); color: var(--accent); }

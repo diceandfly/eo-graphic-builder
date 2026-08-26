@@ -12,6 +12,7 @@ const props = defineProps({
   arrowStep: { type: Number, default: null }, // 화살표 증감 단위 (기본 = step)
   decimals: { type: Number, default: null },  // 입력칸 표시 소수 자리 (파생값의 부동소수 노이즈 제거)
   suffix: String,    // 입력 필드 뒤 단위 표기 (%, x 등)
+  prefix: String,    // §140: 필드 앞 표기 (예: 'UNIT HEIGHT ×')
   mixed: Boolean,    // 멀티선택에서 값이 갈릴 때 — 플레이스홀더 표기
   snapTo: { type: Number, default: null },     // 이 값 근처에서 스냅
   snapRadius: { type: Number, default: 0 },
@@ -68,6 +69,7 @@ function bump(d) {
       <span class="label">{{ label }}</span>
       <!-- §134: 인라인 보조 컨트롤 (예: comp dir/sym 미니 세그) — 라벨과 필드 사이 우측 정렬 -->
       <span v-if="$slots.aux" class="auxSlot"><slot name="aux" /></span>
+      <span v-if="prefix" class="prefix">{{ prefix }}</span>
       <!-- §125: 단위는 필드 박스 안의 어도른먼트 — 입력 텍스트와 분리(편집 불가), 클릭 시 입력 포커스 -->
       <span class="sf" :class="{ flash }" @click="$event.currentTarget.querySelector('input').focus()">
         <input
@@ -103,6 +105,10 @@ function bump(d) {
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
 .auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }
+.prefix {
+  margin-left: auto; margin-right: 6px;
+  font-size: var(--fs-xs); color: var(--faint); white-space: nowrap;
+}
 // 필드+화살표 — StepField와 동일 문법 (§124), 단위 어도른먼트 내장 (§125)
 .sf {
   display: flex; align-items: stretch;

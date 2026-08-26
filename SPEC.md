@@ -1247,3 +1247,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. 활성 프레임 아웃라인 1→**2px** (difference 블렌드·0.45 오파시티 유지).
 2. SIZE 섹션 헤더(.secHead) **고정 높이 18px+하단 7px** — each/px·cm 버튼 등장 여부와 무관하게 헤더 총높이 25px 불변 (멀티선택 시 아래 필드가 2px 밀리던 현상 제거, 정렬도 baseline→center).
 - 검증: 단일/멀티/프레임 뷰 헤더 18px 동일·첫 필드 top 불변, 스트로크 2px.
+
+## 140. 2026-08-26 — each/px·cm 버튼 세로폭 통일·shaft size 표기 순서 반전
+
+1. **헤더 버튼 세로폭** — eachBtn·unitSeg를 Toggle 세그와 동일 21px(패딩 3px 9px + 고정 높이)로 통일. secHead 고정 높이 21+4 = 총 25px 유지 — 늘어난 버튼 높이를 하단 마진에서 상쇄해 행간 무영향(절충안).
+2. **shaft size 표기** — "40 % × UNIT HEIGHT" → **"UNIT HEIGHT × [40] %"** (Slider `prefix` 어도른먼트 신설 — 필드 앞 표기).
+- 검증: each 21 = 세그 총높이 21 = 헤더 21, 첫 필드 top 불변, SHAFT SIZE 행 표기 확인.
