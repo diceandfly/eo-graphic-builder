@@ -151,13 +151,13 @@ function resetGridDefaults() {
           <div class="menuTitle">Unit setting</div>
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Unit min (px)</span>
-            <StepField v-model="limits.unitMin" :min="0.1" :max="50" :step="0.1" />
+            <StepField v-model="limits.unitMin" :min="0.1" :max="50" :step="0.5" />
           </label>
           <!-- px 표시·입력은 선택 유닛 W 기준 환산 — 내부는 비율 저장 (§89) -->
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Thread min (px)</span>
             <StepField
-              :model-value="threadMinPx()" :min="0" :max="50" :step="0.1"
+              :model-value="threadMinPx()" :min="0" :max="50" :step="0.5"
               @update:model-value="setThreadMinPx"
             />
           </label>

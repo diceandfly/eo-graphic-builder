@@ -16,9 +16,12 @@ const emit = defineEmits(['update:modelValue']);
 const flash = ref(false);
 let flashT = null;
 function ping() {
-  flash.value = true;
-  clearTimeout(flashT);
-  flashT = setTimeout(() => (flash.value = false), 400);
+  flash.value = false; // 연속 커밋 시 애니메이션 재트리거
+  requestAnimationFrame(() => {
+    flash.value = true;
+    clearTimeout(flashT);
+    flashT = setTimeout(() => (flash.value = false), 220);
+  });
 }
 function clampV(v) {
   if (props.min != null) v = Math.max(props.min, v);
@@ -63,10 +66,13 @@ function bump(d) {
 .sf {
   display: flex; align-items: stretch;
   border: 1px solid var(--line); border-radius: var(--radius);
-  transition: border-color 0.4s ease;
   &:focus-within { border-color: var(--accent); }
-  /* 커밋 플래시 — 값이 적용되었다는 피드백 */
-  &.flash { border-color: var(--accent); transition: none; }
+  /* 커밋 플래시 — 즉발 펄스 (§94: 스냅한 피드백) */
+  &.flash { animation: sfPulse 0.2s ease-out; }
+}
+@keyframes sfPulse {
+  0% { border-color: var(--accent); background: var(--hover-bg); }
+  100% { border-color: var(--line); background: none; }
 }
 .sf input {
   width: 42px; padding: 2px 6px; text-align: right;

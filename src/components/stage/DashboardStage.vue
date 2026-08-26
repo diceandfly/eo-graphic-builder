@@ -1231,7 +1231,11 @@ onBeforeUnmount(() => {
         :opacity="vp.scale >= 0.15 ? 1 : 0.15 + (Math.max(0, vp.scale - 0.05) / 0.1) * 0.85"
       />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
-        <g v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
+        <!-- 프레임 모드 (§94): 유닛 g 전체 패스스루 — 유닛 도형 위 클릭도 아래 프레임으로 통과 -->
+        <g
+          v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`"
+          :style="mode === 'select' && frameMode && u.type !== 'frame' ? { pointerEvents: 'none' } : null"
+        >
           <FrameGraphic v-if="u.type === 'frame'" :params="u.params" />
           <UnitGraphic
             v-else
@@ -1480,10 +1484,7 @@ onBeforeUnmount(() => {
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .stage.framedraw, .stage.framedraw .hit { cursor: crosshair; }
-/* 프레임 조작 모드 커서 (§93) — OS 기본 화살표 실루엣 유지, 속만 EO NEON 채움. 광학 보정 +5% (21px) */
-.stage.framesel, .stage.framesel .hit {
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24"><path d="M5.5 2 5.5 19.5 9.8 15.5 12.6 21.6 15.3 20.3 12.5 14.3 18.5 14Z" fill="%23F9EE48" stroke="%230B0B0B" stroke-width="1.4"/></svg>') 5 2, default;
-}
+/* 프레임 조작 모드 (§94): 화면 커서는 기본 유지 — 모드 표시는 툴바의 채움 화살표 아이콘으로 */
 .rectDraw { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gridline { stroke: var(--stage-grid); fill: none; }
 </style>
