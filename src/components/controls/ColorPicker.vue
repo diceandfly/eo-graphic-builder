@@ -2,7 +2,11 @@
 import { ref, watch } from 'vue';
 
 // 커스텀 컬러 픽커 — SV 패드 + 휴 바 + hex 입력. 전부 DOM/토큰 스타일 (네이티브 창 없음).
-const props = defineProps({ modelValue: { type: String, default: '#F9EE48' } });
+// grayscale (§134): SV/휴 대신 밝기 바 하나 — 워크스페이스 색(캔버스/격자)처럼 무채색 한정 필드용.
+const props = defineProps({
+  modelValue: { type: String, default: '#F9EE48' },
+  grayscale: Boolean,
+});
 const emit = defineEmits(['update:modelValue']);
 
 const SV_W = 148;
@@ -55,6 +59,10 @@ watch(
 );
 function commit() {
   internal = true;
+  if (props.grayscale) {
+    emit('update:modelValue', hsvToHex(0, 0, hsv.value.v)); // 무채색 강제
+    return;
+  }
   emit('update:modelValue', hsvToHex(hsv.value.h, hsv.value.s, hsv.value.v));
 }
 
@@ -83,6 +91,9 @@ const onSvDown = dragTrack((px, py) => {
 const onHueDown = dragTrack((px) => {
   hsv.value.h = Math.min(359.9, px * 360);
 });
+const onGrayDown = dragTrack((px) => {
+  hsv.value.v = px; // 좌=검정 → 우=흰색
+});
 
 // §112: 숫자 필드와 동일 커밋 문법 — Enter = 커밋+블러, 커밋 시 플래시
 const hexFlash = ref(false);
@@ -110,20 +121,26 @@ function onHexKey(e) {
 
 <template>
   <div class="picker">
-    <div
-      class="sv"
-      :style="{ width: SV_W + 'px', height: SV_H + 'px', background: `hsl(${hsv.h} 100% 50%)` }"
-      @pointerdown="onSvDown"
-    >
-      <div class="svWhite" />
-      <div class="svBlack" />
+    <template v-if="!grayscale">
       <div
-        class="dot"
-        :style="{ left: hsv.s * SV_W + 'px', top: (1 - hsv.v) * SV_H + 'px' }"
-      />
-    </div>
-    <div class="hue" :style="{ width: SV_W + 'px' }" @pointerdown="onHueDown">
-      <div class="hueCursor" :style="{ left: (hsv.h / 360) * SV_W + 'px' }" />
+        class="sv"
+        :style="{ width: SV_W + 'px', height: SV_H + 'px', background: `hsl(${hsv.h} 100% 50%)` }"
+        @pointerdown="onSvDown"
+      >
+        <div class="svWhite" />
+        <div class="svBlack" />
+        <div
+          class="dot"
+          :style="{ left: hsv.s * SV_W + 'px', top: (1 - hsv.v) * SV_H + 'px' }"
+        />
+      </div>
+      <div class="hue" :style="{ width: SV_W + 'px' }" @pointerdown="onHueDown">
+        <div class="hueCursor" :style="{ left: (hsv.h / 360) * SV_W + 'px' }" />
+      </div>
+    </template>
+    <!-- grayscale (§134): 밝기 바 단일 — 검정→흰색 -->
+    <div v-else class="gray" :style="{ width: SV_W + 'px' }" @pointerdown="onGrayDown">
+      <div class="hueCursor" :style="{ left: hsv.v * SV_W + 'px' }" />
     </div>
     <div class="row">
       <span class="preview" :style="{ background: modelValue }" />
@@ -159,6 +176,11 @@ function onHexKey(e) {
 .hueCursor {
   position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px;
   background: #fff; outline: 1px solid #000; pointer-events: none;
+}
+.gray {
+  position: relative; height: 14px; cursor: ew-resize;
+  border: 1px solid var(--line); border-radius: var(--radius); touch-action: none;
+  background: linear-gradient(to right, #000, #fff);
 }
 .row { display: flex; align-items: center; gap: var(--sp-3); }
 .preview {

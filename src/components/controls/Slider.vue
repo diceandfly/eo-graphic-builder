@@ -66,6 +66,8 @@ function bump(d) {
   <div class="row">
     <div class="head">
       <span class="label">{{ label }}</span>
+      <!-- §134: 인라인 보조 컨트롤 (예: comp dir/sym 미니 세그) — 라벨과 필드 사이 우측 정렬 -->
+      <span v-if="$slots.aux" class="auxSlot"><slot name="aux" /></span>
       <!-- §125: 단위는 필드 박스 안의 어도른먼트 — 입력 텍스트와 분리(편집 불가), 클릭 시 입력 포커스 -->
       <span class="sf" :class="{ flash }" @click="$event.currentTarget.querySelector('input').focus()">
         <input
@@ -100,6 +102,7 @@ function bump(d) {
 .row { margin-bottom: 12px; }
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
+.auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }
 // 필드+화살표 — StepField와 동일 문법 (§124), 단위 어도른먼트 내장 (§125)
 .sf {
   display: flex; align-items: stretch;

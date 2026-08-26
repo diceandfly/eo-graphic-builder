@@ -136,6 +136,14 @@ function toggleFrameMode() {
 }
 // 소유권 판정 (§92) — 어레인지와 공유하는 문서 로직이라 useDocument로 이동, 여기선 위임
 const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
+// 활성 프레임 아웃라인 (§134): 프레임 바깥 화면 3px 오프셋
+const activeFrameRect = computed(() => {
+  const fid = props.actions.activeFrameId.value;
+  const f = fid != null && props.doc.units.find((u) => u.id === fid && u.type === 'frame');
+  if (!f) return null;
+  const o = 3 / vp.scale;
+  return { x: f.x - o, y: f.y - o, w: f.params.W + 2 * o, h: f.params.H + 2 * o };
+});
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
@@ -1299,6 +1307,13 @@ onBeforeUnmount(() => {
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
+        <rect
+          v-if="activeFrameRect"
+          class="activeFrameOutline"
+          :x="activeFrameRect.x" :y="activeFrameRect.y"
+          :width="activeFrameRect.w" :height="activeFrameRect.h"
+        />
         <!-- 정렬 키 오브젝트: 두꺼운 스트로크 하이라이트 -->
         <rect
           v-if="showBBox && keyRect"
@@ -1475,6 +1490,11 @@ onBeforeUnmount(() => {
   stroke-dasharray: 5 4; opacity: 0.7;
 }
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
+// 활성 프레임 아웃라인 (§134) — 흰색 + difference 블렌드: 캔버스 색 무관 가시 (검정 위=흰, 흰 위=검)
+.activeFrameOutline {
+  fill: none; stroke: #ffffff; stroke-width: 1.5; vector-effect: non-scaling-stroke;
+  mix-blend-mode: difference; pointer-events: none; opacity: 0.8;
+}
 .linkBadge path {
   fill: none; stroke: var(--link); stroke-width: 2;
   stroke-linecap: square; stroke-linejoin: miter;

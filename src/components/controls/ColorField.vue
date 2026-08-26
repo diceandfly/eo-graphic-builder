@@ -12,6 +12,7 @@ const props = defineProps({
   fallback: { type: String, default: '#888888' }, // 미표시(null) 시 칩에 보여줄 CSS 색
   recents: { type: Array, default: null }, // 최근 사용 컬러 슬롯 (§110 — 컬러 툴바와 공유)
   side: { type: String, default: 'left' }, // 팝오버 방향 'left' | 'right' (패널처럼 좌측 클리핑 시 right)
+  grayscale: Boolean, // §134: 무채색 한정 픽커 (워크스페이스 색 등)
 });
 const emit = defineEmits(['update:modelValue', 'removeRecent']);
 
@@ -99,7 +100,7 @@ watch(open, (o) => {
       @pointerup="onPopUp"
       @keydown.enter="open = false"
     >
-      <ColorPicker :model-value="modelValue || '#888888'" @update:model-value="onPick" />
+      <ColorPicker :model-value="modelValue || '#888888'" :grayscale="grayscale" @update:model-value="onPick" />
       <!-- 최근 사용 컬러 (컬러 툴바와 동일 소스·문법, §110·§111) -->
       <template v-if="recents && recents.length">
         <div class="recentRow">

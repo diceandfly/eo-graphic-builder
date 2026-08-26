@@ -84,13 +84,14 @@ function resetGridDefaults() {
           @change="resetIdle"
         >
           <div class="menuTitle">Canvas grid setting</div>
+          <!-- §134: 워크스페이스 색은 무채색 한정 픽커 -->
           <div class="menuRow">
             <span class="rowGrow">Canvas color</span>
-            <ColorField v-model="view.stageBgColor" fallback="var(--stage-bg)" />
+            <ColorField v-model="view.stageBgColor" fallback="var(--stage-bg)" grayscale />
           </div>
           <div class="menuRow">
             <span class="rowGrow">Grid color</span>
-            <ColorField v-model="view.stageGridColor" fallback="var(--stage-grid)" />
+            <ColorField v-model="view.stageGridColor" fallback="var(--stage-grid)" grayscale />
           </div>
           <label class="menuRow">
             <span class="rowGrow">Grid size</span>

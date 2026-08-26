@@ -1209,3 +1209,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **STYLE 순서** — stroke width를 stroke color 위로.
 5. **스포이드 프레임 대응** — 팝업 순서 Size→Grid→Color→**Shape/Style**→Orientation. 흡수 범주 매핑을 링크 스코프와 분리된 `EYEDROP_KEYS`로 확장: grid = 프레임 margin/rows/gutter/comp*, shape = 프레임 fillOn/strokeOn/stroke/strokeW 겸용, 소스에 없는 키는 패치 제외 가드. 적용은 종전대로 동일 타입 한정(링크 스코프 필터·전파 로직 불변).
 - 검증: 2등분+compX 9 → 분할선 666:74(9:1), 패널 순서·칩 2행·STYLE 순서·팝업 순서 확인, doc +3(프레임 grid/style+color 흡수·타입 불일치 무동작) = 26 그린, geo 30 그린.
+
+## 134. 2026-08-26 — comp 축별 dir/sym 인라인화·활성 프레임 아웃라인·무채색 픽커·스와치 2줄·A2
+
+1. **comp 모드 축별 분리 + UI 축약** — compMode → `compModeX/Y` (마이그레이션 이관). 별도 "comp mode" 행을 없애고 각 comp 슬라이더 라벨 옆 **인라인 dir/sym 미니 세그**(Slider aux 슬롯 신설)로 — 축별 모드가 생기면서 오히려 1행 절약. comp lock은 값+모드 동기(켜는 순간 rows 기준 통일).
+2. **활성 프레임 아웃라인** — `activeFrameId` 프레임에 바깥 3px(화면) 오프셋 아웃라인, 흰색 1.5px + **mix-blend-mode: difference** (검정 캔버스=흰 선, 흰 캔버스=검 선 — 배경색 무관 가시), opacity 0.8.
+3. **워크스페이스 색 무채색 한정** — ColorPicker `grayscale` 모드(SV 패드·휴 바 대신 검→흰 밝기 바 1개 + hex, hex도 무채색 강제). Canvas/Grid color 필드에 적용 — 픽커 디자인 변동은 축소 방향이라 승인 조건 충족.
+4. **스와치 바 2줄** — 1234 / 567C 그리드(`.swGrid` 4열). 툴팁 tip-align left. 별로면 롤백 가능(§ 명기).
+5. **cm 프리셋 A2**(420×594mm) — A3 앞에 추가.
+- 검증: 아웃라인 렌더+difference 적용, modeSeg 2개·축별 독립(rows sym/cols dir), 무채색 픽커(gray 바 O·SV 패드 X), 스와치 4열 그리드, phys 칩 A2~Letter, geo 30·doc 26 그린.

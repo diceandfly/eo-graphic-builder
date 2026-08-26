@@ -40,8 +40,8 @@ export function frameGridLines(p) {
     const innerW = cw - gutterX * (nc - 1);
     const innerH = ch - gutterY * (nr - 1);
     // §131: 컴프레션 on이면 등비 가중 분배, off면 균등 (가중 [1,…] = 종전과 동일 좌표)
-    const wx = p.compOn ? compWeights(nc, p.compX, p.compMode) : Array(nc).fill(1);
-    const wy = p.compOn ? compWeights(nr, p.compY, p.compMode) : Array(nr).fill(1);
+    const wx = p.compOn ? compWeights(nc, p.compX, p.compModeX) : Array(nc).fill(1);
+    const wy = p.compOn ? compWeights(nr, p.compY, p.compModeY) : Array(nr).fill(1);
     const sx = wx.reduce((a, b) => a + b, 0);
     const sy = wy.reduce((a, b) => a + b, 0);
     if (innerW > 0) {

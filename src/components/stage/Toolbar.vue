@@ -65,13 +65,15 @@ function onPick(c) {
 
 <template>
   <div class="toolbarWrap">
-    <!-- 스와치 바 -->
+    <!-- 스와치 바 — §134: 2줄 그리드 (1234 / 567C) -->
     <FloatingBar>
+      <div class="swGrid">
       <IconButton
         v-for="(c, i) in BRAND_COLORS"
         :key="c"
         :active="fill === c"
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
+        tip-align="left"
         @click="emit('fill', c)"
       ><span class="chip" :class="{ boost: BRAND_COLOR_NAMES[i] === 'SPACE BLACK' }" :style="{ background: c }" /></IconButton>
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/C = 적용, 우클릭 = 픽커 (§125) -->
@@ -79,6 +81,7 @@ function onPick(c) {
         <IconButton
           :active="isCustomFill || openPopup === 'custom'"
           :tip="openPopup === 'custom' ? '' : 'Custom color (C)'"
+          tip-align="left"
           @click="emit('fill', customColor)"
           @contextmenu="togglePopup('custom', $event)"
         ><span class="chip" :style="{ background: customColor }" /></IconButton>
@@ -98,6 +101,7 @@ function onPick(c) {
             <div class="menuNote">right-click to remove</div>
           </template>
         </div>
+      </div>
       </div>
     </FloatingBar>
 
@@ -246,6 +250,8 @@ function onPick(c) {
   transform: translateX(-50%);
   display: flex; align-items: center; gap: var(--sp-6); // 바-바 간격 = 패널↔바 간격과 동일 (--sp-6)
 }
+// §134: 스와치 2줄 그리드 (1234 / 567C) — 별로면 롤백 가능
+.swGrid { display: grid; grid-template-columns: repeat(4, auto); }
 .chip {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
   border-radius: var(--radius);

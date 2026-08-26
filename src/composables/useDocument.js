@@ -60,10 +60,11 @@ export function createFrameParams(overrides = {}) {
     gutterY: 20,
     // 그리드 컴프레션 (§131) — compX/Y: 부호 있는 압축값(±2.5, 0 균등), 유닛과 동일 매핑
     compOn: false,
-    compMode: 'dir', // 'dir' 한 방향 등비 | 'sym' 중앙 대칭
+    compModeX: 'dir', // §134: 축별 모드 — 'dir' 한 방향 등비 | 'sym' 중앙 대칭
+    compModeY: 'dir',
     compX: 0,
     compY: 0,
-    compLock: false, // §132: rows-cols 값 동기화 잠금
+    compLock: false, // §132: rows-cols 값(+모드) 동기화 잠금
     ...overrides,
   };
 }
@@ -79,6 +80,12 @@ function migrateUnit(u) {
   if (u.type === 'frame' && u.params) {
     u.params = { ...createFrameParams(), ...u.params };
     u.params.gridOn = true; // §131: 그리드 on/off 폐기 — 구버전 off 저장분도 상시 on
+    if (u.params.compMode) {
+      // §134: 단일 compMode → 축별 이관
+      u.params.compModeX = u.params.compMode;
+      u.params.compModeY = u.params.compMode;
+      delete u.params.compMode;
+    }
     if (u.params.drawMode) {
       u.params.strokeOn = u.params.drawMode === 'stroke';
       u.params.fillOn = u.params.drawMode !== 'stroke';
@@ -192,7 +199,7 @@ export function useDocument() {
     orientation: ['orientation', 'flipX'],
     grid: [
       ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'], // 유닛
-      ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compMode', 'compX', 'compY', 'compLock'], // 프레임
+      ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
     ],
     shape: [
       ...['dPct', 'a', 'b', 'threads', 'threadDir'],       // 유닛 shape

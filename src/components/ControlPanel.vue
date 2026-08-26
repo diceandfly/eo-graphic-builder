@@ -130,6 +130,7 @@ const RECT_DIGITAL = [
   { label: '4:5', v: 4 / 5 }, // IG
 ];
 const RECT_PHYSICAL = [
+  { label: 'A2', wmm: 420, hmm: 594 }, // §134 추가
   { label: 'A3', wmm: 297, hmm: 420 },
   { label: 'A4', wmm: 210, hmm: 297 },
   { label: 'A5', wmm: 148, hmm: 210 },
@@ -181,7 +182,18 @@ function setCompAxis(key, v) {
 }
 function setCompLock(v) {
   p.value.compLock = v === 'on';
-  if (p.value.compLock) p.value.compX = p.value.compY; // 켜는 순간 rows 값으로 통일
+  if (p.value.compLock) {
+    // 켜는 순간 rows 기준으로 값·모드 통일 (§134)
+    p.value.compX = p.value.compY;
+    p.value.compModeX = p.value.compModeY;
+  }
+}
+// §134: 축별 dir/sym — 잠금 시 양축 동기
+function setCompMode(key, m) {
+  if (p.value.compLock) {
+    p.value.compModeX = m;
+    p.value.compModeY = m;
+  } else p.value[key] = m;
 }
 // §133: 프리셋 칩 — 유닛과 동일 비율 세트, 칩 값(rate) ↔ 슬라이더 값 상호 변환.
 // rate = 1 + |v|/FRAME_COMP_SCALE·(FRAME_RATE_MAX-1) 의 역산. 칩은 현재 부호(방향/대칭) 유지.
@@ -370,26 +382,36 @@ function setStrokeColor(c) {
         @update:model-value="(v) => (p.compOn = v === 'on')"
       />
       <template v-if="p.compOn">
-        <!-- §133: comp mode는 compression 토글 바로 아래, 슬라이더 범위 ±9(2등분 최대 9:1), 축별 비율 칩 -->
-        <Toggle
-          label="comp mode" v-model="p.compMode"
-          :options="[{ value: 'dir', label: 'directional' }, { value: 'sym', label: 'symmetrical' }]"
-        />
+        <!-- §134: 축별 dir/sym — 별도 행 대신 슬라이더 라벨 옆 인라인 미니 세그 (UI 1행 절약) -->
         <Slider
           label="comp rows" :model-value="p.compY"
           :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
           :snap-to="0" :snap-radius="0.1" suffix="x"
           @update:model-value="(v) => setCompAxis('compY', v)"
-        />
+        >
+          <template #aux>
+            <span class="modeSeg">
+              <button :class="{ on: p.compModeY === 'dir' }" @click="setCompMode('compModeY', 'dir')">dir</button>
+              <button :class="{ on: p.compModeY === 'sym' }" @click="setCompMode('compModeY', 'sym')">sym</button>
+            </span>
+          </template>
+        </Slider>
         <ChipRow :model-value="frameCompRate(p.compY)" @update:model-value="(r) => setCompChip('compY', r)" />
         <Slider
           label="comp cols" :model-value="p.compX"
           :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
           :snap-to="0" :snap-radius="0.1" suffix="x"
           @update:model-value="(v) => setCompAxis('compX', v)"
-        />
+        >
+          <template #aux>
+            <span class="modeSeg">
+              <button :class="{ on: p.compModeX === 'dir' }" @click="setCompMode('compModeX', 'dir')">dir</button>
+              <button :class="{ on: p.compModeX === 'sym' }" @click="setCompMode('compModeX', 'sym')">sym</button>
+            </span>
+          </template>
+        </Slider>
         <ChipRow :model-value="frameCompRate(p.compX)" @update:model-value="(r) => setCompChip('compX', r)" />
-        <!-- §132: 잠금 on = rows·cols 값 동기화 (켜는 순간 rows 값으로 통일) -->
+        <!-- §132: 잠금 on = rows·cols 값+모드 동기화 (켜는 순간 rows 기준 통일) -->
         <Toggle
           label="comp lock rows-cols" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"
           @update:model-value="setCompLock"
@@ -566,6 +588,18 @@ section h2 {
   }
 }
 .strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+// §134: comp dir/sym 인라인 미니 세그 (슬라이더 aux 슬롯)
+.modeSeg {
+  display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  button {
+    border: none; background: none; color: var(--faint); cursor: pointer;
+    font-family: inherit; font-size: var(--fs-2xs); letter-spacing: var(--ls-base);
+    padding: 2px 6px;
+    &:not(:last-child) { border-right: 1px solid var(--line); }
+    &.on { color: var(--accent); background: var(--hover-bg); }
+    &:hover { color: var(--accent); }
+  }
+}
 .rowLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
   color: var(--faint); flex: 1;
