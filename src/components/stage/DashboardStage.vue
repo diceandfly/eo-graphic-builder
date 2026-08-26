@@ -81,19 +81,8 @@ const keyUnit = computed(() =>
     ? props.doc.units.find((u) => u.id === props.doc.keyId)
     : null
 );
-// 선택 블록 수 (최외곽 그룹 = 1블록, 프레임 = 각 1블록)
-const selBlockCount = computed(() => {
-  const ids = props.doc.selectedIds;
-  if (!ids.length) return 0;
-  const blocks = new Set();
-  for (const u of props.doc.units) {
-    if (ids.includes(u.id)) {
-      const g = props.actions.outermost(u);
-      blocks.add(g ? 'g' + g : 'u' + u.id);
-    }
-  }
-  return blocks.size;
-});
+// 선택 블록 수 (최외곽 그룹 = 1블록, 프레임 = 각 1블록) — 판정은 useDocument 단일 소스 (§120)
+const selBlockCount = computed(() => props.actions.blocksOf(props.doc.selectedIds).length);
 // 정렬바 활성: 블록 2개 이상일 때만 — 그룹 하나만 선택 시 비활성
 const alignActive = computed(() => selBlockCount.value >= 2);
 // 등간격 활성: 블록 3개 이상일 때만 (양 끝 고정 방식이라 2개는 무의미, §114)
@@ -289,9 +278,9 @@ function doOrder(where) {
 // 컨텍스트 메뉴: 오더 그룹 + 액션 그룹(오버레이 버튼의 대체 표면 §59)
 // §100: 1그룹 = delete·flip, 2그룹 = 오더
 const CTX_ACTIONS = [
-  { key: 'del', label: 'Delete (D)' },
-  { key: 'flip', label: 'Flip horizontal (⇧H)' },
-  { key: 'flipv', label: 'Flip vertical (⇧V)' },
+  { key: 'del', label: 'Delete (D)', paths: ICONS.trash },
+  { key: 'flip', label: 'Flip horizontal (⇧H)', paths: ICONS.flipH },
+  { key: 'flipv', label: 'Flip vertical (⇧V)', paths: ICONS.flipV },
 ];
 // §107 잠정 숨김 (복귀 대비 보존) — 단축키 Q/W와 onCtxAction 분기는 유지
 // const CTX_ORDER = [
@@ -1410,18 +1399,18 @@ onBeforeUnmount(() => {
       <button
         v-for="a in CTX_ACTIONS" :key="a.key"
         class="ctxItem" @click="onCtxAction(a.key)"
-      >{{ a.label }}</button>
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in a.paths" :key="d" :d="d" /></svg>{{ a.label }}</button>
       <!-- 오더 그룹(CTX_ORDER)은 §107에서 잠정 숨김 — 단축키 Q/W는 유지, 복귀 대비 정의 보존 -->
       <div class="ctxSep" />
       <button
         class="ctxItem" :class="{ off: !canRegisterPreset }"
         :disabled="!canRegisterPreset"
         @click="onRegisterPreset"
-      >Register unit preset</button>
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.presetAdd" :key="d" :d="d" /></svg>Register unit preset</button>
       <div class="ctxSep" />
-      <button class="ctxItem" @click="onCopySvg(); closeCtx()">Copy as SVG (⌘C)</button>
-      <button class="ctxItem" @click="onCopyPng(); closeCtx()">Copy as PNG (⌘⇧C)</button>
-      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()">Export SVG file (⇧E)</button>
+      <button class="ctxItem" @click="onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
+      <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
+      <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
     </div>
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
@@ -1444,7 +1433,7 @@ onBeforeUnmount(() => {
   fill: none; stroke: var(--link); stroke-width: 2;
   stroke-linecap: square; stroke-linejoin: miter;
 }
-.linkBadge text { fill: var(--link); font-family: inherit; font-weight: 600; }
+.linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
   position: absolute; top: 14px;
@@ -1464,7 +1453,13 @@ onBeforeUnmount(() => {
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
   padding: 6px 10px; text-align: left; border-radius: var(--radius);
   white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; // 좌측 주제 아이콘 (§119)
   &:hover { color: var(--accent); }
+}
+.ctxIco {
+  width: 13px; height: 13px; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: square; stroke-linejoin: miter;
 }
 .ctxSep { height: 1px; background: var(--line); margin: 3px 4px; }
 .ctxItem.off { color: var(--disabled); cursor: default; &:hover { color: var(--disabled); } }

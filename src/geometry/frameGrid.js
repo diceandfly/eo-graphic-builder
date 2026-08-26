@@ -1,3 +1,13 @@
+// 프레임 rect 표현 속성 — 렌더(FrameGraphic)와 export(exportSvg) 단일 경로 (§120).
+// fill/stroke 독립 토글(§110) 규칙은 여기에만 존재해야 한다 (유닛의 deriveUnit과 같은 역할).
+export function frameAttrs(p) {
+  return {
+    fill: p.fillOn ? p.fill : 'none',
+    stroke: p.strokeOn ? p.stroke : 'none',
+    strokeW: p.strokeOn ? p.strokeW : 0,
+  };
+}
+
 // 프레임 내부 레이아웃 그리드 라인 (로컬 px 좌표) — 렌더(FrameGraphic)와 스냅(이동) 공유
 export function frameGridLines(p) {
   const { W, H, margin, rows, cols, gutterX, gutterY } = p;

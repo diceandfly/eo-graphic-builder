@@ -433,7 +433,7 @@ function setStrokeColor(c) {
 .panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
   display: flex; align-items: center; gap: 9px;
-  font-size: 14px; font-weight: 700; letter-spacing: 0em; color: var(--text);
+  font-size: 14px; font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
   padding: 4px 2px 14px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
@@ -453,7 +453,7 @@ function setStrokeColor(c) {
 }
 section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
-  color: var(--accent); font-weight: 600;
+  color: var(--accent); font-weight: var(--fw-semibold);
   margin: 0 0 14px;
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }

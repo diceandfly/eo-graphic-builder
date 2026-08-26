@@ -1,5 +1,6 @@
 // SVG export — 뷰포트 렌더와 동일 구조 (도형만, 배경 없음, 소수 3자리)
 import { orientationTransform } from '../geometry/derive.js';
+import { frameAttrs } from '../geometry/frameGrid.js';
 import { BRAND_COLORS } from '../geometry/constants.js';
 
 const f = (n) => n.toFixed(3);
@@ -31,9 +32,9 @@ function unitBody({ W, H, unit, orientation = 0, fill = BRAND_COLORS[0] }) {
 // 오브젝트 타입 분기: 나사축 유닛 | 프레임 (그리드 가이드는 export 미포함)
 function objectBody(i) {
   if (i.type === 'frame') {
-    const fill = i.fillOn === false ? 'none' : i.fill || '#3b3b3b';
-    const stroke = i.strokeOn ? ` stroke="${i.stroke || '#3b3b3b'}" stroke-width="${f(i.strokeW ?? 2)}"` : '';
-    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${fill}"${stroke}/>`;
+    const a = frameAttrs(i); // 렌더(FrameGraphic)와 동일 규칙 단일 경로 (§120)
+    const stroke = a.strokeW ? ` stroke="${a.stroke}" stroke-width="${f(a.strokeW)}"` : '';
+    return `<rect width="${f(i.W)}" height="${f(i.H)}" fill="${a.fill}"${stroke}/>`;
   }
   return unitBody(i);
 }

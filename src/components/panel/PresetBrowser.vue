@@ -165,7 +165,7 @@ function onPresetFile(e) {
 <style scoped lang="scss">
 section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
-  color: var(--accent); font-weight: 600;
+  color: var(--accent); font-weight: var(--fw-semibold);
   margin: 0 0 14px;
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }

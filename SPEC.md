@@ -1106,3 +1106,25 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - `selectionItems()`(App)가 선택된 프레임의 소유 유닛(§92 중심점+z상위 판정, `frameOwnedUnits`)을 export 목록에 동반 — 이동·복제와 동일한 내용물 문법. SVG 다운로드(⇧E)·SVG/PNG 클립보드 복사 공통.
 - 포함 순서 = doc.units 순서 그대로 → 컴포지트 렌더 순서가 스테이지 z-오더와 일치.
 - 검증: 프레임 단독 선택 → [unit, frame] 2아이템 컴포지트 / 유닛만 선택 → 1아이템 불변 / 유닛이 프레임 밖이면 프레임만.
+
+## 119. 2026-08-26 — 컨텍스트 메뉴 항목 좌측 아이콘
+
+- 대시보드 우클릭 메뉴 전 항목에 13px 주제 아이콘 (stroke=currentColor — hover 액센트 연동): Delete=trash · Flip H/V=flipH/V · Register preset=**presetAdd(각진 북마크, 신규)** · Copy SVG=duplicate · Copy PNG=**imagePng(이미지 산+태양, 신규)** · Export SVG file=exportSvg(기존 미사용분 재활용).
+
+## 120. 2026-08-26 — 부채 ①②: 블록 판정·프레임 표현 단일 소스화
+
+1. **블록 판정 단일화** — `groupBlocks(units)`(최외곽 그룹 = 1블록) 신설, `blocksOf`/`frameOwnedUnits`가 공유. DashboardStage `selBlockCount`는 `actions.blocksOf(...).length` 위임 (자체 구현 3중복 제거).
+2. **프레임 rect 표현 단일화** — `geometry/frameGrid.js`에 `frameAttrs(p)` (fill/stroke/strokeW 규칙, 유닛의 deriveUnit 격). FrameGraphic 렌더와 exportSvg가 공유 — export 쪽 자체 폴백(#3b3b3b·strokeW 2) 제거로 렌더=export 항상 일치.
+
+## 121. 2026-08-26 — 부채 ③: 죽은 코드·토큰 청소 + 프로젝트 메타
+
+- 삭제: `utils/idb.js`(미사용 파일) · ICONS.pattern/palette(§106 이후 미사용, git 이력 보존) · `--swatch-big` · `--sp-2/4/5`(결번 주석 명기 — 칩 6px·행 12px은 컴포넌트 고유값).
+- font-weight 600/700 하드코딩 5곳 → `--fw-semibold/--fw-bold` 토큰 (README 층 규칙 정합).
+- package.json: `tmp-scaffold@0.0.0` → **eo-graphic-builder@0.1.0**.
+- 유지: `--fs-md`·`--fw-regular/medium`(예약 명시), 브랜드 색 토큰(세트 완결성), rectQuick 하위 호환(중단 시점 추후 결정).
+
+## 122. 2026-08-26 — 부채 ④: 문서 조작 node 회귀 스위트
+
+- `tests/document-ops.mjs` 10케이스: 프레임 소유(겹침 z상위·중심 밖·그룹 통째)·blocksOf·정렬/등간격/어레인지 동반 이동·혼합 선택 이중 이동 방지·rect/drawMode 마이그레이션·히스토리 undo. localStorage 스텁으로 useDocument를 node에서 직접 구동.
+- 스크립트: `npm run test:doc`, `npm test` = geo+doc 통합. UI 배선(팝업·입력·드래그)은 브라우저 검증 채널 유지.
+- 검증: geo 30조합 + doc 10케이스 그린, frame export 4조합(fill/stroke on/off) frameAttrs 일치, 정렬바 활성 매트릭스(1/2/3블록) 회귀 무결, 컨텍스트 메뉴 아이콘 스크린샷 확인.

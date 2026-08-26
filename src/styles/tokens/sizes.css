@@ -18,9 +18,6 @@
   /* 툴바 컬러 스와치 칩. 사용처: Toolbar .sw .chip */
   --swatch-chip: 17px;
 
-  /* 패널 COLOR 대형 칩. 사용처: ControlPanel .bigChip */
-  --swatch-big: 34px;
-
   /* 좌측 패널 폭. 사용처: App.vue .side */
   --panel-w: 300px;
 

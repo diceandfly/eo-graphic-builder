@@ -901,18 +901,21 @@ export function useDocument() {
     for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
   }
 
-  // ---- 정렬 (좌하단 정렬 패널) ----
-  // 블록 = 최외곽 그룹 단위 (그룹은 한 덩어리로 이동), 기준 = 키 오브젝트 블록 (없으면 선택 전체 bbox)
-  function blocksOf(ids) {
+  // ---- 블록 판정 (단일 소스, §120) ----
+  // 블록 = 최외곽 그룹 단위 (그룹은 한 덩어리) — 정렬·등간격·어레인지·프레임 소유·정렬바 활성이 공유
+  function groupBlocks(units) {
     const map = new Map();
-    for (const u of doc.units) {
-      if (!ids.includes(u.id)) continue;
+    for (const u of units) {
       const g = outermost(u);
       const key = g ? 'g' + g : 'u' + u.id;
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(u);
     }
     return [...map.values()];
+  }
+  // 선택 id들 → 블록 목록. 기준 = 키 오브젝트 블록 (없으면 선택 전체 bbox)
+  function blocksOf(ids) {
+    return groupBlocks(doc.units.filter((u) => ids.includes(u.id)));
   }
   function bboxOf(units) {
     return {
@@ -927,16 +930,10 @@ export function useDocument() {
   function frameOwnedUnits(frameIds) {
     const moving = new Set(frameIds);
     const frames = doc.units.filter((u) => u.type === 'frame');
-    const blocks = new Map(); // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지)
-    for (const u of doc.units) {
-      if (u.type === 'frame') continue;
-      const g = outermost(u);
-      const key = g ? 'g' + g : 'u' + u.id;
-      if (!blocks.has(key)) blocks.set(key, []);
-      blocks.get(key).push(u);
-    }
+    // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지) — 블록 규칙은 groupBlocks 단일 소스
+    const blocks = groupBlocks(doc.units.filter((u) => u.type !== 'frame'));
     const owned = [];
-    for (const members of blocks.values()) {
+    for (const members of blocks) {
       const bb = bboxOf(members);
       const cx = (bb.minX + bb.maxX) / 2;
       const cy = (bb.minY + bb.maxY) / 2;
@@ -1031,7 +1028,7 @@ export function useDocument() {
   }
 
   return {
-    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits,
+    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits, blocksOf,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
