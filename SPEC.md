@@ -1023,3 +1023,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **패턴 매니저 아이콘** — 중첩 정방형 → **겹친 타일 3장**(스와치 컬렉션, 기존 palette 지오메트리).
 2. **프리셋 등록/삭제/이름변경 = ⌘Z 히스토리 편입** — `useDocument.registerHistoryExtra(get, set)` 훅 신설: 외부 상태를 히스토리 스냅샷 x 필드로 동봉(스냅샷 = {u,g,l,x}). App이 usePresets.serialize/restore를 등록. 등록 시점에 초기 스냅샷을 x 포함으로 재작성해 "첫 조작이 프리셋 등록"인 경우도 undo 가능. 프리셋 변경 전용 워처가 같은 350ms 디바운스 푸시를 공유, applyState의 restore→워처 재발화는 snap 동일성 가드로 루프 차단.
 - 검증: 등록→⌘Z 제거→⌘⇧Z 복귀, 삭제→⌘Z 복원.
+
+## 104. 2026-08-25 — 이동 드래그 데드존 4px
+
+- 클릭 의도의 미세 손떨림이 오브젝트를 1~2px 밀던 문제. **move 드래그에 화면 4px 데드존**(OS·피그마 관례, 줌 무관 screen px): 통과 전엔 위치 불변, 통과 후 down 지점 기준 delta 적용(스냅·가이드 계산도 통과 후에만). 리사이즈 핸들·마퀴는 의도가 명확해 데드존 없음.
+- 검증: 2px 드래그 이동 0 / 20px 드래그 정상(35% 줌에서 월드 57px = 화면 20px 환산 일치).
