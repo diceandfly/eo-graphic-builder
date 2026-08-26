@@ -383,34 +383,38 @@ function setStrokeColor(c) {
       />
       <template v-if="p.compOn">
         <!-- §134: 축별 dir/sym — 별도 행 대신 슬라이더 라벨 옆 인라인 미니 세그 (UI 1행 절약) -->
-        <Slider
-          label="comp rows" :model-value="p.compY"
-          :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
-          @update:model-value="(v) => setCompAxis('compY', v)"
-        >
-          <template #aux>
-            <span class="modeSeg">
-              <button :class="{ on: p.compModeY === 'dir' }" @click="setCompMode('compModeY', 'dir')">dir</button>
-              <button :class="{ on: p.compModeY === 'sym' }" @click="setCompMode('compModeY', 'sym')">sym</button>
-            </span>
-          </template>
-        </Slider>
-        <ChipRow :model-value="frameCompRate(p.compY)" @update:model-value="(r) => setCompChip('compY', r)" />
-        <Slider
-          label="comp cols" :model-value="p.compX"
-          :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
-          @update:model-value="(v) => setCompAxis('compX', v)"
-        >
-          <template #aux>
-            <span class="modeSeg">
-              <button :class="{ on: p.compModeX === 'dir' }" @click="setCompMode('compModeX', 'dir')">dir</button>
-              <button :class="{ on: p.compModeX === 'sym' }" @click="setCompMode('compModeX', 'sym')">sym</button>
-            </span>
-          </template>
-        </Slider>
-        <ChipRow :model-value="frameCompRate(p.compX)" @update:model-value="(r) => setCompChip('compX', r)" />
+        <div class="compSet">
+          <Slider
+            label="comp rows" :model-value="p.compY"
+            :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
+            :snap-to="0" :snap-radius="0.1" suffix="x"
+            @update:model-value="(v) => setCompAxis('compY', v)"
+          >
+            <template #aux>
+              <span class="modeSeg">
+                <button :class="{ on: p.compModeY === 'dir' }" @click="setCompMode('compModeY', 'dir')">dir</button>
+                <button :class="{ on: p.compModeY === 'sym' }" @click="setCompMode('compModeY', 'sym')">sym</button>
+              </span>
+            </template>
+          </Slider>
+          <ChipRow :model-value="frameCompRate(p.compY)" @update:model-value="(r) => setCompChip('compY', r)" />
+        </div>
+        <div class="compSet">
+          <Slider
+            label="comp cols" :model-value="p.compX"
+            :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
+            :snap-to="0" :snap-radius="0.1" suffix="x"
+            @update:model-value="(v) => setCompAxis('compX', v)"
+          >
+            <template #aux>
+              <span class="modeSeg">
+                <button :class="{ on: p.compModeX === 'dir' }" @click="setCompMode('compModeX', 'dir')">dir</button>
+                <button :class="{ on: p.compModeX === 'sym' }" @click="setCompMode('compModeX', 'sym')">sym</button>
+              </span>
+            </template>
+          </Slider>
+          <ChipRow :model-value="frameCompRate(p.compX)" @update:model-value="(r) => setCompChip('compX', r)" />
+        </div>
         <!-- §132: 잠금 on = rows·cols 값+모드 동기화 (켜는 순간 rows 기준 통일) -->
         <Toggle
           label="comp lock rows-cols" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"
@@ -428,14 +432,16 @@ function setStrokeColor(c) {
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
         :mixed="mixed('cols')"
       />
-      <Slider
-        label="pitch compression" :model-value="compVal"
-        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01" :arrow-step="0.05" :decimals="2"
-        :snap-to="0" :snap-radius="COMP_SNAP" suffix="x"
-        :mixed="mixed('rate', 'direction')"
-        @update:model-value="setComp"
-      />
-      <ChipRow v-model="p.rate" />
+      <div class="compSet">
+        <Slider
+          label="pitch compression" :model-value="compVal"
+          :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01" :arrow-step="0.05" :decimals="2"
+          :snap-to="0" :snap-radius="COMP_SNAP" suffix="x"
+          :mixed="mixed('rate', 'direction')"
+          @update:model-value="setComp"
+        />
+        <ChipRow v-model="p.rate" />
+      </div>
       <Toggle
         label="gutter mode" v-model="p.gutterMode"
         :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
@@ -535,8 +541,15 @@ function setStrokeColor(c) {
 section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
   color: var(--accent); font-weight: var(--fw-semibold);
-  margin: 0 0 14px;
+  margin: 0 0 12px; /* §138: 14→12 */
 }
+/* §138: 섹션 마지막 컨트롤의 트레일링 마진 제거 — 섹션 간 체감 간격을 --sp-section으로 통일
+   (기존엔 SIZE만 개별 오버라이드로 0이라 26 vs 38px 불일치) */
+section > :last-child { margin-bottom: 0; }
+/* §138: 슬라이더+프리셋 칩 세트 — 내부 6px로 묶고 세트 단위 10px 리듬 */
+.compSet { margin-bottom: 10px; }
+.compSet :deep(.row) { margin-bottom: 6px; }
+.compSet :deep(.chips) { margin-bottom: 0; }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
 .physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .dpiRow { margin-top: 8px; }
@@ -587,7 +600,7 @@ section h2 {
     &.on + button { border-left-color: var(--accent); }
   }
 }
-.strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; } /* §138 */
 // §134·§135: comp dir/sym 인라인 미니 세그 — Toggle .seg와 동일 문법 (활성 = active-outline-inset)
 .modeSeg {
   display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius);

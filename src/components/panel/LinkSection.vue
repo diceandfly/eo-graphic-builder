@@ -46,7 +46,7 @@ function onChip(k) {
 section h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
   color: var(--accent); font-weight: var(--fw-semibold);
-  margin: 0 0 14px;
+  margin: 0 0 12px; /* §138: ControlPanel h2와 동일 */
 }
 .ghost {
   width: 100%; margin-top: 2px; padding: 8px 12px;

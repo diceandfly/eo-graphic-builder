@@ -1233,3 +1233,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - 스포이드 모드에서 히트 대상은 **선택과 같은 타입만**: 유닛/그룹 선택 = 프레임 포인터 무시, 프레임 선택 = 유닛/그룹 무시 (`hitPointerEvents()` — 겹침 상황 오픽 방지). 선택 없음 = 전체 히트(흡수는 어차피 무동작).
 - 참고 확인: 프레임 그룹화는 현재 허용(타입 제한 없음 — 프레임끼리 ⌘G 가능), STEEL GREY = #8E8E8E로 constants·colors.css·CLAUDE.md 일치.
+
+## 138. 2026-08-26 — 패널 간격 체계 정리 (세로 길이 축소)
+
+- **행 리듬 10px 통일** — Slider·Toggle·ChipRow·strokeRow 12→10 (NumberField는 원래 10).
+- **섹션 트레일링 마진 제거** — `section > :last-child { margin-bottom: 0 }` — 기존 26 vs 38px 불일치(§ 점검)를 --sp-section 단일 값으로 통일.
+- **--sp-section 26→22**, h2 하단 14→12 (LinkSection 동일).
+- **compSet 묶음** — 슬라이더+프리셋 칩 세트(유닛 pitch compression, 프레임 comp rows/cols)를 래퍼로 묶어 내부 6px·세트 10px — 칩의 소속이 시각적으로 명확해짐.
+- 실측: 섹션 간 22px 균일(유닛·프레임 뷰), 패널 콘텐츠 높이 유닛 뷰 687px·프레임 최장 뷰(comp+stroke on) 888px (약 90px 절감). 필요 뷰포트 높이 ≈ 콘텐츠 + 59px(패딩·마진).
