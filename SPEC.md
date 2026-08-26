@@ -1032,3 +1032,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 105. 2026-08-25 — 패턴 매니저 아이콘 = EO 심볼
 
 - `src/assets/EO symbol_S_W.svg`의 폴리곤을 ManagerBar 슬롯에 인라인(fill 렌더, §95 채움 화살표 문법). 기본 --text·호버 --accent. ICONS.pattern(겹친 타일)은 미사용 상태로 보존.
+
+## 106. 2026-08-25 — 패턴 아이콘 = EO 심볼 스트로크 재해석
+
+- 필 심볼 단독 사용이 스트로크 아이콘 셋과 이질적 → 폴리곤 윤곽 자동 아웃라인은 14px에서 형태 붕괴(팔 두께 ≈ 스트로크 두께)라 배제하고, **심볼의 전단 구조를 살린 3단 바 라인**('M9 4h12'·'M6 12h12'·'M3 20h12')으로 재해석해 ICONS.pattern 등록. ManagerBar는 paths 방식 복귀. 필 원본은 assets 보존.
