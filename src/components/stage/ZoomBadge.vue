@@ -49,7 +49,7 @@ const setGridSize = (v) => { props.gridCfg.size = Math.round(v); };
 const setNudge = (v) => { props.view.nudge = Math.round(v); };
 const setSeamCutoff = (v) => { props.view.seamCutoff = Math.round(v); };
 // 지오메트리 하한 (§108) — 둘 다 문서 px 절대값, 소수점 허용. 환산 없음(입력 = 저장 = 표시).
-// 유닛 설정 일괄 초기화 — 하한 2px/1px + 가이드 색 기본 (§88·§108)
+// 유닛 설정 일괄 초기화 — 하한 20px/1px + 가이드 색 기본 (§88·§109)
 function resetUnitDefaults() {
   if (props.limits) {
     props.limits.unitMin = UNIT_MIN;
@@ -152,7 +152,7 @@ function resetGridDefaults() {
           <div class="menuTitle">Unit setting</div>
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Unit min (px)</span>
-            <StepField v-model="limits.unitMin" :min="0.1" :max="50" :step="0.5" />
+            <StepField v-model="limits.unitMin" :min="1" :max="200" :step="5" />
           </label>
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Thread min (px)</span>

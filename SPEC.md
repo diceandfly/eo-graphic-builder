@@ -1048,3 +1048,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
   - 전환: `LIMITS.threadMinPx`(기본 THREAD_MIN_PX = 1), unit.js minW = 절대 px. UNIT SETTING 입력 = 저장 = 표시(환산 없음). 구버전 저장분(threadMinRatio)은 ×960 환산 이관(prefs·워크스페이스 로드 공통).
   - 트레이드오프 명시: 닮은꼴 보존 상실 — 같은 파라미터라도 유닛 크기에 따라 극한 압축 구간의 보정 두께 비중이 달라짐(이것이 곧 의도한 효과).
 - 검증: 회귀 — 960 조합 불변·비960 조합만 변경(절대 전환 시그니처) → 기준선 갱신. W 10/960/3508 극한 압축에서 최소 스레드 폭 1.000px 동일. 입력 1 → 표시 1(선택 무관), reset → 1.
+
+## 109. 2026-08-25 — Unit min 기본 20px·스텝 5 + Thread min 의미 확정 문구
+
+- **Thread min 계약(§108 확정)**: 값이 N이면 어떤 상황(렌더·export·프리셋 썸네일·블렌드 사본)에서도 문서 px 기준 N px 미만으로 그려질 스레드를 N px로 보정. 줌 배율은 무관(화면 px 아님 — export와 1:1 일치가 원칙).
+- **Unit min**: 기본값 2 → **20px**, 스테퍼 화살표 단위 0.5 → **5**, 범위 1~200. (기존 저장 prefs는 사용자 값 유지, reset to default로 신값 적용)
+- 검증: reset → 20/1, ▲ 클릭 → 25.

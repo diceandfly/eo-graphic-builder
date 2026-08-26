@@ -21,7 +21,7 @@ export const G_STEP = 0.005;     // proportional 거터 슬라이더 step
 export const GUTTER_MAX = 50;    // gutterPx 슬라이더 상한 (px) — min(GUTTER_MAX, W/cols)
 export const THREAD_MIN_PX = 1; // thread 최소 폭 하한 — 문서 px 절대값 (§108: "1px 미만 라인 보정"이 목적이라 유닛 크기 무관 절대 기준으로 전환, 비율 방식 폐기)
 export const THREAD_OVERLAP = 1; // thread를 shaft 쪽으로 1px 파묻어 AA 유격 제거
-export const UNIT_MIN = 2;       // 유닛 W/H 내부 가드 하한 (px). 지오메트리는 1px까지 무충돌 — 블렌드 극한 수렴 허용(§80), 소실 방지 최소 가드만
+export const UNIT_MIN = 20;      // 유닛 W/H 내부 가드 하한 기본값 (px, §109: 2→20 상향). 런타임 조정은 LIMITS.unitMin
 export const UNIT_MAX = 8000;    // 유닛 W/H 내부 가드 상한 (px)
 // 런타임 조정 가능한 지오메트리 하한 (§87) — 기본값 = 위 상수, 줌% 우클릭 메뉴에서 편집.
 // geometry 순수성 유지를 위해 플레인 객체(Vue 의존 없음). 소비처는 호출 시점에 읽는다.
