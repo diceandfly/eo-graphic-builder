@@ -146,7 +146,7 @@ watch(frameOpen, (open) => {
       <!-- 선택툴: 우클릭 = 프레임 조작 모드 스왑 (꽉 찬 커서, §92) -->
       <IconButton
         :paths="frameMode ? null : ICONS.select"
-        :tip="frameMode ? 'Frame select (A)' : 'Select (V)'"
+        :tip="frameMode ? 'Frame select (V)' : 'Select (V)'"
         :active="mode === 'select'"
         @click="emit('update:mode', 'select')"
         @contextmenu.prevent="emit('toggleFrameMode')"
@@ -275,9 +275,10 @@ watch(frameOpen, (open) => {
 }
 // 최근 커스텀 컬러 슬롯 — 스와치 칩과 동일 문법의 소형 칩
 .recentRow { display: flex; gap: 6px; margin-top: 2px; }
+// 채움 화살표 — 스트로크를 함께 유지해 일반(스트로크) 아이콘과 광학 크기 일치 (§95)
 .fillArrow {
   width: var(--icon-size); height: var(--icon-size);
-  path { fill: var(--accent); }
+  path { fill: var(--accent); stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; }
   .tail { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: square; }
 }
 .recentChip {

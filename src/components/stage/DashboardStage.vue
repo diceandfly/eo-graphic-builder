@@ -137,6 +137,7 @@ const frameMode = ref(false);
 function toggleFrameMode() {
   frameMode.value = !frameMode.value;
   props.actions.deselect(); // 모드 전환 시 혼합 선택 방지
+  toast(frameMode.value ? 'Frame select — press V to switch back' : 'Unit select');
 }
 // 소유권 판정 (§92): 유닛/그룹 블록의 bbox 중심점이 들어있는 프레임 중 z-오더 최상위 1개.
 // 이동 시작 시점에 1회 계산 — 영속 부모 관계 없음. 프레임은 프레임을 데려가지 않음.
@@ -547,15 +548,18 @@ function onKeyDown(e) {
       () => props.actions.nudgeSelected(ax * step, ay * step));
     return;
   }
-  if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
-  if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
-  if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
-  // A = 프레임 조작 모드 토글 (§93)
-  if (!mod && !e.shiftKey && e.code === 'KeyA') {
-    e.preventDefault();
-    toggleFrameMode();
+  // V (§95): 다른 툴이면 유닛 셀렉트로 복귀, 이미 셀렉트면 프레임↔유닛 스왑(토스트 안내)
+  if (!mod && !e.shiftKey && e.code === 'KeyV') {
+    if (mode.value === 'select') {
+      toggleFrameMode();
+    } else {
+      mode.value = 'select';
+      if (frameMode.value) toggleFrameMode(); // 다른 툴에서 V = 항상 유닛 셀렉트
+    }
     return;
   }
+  if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
+  if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
   if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) doOrder('front');
