@@ -1224,3 +1224,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **활성 프레임 아웃라인** — 3px 오프셋 제거(프레임 경계 밀착), 1.5→1px, opacity 0.8→0.45. difference 블렌드 유지.
 2. **스와치 바 1줄 복귀** — §134의 2줄(1234/567C) 실험 롤백.
 3. **dir/sym 미니 세그** — Toggle .seg와 동일 문법으로 통일 (fs-xs·3px 9px 패딩·active-outline-inset).
+
+## 136. 2026-08-26 — 스포이드 팝업: Color 최상단
+
+- 범주 순서 Color → Size → Grid → Shape/Style → Orientation (§133 순서에서 Color만 최상단 이동).

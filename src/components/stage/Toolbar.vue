@@ -53,8 +53,8 @@ watch(openPopup, (open) => {
     setTimeout(() => window.addEventListener('pointerdown', closePopup, { once: true }), 0);
   } else unregisterPopup(closePopup);
 });
-// §133 순서 확정: size → grid → color → shape/style → orientation (shape 범주가 프레임 스타일 겸용)
-const SCOPE_LABELS = { size: 'Size', grid: 'Grid', color: 'Color', shape: 'Shape/Style', orientation: 'Orientation' };
+// §136 순서: color 최상단 → size → grid → shape/style → orientation (shape 범주가 프레임 스타일 겸용)
+const SCOPE_LABELS = { color: 'Color', size: 'Size', grid: 'Grid', shape: 'Shape/Style', orientation: 'Orientation' };
 
 function onPick(c) {
   emit('update:customColor', c);
