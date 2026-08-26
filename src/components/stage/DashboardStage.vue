@@ -352,6 +352,11 @@ function onBlend() {
     toast('Select a single unit or a single group to blend');
     return;
   }
+  // §151: 프레임은 블렌드 대상 아님 (레이아웃 컨테이너 — 등비 사본 문법이 무의미)
+  if (sel.some((u) => u.type === 'frame')) {
+    toast('Blend works on units — not frames');
+    return;
+  }
   let created;
   if (sel.length === 1) {
     created = props.actions.blendFrom(sel[0], { ...blendCfg });
