@@ -5,7 +5,7 @@ import FloatingBar from '../ui/FloatingBar.vue';
 import StepField from '../controls/StepField.vue';
 import ColorField from '../controls/ColorField.vue';
 import { ICONS } from '../../ui/icons.js';
-import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_RATIO } from '../../geometry/constants.js';
+import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_PX } from '../../geometry/constants.js';
 import { blurActive } from '../../utils/dom.js';
 import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popupBus.js';
 
@@ -15,8 +15,7 @@ const props = defineProps({
   scale: Number, guides: Boolean, stageGrid: Boolean, bbox: Boolean,
   gridCfg: Object, // { size, snap } — reactive 스토어 (깊은 변경으로 직접 편집)
   view: Object,    // { nudge, showLinks, guideColor } — 뷰 옵션 reactive 스토어
-  limits: Object,  // { unitMin, threadMinRatio } — 지오메트리 하한 (§87)
-  refW: { type: Number, default: 960 }, // thread min px 환산 기준 (선택 유닛 W, §89)
+  limits: Object,  // { unitMin, threadMinPx } — 지오메트리 하한 (문서 px 절대값, §108)
 });
 defineEmits(['reset', 'toggleGuides', 'toggleStageGrid', 'toggleBbox']);
 const pct = computed(() => Math.round(props.scale * 100));
@@ -49,14 +48,12 @@ watch(openMenu, (open) => {
 const setGridSize = (v) => { props.gridCfg.size = Math.round(v); };
 const setNudge = (v) => { props.view.nudge = Math.round(v); };
 const setSeamCutoff = (v) => { props.view.seamCutoff = Math.round(v); };
-// 지오메트리 하한 (§87·§89) — px 입력·소수점 허용, thread는 선택 유닛 W 기준 비율 저장(닮은꼴 보존, 상한 5%)
-const threadMinPx = () => +(props.limits.threadMinRatio * props.refW).toFixed(2);
-const setThreadMinPx = (v) => { props.limits.threadMinRatio = Math.min(0.05, v / props.refW); };
-// 유닛 설정 일괄 초기화 — 하한 2px/0.1% + 가이드 색 기본 (§88)
+// 지오메트리 하한 (§108) — 둘 다 문서 px 절대값, 소수점 허용. 환산 없음(입력 = 저장 = 표시).
+// 유닛 설정 일괄 초기화 — 하한 2px/1px + 가이드 색 기본 (§88·§108)
 function resetUnitDefaults() {
   if (props.limits) {
     props.limits.unitMin = UNIT_MIN;
-    props.limits.threadMinRatio = THREAD_MIN_RATIO;
+    props.limits.threadMinPx = THREAD_MIN_PX;
   }
   props.view.guideColor = null;
 }
@@ -157,13 +154,9 @@ function resetGridDefaults() {
             <span class="rowGrow">Unit min (px)</span>
             <StepField v-model="limits.unitMin" :min="0.1" :max="50" :step="0.5" />
           </label>
-          <!-- px 표시·입력은 선택 유닛 W 기준 환산 — 내부는 비율 저장 (§89) -->
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Thread min (px)</span>
-            <StepField
-              :model-value="threadMinPx()" :min="0" :max="50" :step="0.5"
-              @update:model-value="setThreadMinPx"
-            />
+            <StepField v-model="limits.threadMinPx" :min="0" :max="50" :step="0.5" />
           </label>
           <div class="menuRow">
             <span class="rowGrow">Unit grid color</span>

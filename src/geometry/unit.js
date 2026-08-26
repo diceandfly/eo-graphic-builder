@@ -21,7 +21,7 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
 
   const threadsTop = [];
   const threadsBottom = [];
-  const minW = W * LIMITS.threadMinRatio;  // 극한 압축 기준은 캔버스 폭 비례 (기본 0.2%)
+  const minW = LIMITS.threadMinPx;  // 극한 압축 보정 — 문서 px 절대 하한 (§108)
   const blendEnd = 3 * minW;          // minW~3·minW 구간에서 사다리꼴 → 직사각형 모프
   const wantBottom = !one;
   if (h >= EPS) {

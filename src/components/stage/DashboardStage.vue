@@ -228,19 +228,18 @@ const saveScope = reactive(pickScope(prefs.saveScope));
 const openScope = reactive({ ...pickScope(prefs.openScope), tools: prefs.openScope?.tools ?? true, viewport: prefs.openScope?.viewport ?? true });
 // 지오메트리 하한 (유닛 그리드 버튼 우클릭 메뉴 — §87). LIMITS(플레인)로 흘려보내고
 // 변경 시 params 객체 교체로 파생 캐시를 무효화해 즉시 재렌더.
-const limitsCfg = reactive({
-  unitMin: LIMITS.unitMin, threadMinRatio: LIMITS.threadMinRatio, ...(prefs.limits || {}),
+// §108: threadMin은 절대 px. 구버전 저장분(threadMinRatio)은 960 기준 px로 환산 이관
+const migrateLimits = (l) => ({
+  unitMin: l?.unitMin ?? LIMITS.unitMin,
+  threadMinPx: l?.threadMinPx ??
+    (l?.threadMinRatio != null ? +(l.threadMinRatio * 960).toFixed(2) : LIMITS.threadMinPx),
 });
+const limitsCfg = reactive(migrateLimits(prefs.limits));
 LIMITS.unitMin = limitsCfg.unitMin;
-LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
-// thread min px 환산 기준: 선택(활성) 유닛의 W, rect·무선택이면 기본 유닛 960 (§89)
-const threadRefW = computed(() => {
-  const u = activeUnit.value;
-  return u && u.type !== 'frame' ? u.params.W : 960;
-});
+LIMITS.threadMinPx = limitsCfg.threadMinPx;
 watch(limitsCfg, () => {
   LIMITS.unitMin = limitsCfg.unitMin;
-  LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
+  LIMITS.threadMinPx = limitsCfg.threadMinPx;
   props.actions.withGeomOp(() => {
     for (const u of props.doc.units) u.params = { ...u.params };
   });
@@ -1182,7 +1181,7 @@ function applyPrefsFromStorage() {
   Object.assign(frameQuickCfg, p2.frameQuick || p2.rectQuick || {});
   Object.assign(saveScope, p2.saveScope || {});
   Object.assign(openScope, p2.openScope || {});
-  Object.assign(limitsCfg, p2.limits || {});
+  Object.assign(limitsCfg, migrateLimits({ ...limitsCfg, ...(p2.limits || {}) }));
 }
 
 onMounted(() => {
@@ -1418,7 +1417,6 @@ onBeforeUnmount(() => {
       :bbox="showBBox"
       :grid-cfg="gridCfg"
       :limits="limitsCfg"
-      :ref-w="threadRefW"
       :view="view"
       @reset="resetZoom"
       @toggle-guides="showGuides = !showGuides"

@@ -88,23 +88,23 @@
     "bytes": 2598
   },
   "tiny-1px": {
-    "hash": "fed64ebae0bb1f16",
+    "hash": "87696750c4a977f4",
     "bytes": 2249
   },
   "tiny-10px": {
-    "hash": "6e00b945579709ed",
+    "hash": "953ae0b9eda60204",
     "bytes": 2300
   },
   "tiny-wide": {
-    "hash": "2a42e808bb100fa6",
+    "hash": "fb804a5633a3f42b",
     "bytes": 2465
   },
   "tiny-tall": {
-    "hash": "e2992c4eec5e1761",
+    "hash": "cba1f0938e7706ed",
     "bytes": 2427
   },
   "huge": {
-    "hash": "51aec83cc43e3eb2",
+    "hash": "8d88115a2285f4ea",
     "bytes": 2717
   },
   "combo-compress-one": {
@@ -112,7 +112,7 @@
     "bytes": 1936
   },
   "combo-flip-rot": {
-    "hash": "c2fa4c4ae26c0ac8",
+    "hash": "e18be01152d8c6ce",
     "bytes": 2543
   },
   "combo-prop-extreme": {
