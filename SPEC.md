@@ -1277,3 +1277,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **G 재배정** — 유닛/프레임 그리드 보기 마스터 토글(코너 아이콘과 동일 동작). Grid arrange의 G 단축키는 삭제(툴바 버튼 전용, 툴팁에서 (G) 제거) — 사용자 확정.
 2. **comp 화살표 헤드 축소** — dir·sym 모든 헤드 6×12 → 4×8 (스팬 유지: dir 6~22, sym 1~23).
 - 검증: G 토글로 그리드 라인 4→0→4, 화살표 렌더 확인.
+
+## 146. 2026-08-26 — 스와치 순서 확정: Y G B W SG VG SB + C
+
+- EO NEON(1) · WORLD GREEN(2) · HORIZON BLUE(3) · HALO WHITE(4) · STEEL GREY(5) · VOID GREY(6) · SPACE BLACK(7) · 커스텀(C). 숫자키는 인덱스 자동 추종.
