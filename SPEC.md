@@ -1100,3 +1100,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 논의 결정: 통일 1값도 3필드도 아닌 **margin 1 + gutter 1(X/Y 공유)** — 거터를 X/Y 다르게 쓰는 경우는 드물고, 세밀 조정은 메인 패널 몫. 팝업 = width·height·margin·gutter 4필드 (기본 1920·1080·20·20, 범위 margin 0~200·gutter 0~100).
 - `createFrame(x, y, W, H, fill, grid)` — grid 오버라이드 인자 추가(퀵 생성 경로만 사용, 드래그 생성은 기본값). frameQuickCfg에 margin·gutter 편입 — eo.prefs·저장 파일(tools) 자동 동승, 구버전 저장분은 기본값 보충.
 - 검증(E2E): 팝업 4필드 렌더, margin 37·gutter 13 입력 후 더블클릭 → 1920×1080·margin 37·gutterX/Y 13 생성.
+
+## 118. 2026-08-26 — 프레임 export에 내용물 포함
+
+- `selectionItems()`(App)가 선택된 프레임의 소유 유닛(§92 중심점+z상위 판정, `frameOwnedUnits`)을 export 목록에 동반 — 이동·복제와 동일한 내용물 문법. SVG 다운로드(⇧E)·SVG/PNG 클립보드 복사 공통.
+- 포함 순서 = doc.units 순서 그대로 → 컴포지트 렌더 순서가 스테이지 z-오더와 일치.
+- 검증: 프레임 단독 선택 → [unit, frame] 2아이템 컴포지트 / 유닛만 선택 → 1아이템 불변 / 유닛이 프레임 밖이면 프레임만.

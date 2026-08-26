@@ -88,8 +88,13 @@ function exportItem(u) {
   };
 }
 // 현재 선택 → export 아이템 목록 (다중 = 컴포지트, 아니면 활성 유닛)
+// 프레임은 소유 유닛(§92 중심점 판정)까지 동반 — 이동·복제와 동일한 내용물 문법 (§118).
+// 포함 순서는 doc.units 순서 그대로 = 스테이지 z-오더와 일치.
 function selectionItems() {
-  const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+  const ids = new Set(doc.selectedIds);
+  const frameIds = doc.units.filter((u) => ids.has(u.id) && u.type === 'frame').map((u) => u.id);
+  if (frameIds.length) for (const o of docApi.frameOwnedUnits(frameIds)) ids.add(o.id);
+  const sel = doc.units.filter((u) => ids.has(u.id));
   if (sel.length > 1) return sel.map(exportItem);
   return active.value ? [exportItem(active.value)] : [];
 }
