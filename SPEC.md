@@ -1218,3 +1218,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **스와치 바 2줄** — 1234 / 567C 그리드(`.swGrid` 4열). 툴팁 tip-align left. 별로면 롤백 가능(§ 명기).
 5. **cm 프리셋 A2**(420×594mm) — A3 앞에 추가.
 - 검증: 아웃라인 렌더+difference 적용, modeSeg 2개·축별 독립(rows sym/cols dir), 무채색 픽커(gray 바 O·SV 패드 X), 스와치 4열 그리드, phys 칩 A2~Letter, geo 30·doc 26 그린.
+
+## 135. 2026-08-26 — 활성 프레임 아웃라인 은은화·스와치 1줄 롤백·dir/sym 세그 스타일 통일
+
+1. **활성 프레임 아웃라인** — 3px 오프셋 제거(프레임 경계 밀착), 1.5→1px, opacity 0.8→0.45. difference 블렌드 유지.
+2. **스와치 바 1줄 복귀** — §134의 2줄(1234/567C) 실험 롤백.
+3. **dir/sym 미니 세그** — Toggle .seg와 동일 문법으로 통일 (fs-xs·3px 9px 패딩·active-outline-inset).

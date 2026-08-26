@@ -588,16 +588,15 @@ section h2 {
   }
 }
 .strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-// §134: comp dir/sym 인라인 미니 세그 (슬라이더 aux 슬롯)
+// §134·§135: comp dir/sym 인라인 미니 세그 — Toggle .seg와 동일 문법 (활성 = active-outline-inset)
 .modeSeg {
-  display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius);
   button {
     border: none; background: none; color: var(--faint); cursor: pointer;
-    font-family: inherit; font-size: var(--fs-2xs); letter-spacing: var(--ls-base);
-    padding: 2px 6px;
+    font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+    padding: 3px 9px;
     &:not(:last-child) { border-right: 1px solid var(--line); }
-    &.on { color: var(--accent); background: var(--hover-bg); }
-    &:hover { color: var(--accent); }
+    &.on { @include active-outline-inset; }
   }
 }
 .rowLabel {
