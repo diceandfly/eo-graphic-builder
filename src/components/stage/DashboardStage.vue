@@ -856,21 +856,18 @@ function onMove(e) {
       maxY = Math.max(maxY, t.y0 + dy + t.u.params.H);
     }
     // 프레임 셀렉 모드: 스냅 후보를 프레임으로 한정 — 유닛 엣지에 안 들러붙게 (§123)
+    // + 뷰포트 컬링(§126-1): 화면에 보이는 오브젝트만
+    const vr = viewWorldRect();
     const others = props.doc.units.filter(
-      (u) => !drag.targets.some((t) => t.u === u) && (!frameMode.value || u.type === 'frame')
+      (u) => !drag.targets.some((t) => t.u === u)
+        && (!frameMode.value || u.type === 'frame')
+        && inView(u, vr)
     );
     const mineX = [minX, (minX + maxX) / 2, maxX];
     const mineY = [minY, (minY + maxY) / 2, maxY];
     let bestX = null, bestY = null;
     for (const o of others) {
-      const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
-      const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
-      // 사각형 레이아웃 그리드 스냅: 마진 박스 엣지 + 컬럼/로우(거터 포함) 라인
-      if (o.type === 'frame' && o.params.gridOn) {
-        const gl = frameGridLines(o.params);
-        ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
-        oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
-      }
+      const { ox, oy } = snapPointsOf(o); // 후보 규칙 단일 소스 (§126)
       for (const c of ox) for (const m of mineX) {
         const d = c - m;
         if (Math.abs(d) < SNAP && (!bestX || Math.abs(d) < Math.abs(bestX.d))) bestX = { d, pos: c, o };
@@ -984,22 +981,39 @@ function onMove(e) {
   }
 }
 
+// ── 스마트 스냅 후보 필터 (§126) — 이동·리사이즈·프레임 드로우 공용 ──
+// (1) 뷰포트 컬링: 화면에 보이는 오브젝트만 후보 (상시)
+function viewWorldRect() {
+  const r = el.value.getBoundingClientRect();
+  const [x0, y0] = props.viewport.toWorld(0, 0);
+  const [x1, y1] = props.viewport.toWorld(r.width, r.height);
+  return { x0, y0, x1, y1 };
+}
+function inView(o, vr) {
+  return o.x + o.params.W >= vr.x0 && o.x <= vr.x1 && o.y + o.params.H >= vr.y0 && o.y <= vr.y1;
+}
+// 오브젝트 1개의 스냅 후보 좌표 — 엣지/센터(x·y 각 3) + 프레임 레이아웃 그리드 라인
+function snapPointsOf(o) {
+  const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
+  const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+  if (o.type === 'frame' && o.params.gridOn) {
+    const gl = frameGridLines(o.params);
+    ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
+    oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
+  }
+  return { ox, oy };
+}
+
 // 리사이즈 중 이동하는 엣지를 다른 유닛의 엣지/센터에 스냅
 function snapEdge(axis, pos, excludeUnits, SNAP) {
   let best = null;
+  const vr = viewWorldRect(); // §126-1
   for (const o of props.doc.units) {
     if (excludeUnits.includes(o)) continue;
     if (frameMode.value && o.type !== 'frame') continue; // 프레임 셀렉 모드: 프레임끼리만 (§123)
-    const cands =
-      axis === 'x'
-        ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]
-        : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
-    // 사각형 레이아웃 그리드 라인도 리사이즈 스냅 후보 (이동 스냅과 동일 규칙 — §71 픽스)
-    if (o.type === 'frame' && o.params.gridOn) {
-      const gl = frameGridLines(o.params);
-      if (axis === 'x') cands.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
-      else cands.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
-    }
+    if (!inView(o, vr)) continue;
+    const pts = snapPointsOf(o);
+    const cands = axis === 'x' ? pts.ox : pts.oy;
     for (const c of cands) {
       const d = c - pos;
       if (Math.abs(d) < SNAP && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, pos: c, o };
