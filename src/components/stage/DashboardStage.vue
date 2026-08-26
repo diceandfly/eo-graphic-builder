@@ -136,6 +136,19 @@ function toggleFrameMode() {
 }
 // 소유권 판정 (§92) — 어레인지와 공유하는 문서 로직이라 useDocument로 이동, 여기선 위임
 const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
+// 스포이드 타깃 필터 (§137): 선택과 같은 타입만 포인터 히트 —
+// 유닛/그룹 선택 = 프레임 무시, 프레임 선택 = 유닛/그룹 무시 (겹침 시 오픽 방지)
+const eyedropType = computed(() => {
+  const sel = props.doc.units.find((u) => props.doc.selectedIds.includes(u.id));
+  return sel ? sel.type : null;
+});
+function hitPointerEvents(u) {
+  if (mode.value === 'eyedrop') {
+    return eyedropType.value && u.type !== eyedropType.value ? 'none' : 'auto';
+  }
+  if (mode.value !== 'select') return 'auto';
+  return frameMode.value === (u.type === 'frame') ? 'auto' : 'none';
+}
 // 활성 프레임 아웃라인 (§134·§135): 오프셋 없이 프레임 경계에 밀착
 const activeFrameRect = computed(() => {
   const fid = props.actions.activeFrameId.value;
@@ -1278,7 +1291,7 @@ onBeforeUnmount(() => {
             class="hit"
             :width="u.params.W" :height="u.params.H"
             fill="transparent"
-            :style="{ pointerEvents: mode !== 'select' ? 'auto' : frameMode === (u.type === 'frame') ? 'auto' : 'none' }"
+            :style="{ pointerEvents: hitPointerEvents(u) }"
             @pointerdown.stop="onUnitDown(u, $event)"
             @contextmenu.prevent.stop="onUnitContext(u, $event)"
           />

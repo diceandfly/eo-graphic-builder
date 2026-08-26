@@ -1228,3 +1228,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 136. 2026-08-26 — 스포이드 팝업: Color 최상단
 
 - 범주 순서 Color → Size → Grid → Shape/Style → Orientation (§133 순서에서 Color만 최상단 이동).
+
+## 137. 2026-08-26 — 스포이드 타깃 타입 필터
+
+- 스포이드 모드에서 히트 대상은 **선택과 같은 타입만**: 유닛/그룹 선택 = 프레임 포인터 무시, 프레임 선택 = 유닛/그룹 무시 (`hitPointerEvents()` — 겹침 상황 오픽 방지). 선택 없음 = 전체 히트(흡수는 어차피 무동작).
+- 참고 확인: 프레임 그룹화는 현재 허용(타입 제한 없음 — 프레임끼리 ⌘G 가능), STEEL GREY = #8E8E8E로 constants·colors.css·CLAUDE.md 일치.
