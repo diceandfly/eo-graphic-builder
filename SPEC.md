@@ -1094,3 +1094,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - margin·gutter x/y 30 → 20으로 복구 (`createFrameParams` + px 모드 복귀 세팅). 검증: 새 프레임 20/20/20.
 - 퀵프레임 팝업에 margin·gutter 세팅 추가 여부는 논의 중 (통일값 vs 개별 필드).
+
+## 117. 2026-08-25 — 퀵프레임 팝업에 margin·gutter 설정 추가 (4필드)
+
+- 논의 결정: 통일 1값도 3필드도 아닌 **margin 1 + gutter 1(X/Y 공유)** — 거터를 X/Y 다르게 쓰는 경우는 드물고, 세밀 조정은 메인 패널 몫. 팝업 = width·height·margin·gutter 4필드 (기본 1920·1080·20·20, 범위 margin 0~200·gutter 0~100).
+- `createFrame(x, y, W, H, fill, grid)` — grid 오버라이드 인자 추가(퀵 생성 경로만 사용, 드래그 생성은 기본값). frameQuickCfg에 margin·gutter 편입 — eo.prefs·저장 파일(tools) 자동 동승, 구버전 저장분은 기본값 보충.
+- 검증(E2E): 팝업 4필드 렌더, margin 37·gutter 13 입력 후 더블클릭 → 1920×1080·margin 37·gutterX/Y 13 생성.

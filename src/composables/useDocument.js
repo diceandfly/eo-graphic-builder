@@ -407,8 +407,9 @@ export function useDocument() {
     return doc.units[doc.units.length - 1];
   }
   // 프레임 생성 (그리기 툴 F) — fill 기본값은 현재 컬러(없으면 createFrameParams 기본)
-  function createFrame(x, y, W = 300, H = 200, fill = null) {
-    const params = createFrameParams(fill ? { fill } : {});
+  // grid: 그리드 파라미터 오버라이드 { margin, gutterX, gutterY } (퀵프레임 설정, §116)
+  function createFrame(x, y, W = 300, H = 200, fill = null, grid = null) {
+    const params = createFrameParams({ ...(fill ? { fill } : {}), ...(grid || {}) });
     params.W = clamp(Math.round(W), LIMITS.unitMin, UNIT_MAX);
     params.H = clamp(Math.round(H), LIMITS.unitMin, UNIT_MAX);
     return pushUnit(params, Math.round(x), Math.round(y), null, 'frame');

@@ -18,7 +18,7 @@ const props = defineProps({
   blendCfg: Object,    // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
   arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
-  frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 크기 { w, h } (§85·§92)
+  frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 설정 { w, h, margin, gutter } (§85·§92·§116)
   frameMode: Boolean, // 프레임 조작 모드 (선택툴 우클릭 스왑, §92)
 }); // mode: 'select' | 'eyedrop' | 'frame'
 const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'frameQuick', 'toggleFrameMode']);
@@ -134,6 +134,15 @@ function onPick(c) {
           <div class="menuRow">
             <span class="rowLabel">height</span>
             <StepField v-model="frameQuickCfg.h" :min="50" :max="8000" :step="10" />
+          </div>
+          <!-- 그리드 초기값 — gutter는 X/Y 공유 1값, 개별 조정은 메인 패널 (§116) -->
+          <div class="menuRow">
+            <span class="rowLabel">margin</span>
+            <StepField v-model="frameQuickCfg.margin" :min="0" :max="200" :step="1" />
+          </div>
+          <div class="menuRow">
+            <span class="rowLabel">gutter</span>
+            <StepField v-model="frameQuickCfg.gutter" :min="0" :max="100" :step="1" />
           </div>
           <div class="menuNote">double-click the tool to create</div>
         </div>
