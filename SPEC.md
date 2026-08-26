@@ -1028,3 +1028,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - 클릭 의도의 미세 손떨림이 오브젝트를 1~2px 밀던 문제. **move 드래그에 화면 4px 데드존**(OS·피그마 관례, 줌 무관 screen px): 통과 전엔 위치 불변, 통과 후 down 지점 기준 delta 적용(스냅·가이드 계산도 통과 후에만). 리사이즈 핸들·마퀴는 의도가 명확해 데드존 없음.
 - 검증: 2px 드래그 이동 0 / 20px 드래그 정상(35% 줌에서 월드 57px = 화면 20px 환산 일치).
+
+## 105. 2026-08-25 — 패턴 매니저 아이콘 = EO 심볼
+
+- `src/assets/EO symbol_S_W.svg`의 폴리곤을 ManagerBar 슬롯에 인라인(fill 렌더, §95 채움 화살표 문법). 기본 --text·호버 --accent. ICONS.pattern(겹친 타일)은 미사용 상태로 보존.

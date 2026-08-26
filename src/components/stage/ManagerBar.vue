@@ -4,27 +4,28 @@ import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
 
 // 대시보드 우상단 — 매니저 바 (§99: 자리만 확보, 클릭 no-op).
-// layer = 레이어 매니저(추후 기획) / pattern = 패턴 매니저(Phase 2)
-const ACTIONS = [
-  { key: 'layers', tip: 'Layer manager — coming soon', paths: ICONS.layers },
-  { key: 'pattern', tip: 'Pattern manager — coming soon', paths: ICONS.pattern },
-];
+// layers = 레이어 매니저(추후 기획) / pattern = 패턴 매니저(Phase 2, EO 심볼 아이콘 §105)
 </script>
 
 <template>
   <div class="managerCorner">
     <FloatingBar>
-      <IconButton
-        v-for="a in ACTIONS"
-        :key="a.key"
-        :paths="a.paths"
-        :tip="a.tip"
-        tip-side="bottom" tip-align="right"
-      />
+      <IconButton :paths="ICONS.layers" tip="Layer manager — coming soon" tip-side="bottom" tip-align="right" />
+      <IconButton tip="Pattern manager — coming soon" tip-side="bottom" tip-align="right">
+        <!-- EO 심볼 (src/assets/EO symbol_S_W.svg 폴리곤 인라인 — fill 렌더라 슬롯 사용, §95 문법) -->
+        <svg class="eoSym" viewBox="0 0 4.07 4.11">
+          <polygon points="4.07 3.05 3.08 3.05 3.08 2.59 3.1 2.59 4.07 1.84 4.07 1.52 3.08 1.52 3.08 1.07 3.09 1.07 4.07 .31 4.07 0 .97 0 0 .77 0 1.06 .99 1.06 .99 1.52 .97 1.52 0 2.27 0 2.59 .99 2.59 .99 3.03 .98 3.04 0 3.8 0 4.11 3.1 4.11 4.07 3.34 4.07 3.05" />
+        </svg>
+      </IconButton>
     </FloatingBar>
   </div>
 </template>
 
 <style scoped lang="scss">
 .managerCorner { position: absolute; right: var(--sp-6); top: var(--sp-6); }
+.eoSym {
+  width: var(--icon-size); height: var(--icon-size);
+  polygon { fill: var(--text); }
+}
+.managerCorner button:hover .eoSym polygon { fill: var(--accent); }
 </style>
