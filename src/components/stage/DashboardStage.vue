@@ -992,11 +992,24 @@ function viewWorldRect() {
 function inView(o, vr) {
   return o.x + o.params.W >= vr.x0 && o.x <= vr.x1 && o.y + o.params.H >= vr.y0 && o.y <= vr.y1;
 }
+// ── §127 실험 필터 (써보고 취소 가능 — 이 두 상수와 아래 snapPointsOf 분기 외에는 아무 데도 안 얽힘) ──
+// (2) 극소 오브젝트 축소: 해당 축의 화면 크기가 이 값(px) 미만이면 엣지 3점 대신 중심 1점만. 0 = 비활성
+const SNAP_TINY_SCREEN = 8;
+// (3) 프레임 그리드 게이팅: 프레임의 화면 크기(짧은 변)가 이 값(px) 이상일 때만 그리드 라인 후보. 0 = 비활성
+const SNAP_GRID_MIN_SCREEN = 120;
+
 // 오브젝트 1개의 스냅 후보 좌표 — 엣지/센터(x·y 각 3) + 프레임 레이아웃 그리드 라인
 function snapPointsOf(o) {
-  const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
-  const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
-  if (o.type === 'frame' && o.params.gridOn) {
+  const sw = o.params.W * vp.scale; // 화면 크기 (§127 판정용)
+  const sh = o.params.H * vp.scale;
+  const tinyX = SNAP_TINY_SCREEN && sw < SNAP_TINY_SCREEN;
+  const tinyY = SNAP_TINY_SCREEN && sh < SNAP_TINY_SCREEN;
+  const ox = tinyX ? [o.x + o.params.W / 2] : [o.x, o.x + o.params.W / 2, o.x + o.params.W];
+  const oy = tinyY ? [o.y + o.params.H / 2] : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
+  if (
+    o.type === 'frame' && o.params.gridOn &&
+    (!SNAP_GRID_MIN_SCREEN || Math.min(sw, sh) >= SNAP_GRID_MIN_SCREEN)
+  ) {
     const gl = frameGridLines(o.params);
     ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
     oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
