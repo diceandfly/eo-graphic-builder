@@ -15,9 +15,9 @@ const emit = defineEmits(['save', 'open', 'reset']);
 
 // 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원
 const SCOPE_LABELS = {
-  work: 'Work data — units · groups · links · layout',
-  tools: 'Tools setting — tool customization',
-  viewport: 'Viewport setting — grid & render',
+  work: 'Work data',
+  tools: 'Tools setting',
+  viewport: 'Viewport setting',
 };
 const openMenu = ref(null); // 'manual' | 'save' | 'open' | null
 function onContext(key, e) {
