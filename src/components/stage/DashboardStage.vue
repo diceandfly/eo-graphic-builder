@@ -1505,7 +1505,7 @@ onBeforeUnmount(() => {
 // 활성 프레임 아웃라인 (§134·§135) — 흰색 + difference 블렌드: 캔버스 색 무관 가시.
 // §135: 오프셋 제거·1px·저오파시티로 은은하게
 .activeFrameOutline {
-  fill: none; stroke: #ffffff; stroke-width: 1; vector-effect: non-scaling-stroke;
+  fill: none; stroke: #ffffff; stroke-width: 2; vector-effect: non-scaling-stroke; /* §139: 1→2 */
   mix-blend-mode: difference; pointer-events: none; opacity: 0.45;
 }
 .linkBadge path {

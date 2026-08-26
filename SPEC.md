@@ -1241,3 +1241,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **--sp-section 26→22**, h2 하단 14→12 (LinkSection 동일).
 - **compSet 묶음** — 슬라이더+프리셋 칩 세트(유닛 pitch compression, 프레임 comp rows/cols)를 래퍼로 묶어 내부 6px·세트 10px — 칩의 소속이 시각적으로 명확해짐.
 - 실측: 섹션 간 22px 균일(유닛·프레임 뷰), 패널 콘텐츠 높이 유닛 뷰 687px·프레임 최장 뷰(comp+stroke on) 888px (약 90px 절감). 필요 뷰포트 높이 ≈ 콘텐츠 + 59px(패딩·마진).
+
+## 139. 2026-08-26 — 활성 프레임 스트로크 2px·SIZE 헤더 고정 높이
+
+1. 활성 프레임 아웃라인 1→**2px** (difference 블렌드·0.45 오파시티 유지).
+2. SIZE 섹션 헤더(.secHead) **고정 높이 18px+하단 7px** — each/px·cm 버튼 등장 여부와 무관하게 헤더 총높이 25px 불변 (멀티선택 시 아래 필드가 2px 밀리던 현상 제거, 정렬도 baseline→center).
+- 검증: 단일/멀티/프레임 뷰 헤더 18px 동일·첫 필드 top 불변, 스트로크 2px.

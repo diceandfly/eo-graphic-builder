@@ -550,7 +550,12 @@ section > :last-child { margin-bottom: 0; }
 .compSet { margin-bottom: 10px; }
 .compSet :deep(.row) { margin-bottom: 6px; }
 .compSet :deep(.chips) { margin-bottom: 0; }
-.secHead { display: flex; justify-content: space-between; align-items: baseline; }
+// §139: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(18+7) 불변 (멀티선택 시 밀림 방지)
+.secHead {
+  display: flex; justify-content: space-between; align-items: center;
+  height: 18px; margin-bottom: 7px;
+  h2 { margin: 0; }
+}
 .physRow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .dpiRow { margin-top: 8px; }
 // 치수 바로 아래 dpi — NumberField 행과 동일한 좌라벨/우입력 정렬
