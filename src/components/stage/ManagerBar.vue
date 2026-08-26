@@ -23,8 +23,9 @@ import { ICONS } from '../../ui/icons.js';
 
 <style scoped lang="scss">
 .managerCorner { position: absolute; right: var(--sp-6); top: var(--sp-6); }
+// 채움 심볼은 회색도(면적 밀도)가 높아 같은 크기여도 커 보임 — 광학 보정 -2px (§105)
 .eoSym {
-  width: var(--icon-size); height: var(--icon-size);
+  width: calc(var(--icon-size) - 2px); height: calc(var(--icon-size) - 2px);
   polygon { fill: var(--text); }
 }
 .managerCorner button:hover .eoSym polygon { fill: var(--accent); }
