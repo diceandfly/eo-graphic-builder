@@ -1317,11 +1317,12 @@ onBeforeUnmount(() => {
           class="linkBadge"
           :transform="`translate(${u.x + u.params.W} ${u.y})`"
         >
+          <!-- §149: 아이콘 우변을 바운딩박스 오른쪽 끝(x=0)에 정렬 — 텍스트는 아이콘 왼쪽 4px 간격 -->
           <text
             v-if="showLinkNums"
-            :x="-pxs(20)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end"
+            :x="-pxs(17)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end"
           >{{ linkIndex[u.linkId] }}</text>
-          <g :transform="`translate(${-pxs(16)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
+          <g :transform="`translate(${-pxs(13)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
