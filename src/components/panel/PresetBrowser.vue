@@ -158,14 +158,19 @@ section h2 {
   border: 1px dashed var(--line); border-radius: var(--radius);
   padding: 16px 12px; text-align: center;
 }
-.pGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+// minmax(0,1fr): nowrap 이름의 min-content가 컬럼을 밀어내는 blowout 방지 (§101)
+.pGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .pCard {
   position: relative; cursor: pointer;
   border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
   &:hover { border-color: var(--accent); }
   &:hover .pDel { opacity: 1; }
 }
-.pThumb { display: block; width: 100%; height: auto; background: var(--bg); border-radius: var(--radius); }
+// 썸네일 = 정사각 에리어 (§101): 비율 무관 contain 중앙 배치(SVG preserveAspectRatio meet 기본값)
+.pThumb {
+  display: block; width: 100%; aspect-ratio: 1 / 1;
+  background: var(--stage-bg); border-radius: var(--radius);
+}
 .pList { display: flex; flex-direction: column; gap: 6px; }
 .pRow {
   position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -174,7 +179,11 @@ section h2 {
   &:hover .pDel { opacity: 1; }
 }
 .pMini { width: 34px; height: 26px; flex-shrink: 0; background: var(--bg); border-radius: var(--radius); }
-.pName { font-size: var(--fs-xs); color: var(--text); margin-top: 4px; cursor: text; }
+// 이름 = 하단 고정 한 줄 (§101): 넘치면 말줄임
+.pName {
+  font-size: var(--fs-xs); color: var(--text); margin-top: 6px; cursor: text;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .pName:hover { color: var(--accent); }
 .pRow .pName { margin-top: 0; }
 .pNameInput {

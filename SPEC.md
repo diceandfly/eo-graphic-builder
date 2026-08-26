@@ -1007,3 +1007,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 100. 2026-08-25 — 컨텍스트 메뉴 그룹 순서 재조정
 
 - [Delete · Flip H · Flip V] / [Bring to front · Send to back] / [Register unit preset] / [Copy SVG · Copy PNG · Export SVG] 순으로 변경 (§59의 오더 우선 배치 대체). "Bring to top" 라벨도 "Bring to front"로 정리.
+
+## 101. 2026-08-25 — 프리셋 썸네일 정사각 에리어 + 한 줄 이름 고정
+
+- 썸네일 카드: 상단 **정사각 에리어**(aspect-ratio 1:1, 배경 --stage-bg) — 비율 무관 contain 중앙 배치(SVG preserveAspectRatio meet). 하단 이름은 **한 줄 고정 + 말줄임**. nowrap 이름이 grid 컬럼을 밀어내는 blowout은 minmax(0,1fr)로 방지.
