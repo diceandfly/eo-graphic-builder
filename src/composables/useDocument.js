@@ -53,11 +53,11 @@ export function createFrameParams(overrides = {}) {
     unitMode: 'px', // 패널 표기 단위 'px' | 'cm' — 내부 저장은 항상 px, dpi 기준 환산 표시
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
     gridOn: true, // 표시 + 스냅 겸용 (별도 snap 토글 폐기, §75)
-    margin: 30,
+    margin: 20,
     rows: 2,
     cols: 2,
-    gutterX: 30,
-    gutterY: 30,
+    gutterX: 20,
+    gutterY: 20,
     ...overrides,
   };
 }

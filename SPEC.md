@@ -1089,3 +1089,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - `createFrameParams` 기본값과 px 모드 복귀 세팅(§76의 단위 전환 리셋) 모두 30/30/30으로 상향. cm 모드 기본(0.6/0.2/0.2)은 불변.
 - 검증: 새 프레임 생성 → margin 30·gutterX 30·gutterY 30.
+
+## 116. 2026-08-25 — 프레임 그리드 기본값 20px 복구 (§115 롤백)
+
+- margin·gutter x/y 30 → 20으로 복구 (`createFrameParams` + px 모드 복귀 세팅). 검증: 새 프레임 20/20/20.
+- 퀵프레임 팝업에 margin·gutter 세팅 추가 여부는 논의 중 (통일값 vs 개별 필드).

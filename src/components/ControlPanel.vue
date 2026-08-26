@@ -167,7 +167,7 @@ function setSizeField(key, v) {
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
 }
-// 단위 전환 — 각 단위의 그리드 기본값 적용 (px 30/30/30 ↔ cm 0.6/0.2/0.2, §76·§115)
+// 단위 전환 — 각 단위의 그리드 기본값 적용 (px 20/20/20 ↔ cm 0.6/0.2/0.2, §76·§116)
 function setUnitMode(mode) {
   if (p.value.unitMode === mode) return;
   p.value.unitMode = mode;
@@ -177,9 +177,9 @@ function setUnitMode(mode) {
     p.value.gutterX = cmToPx(0.2);
     p.value.gutterY = cmToPx(0.2);
   } else {
-    p.value.margin = 30;
-    p.value.gutterX = 30;
-    p.value.gutterY = 30;
+    p.value.margin = 20;
+    p.value.gutterX = 20;
+    p.value.gutterY = 20;
   }
 }
 
