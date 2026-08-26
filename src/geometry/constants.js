@@ -29,6 +29,10 @@ export const LIMITS = { unitMin: UNIT_MIN, threadMinPx: THREAD_MIN_PX };
 export const ASPECT_TOL = 0.01;  // 비율 프리셋 칩 활성 판정 허용오차
 export const COMP_SCALE = 2.5;   // compression 슬라이더 표기 범위 (±2.5x)
 export const COMP_SNAP = 0.1;    // 중앙 0 스냅 반경 (표기 단위)
+// 프레임 그리드 컴프레션 (§133) — 매핑 로직은 유닛과 동일, 상한만 확장:
+// 2등분에서 최대 9:1 (= 10등분 그리드의 90% 라인에 분할선이 걸림)
+export const FRAME_COMP_SCALE = 9;
+export const FRAME_RATE_MAX = 9;
 export const STAGE_GRID = 80;    // 대시보드 배경 라인 그리드 간격 기본값 (px, 월드 좌표)
 export const STAGE_GRID_MIN = 20;   // 격자 하한 — 과소 간격의 렌더 부하 방지
 export const STAGE_GRID_MAX = 1000;

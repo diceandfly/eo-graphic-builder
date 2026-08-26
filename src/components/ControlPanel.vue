@@ -15,6 +15,7 @@ import {
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
   GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
   LIMITS, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
+  FRAME_COMP_SCALE, FRAME_RATE_MAX,
 } from '../geometry/constants.js';
 
 const props = defineProps({
@@ -182,6 +183,13 @@ function setCompLock(v) {
   p.value.compLock = v === 'on';
   if (p.value.compLock) p.value.compX = p.value.compY; // 켜는 순간 rows 값으로 통일
 }
+// §133: 프리셋 칩 — 유닛과 동일 비율 세트, 칩 값(rate) ↔ 슬라이더 값 상호 변환.
+// rate = 1 + |v|/FRAME_COMP_SCALE·(FRAME_RATE_MAX-1) 의 역산. 칩은 현재 부호(방향/대칭) 유지.
+const frameCompRate = (v) => 1 + (Math.abs(v) / FRAME_COMP_SCALE) * (FRAME_RATE_MAX - 1);
+function setCompChip(key, rate) {
+  const sign = p.value[key] < 0 ? -1 : 1;
+  setCompAxis(key, sign * ((rate - 1) * FRAME_COMP_SCALE) / (FRAME_RATE_MAX - 1));
+}
 // 그리드 필드 (margin·gutter): 표시 단위 기준 클램프 → px 환산 저장
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
@@ -318,6 +326,8 @@ function setStrokeColor(c) {
         @update:model-value="(v) => (p.strokeOn = v === 'on')"
       />
       <template v-if="p.strokeOn">
+        <!-- §133: width를 color 위로 -->
+        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" />
         <div class="strokeRow">
           <span class="rowLabel">stroke color</span>
           <ColorField
@@ -326,7 +336,6 @@ function setStrokeColor(c) {
             @remove-recent="removeRecentColor"
           />
         </div>
-        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" />
       </template>
     </section>
 
@@ -361,22 +370,25 @@ function setStrokeColor(c) {
         @update:model-value="(v) => (p.compOn = v === 'on')"
       />
       <template v-if="p.compOn">
-        <Slider
-          label="comp rows" :model-value="p.compY"
-          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
-          @update:model-value="(v) => setCompAxis('compY', v)"
-        />
-        <Slider
-          label="comp cols" :model-value="p.compX"
-          :min="-2.5" :max="2.5" :step="0.01" :arrow-step="0.05" :decimals="2"
-          :snap-to="0" :snap-radius="0.1" suffix="x"
-          @update:model-value="(v) => setCompAxis('compX', v)"
-        />
+        <!-- §133: comp mode는 compression 토글 바로 아래, 슬라이더 범위 ±9(2등분 최대 9:1), 축별 비율 칩 -->
         <Toggle
           label="comp mode" v-model="p.compMode"
           :options="[{ value: 'dir', label: 'directional' }, { value: 'sym', label: 'symmetrical' }]"
         />
+        <Slider
+          label="comp rows" :model-value="p.compY"
+          :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
+          @update:model-value="(v) => setCompAxis('compY', v)"
+        />
+        <ChipRow :model-value="frameCompRate(p.compY)" @update:model-value="(r) => setCompChip('compY', r)" />
+        <Slider
+          label="comp cols" :model-value="p.compX"
+          :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
+          :snap-to="0" :snap-radius="0.1" suffix="x"
+          @update:model-value="(v) => setCompAxis('compX', v)"
+        />
+        <ChipRow :model-value="frameCompRate(p.compX)" @update:model-value="(r) => setCompChip('compX', r)" />
         <!-- §132: 잠금 on = rows·cols 값 동기화 (켜는 순간 rows 값으로 통일) -->
         <Toggle
           label="comp lock rows-cols" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"

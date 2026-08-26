@@ -1200,3 +1200,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **패널 GRID 순서 확정(사용자안)** — margin → gutter rows → gutter cols → rows → cols → compression → comp rows → comp cols → comp mode(directional/symmetrical 풀네임) → **comp lock rows-cols**. 거터 라벨 row/cols gutter → gutter rows/cols로 재정정.
 4. **COMP LOCK** — `compLock`(기본 off): 켜는 순간 cols 값을 rows 값으로 통일, 잠금 중엔 어느 쪽을 편집해도 양축 동기.
 - 검증: 패널 라벨 순서 = 사용자안 일치, lock on 동기(0.8)·잠금 편집 동기(1.2/1.2), 마스터 토글 5→0→5 라인, 메뉴 개별 토글로 프레임만 off, geo 30·doc 23 그린.
+
+## 133. 2026-08-26 — 프레임 comp 상한 9:1·비율 칩·comp mode 위치·stroke 순서·스포이드 프레임 대응
+
+1. **comp 슬라이더 범위 ±9** — 사용자 의도 확정: "2등분에서 최대 시 분할선이 10등분의 9:1 라인" = rate 상한 9. 매핑 구조는 유닛과 동일(`FRAME_COMP_SCALE`/`FRAME_RATE_MAX` = 9, constants). 화살표 0.1.
+2. **비율 프리셋 칩** — comp rows·cols 슬라이더 각각 아래 유닛과 동일 세트(RATIO_CHIPS)의 ChipRow. 칩 = rate 지정(현재 부호 유지), lock 시 양축 동기(`setCompAxis` 경유). 칩 활성 표시는 rate 역산(`frameCompRate`).
+3. **comp mode 위치** — compression 토글 바로 아래로 (§132 순서 재조정).
+4. **STYLE 순서** — stroke width를 stroke color 위로.
+5. **스포이드 프레임 대응** — 팝업 순서 Size→Grid→Color→**Shape/Style**→Orientation. 흡수 범주 매핑을 링크 스코프와 분리된 `EYEDROP_KEYS`로 확장: grid = 프레임 margin/rows/gutter/comp*, shape = 프레임 fillOn/strokeOn/stroke/strokeW 겸용, 소스에 없는 키는 패치 제외 가드. 적용은 종전대로 동일 타입 한정(링크 스코프 필터·전파 로직 불변).
+- 검증: 2등분+compX 9 → 분할선 666:74(9:1), 패널 순서·칩 2행·STYLE 순서·팝업 순서 확인, doc +3(프레임 grid/style+color 흡수·타입 불일치 무동작) = 26 그린, geo 30 그린.

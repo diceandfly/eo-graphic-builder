@@ -1,4 +1,4 @@
-import { RATE_MAX, COMP_SCALE } from './constants.js';
+import { FRAME_RATE_MAX, FRAME_COMP_SCALE } from './constants.js';
 
 // 프레임 rect 표현 속성 — 렌더(FrameGraphic)와 export(exportSvg) 단일 경로 (§120).
 // fill/stroke 독립 토글(§110) 규칙은 여기에만 존재해야 한다 (유닛의 deriveUnit과 같은 역할).
@@ -10,13 +10,13 @@ export function frameAttrs(p) {
   };
 }
 
-// 그리드 컴프레션 가중치 (§131) — v: 부호 있는 압축값(±COMP_SCALE, 0 = 균등),
-// 매핑은 유닛 컴프레션과 동일(rate = 1 + |v|/COMP_SCALE·(RATE_MAX-1)).
+// 그리드 컴프레션 가중치 (§131·§133) — v: 부호 있는 압축값(±FRAME_COMP_SCALE, 0 = 균등),
+// 매핑은 유닛 컴프레션과 동일 구조(rate = 1 + |v|/SCALE·(MAX-1)), 상한만 9 (2등분 최대 9:1).
 // mode 'dir': 한 방향 등비 (+ = 앞쪽 넓게, 유닛 L→S와 동일 부호 규약)
 // mode 'sym': 중앙 대칭 (+ = 중앙 넓게 ↔ − = 가장자리 넓게)
 function compWeights(n, v, mode) {
   if (!v || n < 2) return Array(n).fill(1);
-  const rate = 1 + (Math.min(Math.abs(v), COMP_SCALE) / COMP_SCALE) * (RATE_MAX - 1);
+  const rate = 1 + (Math.min(Math.abs(v), FRAME_COMP_SCALE) / FRAME_COMP_SCALE) * (FRAME_RATE_MAX - 1);
   const w = [];
   for (let i = 0; i < n; i++) {
     const e = mode === 'sym' ? -Math.abs(i - (n - 1) / 2) : n - 1 - i;

@@ -281,7 +281,38 @@ function centerIn(u, f) {
   });
 }
 
-// 10. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
+// 10. 스포이드: 프레임 grid/shape(style)/color 범주 흡수 + 동일 타입 한정 (§133)
+{
+  const api = fresh();
+  const u = api.doc.units[0];
+  const fA = api.createFrame(1000, 0, 400, 300);
+  const fB = api.createFrame(2000, 0, 500, 350);
+  Object.assign(fA.params, { margin: 44, rows: 3, cols: 5, compOn: true, compX: 2, fill: '#123456', strokeOn: true, stroke: '#654321', strokeW: 9 });
+  api.setSelection([fB.id]);
+  api.absorbFrom(fA, { grid: true });
+  ok('스포이드: 프레임 grid 범주 흡수 (color·style 불변)', () => {
+    assert.equal(fB.params.margin, 44);
+    assert.equal(fB.params.cols, 5);
+    assert.equal(fB.params.compX, 2);
+    assert.notEqual(fB.params.fill, '#123456');
+    assert.equal(fB.params.strokeOn, false);
+  });
+  api.absorbFrom(fA, { shape: true, color: true });
+  ok('스포이드: 프레임 style+color 범주 흡수', () => {
+    assert.equal(fB.params.strokeOn, true);
+    assert.equal(fB.params.strokeW, 9);
+    assert.equal(fB.params.fill, '#123456');
+  });
+  const uFill = u.params.fill;
+  api.setSelection([u.id]);
+  api.absorbFrom(fA, { color: true, grid: true });
+  ok('스포이드: 타입 불일치(유닛←프레임)는 무동작', () => {
+    assert.equal(u.params.fill, uFill);
+    assert.equal(u.params.margin, undefined);
+  });
+}
+
+// 11. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
 {
   const api = fresh();
   const u = api.doc.units[0];

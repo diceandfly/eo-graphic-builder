@@ -184,13 +184,29 @@ export function useDocument() {
   for (const [cat, keys] of Object.entries(SCOPE_KEYS)) for (const k of keys) KEY_CAT[k] = cat;
   // 기본: color·orientation은 off (사용자 확정 §62 — 개별성 유지가 더 흔한 사용례)
   const linkScopeDefault = () => ({ size: true, orientation: false, grid: true, shape: true, color: false });
+  // 스포이드 전용 범주 매핑 (§133) — 링크 스코프(SCOPE_KEYS/KEY_CAT)와 분리 유지:
+  // 프레임 키를 링크 범주에 편입하면 프레임 링크(전체 동기화, 미분류 키 = 항상 동기)가
+  // 스코프 필터에 걸리므로, 흡수 경로에서만 확장한다. 적용은 종전대로 동일 타입 한정.
+  const EYEDROP_KEYS = {
+    size: ['W', 'H'],
+    orientation: ['orientation', 'flipX'],
+    grid: [
+      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'], // 유닛
+      ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compMode', 'compX', 'compY', 'compLock'], // 프레임
+    ],
+    shape: [
+      ...['dPct', 'a', 'b', 'threads', 'threadDir'],       // 유닛 shape
+      ...['fillOn', 'strokeOn', 'stroke', 'strokeW'],       // 프레임 style (§133: Shape/Style 겸용)
+    ],
+    color: ['fill'],
+  };
   function absorbFrom(source, scope = null) {
     const keys = scope
-      ? Object.entries(scope).filter(([, v]) => v).flatMap(([k]) => SCOPE_KEYS[k] || [])
+      ? Object.entries(scope).filter(([, v]) => v).flatMap(([k]) => EYEDROP_KEYS[k] || [])
       : Object.keys(source.params);
     if (!keys.length) return;
     const patch = {};
-    for (const k of keys) patch[k] = source.params[k];
+    for (const k of keys) if (k in source.params) patch[k] = source.params[k];
     // 직접 대상(선택)은 전체 패치, 링크로만 딸려오는 멤버는 링크 스코프 필터 적용
     const direct = new Set(doc.selectedIds);
     const viaLink = new Map(); // id → linkId
