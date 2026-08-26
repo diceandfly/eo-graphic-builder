@@ -896,3 +896,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **툴 순서 재배치** — select → **rect** → eyedrop → blend → arrange. rect 우클릭 = **Quick rectangle 메뉴**(더블클릭 즉시 생성 크기 w/h, 기본 1920×800, eo.prefs.rectQuick 영속).
 5. **메인 패널 오버레이 전환** — flex 사이드바 → 스테이지 위 absolute 플로팅 카드. 주변 여백으로 캔버스가 그대로 비침(기존 블랙 솔리드 제거). 스테이지가 전체 폭이 되어 FileBar는 패널 오른쪽 옆(left = panel-w + 2·sp-6)으로 이동.
 - 검증: 그리드 메뉴 5행·색 반영·리셋, recent 슬롯 저장/표시, rect 우클릭 메뉴에서 400×300 설정 후 더블클릭 생성 정확, 오버레이 레이아웃/파일바 위치 스크린샷 확인. 회귀 30/30.
+
+## 86. 2026-08-25 — seam 보정 옵션화 · 저장/열기 범위 토글 · 실사용 컬러 recents · 리소스 모니터
+
+1. **seam 스트로크 보정 옵션화** — 줌% 버튼 우클릭 "Render compensation" 메뉴: 토글(기본 on) + "Off above zoom (%)"(기본 40, 10~400). 폭 공식 유지(1.2−scale 화면px), 컷오프 줌 이상에선 0. 기존 120% 상수 컷오프 대체. `view.seamOn/seamCutoff`(eo.prefs).
+2. **프로젝트 JSON 저장/열기 범위 토글** — 저장·열기 버튼 우클릭 메뉴: Objects & groups / Viewport / Workspace settings 체크(각각 eo.prefs.saveScope/openScope 영속, 저장 기본 workspace off·열기 기본 전체 on). JSON v2: workspace = { prefs(eo.prefs 스냅샷), customRatios }. 열기 시 workspace는 eo.prefs 덮어쓰기 후 'eo:prefs' 이벤트로 라이브 반영(applyPrefsFromStorage). v1 파일 customRatios 하위 호환.
+3. **recents = 실사용 컬러** — 픽커 팝업 닫힘 저장(§85) 폐기 → 오브젝트에 실제 적용된 비 브랜드 컬러만 저장(onFill 경로, 픽커 드래그 연속 적용은 500ms 디바운스로 최종색만).
+4. **캔버스 그리드 메뉴 재배열** — Grid color → Size → Snap → Background → reset.
+5. **리소스 모니터** — 매뉴얼 버튼 우클릭 "View utilities > Resource monitor" 토글. 코너 바 상단에 숫자만: FPS(rAF 0.5s 창) · MEM(JS 힙 MB, 크롬 계열만 — 미지원 브라우저는 자동 생략) · OBJ(오브젝트 수). CPU 사용률은 웹 페이지에서 측정 불가라 제외.
+- 검증: 그리드 메뉴 순서, seam(100% 줌에서 0 / 컷오프 200%로 올리면 0.2 활성 / 토글 off 0), 모니터 표시(fps·obj), 저장 JSON v2에 workspace{prefs,customRatios} 포함, 열기 메뉴 존재, 커스텀 컬러 적용 시 recents 저장. 회귀 30/30.

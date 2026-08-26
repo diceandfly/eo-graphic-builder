@@ -9,6 +9,7 @@ import FileBar from './FileBar.vue';
 import RectGraphic from './RectGraphic.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
+import ResourceMonitor from './ResourceMonitor.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { rectGridLines } from '../../geometry/rectGrid.js';
@@ -157,8 +158,14 @@ const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토�
 const view = reactive({
   nudge: 5, showLinks: true, showGroups: true, guideColor: null,
   stageGridColor: null, stageBgColor: null,
+  seamOn: true, seamCutoff: 40, // seam 스트로크 보정: 줌 < cutoff% 에서만 (§86)
+  resMon: false, // 리소스 모니터 표시 (§86)
   ...(prefs.view || {}),
 });
+// seam 보정 폭 (화면 px): 토글 + 컷오프 줌 이상에서 0
+const seamW = computed(() =>
+  view.seamOn && vp.scale < view.seamCutoff / 100 ? Math.max(0, 1.2 - vp.scale) : 0
+);
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 4, gap: 20, scale: 0.5, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
@@ -176,11 +183,15 @@ function commitRecentColor(c) {
 }
 // 사각형 더블클릭 즉시 생성 크기 (사각 툴 우클릭 메뉴에서 편집 — §85)
 const rectQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}) });
+// 프로젝트 JSON 저장/열기 범위 (저장·열기 버튼 우클릭 메뉴 — §86)
+const saveScope = reactive({ objects: true, viewport: true, workspace: false, ...(prefs.saveScope || {}) });
+const openScope = reactive({ objects: true, viewport: true, workspace: true, ...(prefs.openScope || {}) });
 watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
     currentColor: currentColor.value, customColor: customColor.value,
     recentColors: recentColors.value, rectQuick: rectQuickCfg,
+    saveScope, openScope,
   }),
   (s) => localStorage.setItem(PREFS_KEY, s)
 );
@@ -321,11 +332,18 @@ function onRectQuick() {
 }
 
 // 스와치/숫자키 컬러: 선택이 있으면 적용, 없으면 현재 컬러만 지정 (그리기 툴 기본값)
+let recentTimer = null;
 function onFill(c) {
   currentColor.value = c;
   if (props.doc.selectedIds.length) {
     props.actions.setFill(c);
     setLast(`apply ${c}`, () => props.actions.setFill(c));
+    // 오브젝트에 실제 적용된 비 브랜드 컬러만 최근 슬롯에 저장 (§86)
+    // 픽커 드래그 중 연속 적용은 디바운스로 최종색만 남김
+    if (!BRAND_COLORS.includes(c)) {
+      clearTimeout(recentTimer);
+      recentTimer = setTimeout(() => commitRecentColor(c), 500);
+    }
   }
 }
 
@@ -1033,9 +1051,27 @@ function onReset() {
   toast('Dashboard reset');
 }
 
+// 프로젝트 JSON의 워크스페이스 설정 반영 (App.openProject가 eo.prefs 갱신 후 'eo:prefs' 발신 — §86)
+function applyPrefsFromStorage() {
+  let p2;
+  try { p2 = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { return; }
+  Object.assign(eyedropScope, p2.eyedropScope || {});
+  Object.assign(gridCfg, p2.grid || {});
+  Object.assign(view, p2.view || {});
+  Object.assign(blendCfg, p2.blend || {});
+  Object.assign(arrangeCfg, p2.arrange || {});
+  if (p2.currentColor !== undefined) currentColor.value = p2.currentColor;
+  if (p2.customColor) customColor.value = p2.customColor;
+  if (Array.isArray(p2.recentColors)) recentColors.value = p2.recentColors;
+  Object.assign(rectQuickCfg, p2.rectQuick || {});
+  Object.assign(saveScope, p2.saveScope || {});
+  Object.assign(openScope, p2.openScope || {});
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
+  window.addEventListener('eo:prefs', applyPrefsFromStorage);
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
   if (!props.viewport.restored) centerFirstUnit();
   // 자동저장 복원 안내
@@ -1054,6 +1090,7 @@ defineExpose({ centerWorld, toast });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
+  window.removeEventListener('eo:prefs', applyPrefsFromStorage);
   window.removeEventListener('pointermove', onMove);
 });
 </script>
@@ -1092,7 +1129,7 @@ onBeforeUnmount(() => {
             v-else
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
-            :seam-width="Math.max(0, 1.2 - vp.scale)"
+            :seam-width="seamW"
           />
           <rect
             class="hit"
@@ -1231,13 +1268,16 @@ onBeforeUnmount(() => {
       @arrange="onArrange"
       @rect-quick="onRectQuick"
       @update:custom-color="(c) => (customColor = c)"
-      @commit-custom="commitRecentColor"
     />
     <FileBar
-      @save="actions.saveProject()"
-      @open="(f) => actions.openProject(f)"
+      :view="view"
+      :save-scope="saveScope"
+      :open-scope="openScope"
+      @save="actions.saveProject({ ...saveScope })"
+      @open="(f) => actions.openProject(f, { ...openScope })"
       @reset="onReset"
     />
+    <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" @align="onAlign" />
     <ZoomBadge
       :scale="vp.scale"

@@ -18,7 +18,7 @@ const props = defineProps({
   recentColors: Array, // 최근 사용 커스텀 컬러 (팝업 하단 슬롯, §85)
   rectQuickCfg: Object, // 사각형 더블클릭 즉시 생성 크기 { w, h } (§85)
 }); // mode: 'select' | 'eyedrop' | 'rect'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick', 'commitCustom']);
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 
 // 도구 순서: select → rect → eyedrop → blend → arrange (§85에서 rect를 스포이드 왼쪽으로)
@@ -80,7 +80,6 @@ function closeCustom() {
 }
 watch(customOpen, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closeCustom, { once: true }), 0);
-  else emit('commitCustom', props.customColor); // 팝업 닫힘 = 최근 컬러 슬롯에 자동 저장 (§85)
 });
 function onPick(c) {
   emit('update:customColor', c);
@@ -123,7 +122,7 @@ watch(rectOpen, (open) => {
         <div v-if="customOpen" class="menu" @pointerdown.stop>
           <div class="menuTitle">Custom color</div>
           <ColorPicker :model-value="customColor" @update:model-value="onPick" />
-          <!-- 최근 사용 커스텀 컬러 슬롯 (팝업 닫힐 때 자동 저장, 최대 6) -->
+          <!-- 최근 사용 컬러 슬롯 (오브젝트에 실제 적용된 비 브랜드 컬러 자동 저장, 최대 6 — §86) -->
           <div v-if="recentColors && recentColors.length" class="recentRow">
             <button
               v-for="rc in recentColors" :key="rc"

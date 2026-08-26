@@ -59,6 +59,12 @@ function hexSetter(key) {
 const onGuideColor = hexSetter('guideColor');
 const onStageGridColor = hexSetter('stageGridColor');
 const onStageBgColor = hexSetter('stageBgColor');
+// seam 보정 컷오프 (%) 입력 (§86)
+function onSeamCutoff(e) {
+  const v = Number(e.target.value);
+  if (Number.isFinite(v) && v >= 10) props.view.seamCutoff = Math.min(400, Math.round(v));
+  e.target.value = props.view.seamCutoff;
+}
 // 캔버스 그리드 옵션 일괄 초기화 (크기·스냅·격자색·배경색 — §85)
 function resetGridDefaults() {
   props.gridCfg.size = STAGE_GRID;
@@ -86,8 +92,17 @@ function resetGridDefaults() {
           @change="resetIdle"
         >
           <div class="menuTitle">Canvas grid</div>
+          <div class="menuRow">
+            <span class="rowGrow">Grid color</span>
+            <span class="preview" :style="{ background: view.stageGridColor || 'var(--stage-grid)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.stageGridColor || ''"
+              @keydown.enter="onStageGridColor" @change="onStageGridColor"
+            />
+          </div>
           <label class="menuRow">
-            <span>Size (px)</span>
+            <span class="rowGrow">Size (px)</span>
             <input
               class="numInput" type="number"
               :min="STAGE_GRID_MIN" :max="STAGE_GRID_MAX"
@@ -98,15 +113,6 @@ function resetGridDefaults() {
             <input type="checkbox" v-model="gridCfg.snap" />
             <span>Snap to grid</span>
           </label>
-          <div class="menuRow">
-            <span class="rowGrow">Grid color</span>
-            <span class="preview" :style="{ background: view.stageGridColor || 'var(--stage-grid)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.stageGridColor || ''"
-              @keydown.enter="onStageGridColor" @change="onStageGridColor"
-            />
-          </div>
           <div class="menuRow">
             <span class="rowGrow">Background</span>
             <span class="preview" :style="{ background: view.stageBgColor || 'var(--bg)' }" />
@@ -175,9 +181,37 @@ function resetGridDefaults() {
           <button class="miniBtn" @click="view.guideColor = null">reset to default</button>
         </div>
       </div>
-      <IconButton class="zoom" tip="Reset zoom (100%)" tip-align="right" @click="$emit('reset')">
-        {{ pct }}%
-      </IconButton>
+      <div class="optWrap">
+        <IconButton
+          class="zoom" tip-align="right"
+          :tip="openMenu === 'zoom' ? '' : 'Reset zoom (100%)'"
+          @click="$emit('reset')"
+          @contextmenu="onContext('zoom', $event)"
+        >
+          {{ pct }}%
+        </IconButton>
+        <!-- 줌 우클릭: 렌더 시각 보정 옵션 (§86) -->
+        <div
+          v-if="openMenu === 'zoom' && view"
+          class="menu"
+          @pointerdown.stop="resetIdle"
+          @pointermove="resetIdle"
+          @change="resetIdle"
+        >
+          <div class="menuTitle">Render compensation</div>
+          <label class="menuRow">
+            <input type="checkbox" v-model="view.seamOn" />
+            <span>Seam stroke (AA fix)</span>
+          </label>
+          <label class="menuRow">
+            <span class="rowGrow">Off above zoom (%)</span>
+            <input
+              class="numInput" type="number" min="10" max="400"
+              :value="view.seamCutoff" @change="onSeamCutoff"
+            />
+          </label>
+        </div>
+      </div>
     </FloatingBar>
   </div>
 </template>

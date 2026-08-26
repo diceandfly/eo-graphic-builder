@@ -115,16 +115,23 @@ async function copySelectionPng() {
 }
 const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언랩
 
-// JSON 프로젝트 저장/열기 — 대시보드 작업 전체 (유닛·뷰포트·커스텀 비율)
-function saveProject() {
-  const data = {
-    version: 1,
-    units: doc.units,
-    groupNames: doc.groupNames,
-    linkScopes: doc.linkScopes,
-    viewport: { ...viewport.vp },
-    customRatios: JSON.parse(localStorage.getItem('eo.customRatios') || '[]'),
-  };
+// JSON 프로젝트 저장/열기 — 저장·열기 버튼 우클릭 메뉴의 범위 토글로 큰분류 선택 (§86)
+// objects = 유닛·그룹·링크 / viewport = 줌·팬 / workspace = 작업환경(eo.prefs)·커스텀 비율
+function saveProject(scope = {}) {
+  const data = { version: 2 };
+  if (scope.objects !== false) {
+    data.units = doc.units;
+    data.groupNames = doc.groupNames;
+    data.linkScopes = doc.linkScopes;
+  }
+  if (scope.viewport !== false) data.viewport = { ...viewport.vp };
+  if (scope.workspace) {
+    let prefsData = {};
+    let ratios = [];
+    try { prefsData = JSON.parse(localStorage.getItem('eo.prefs') || '{}'); } catch { /* 무시 */ }
+    try { ratios = JSON.parse(localStorage.getItem('eo.customRatios') || '[]'); } catch { /* 무시 */ }
+    data.workspace = { prefs: prefsData, customRatios: ratios };
+  }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -133,14 +140,23 @@ function saveProject() {
   a.click();
   URL.revokeObjectURL(url);
 }
-async function openProject(file) {
+async function openProject(file, scope = {}) {
   try {
     const data = JSON.parse(await file.text());
-    docApi.loadProject(data.units || [], { groupNames: data.groupNames, linkScopes: data.linkScopes });
-    if (data.viewport) Object.assign(viewport.vp, data.viewport);
-    if (data.customRatios) {
-      localStorage.setItem('eo.customRatios', JSON.stringify(data.customRatios));
-      window.dispatchEvent(new Event('eo:ratios'));
+    if (scope.objects !== false && Array.isArray(data.units)) {
+      docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes });
+    }
+    if (scope.viewport !== false && data.viewport) Object.assign(viewport.vp, data.viewport);
+    if (scope.workspace !== false) {
+      if (data.workspace?.prefs) {
+        localStorage.setItem('eo.prefs', JSON.stringify(data.workspace.prefs));
+        window.dispatchEvent(new Event('eo:prefs')); // DashboardStage가 라이브 반영
+      }
+      const ratios = data.workspace?.customRatios ?? data.customRatios; // v1 하위 호환
+      if (ratios) {
+        localStorage.setItem('eo.customRatios', JSON.stringify(ratios));
+        window.dispatchEvent(new Event('eo:ratios'));
+      }
     }
   } catch (err) {
     console.error('invalid project file', err);
