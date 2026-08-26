@@ -208,7 +208,7 @@ function onPick(c) {
         <IconButton
           :paths="ICONS.arrange"
           :active="openPopup === 'arrange'"
-          :tip="openPopup === 'arrange' ? '' : 'Grid arrange (G)'"
+          :tip="openPopup === 'arrange' ? '' : 'Grid arrange'"
           @click="emit('arrange')"
           @contextmenu="togglePopup('arrange', $event)"
         />

@@ -563,7 +563,7 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
   if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
-  if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
+  if (!mod && !e.shiftKey && e.code === 'KeyG') toggleAllGrids(); // §145: G = 그리드 보기 토글 (arrange 단축키 삭제)
   if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) doOrder('front');
   if (!mod && !e.shiftKey && e.code === 'KeyW' && props.doc.selectedIds.length) doOrder('back');
 }

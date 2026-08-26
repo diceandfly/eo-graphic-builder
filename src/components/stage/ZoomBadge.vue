@@ -139,7 +139,7 @@ function resetGridDefaults() {
       <div class="optWrap">
         <IconButton
           :paths="ICONS.unitGrid" :active="guides" tip-align="right"
-          :tip="openMenu === 'unit' ? '' : guides ? 'Hide unit/frame grid' : 'Show unit/frame grid'"
+          :tip="openMenu === 'unit' ? '' : guides ? 'Hide unit/frame grid (G)' : 'Show unit/frame grid (G)'"
           @click="$emit('toggleGuides')"
           @contextmenu="onContext('unit', $event)"
         />
