@@ -259,7 +259,8 @@ const stageActions = {
   position: absolute; left: var(--sp-6); top: var(--sp-6); z-index: 10;
   width: var(--panel-w); overflow-y: auto;
   height: calc(100vh - 2 * var(--sp-6)); box-sizing: border-box;
-  padding: 22px var(--panel-pad) 24px;
+  padding: 16px var(--panel-pad) 24px; // §123: 타이틀 축소에 맞춰 상단 22→16
+
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;

@@ -1,4 +1,4 @@
-import { reactive, computed, watch, nextTick } from 'vue';
+import { reactive, computed, ref, watch, nextTick } from 'vue';
 import { namePrefix } from '../objects/registry.js';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, LIMITS, UNIT_MAX,
@@ -901,6 +901,19 @@ export function useDocument() {
     for (const u of doc.units) if (doc.selectedIds.includes(u.id)) normalize(u.params);
   }
 
+  // ---- 활성 프레임 (§123) ----
+  // 가장 최근 생성·선택·조작된 프레임 (생성·이동 모두 선택을 경유하므로 선택 감시로 충분).
+  // 단일 블록 정렬의 기준 프레임 — 영속·히스토리 미포함 (세션 로컬 포인터).
+  const activeFrameId = ref(null);
+  watch(
+    () => doc.selectedIds.join(','),
+    () => {
+      const sel = doc.units.filter((u) => u.type === 'frame' && doc.selectedIds.includes(u.id));
+      const f = sel.find((u) => u.id === doc.activeId) ?? sel[sel.length - 1];
+      if (f) activeFrameId.value = f.id;
+    }
+  );
+
   // ---- 블록 판정 (단일 소스, §120) ----
   // 블록 = 최외곽 그룹 단위 (그룹은 한 덩어리) — 정렬·등간격·어레인지·프레임 소유·정렬바 활성이 공유
   function groupBlocks(units) {
@@ -980,8 +993,34 @@ export function useDocument() {
     }
   }
 
+  function alignDelta(refBox, bb, type) {
+    let dx = 0, dy = 0;
+    if (type === 'left') dx = refBox.minX - bb.minX;
+    else if (type === 'hcenter') dx = (refBox.minX + refBox.maxX) / 2 - (bb.minX + bb.maxX) / 2;
+    else if (type === 'right') dx = refBox.maxX - bb.maxX;
+    else if (type === 'top') dy = refBox.minY - bb.minY;
+    else if (type === 'vcenter') dy = (refBox.minY + refBox.maxY) / 2 - (bb.minY + bb.maxY) / 2;
+    else if (type === 'bottom') dy = refBox.maxY - bb.maxY;
+    return [dx, dy];
+  }
+  // 활성 프레임(§123) — 존재 확인 포함
+  function activeFrame() {
+    return doc.units.find((u) => u.id === activeFrameId.value && u.type === 'frame') ?? null;
+  }
   function alignSelected(type) {
     const blocks = blocksOf(doc.selectedIds);
+    // 단일 블록 + 활성 프레임: 프레임 bbox 기준 정렬 (§123). 프레임 자신 선택은 제외.
+    if (blocks.length === 1) {
+      const f = activeFrame();
+      if (!f || blocks[0].includes(f)) return;
+      const refBox = { minX: f.x, minY: f.y, maxX: f.x + f.params.W, maxY: f.y + f.params.H };
+      const [dx, dy] = alignDelta(refBox, bboxOf(blocks[0]), type);
+      for (const u of blocks[0]) {
+        u.x += dx;
+        u.y += dy;
+      }
+      return;
+    }
     if (blocks.length < 2) return;
     const keyU =
       doc.keyId != null && doc.selectedIds.includes(doc.keyId)
@@ -994,14 +1033,7 @@ export function useDocument() {
     const carries = blocks.map((b) => carryOf(b));
     blocks.forEach((b, i) => {
       if (keyU && b.includes(keyU)) return;
-      const bb = bboxOf(b);
-      let dx = 0, dy = 0;
-      if (type === 'left') dx = ref.minX - bb.minX;
-      else if (type === 'hcenter') dx = (ref.minX + ref.maxX) / 2 - (bb.minX + bb.maxX) / 2;
-      else if (type === 'right') dx = ref.maxX - bb.maxX;
-      else if (type === 'top') dy = ref.minY - bb.minY;
-      else if (type === 'vcenter') dy = (ref.minY + ref.maxY) / 2 - (bb.minY + bb.maxY) / 2;
-      else if (type === 'bottom') dy = ref.maxY - bb.maxY;
+      const [dx, dy] = alignDelta(ref, bboxOf(b), type);
       for (const u of [...b, ...carries[i]]) {
         u.x += dx;
         u.y += dy;
@@ -1028,7 +1060,7 @@ export function useDocument() {
   }
 
   return {
-    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits, blocksOf,
+    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits, blocksOf, activeFrameId,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,

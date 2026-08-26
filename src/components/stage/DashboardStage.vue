@@ -83,8 +83,14 @@ const keyUnit = computed(() =>
 );
 // 선택 블록 수 (최외곽 그룹 = 1블록, 프레임 = 각 1블록) — 판정은 useDocument 단일 소스 (§120)
 const selBlockCount = computed(() => props.actions.blocksOf(props.doc.selectedIds).length);
-// 정렬바 활성: 블록 2개 이상일 때만 — 그룹 하나만 선택 시 비활성
-const alignActive = computed(() => selBlockCount.value >= 2);
+// 정렬바 활성: 블록 2개 이상 — 또는 단일 블록 + 활성 프레임(프레임 기준 정렬, §123)
+const alignActive = computed(() => {
+  if (selBlockCount.value >= 2) return true;
+  if (selBlockCount.value !== 1) return false;
+  const fid = props.actions.activeFrameId.value;
+  const f = fid != null && props.doc.units.find((u) => u.id === fid && u.type === 'frame');
+  return !!f && !props.doc.selectedIds.includes(f.id);
+});
 // 등간격 활성: 블록 3개 이상일 때만 (양 끝 고정 방식이라 2개는 무의미, §114)
 const distActive = computed(() => selBlockCount.value >= 3);
 // 키 하이라이트 박스 = 키 유닛이 속한 블록(최외곽 그룹) 전체 bbox — 정렬 계산 기준과 동일 (§77)
@@ -855,7 +861,10 @@ function onMove(e) {
       maxX = Math.max(maxX, t.x0 + dx + t.u.params.W);
       maxY = Math.max(maxY, t.y0 + dy + t.u.params.H);
     }
-    const others = props.doc.units.filter((u) => !drag.targets.some((t) => t.u === u));
+    // 프레임 셀렉 모드: 스냅 후보를 프레임으로 한정 — 유닛 엣지에 안 들러붙게 (§123)
+    const others = props.doc.units.filter(
+      (u) => !drag.targets.some((t) => t.u === u) && (!frameMode.value || u.type === 'frame')
+    );
     const mineX = [minX, (minX + maxX) / 2, maxX];
     const mineY = [minY, (minY + maxY) / 2, maxY];
     let bestX = null, bestY = null;
@@ -986,6 +995,7 @@ function snapEdge(axis, pos, excludeUnits, SNAP) {
   let best = null;
   for (const o of props.doc.units) {
     if (excludeUnits.includes(o)) continue;
+    if (frameMode.value && o.type !== 'frame') continue; // 프레임 셀렉 모드: 프레임끼리만 (§123)
     const cands =
       axis === 'x'
         ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]

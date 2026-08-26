@@ -1,4 +1,6 @@
 <script setup>
+import { ref } from 'vue';
+
 const props = defineProps({
   label: String,
   modelValue: Number,
@@ -20,12 +22,30 @@ function onInput(e) {
   }
   emit('update:modelValue', v);
 }
+// §123: 팝업 StepField와 동일한 커밋 문법 — change(바깥 클릭 포함) = 커밋+플래시, Enter = 커밋+블러
+const flash = ref(false);
+let flashT = null;
+function ping() {
+  flash.value = false;
+  requestAnimationFrame(() => {
+    flash.value = true;
+    clearTimeout(flashT);
+    flashT = setTimeout(() => (flash.value = false), 220);
+  });
+}
 function onField(e) {
   const v = Number(e.target.value);
   if (Number.isFinite(v)) {
     emit('update:modelValue', Math.min(props.max, Math.max(props.min, v)));
+    ping();
   } else {
     e.target.value = props.modelValue;
+  }
+}
+function onFieldKey(e) {
+  if (e.key === 'Enter') {
+    onField(e);
+    e.target.blur();
   }
 }
 </script>
@@ -37,7 +57,8 @@ function onField(e) {
       <span v-if="editable" class="valEdit">
         <input
           class="valIn" type="number" :min="min" :max="max"
-          :value="modelValue" @change="onField"
+          :class="{ flash }"
+          :value="modelValue" @change="onField" @keydown="onFieldKey"
         />
         <span v-if="suffix" class="suffix">{{ suffix }}</span>
       </span>
@@ -65,6 +86,11 @@ function onField(e) {
   @include text-field;
   width: 48px; padding: 2px 6px; text-align: right;
   font-size: var(--fs-sm); font-variant-numeric: tabular-nums;
+  &.flash { animation: slPulse 0.2s ease-out; }
+}
+@keyframes slPulse {
+  0% { border-color: var(--accent); background: var(--hover-bg); }
+  100% { border-color: var(--line); background: none; }
 }
 .suffix { font-size: var(--fs-xs); color: var(--faint); }
 </style>

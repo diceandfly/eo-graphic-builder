@@ -1128,3 +1128,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - `tests/document-ops.mjs` 10케이스: 프레임 소유(겹침 z상위·중심 밖·그룹 통째)·blocksOf·정렬/등간격/어레인지 동반 이동·혼합 선택 이중 이동 방지·rect/drawMode 마이그레이션·히스토리 undo. localStorage 스텁으로 useDocument를 node에서 직접 구동.
 - 스크립트: `npm run test:doc`, `npm test` = geo+doc 통합. UI 배선(팝업·입력·드래그)은 브라우저 검증 채널 유지.
 - 검증: geo 30조합 + doc 10케이스 그린, frame export 4조합(fill/stroke on/off) frameAttrs 일치, 정렬바 활성 매트릭스(1/2/3블록) 회귀 무결, 컨텍스트 메뉴 아이콘 스크린샷 확인.
+
+## 123. 2026-08-26 — 프레임 모드 스냅 한정·활성 프레임 기준 정렬·패널 헤더/커밋 문법 정리
+
+1. **프레임 셀렉 모드 스냅 한정** — 이동(`others`)·리사이즈(`snapEdge`) 스냅 후보를 frameMode에서 프레임으로 한정 (유닛 엣지에 안 들러붙음). 일반 모드는 불변.
+2. **활성 프레임 기준 단일 블록 정렬** — `activeFrameId`(useDocument, 세션 로컬·영속/히스토리 미포함): 프레임이 선택에 포함될 때마다 갱신(생성·이동·조작 모두 선택 경유). 단일 유닛/그룹 선택 + 활성 프레임 존재 시 정렬 6종이 프레임 bbox 기준으로 동작(정렬바도 활성). 활성 프레임 자신만 선택 시 무동작·비활성. 등간격은 종전 규칙(3블록+) 유지. `alignDelta()` 공통화.
+3. **패널 헤더** — 타이틀 14→12px(--fs-sm), 헤더 패딩 4/14→2/12, App .side 상단 패딩 22→16px.
+4. **패널 입력 커밋 문법 통일(§93 확장)** — NumberField·Slider(editable)·dpi 필드에 change=커밋+플래시, Enter=커밋+블러+플래시 (팝업 StepField와 동일). 이름 필드는 기존 Enter/blur 플로우 유지.
+- 검증: doc 스위트 +4케이스(활성 프레임 갱신·left/top·center·자신 선택 무동작) = 14 그린, 정렬바 단일 유닛+프레임 활성 매트릭스, W 필드 Enter 커밋+블러, 패널 헤더 스크린샷.

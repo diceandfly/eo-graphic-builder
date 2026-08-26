@@ -142,11 +142,26 @@ const RECT_PHYSICAL = [
   { label: 'Letter', wmm: 215.9, hmm: 279.4 },
 ];
 const dpi = ref(Number(localStorage.getItem('eo.dpi')) || 300);
+// §123: dpi 필드도 공통 커밋 문법 — change = 커밋+플래시, Enter = 커밋+블러
+const dpiFlash = ref(false);
+let dpiFlashT = null;
 function onDpi(e) {
   const v = Number(e.target.value);
   if (Number.isFinite(v) && v >= 36) dpi.value = Math.min(1200, Math.round(v));
   e.target.value = dpi.value;
   localStorage.setItem('eo.dpi', String(dpi.value));
+  dpiFlash.value = false;
+  requestAnimationFrame(() => {
+    dpiFlash.value = true;
+    clearTimeout(dpiFlashT);
+    dpiFlashT = setTimeout(() => (dpiFlash.value = false), 220);
+  });
+}
+function onDpiKey(e) {
+  if (e.key === 'Enter') {
+    onDpi(e);
+    e.target.blur();
+  }
 }
 function applyPhysical(pp) {
   const w = Math.round((pp.wmm * dpi.value) / 25.4);
@@ -255,7 +270,8 @@ function setStrokeColor(c) {
           <span>dpi</span>
           <input
             class="dpiInput" type="number" min="36" max="1200"
-            :value="dpi" @change="onDpi"
+            :class="{ flash: dpiFlash }"
+            :value="dpi" @change="onDpi" @keydown="onDpiKey"
           />
         </label>
       </div>
@@ -433,8 +449,9 @@ function setStrokeColor(c) {
 .panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
   display: flex; align-items: center; gap: 9px;
-  font-size: 14px; font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
-  padding: 4px 2px 14px; border-bottom: 1px solid var(--line);
+  // §123: 타이틀 축소(14→12px) — 상단 여백은 App .side 패딩과 함께 축소
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
+  padding: 2px 2px 12px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
 .logoFill { fill: var(--accent); }
@@ -480,6 +497,11 @@ section h2 {
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &.flash { animation: dpiPulse 0.2s ease-out; }
+}
+@keyframes dpiPulse {
+  0% { border-color: var(--accent); background: var(--hover-bg); }
+  100% { border-color: var(--line); background: none; }
 }
 .eachBtn {
   @include bordered-control;

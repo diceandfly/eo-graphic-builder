@@ -153,7 +153,40 @@ function centerIn(u, f) {
   });
 }
 
-// 7. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
+// 7. 활성 프레임 기준 단일 블록 정렬 (§123)
+{
+  const api = fresh();
+  const u = api.doc.units[0];
+  const f = api.createFrame(2000, 2000, 600, 400); // 생성 = 선택 경유 → 활성 프레임
+  await sleep(10); // selectedIds 워처 플러시
+  ok('활성 프레임: 생성/선택 시 갱신', () => {
+    assert.equal(api.activeFrameId.value, f.id);
+  });
+  api.setSelection([u.id]);
+  await sleep(10);
+  api.alignSelected('left');
+  api.alignSelected('top');
+  ok('정렬: 단일 유닛 → 활성 프레임 기준', () => {
+    assert.equal(u.x, f.x);
+    assert.equal(u.y, f.y);
+  });
+  api.alignSelected('hcenter');
+  api.alignSelected('vcenter');
+  ok('정렬: 단일 유닛 → 프레임 중앙', () => {
+    assert.equal(u.x + u.params.W / 2, f.x + f.params.W / 2);
+    assert.equal(u.y + u.params.H / 2, f.y + f.params.H / 2);
+  });
+  // 프레임 자신만 선택된 경우: 기준=자신 → 무동작
+  api.setSelection([f.id]);
+  await sleep(10);
+  const fx = f.x;
+  api.alignSelected('left');
+  ok('정렬: 활성 프레임 자신 선택 시 무동작', () => {
+    assert.equal(f.x, fx);
+  });
+}
+
+// 8. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
 {
   const api = fresh();
   const u = api.doc.units[0];
