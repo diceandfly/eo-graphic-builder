@@ -1142,7 +1142,9 @@ onBeforeUnmount(() => {
           :width="gridCfg.size" :height="gridCfg.size"
           :patternTransform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`"
         >
-          <path class="gridline" :d="`M ${gridCfg.size} 0 H 0 V ${gridCfg.size}`" />
+          <!-- 패턴 내부에선 non-scaling-stroke가 무시되므로 1/scale로 수동 보정 (§91)
+               — 저배율에서 선이 0.1px대로 얇아져 사라지던 문제 -->
+          <path class="gridline" :d="`M ${gridCfg.size} 0 H 0 V ${gridCfg.size}`" :stroke-width="1 / vp.scale" />
         </pattern>
       </defs>
       <rect v-if="showStageGrid" class="gridbg" width="100%" height="100%" fill="url(#stage-grid)" />
@@ -1393,5 +1395,5 @@ onBeforeUnmount(() => {
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .stage.rectmode, .stage.rectmode .hit { cursor: crosshair; }
 .rectDraw { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.gridline { stroke: var(--stage-grid); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.gridline { stroke: var(--stage-grid); fill: none; }
 </style>
