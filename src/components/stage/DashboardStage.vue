@@ -197,9 +197,12 @@ const view = reactive({
 // seam 보정 폭 (화면 px): 토글 + 컷오프 줌 이상에서 0
 // §148: 줌 배율 비례 보정 — 구식(1.2 - scale)은 줌아웃일수록 두꺼워져(0.05x에서 1.15px 화면 고정)
 // 극소 렌더에서 스트로크가 과대해 보였음. 배율에 비례해 얇아지게: cutoff 부근 ≈1px → 줌아웃 시 점감.
-const seamW = computed(() =>
-  view.seamOn && vp.scale < view.seamCutoff / 100 ? Math.min(1, vp.scale * 2.5) : 0
-);
+// §150: 20% 이하는 완만한 기울기(×1.2)로 전환 — 저배율에서 §148 직선이 과하게 얇아지는 것 보정.
+const seamW = computed(() => {
+  if (!(view.seamOn && vp.scale < view.seamCutoff / 100)) return 0;
+  if (vp.scale < 0.2) return Math.max(0.25, 0.5 - (0.2 - vp.scale) * 1.2);
+  return Math.min(1, vp.scale * 2.5);
+});
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 7, gap: 30, scale: 0.4, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
