@@ -1011,3 +1011,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 101. 2026-08-25 — 프리셋 썸네일 정사각 에리어 + 한 줄 이름 고정
 
 - 썸네일 카드: 상단 **정사각 에리어**(aspect-ratio 1:1, 배경 --stage-bg) — 비율 무관 contain 중앙 배치(SVG preserveAspectRatio meet). 하단 이름은 **한 줄 고정 + 말줄임**. nowrap 이름이 grid 컬럼을 밀어내는 blowout은 minmax(0,1fr)로 방지.
+
+## 102. 2026-08-25 — 프리셋 삭제 2단계 무장 + 썸네일 seam 상시 보정
+
+1. **× 삭제 2단계** — 리셋 버튼과 동일 문법: 1클릭 = 무장(danger 색/배경, 툴팁 "click again to delete"), 3초 내 재클릭 = 삭제, 타임아웃 시 해제. 모달 확인창은 툴 문법에 없어 배제. 우클릭 메뉴의 Delete는 "메뉴 열기→선택"이라는 명시적 2단계가 이미 있어 그대로 둠.
+2. **썸네일 seam 0.75px 상시** — 프리셋 렌더는 소형이라 AA 유격이 도드라짐. 썸네일·리스트 미니 모두 seam-width 0.75px 고정 적용 (non-scaling-stroke라 화면 px 기준).
+- 검증: seam 0.75px 계산값, 1클릭 무장(삭제 안 됨)·3초 해제·재클릭 삭제.

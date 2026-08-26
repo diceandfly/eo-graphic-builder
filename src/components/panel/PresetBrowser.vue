@@ -43,6 +43,20 @@ watch(presetMenu, (open) => {
   if (open) setTimeout(() => window.addEventListener('pointerdown', closePresetMenu, { once: true }), 0);
 });
 
+// 삭제 2단계 확인 (§102) — 리셋 버튼과 동일 문법: 1클릭 무장(danger), 3초 내 재클릭 = 실행
+const armedDel = ref(null); // preset id
+let armTimer = null;
+function onDelClick(p) {
+  clearTimeout(armTimer);
+  if (armedDel.value === p.id) {
+    armedDel.value = null;
+    emit('deletePreset', p.id);
+  } else {
+    armedDel.value = p.id;
+    armTimer = setTimeout(() => (armedDel.value = null), 3000);
+  }
+}
+
 // JSON 입출력
 const presetFileEl = ref(null);
 function onPresetFile(e) {
@@ -68,8 +82,9 @@ function onPresetFile(e) {
         @click="emit('placePreset', p)"
         @contextmenu.prevent.stop="openPresetMenu(p, $event)"
       >
+        <!-- 소형 렌더라 seam 보정 상시 적용 (§102: 0.75px) -->
         <svg class="pThumb" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
-          <UnitGraphic :params="p.params" />
+          <UnitGraphic :params="p.params" :seam-width="0.75" />
         </svg>
         <input
           v-if="editingPreset?.id === p.id"
@@ -85,8 +100,9 @@ function onPresetFile(e) {
           @click.stop="startPresetRename(p)"
         >{{ p.name }}</div>
         <button
-          class="pDel" title="delete preset"
-          @click.stop="emit('deletePreset', p.id)"
+          class="pDel" :class="{ armed: armedDel === p.id }"
+          :title="armedDel === p.id ? 'click again to delete' : 'delete preset'"
+          @click.stop="onDelClick(p)"
         >×</button>
       </div>
     </div>
@@ -97,7 +113,7 @@ function onPresetFile(e) {
         @contextmenu.prevent.stop="openPresetMenu(p, $event)"
       >
         <svg class="pMini" :viewBox="`0 0 ${p.params.W} ${p.params.H}`">
-          <UnitGraphic :params="p.params" />
+          <UnitGraphic :params="p.params" :seam-width="0.75" />
         </svg>
         <input
           v-if="editingPreset?.id === p.id"
@@ -113,8 +129,9 @@ function onPresetFile(e) {
           @click.stop="startPresetRename(p)"
         >{{ p.name }}</span>
         <button
-          class="pDel" title="delete preset"
-          @click.stop="emit('deletePreset', p.id)"
+          class="pDel" :class="{ armed: armedDel === p.id }"
+          :title="armedDel === p.id ? 'click again to delete' : 'delete preset'"
+          @click.stop="onDelClick(p)"
         >×</button>
       </div>
     </div>
@@ -198,6 +215,8 @@ section h2 {
   font: inherit; font-size: var(--fs-sm); line-height: 1; padding: 1px 5px;
   border-radius: var(--radius); cursor: pointer;
   &:hover { color: var(--danger); }
+  /* 무장 상태 — 재클릭 시 삭제 (3초 타임아웃 해제) */
+  &.armed { opacity: 1; color: var(--danger); background: var(--danger-bg); }
 }
 .pMenu {
   position: fixed; z-index: 20;
