@@ -1263,3 +1263,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 142. 2026-08-26 — comp dir/sym 토글 화살표 아이콘화
 
 - dir/sym 텍스트 → 스트로크 화살표 아이콘 (ICONS.compDir '→' / compSym '↔', 24 viewBox·stroke 2·square cap — 아이콘 사전 공통 문법). 버튼 동일 폭 28px·기존 높이 19px(+컨테이너 보더) 유지, title 툴팁으로 의미 보존.
+
+## 143. 2026-08-26 — compSym 화살표 광학 보정
+
+- dir·sym 스팬이 수치상 동일(3~21)했으나 sym은 양쪽 머리가 라인을 잠식해 짧아 보이는 착시 — sym 스팬을 2~22(+2u)로 연장.
