@@ -883,3 +883,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 83. 2026-08-25 — 스와치 칩 스트로크 통일
 
 - 다크 칩 전용 inset 스트로크(--faint 1px, 티가 강함) 폐기 → **전 칩 공통** `inset 1px, VOID GREY 40%`(color-mix) 은은한 링. isDark 분기·utils/color 사용처 제거(유틸 자체는 보존). BLACK 칩은 다크 배경 광학 수축 보정으로 8% 확대(transform scale).
+
+## 84. 2026-08-25 — THREAD_MIN_RATIO 0.1% 복구
+
+- §82의 0.06% 실험을 되돌려 0.1%(0.001)로 복구. 기준선 갱신 — §82 이전 커밋(1cd6171)의 baselines와 바이트 동일함을 git diff로 교차 확인 (완전 복구 증명).
