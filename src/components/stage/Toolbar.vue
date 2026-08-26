@@ -99,7 +99,7 @@ function onPick(c) {
       <!-- 선택툴: 우클릭 = 프레임 조작 모드 스왑 (꽉 찬 커서, §92) -->
       <IconButton
         :paths="frameMode ? null : ICONS.select"
-        :tip="frameMode ? 'Frame select (V)' : 'Select (V)'"
+        :tip="frameMode ? 'Frame select (A)' : 'Select (V)'"
         :active="mode === 'select'"
         @click="emit('update:mode', 'select')"
         @contextmenu.prevent="emit('toggleFrameMode')"
