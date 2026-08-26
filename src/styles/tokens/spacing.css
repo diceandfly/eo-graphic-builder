@@ -7,5 +7,5 @@
   --sp-3: 8px;   /* 체크박스-라벨 간격 */
   --sp-6: 14px;  /* 플로팅 바 화면 가장자리 여백·바-바 간격·섹션 타이틀 하단 */
   --sp-section: 26px; /* 패널 섹션 간격. 사용처: ControlPanel .panel gap */
-  --panel-pad: 18px;  /* 패널 좌우 패딩. 사용처: App.vue .side */
+  --panel-pad: 15px;  /* 패널 좌우 패딩. 사용처: App.vue .side (§124: 18→15) */
 }

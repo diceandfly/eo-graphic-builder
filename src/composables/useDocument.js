@@ -940,20 +940,25 @@ export function useDocument() {
   }
   // 프레임 소유 판정 (§92): 유닛/그룹 블록의 bbox 중심점이 들어있는 프레임 중 z-오더 최상위 1개.
   // 이동 시작 시점 1회 동적 판정 — 영속 부모 관계 없음. 프레임은 프레임을 데려가지 않음.
+  // 블록(유닛 목록)의 소유 프레임: bbox 중심점이 들어있는 프레임 중 z-오더 최상위 (§92 규칙)
+  function ownerFrameOf(members) {
+    const bb = bboxOf(members);
+    const cx = (bb.minX + bb.maxX) / 2;
+    const cy = (bb.minY + bb.maxY) / 2;
+    let owner = null; // 배열 순서 = z-오더 (마지막 매치가 최상위)
+    for (const f of doc.units) {
+      if (f.type !== 'frame') continue;
+      if (cx >= f.x && cx <= f.x + f.params.W && cy >= f.y && cy <= f.y + f.params.H) owner = f;
+    }
+    return owner;
+  }
   function frameOwnedUnits(frameIds) {
     const moving = new Set(frameIds);
-    const frames = doc.units.filter((u) => u.type === 'frame');
     // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지) — 블록 규칙은 groupBlocks 단일 소스
     const blocks = groupBlocks(doc.units.filter((u) => u.type !== 'frame'));
     const owned = [];
     for (const members of blocks) {
-      const bb = bboxOf(members);
-      const cx = (bb.minX + bb.maxX) / 2;
-      const cy = (bb.minY + bb.maxY) / 2;
-      let owner = null; // 배열 순서 = z-오더 (마지막 매치가 최상위)
-      for (const f of frames) {
-        if (cx >= f.x && cx <= f.x + f.params.W && cy >= f.y && cy <= f.y + f.params.H) owner = f;
-      }
+      const owner = ownerFrameOf(members);
       if (owner && moving.has(owner.id)) owned.push(...members);
     }
     return owned;
@@ -1007,12 +1012,22 @@ export function useDocument() {
   function activeFrame() {
     return doc.units.find((u) => u.id === activeFrameId.value && u.type === 'frame') ?? null;
   }
+  // 단일 블록 정렬의 기준 프레임 해석 (§123·§124):
+  // 활성 프레임 → 없으면(재로딩 등) 블록이 속한(중심점 소유) 프레임 폴백
+  function alignRefFrame() {
+    const blocks = blocksOf(doc.selectedIds);
+    if (blocks.length !== 1) return null;
+    const f = activeFrame();
+    if (f) return blocks[0].includes(f) ? null : f; // 프레임 자신 선택 = 기준 없음
+    if (blocks[0].some((u) => u.type === 'frame')) return null;
+    return ownerFrameOf(blocks[0]);
+  }
   function alignSelected(type) {
     const blocks = blocksOf(doc.selectedIds);
-    // 단일 블록 + 활성 프레임: 프레임 bbox 기준 정렬 (§123). 프레임 자신 선택은 제외.
+    // 단일 블록 + 기준 프레임(활성 또는 소유): 프레임 bbox 기준 정렬 (§123·§124)
     if (blocks.length === 1) {
-      const f = activeFrame();
-      if (!f || blocks[0].includes(f)) return;
+      const f = alignRefFrame();
+      if (!f) return;
       const refBox = { minX: f.x, minY: f.y, maxX: f.x + f.params.W, maxY: f.y + f.params.H };
       const [dx, dy] = alignDelta(refBox, bboxOf(blocks[0]), type);
       for (const u of blocks[0]) {
@@ -1060,7 +1075,7 @@ export function useDocument() {
   }
 
   return {
-    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits, blocksOf, activeFrameId,
+    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits, blocksOf, activeFrameId, alignRefFrame,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,

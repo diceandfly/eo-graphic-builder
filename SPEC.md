@@ -1136,3 +1136,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **패널 헤더** — 타이틀 14→12px(--fs-sm), 헤더 패딩 4/14→2/12, App .side 상단 패딩 22→16px.
 4. **패널 입력 커밋 문법 통일(§93 확장)** — NumberField·Slider(editable)·dpi 필드에 change=커밋+플래시, Enter=커밋+블러+플래시 (팝업 StepField와 동일). 이름 필드는 기존 Enter/blur 플로우 유지.
 - 검증: doc 스위트 +4케이스(활성 프레임 갱신·left/top·center·자신 선택 무동작) = 14 그린, 정렬바 단일 유닛+프레임 활성 매트릭스, W 필드 Enter 커밋+블러, 패널 헤더 스크린샷.
+
+## 124. 2026-08-26 — 압축 부호 = 방향만 반전·슬라이더 필드+화살표·패널 패딩·정렬 기준 프레임 폴백
+
+1. **피치 컴프레션 부호 전환 규칙 변경** — 구버전은 부호 전환을 "유닛 좌우 미러"로 정의해 threadDir(스레드 기울기)까지 함께 반전(§ setComp 주석). 이제 **direction만 반전, 스레드 쉐입 유지** — 좌우 미러가 필요하면 flip(⇧H)이 담당. 지오메트리 레이어는 불변(UI 매핑만 수정), geo 기준선 무영향.
+2. **패널 슬라이더 = 입력 필드+스테퍼 병용(§124)** — Slider 값 표시부를 StepField 문법(입력+화살표+커밋 플래시)으로 전면 교체. display/editable 프롭 폐기 → mixed(멀티선택 '—')·suffix(x·%·% × UNIT HEIGHT)·decimals(파생값 노이즈 제거)·arrowStep. 화살표 스케일 1차 부여: compression 0.05 / prop 거터 0.005 / cm 그리드 0.01 / 나머지 1 — 세부 튜닝은 추후.
+3. **패널 패딩 축소** — 상단 16→13, 하단 24→18, 좌우 --panel-pad 18→15px.
+4. **정렬 기준 프레임 폴백(§123 보완)** — `alignRefFrame()`: 활성 프레임 → 부재 시(워크스페이스 재로딩 등) 선택 블록의 **소유 프레임**(§92 중심점·z상위, `ownerFrameOf()` 공용화 — frameOwnedUnits도 재사용) 폴백. 정렬바 활성도 동일 판정. 프레임 밖+활성 부재 = 비활성.
+- 검증: doc 스위트 +3(폴백 판정·right 정렬·null) = 17 그린, 압축 -1.67 전환 시 threadDir 불변·direction만 반전(브라우저), 패널 스크린샷(필드+화살표·패딩).

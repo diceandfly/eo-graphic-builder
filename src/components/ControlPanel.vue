@@ -83,17 +83,10 @@ const compVal = computed(() => {
 function setComp(v) {
   if (Math.abs(v) < COMP_SNAP) v = 0; // 중앙 스냅포인트
   p.value.rate = 1 + (Math.abs(v) / COMP_SCALE) * (RATE_MAX - 1);
-  const dir = v >= 0 ? 'LtoS' : 'StoL';
-  if (dir !== p.value.direction) {
-    // 부호 전환 = 유닛 좌우 미러: 압축 방향과 thread 기울기를 함께 반전 (flip 버튼과 동일 의미)
-    p.value.direction = dir;
-    p.value.threadDir = p.value.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
-  }
+  // §124: 부호 전환 = 압축 방향만 반전 — thread 기울기(쉐입)는 유지.
+  // (구버전은 threadDir까지 함께 미러했음 — 좌우 미러가 필요하면 flip 버튼(⇧H)이 담당)
+  p.value.direction = v >= 0 ? 'LtoS' : 'StoL';
 }
-const compDisplay = computed(() => {
-  const v = compVal.value;
-  return v === 0 ? '0' : `${v > 0 ? '+' : ''}${v.toFixed(2)}x`;
-});
 
 // 커스텀 비율 프리셋 — localStorage 영속
 const RATIO_KEY = 'eo.customRatios';
@@ -322,7 +315,7 @@ function setStrokeColor(c) {
             @remove-recent="removeRecentColor"
           />
         </div>
-        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable />
+        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" />
       </template>
     </section>
 
@@ -337,19 +330,19 @@ function setStrokeColor(c) {
         <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
         <Slider
           :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
-          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" editable
+          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
           @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
         />
-        <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" editable />
-        <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" editable />
+        <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
+        <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
         <Slider
           :label="`gutter x (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
           @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
         />
         <Slider
           :label="`gutter y (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
           @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
         />
       </template>
@@ -362,13 +355,13 @@ function setStrokeColor(c) {
       <Slider
         label="cols" v-model="p.cols"
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
-        :display="mixed('cols') ? '—' : String(p.cols)"
+        :mixed="mixed('cols')"
       />
       <Slider
         label="pitch compression" :model-value="compVal"
-        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01"
-        :snap-to="0" :snap-radius="COMP_SNAP"
-        :display="mixed('rate', 'direction') ? '—' : compDisplay"
+        :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01" :arrow-step="0.05" :decimals="2"
+        :snap-to="0" :snap-radius="COMP_SNAP" suffix="x"
+        :mixed="mixed('rate', 'direction')"
         @update:model-value="setComp"
       />
       <ChipRow v-model="p.rate" />
@@ -380,13 +373,13 @@ function setStrokeColor(c) {
         v-if="p.gutterMode === 'fixed'"
         label="gutter" v-model="p.gutterPx"
         :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1"
-        :display="mixed('gutterPx') ? '—' : String(p.gutterPx)"
+        :mixed="mixed('gutterPx')"
       />
       <Slider
         v-else
         label="gutter" v-model="p.g"
-        :min="G_MIN" :max="G_MAX" :step="G_STEP"
-        :display="mixed('g') ? '—' : p.g.toFixed(3)"
+        :min="G_MIN" :max="G_MAX" :step="G_STEP" :decimals="3"
+        :mixed="mixed('g')"
       />
     </section>
 
@@ -395,18 +388,18 @@ function setStrokeColor(c) {
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1"
-        :display="mixed('dPct') ? '—' : `${p.dPct}% × UNIT HEIGHT`"
+        suffix="% × UNIT HEIGHT" :mixed="mixed('dPct')"
       />
       <Slider
         label="thread top width" :model-value="aPct"
         :min="A_MIN * 100" :max="A_MAX * 100" :step="1"
-        :display="mixed('a') ? '—' : `${aPct}%`"
+        suffix="%" :mixed="mixed('a')"
         @update:model-value="(v) => emit('setA', v / 100)"
       />
       <Slider
         label="thread bottom width" :model-value="bottomPct"
         :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1"
-        :display="mixed('b') ? '—' : `${bottomPct}%`"
+        suffix="%" :mixed="mixed('b')"
         @update:model-value="(v) => emit('setB', 1 - v / 100)"
       />
       <Toggle

@@ -83,14 +83,8 @@ const keyUnit = computed(() =>
 );
 // 선택 블록 수 (최외곽 그룹 = 1블록, 프레임 = 각 1블록) — 판정은 useDocument 단일 소스 (§120)
 const selBlockCount = computed(() => props.actions.blocksOf(props.doc.selectedIds).length);
-// 정렬바 활성: 블록 2개 이상 — 또는 단일 블록 + 활성 프레임(프레임 기준 정렬, §123)
-const alignActive = computed(() => {
-  if (selBlockCount.value >= 2) return true;
-  if (selBlockCount.value !== 1) return false;
-  const fid = props.actions.activeFrameId.value;
-  const f = fid != null && props.doc.units.find((u) => u.id === fid && u.type === 'frame');
-  return !!f && !props.doc.selectedIds.includes(f.id);
-});
+// 정렬바 활성: 블록 2개 이상 — 또는 단일 블록 + 기준 프레임(활성/소유, §123·§124)
+const alignActive = computed(() => selBlockCount.value >= 2 || !!props.actions.alignRefFrame());
 // 등간격 활성: 블록 3개 이상일 때만 (양 끝 고정 방식이라 2개는 무의미, §114)
 const distActive = computed(() => selBlockCount.value >= 3);
 // 키 하이라이트 박스 = 키 유닛이 속한 블록(최외곽 그룹) 전체 bbox — 정렬 계산 기준과 동일 (§77)

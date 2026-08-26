@@ -186,7 +186,33 @@ function centerIn(u, f) {
   });
 }
 
-// 8. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
+// 8. 기준 프레임 폴백 (§124): 활성 프레임 부재 시(재로딩 등) 소유 프레임 기준
+{
+  const api = fresh();
+  const u = api.doc.units[0];
+  const f = api.createFrame(3000, 3000, 800, 600);
+  await sleep(10);
+  api.activeFrameId.value = null; // 재로딩 상황 시뮬레이션 — 세션 포인터 소실
+  u.x = f.x + 50; u.y = f.y + 50; // 유닛이 프레임에 속함... (중심 포함되게)
+  u.x = f.x + f.params.W / 2 - u.params.W / 2 + 30;
+  u.y = f.y + f.params.H / 2 - u.params.H / 2 + 20;
+  api.setSelection([u.id]);
+  await sleep(10);
+  ok('기준 프레임: 활성 부재 시 소유 프레임 폴백', () => {
+    assert.equal(api.alignRefFrame()?.id, f.id);
+  });
+  api.alignSelected('right');
+  ok('정렬: 소유 프레임 기준 right', () => {
+    assert.equal(u.x + u.params.W, f.x + f.params.W);
+  });
+  // 프레임 밖 유닛 + 활성 부재 = 기준 없음 (정렬바 비활성 조건)
+  u.x = 9000;
+  ok('기준 프레임: 소유도 활성도 없으면 null', () => {
+    assert.equal(api.alignRefFrame(), null);
+  });
+}
+
+// 9. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
 {
   const api = fresh();
   const u = api.doc.units[0];
