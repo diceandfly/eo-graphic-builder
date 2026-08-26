@@ -1084,3 +1084,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **프레임 소유 유닛 동반 이동 확장** — `frameOwnedUnits()`를 DashboardStage → useDocument로 이동(스테이지는 위임), 어레인지(`arrangeGrid`)·정렬(`alignSelected`)·등간격(`distributeSelected`)이 블록 이동 시 공용 `carryOf(block)`으로 소유 유닛을 같은 델타로 동반 이동. 판정은 이동 전 위치로 전 블록 선판정(§92 드래그 문법 동일), 별도 선택되어 자기 블록으로 움직이는 유닛은 제외(이중 이동 방지).
 4. **등간격 활성 조건** — 양 끝 고정 방식이라 2블록은 무의미: 등간격 2버튼은 **블록 3개 이상**(유닛/그룹 블록 또는 프레임)일 때만 활성(`distActive`), 정렬 6버튼은 기존대로 2블록 이상.
 - 검증(문서 API 구동): 소유 판정 정확(중심점+z상위), 어레인지/정렬(top)/등간격(h)에서 프레임 이동 시 내부 유닛 상대 위치 보존·간격 균등, 혼합 선택 이중 이동 없음, 정렬바 disabled 매트릭스 1/2/3블록 = 전부/등간격만/전부 해제. 콘솔 에러 없음.
+
+## 115. 2026-08-25 — 프레임 그리드 기본값: margin·gutter x/y 20 → 30px
+
+- `createFrameParams` 기본값과 px 모드 복귀 세팅(§76의 단위 전환 리셋) 모두 30/30/30으로 상향. cm 모드 기본(0.6/0.2/0.2)은 불변.
+- 검증: 새 프레임 생성 → margin 30·gutterX 30·gutterY 30.
