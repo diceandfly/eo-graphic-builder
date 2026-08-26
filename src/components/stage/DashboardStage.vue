@@ -869,7 +869,11 @@ function onMove(e) {
     // 드래그 데드존 (§104): 화면 4px를 넘기 전엔 클릭으로 취급 — 이동 미시작 (OS·피그마 관례)
     // 통과 후엔 down 지점 기준 delta 그대로 적용 (미세 점프는 지각 불가 수준)
     if (!drag.armed) {
-      if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) < 4) return;
+      // §147: 4px 맨해튼 → 6px 유클리드 반경 — 클릭 시 미세 떨림(트랙패드 포함)의 드래그 오인 축소.
+      // 방향 무관 동일 반경이라 대각 이동도 일관되게 판정.
+      const ax = e.clientX - drag.sx;
+      const ay = e.clientY - drag.sy;
+      if (ax * ax + ay * ay < 36) return;
       drag.armed = true;
     }
     // Shift = 수직/수평 축 고정

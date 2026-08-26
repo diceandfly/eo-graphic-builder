@@ -1281,3 +1281,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 146. 2026-08-26 — 스와치 순서 확정: Y G B W SG VG SB + C
 
 - EO NEON(1) · WORLD GREEN(2) · HORIZON BLUE(3) · HALO WHITE(4) · STEEL GREY(5) · VOID GREY(6) · SPACE BLACK(7) · 커스텀(C). 숫자키는 인덱스 자동 추종.
+
+## 147. 2026-08-26 — 드래그 데드존 강화 (§104 개정)
+
+- 이동 드래그 무장 조건 4px 맨해튼 → **6px 유클리드 반경** — 트랙패드 미세 떨림의 드래그 오인 축소, 방향 무관 동일 판정. 유닛/프레임 셀렉 모드 공통(동일 move 경로). 통과 후 down 지점 기준 delta는 종전 유지.
+- 검증: 반경 4.2px 이동 = 무이동, 8px 이동 = 정상 드래그.
