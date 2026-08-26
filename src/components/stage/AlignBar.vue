@@ -3,19 +3,20 @@ import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
 
-// 좌하단 정렬 패널 — 키 오브젝트(선택 중 재클릭) 기준 정렬. 2개 이상 선택 시 활성.
-defineProps({ active: Boolean });
+// 좌하단 정렬 패널 — 키 오브젝트(선택 중 재클릭) 기준 정렬.
+// 정렬 = 블록 2개 이상 활성, 등간격 = 블록 3개 이상 활성 (§114)
+defineProps({ active: Boolean, distActive: Boolean });
 defineEmits(['align']);
 // 2행 4열: [좌·중·우·가로등간격] / [상·중·하·세로등간격]
 const BTNS = [
   { key: 'left', tip: 'Align left edges', paths: ICONS.alignLeft },
   { key: 'hcenter', tip: 'Align horizontal centers', paths: ICONS.alignHCenter },
   { key: 'right', tip: 'Align right edges', paths: ICONS.alignRight },
-  { key: 'disth', tip: 'Distribute horizontally', paths: ICONS.distributeH },
+  { key: 'disth', tip: 'Distribute horizontally', paths: ICONS.distributeH, dist: true },
   { key: 'top', tip: 'Align top edges', paths: ICONS.alignTop },
   { key: 'vcenter', tip: 'Align vertical centers', paths: ICONS.alignVCenter },
   { key: 'bottom', tip: 'Align bottom edges', paths: ICONS.alignBottom },
-  { key: 'distv', tip: 'Distribute vertically', paths: ICONS.distributeV },
+  { key: 'distv', tip: 'Distribute vertically', paths: ICONS.distributeV, dist: true },
 ];
 </script>
 
@@ -27,7 +28,7 @@ const BTNS = [
           v-for="b in BTNS"
           :key="b.key"
           :paths="b.paths" :tip="b.tip" tip-align="left"
-          :disabled="!active"
+          :disabled="b.dist ? !distActive : !active"
           @click="$emit('align', b.key)"
         />
       </div>

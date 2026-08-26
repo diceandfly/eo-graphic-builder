@@ -81,10 +81,10 @@ const keyUnit = computed(() =>
     ? props.doc.units.find((u) => u.id === props.doc.keyId)
     : null
 );
-// 정렬바 활성: 블록(최외곽 그룹 = 1블록) 2개 이상일 때만 — 그룹 하나만 선택 시 비활성
-const alignActive = computed(() => {
+// 선택 블록 수 (최외곽 그룹 = 1블록, 프레임 = 각 1블록)
+const selBlockCount = computed(() => {
   const ids = props.doc.selectedIds;
-  if (ids.length < 2) return false;
+  if (!ids.length) return 0;
   const blocks = new Set();
   for (const u of props.doc.units) {
     if (ids.includes(u.id)) {
@@ -92,8 +92,12 @@ const alignActive = computed(() => {
       blocks.add(g ? 'g' + g : 'u' + u.id);
     }
   }
-  return blocks.size >= 2;
+  return blocks.size;
 });
+// 정렬바 활성: 블록 2개 이상일 때만 — 그룹 하나만 선택 시 비활성
+const alignActive = computed(() => selBlockCount.value >= 2);
+// 등간격 활성: 블록 3개 이상일 때만 (양 끝 고정 방식이라 2개는 무의미, §114)
+const distActive = computed(() => selBlockCount.value >= 3);
 // 키 하이라이트 박스 = 키 유닛이 속한 블록(최외곽 그룹) 전체 bbox — 정렬 계산 기준과 동일 (§77)
 // 정렬 불가 상태(블록 1개 = 그룹 하나만 선택)에서는 표시하지 않음
 const keyRect = computed(() => {
@@ -141,33 +145,8 @@ function toggleFrameMode() {
   props.actions.deselect(); // 모드 전환 시 혼합 선택 방지
   toast(frameMode.value ? 'Frame select (A) — V returns to units' : 'Unit select (V)');
 }
-// 소유권 판정 (§92): 유닛/그룹 블록의 bbox 중심점이 들어있는 프레임 중 z-오더 최상위 1개.
-// 이동 시작 시점에 1회 계산 — 영속 부모 관계 없음. 프레임은 프레임을 데려가지 않음.
-function frameOwnedUnits(frameIds) {
-  const moving = new Set(frameIds);
-  const frames = props.doc.units.filter((u) => u.type === 'frame');
-  const blocks = new Map(); // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지)
-  for (const u of props.doc.units) {
-    if (u.type === 'frame') continue;
-    const g = props.actions.outermost(u);
-    const key = g ? 'g' + g : 'u' + u.id;
-    if (!blocks.has(key)) blocks.set(key, []);
-    blocks.get(key).push(u);
-  }
-  const owned = [];
-  for (const members of blocks.values()) {
-    const minX = Math.min(...members.map((m) => m.x));
-    const minY = Math.min(...members.map((m) => m.y));
-    const cx = (minX + Math.max(...members.map((m) => m.x + m.params.W))) / 2;
-    const cy = (minY + Math.max(...members.map((m) => m.y + m.params.H))) / 2;
-    let owner = null; // 배열 순서 = z-오더 (마지막 매치가 최상위)
-    for (const f of frames) {
-      if (cx >= f.x && cx <= f.x + f.params.W && cy >= f.y && cy <= f.y + f.params.H) owner = f;
-    }
-    if (owner && moving.has(owner.id)) owned.push(...members);
-  }
-  return owned;
-}
+// 소유권 판정 (§92) — 어레인지와 공유하는 문서 로직이라 useDocument로 이동, 여기선 위임
+const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showStageGrid = ref(true); // 대시보드 배경 라인 그리드
@@ -1404,7 +1383,7 @@ onBeforeUnmount(() => {
       @reset="onReset"
     />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
-    <AlignBar :active="alignActive" @align="onAlign" />
+    <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
     <ManagerBar />
     <ZoomBadge
       :scale="vp.scale"
@@ -1465,7 +1444,9 @@ onBeforeUnmount(() => {
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: 600; }
 .toast {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
+  position: absolute; top: 14px;
+  left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2); transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none;
   border-radius: var(--radius);

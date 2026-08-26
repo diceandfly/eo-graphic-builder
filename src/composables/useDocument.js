@@ -861,7 +861,7 @@ export function useDocument() {
   function arrangeGrid({ gap = 40, columns = 0 } = {}) {
     const blocks = blocksOf(doc.selectedIds);
     if (blocks.length < 2) return 0;
-    const items = blocks.map((b) => ({ b, bb: bboxOf(b) }));
+    const items = blocks.map((b) => ({ b, bb: bboxOf(b), carry: carryOf(b) }));
     const avgH = items.reduce((t, i) => t + (i.bb.maxY - i.bb.minY), 0) / items.length;
     items.sort((a, z) => {
       const ay = (a.bb.minY + a.bb.maxY) / 2;
@@ -887,6 +887,7 @@ export function useDocument() {
         const dx = xs - it.bb.minX;
         const dy = ys - it.bb.minY;
         for (const u of it.b) { u.x += dx; u.y += dy; }
+        for (const u of it.carry) { u.x += dx; u.y += dy; }
         xs += colW[c] + gap;
       }
       ys += rowH[r] + gap;
@@ -920,11 +921,47 @@ export function useDocument() {
       maxY: Math.max(...units.map((u) => u.y + u.params.H)),
     };
   }
+  // 프레임 소유 판정 (§92): 유닛/그룹 블록의 bbox 중심점이 들어있는 프레임 중 z-오더 최상위 1개.
+  // 이동 시작 시점 1회 동적 판정 — 영속 부모 관계 없음. 프레임은 프레임을 데려가지 않음.
+  function frameOwnedUnits(frameIds) {
+    const moving = new Set(frameIds);
+    const frames = doc.units.filter((u) => u.type === 'frame');
+    const blocks = new Map(); // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지)
+    for (const u of doc.units) {
+      if (u.type === 'frame') continue;
+      const g = outermost(u);
+      const key = g ? 'g' + g : 'u' + u.id;
+      if (!blocks.has(key)) blocks.set(key, []);
+      blocks.get(key).push(u);
+    }
+    const owned = [];
+    for (const members of blocks.values()) {
+      const bb = bboxOf(members);
+      const cx = (bb.minX + bb.maxX) / 2;
+      const cy = (bb.minY + bb.maxY) / 2;
+      let owner = null; // 배열 순서 = z-오더 (마지막 매치가 최상위)
+      for (const f of frames) {
+        if (cx >= f.x && cx <= f.x + f.params.W && cy >= f.y && cy <= f.y + f.params.H) owner = f;
+      }
+      if (owner && moving.has(owner.id)) owned.push(...members);
+    }
+    return owned;
+  }
+
+  // 블록 이동 시 프레임 소유 유닛 동반 목록 (§92 드래그 문법 — 어레인지·정렬·등간격 공용).
+  // 이동 전 위치로 1회 판정, 별도 선택되어 자기 블록으로 움직이는 유닛은 이중 이동 방지 위해 제외.
+  function carryOf(block) {
+    const fids = block.filter((u) => u.type === 'frame').map((u) => u.id);
+    if (!fids.length) return [];
+    const selSet = new Set(doc.selectedIds);
+    return frameOwnedUnits(fids).filter((u) => !selSet.has(u.id));
+  }
+
   // 등간격 배치 — 3블록 이상, 양 끝 고정, 사이 간격 균등
   function distributeSelected(axis) {
     const blocks = blocksOf(doc.selectedIds);
     if (blocks.length < 3) return;
-    const items = blocks.map((b) => ({ b, bb: bboxOf(b) }));
+    const items = blocks.map((b) => ({ b, bb: bboxOf(b), carry: carryOf(b) }));
     const lo = axis === 'h' ? 'minX' : 'minY';
     const hi = axis === 'h' ? 'maxX' : 'maxY';
     items.sort((a, z) => a.bb[lo] - z.bb[lo]);
@@ -937,7 +974,7 @@ export function useDocument() {
     for (const it of items) {
       const size = it.bb[hi] - it.bb[lo];
       const d = cursor - it.bb[lo];
-      for (const u of it.b) {
+      for (const u of [...it.b, ...it.carry]) {
         if (axis === 'h') u.x += d;
         else u.y += d;
       }
@@ -955,8 +992,10 @@ export function useDocument() {
     const ref = keyU
       ? bboxOf(blocks.find((b) => b.includes(keyU)))
       : bboxOf(doc.units.filter((u) => doc.selectedIds.includes(u.id)));
-    for (const b of blocks) {
-      if (keyU && b.includes(keyU)) continue;
+    // 동반 목록은 이동 전 위치 기준으로 전 블록 선판정 (앞 블록 이동이 소유 판정에 영향 주지 않게)
+    const carries = blocks.map((b) => carryOf(b));
+    blocks.forEach((b, i) => {
+      if (keyU && b.includes(keyU)) return;
       const bb = bboxOf(b);
       let dx = 0, dy = 0;
       if (type === 'left') dx = ref.minX - bb.minX;
@@ -965,11 +1004,11 @@ export function useDocument() {
       else if (type === 'top') dy = ref.minY - bb.minY;
       else if (type === 'vcenter') dy = (ref.minY + ref.maxY) / 2 - (bb.minY + bb.maxY) / 2;
       else if (type === 'bottom') dy = ref.maxY - bb.maxY;
-      for (const u of b) {
+      for (const u of [...b, ...carries[i]]) {
         u.x += dx;
         u.y += dy;
       }
-    }
+    });
   }
 
   // 대시보드 초기화 — 기본 유닛 1개, 이름/카운터도 v1부터 재시작 (undo로 복구 가능)
@@ -991,7 +1030,7 @@ export function useDocument() {
   }
 
   return {
-    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
+    doc, active, gutterMax, alignSelected, distributeSelected, resetDoc, frameOwnedUnits,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,

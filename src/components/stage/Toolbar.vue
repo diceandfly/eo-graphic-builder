@@ -225,7 +225,7 @@ function onPick(c) {
   position: absolute; bottom: var(--sp-6);
   left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2);
   transform: translateX(-50%);
-  display: flex; align-items: center; gap: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-6); // 바-바 간격 = 패널↔바 간격과 동일 (--sp-6)
 }
 .chip {
   width: var(--swatch-chip); height: var(--swatch-chip); display: block;
