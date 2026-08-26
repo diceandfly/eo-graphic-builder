@@ -390,18 +390,18 @@ function setStrokeColor(c) {
       <h2>Shape</h2>
       <Slider
         label="shaft size" v-model="p.dPct"
-        :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1"
+        :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
         suffix="% × UNIT HEIGHT" :mixed="mixed('dPct')"
       />
       <Slider
         label="thread top width" :model-value="aPct"
-        :min="A_MIN * 100" :max="A_MAX * 100" :step="1"
+        :min="A_MIN * 100" :max="A_MAX * 100" :step="1" :arrow-step="5"
         suffix="%" :mixed="mixed('a')"
         @update:model-value="(v) => emit('setA', v / 100)"
       />
       <Slider
         label="thread bottom width" :model-value="bottomPct"
-        :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1"
+        :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1" :arrow-step="5"
         suffix="%" :mixed="mixed('b')"
         @update:model-value="(v) => emit('setB', 1 - v / 100)"
       />

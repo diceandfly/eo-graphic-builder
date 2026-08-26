@@ -1179,3 +1179,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
   - **unlink parameters 버튼 = 선택분만 언링크** (toggleLinkSelected의 전체-선택 요건 제거 — 라벨과 동작 일치).
 - **1멤버 자동 소멸 체크(사용자 요청)**: `cleanupLinks()`가 이미 존재 — 언링크·분리·삭제 모든 경로에서 호출되어 멤버 1개 그룹은 즉시 해체 + pruneMeta로 스코프 메타 정리. 서브셋 언링크 경로에 호출 추가로 보강.
 - 검증: doc 스위트 +4(링크 생성·서브셋 분리 스코프·서브셋 언링크+잔여 소멸·삭제 소멸) = 21 그린. 브라우저: 서브셋 칩이 원본 스코프(color·orientation off) 표시, color 칩 클릭 → 분리 + color on + 토스트.
+
+## 130. 2026-08-26 — 어레인지 축 모드(x/y)·쉐입 화살표 5% 단위
+
+1. **어레인지 axis 토글** — 팝업에 axis: **grid | x | y** 세그 추가 (기본 grid, eo.prefs·저장 파일 동승). x/y = 블록들을 해당 축 좌표순으로 gap 간격 재배치, **교차축 불변** — columns 행은 grid에서만 표시. 토스트 "Arranged N blocks along x/y". 프레임 소유 유닛 동반(carry)은 공통.
+2. **쉐입 슬라이더 화살표 단위** — shaft size·thread top/bottom width 화살표 5(%) 단위.
+- 검증: doc 스위트 +2(x축 gap·y 불변 / y축·x 불변) = 23 그린, 팝업 세그 렌더·columns 조건 표시·G 적용 토스트 확인.

@@ -213,15 +213,24 @@ function onPick(c) {
         />
         <div v-if="openPopup === 'arrange' && arrangeCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Grid arrange</div>
+          <!-- §130: x/y = 해당 축만 gap 재배치 (교차축 불변), grid = 종전 그리드 -->
+          <div class="menuRow">
+            <span class="rowLabel">axis</span>
+            <div class="segMini">
+              <button :class="{ on: arrangeCfg.axis === 'grid' }" @click="arrangeCfg.axis = 'grid'">grid</button>
+              <button :class="{ on: arrangeCfg.axis === 'x' }" @click="arrangeCfg.axis = 'x'">x</button>
+              <button :class="{ on: arrangeCfg.axis === 'y' }" @click="arrangeCfg.axis = 'y'">y</button>
+            </div>
+          </div>
           <div class="menuRow">
             <span class="rowLabel">gap</span>
             <StepField v-model="arrangeCfg.gap" :min="0" :max="2000" :step="5" />
           </div>
-          <div class="menuRow">
+          <div v-if="arrangeCfg.axis === 'grid'" class="menuRow">
             <span class="rowLabel">columns</span>
             <StepField v-model="arrangeCfg.columns" :min="0" :max="50" :step="1" />
           </div>
-          <div class="menuNote">columns 0 = auto (√n)</div>
+          <div v-if="arrangeCfg.axis === 'grid'" class="menuNote">columns 0 = auto (√n)</div>
         </div>
       </div>
     </FloatingBar>

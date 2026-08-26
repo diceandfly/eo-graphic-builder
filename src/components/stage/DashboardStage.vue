@@ -174,7 +174,7 @@ const seamW = computed(() =>
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 7, gap: 30, scale: 0.4, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
-const arrangeCfg = reactive({ gap: 40, columns: 0, ...(prefs.arrange || {}) });
+const arrangeCfg = reactive({ gap: 40, columns: 0, axis: 'grid', ...(prefs.arrange || {}) }); // axis: 'grid'|'x'|'y' (§130)
 // 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
@@ -344,7 +344,11 @@ function onArrange() {
     toast('Select 2+ items to arrange');
     return;
   }
-  toast(`Arranged ${n} blocks into a grid`);
+  toast(
+    arrangeCfg.axis === 'x' ? `Arranged ${n} blocks along x`
+      : arrangeCfg.axis === 'y' ? `Arranged ${n} blocks along y`
+        : `Arranged ${n} blocks into a grid`
+  );
   setLast('grid arrange', () => onArrange());
 }
 
