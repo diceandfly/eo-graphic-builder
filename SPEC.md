@@ -935,6 +935,6 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 ## 90. 2026-08-25 — 컬러 옵션 행 공용 컨트롤 ColorField (칩 클릭 = 인라인 픽커)
 
-- `controls/ColorField.vue` 신설: 미리보기 칩 + hex 입력 + **칩 클릭 시 인라인 ColorPicker**(라이브 적용, 저장 슬롯 없음, 빈 hex = 기본 복귀 null). 코너 바의 Canvas color · Grid color · Unit grid color 3곳 교체 — ZoomBadge의 hexSetter/preview/hexInput 중복 제거.
+- `controls/ColorField.vue` 신설: 미리보기 칩 + hex 입력 + **칩 클릭 시 플로팅 픽커 팝오버**(메뉴 레이아웃 불변 — 호스트 메뉴의 왼쪽 바깥에 표시, 라이브 적용, 픽 릴리즈 시 자동 닫힘, 저장 슬롯 없음, 빈 hex = 기본 복귀 null). 인라인 확장안은 §91에서 팝오버로 교체. 코너 바의 Canvas color · Grid color · Unit grid color 3곳 교체 — ZoomBadge의 hexSetter/preview/hexInput 중복 제거.
 - 스파게티 우려에 대한 답: 픽커(ColorPicker)는 한 벌, 진입 UI만 용도별 두 겹(스와치형 팝업 vs 옵션 행 인라인) — 공용 컴포넌트로 묶어서 오히려 중복 3벌이 1벌로 줄었음. 이후 컬러 입력 UI는 전부 ColorField 재사용이 규칙.
 - 검증: 그리드 메뉴 ColorField 2개(+유닛 메뉴 1개), 칩 클릭 → picker(sv/hue) 표시, SV 패드 클릭 → 배경 rgb(179,36,36) 라이브 적용, hex 비움 → 기본 복귀.
