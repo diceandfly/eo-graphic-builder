@@ -186,7 +186,7 @@ function resetGridDefaults() {
           <div class="menuTitle">Render compensation</div>
           <label class="menuRow">
             <input type="checkbox" v-model="view.seamOn" />
-            <span>Seam stroke (AA fix)</span>
+            <span>Auto seam stroke</span>
           </label>
           <label class="menuRow">
             <span class="rowGrow">Off above zoom (%)</span>
