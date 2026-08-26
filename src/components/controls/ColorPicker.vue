@@ -84,14 +84,27 @@ const onHueDown = dragTrack((px) => {
   hsv.value.h = Math.min(359.9, px * 360);
 });
 
+// §112: 숫자 필드와 동일 커밋 문법 — Enter = 커밋+블러, 커밋 시 플래시
+const hexFlash = ref(false);
+let hexFlashT = null;
 function onHex(e) {
   const p = hexToHsv(e.target.value);
   if (p) {
     hsv.value = p;
     commit();
+    hexFlash.value = false;
+    requestAnimationFrame(() => {
+      hexFlash.value = true;
+      clearTimeout(hexFlashT);
+      hexFlashT = setTimeout(() => (hexFlash.value = false), 220);
+    });
   } else {
     e.target.value = props.modelValue;
   }
+}
+function onHexKey(e) {
+  onHex(e);
+  e.target.blur();
 }
 </script>
 
@@ -116,8 +129,9 @@ function onHex(e) {
       <span class="preview" :style="{ background: modelValue }" />
       <input
         class="hexInput" type="text" spellcheck="false"
+        :class="{ flash: hexFlash }"
         :value="modelValue"
-        @keydown.enter="onHex"
+        @keydown.enter="onHexKey"
         @change="onHex"
       />
     </div>
@@ -150,6 +164,11 @@ function onHex(e) {
 .preview {
   width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
   border: 1px solid var(--line); border-radius: var(--radius);
+}
+.hexInput.flash { animation: cpPulse 0.2s ease-out; }
+@keyframes cpPulse {
+  0% { border-color: var(--accent); background: var(--hover-bg); }
+  100% { border-color: var(--line); background: none; }
 }
 .hexInput {
   @include text-field;

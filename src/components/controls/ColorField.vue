@@ -17,6 +17,17 @@ const emit = defineEmits(['update:modelValue', 'removeRecent']);
 
 const open = ref(false);
 const popStyle = ref({});
+// §112: 숫자 필드(StepField)와 동일한 커밋 문법 — Enter = 커밋+블러, 커밋 시 플래시
+const flash = ref(false);
+let flashT = null;
+function ping() {
+  flash.value = false;
+  requestAnimationFrame(() => {
+    flash.value = true;
+    clearTimeout(flashT);
+    flashT = setTimeout(() => (flash.value = false), 220);
+  });
+}
 let picked = false; // 팝오버 안에서 실제 색 변경이 있었는지 (hex 필드 클릭만으로는 닫지 않음)
 
 // §110 픽스: 팝오버를 fixed로 — 패널의 overflow 클리핑(스크롤 박스)에 잘리지 않도록
@@ -32,10 +43,20 @@ function toggleOpen(e) {
 
 function onHex(e) {
   let t = e.target.value.trim();
-  if (!t) { emit('update:modelValue', null); return; }
+  if (!t) {
+    emit('update:modelValue', null);
+    ping();
+    return;
+  }
   if (t[0] !== '#') t = '#' + t;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) emit('update:modelValue', t);
-  else e.target.value = props.modelValue || '';
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) {
+    emit('update:modelValue', t);
+    ping();
+  } else e.target.value = props.modelValue || '';
+}
+function onHexKey(e) {
+  onHex(e);
+  e.target.blur(); // 입력 종결 확정 (§112)
 }
 function onPick(c) {
   emit('update:modelValue', c);
@@ -67,8 +88,9 @@ watch(open, (o) => {
     />
     <input
       class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+      :class="{ flash }"
       :value="modelValue || ''"
-      @keydown.enter="onHex" @change="onHex"
+      @keydown.enter="onHexKey" @change="onHex"
     />
     <!-- 플로팅 픽커 — 메뉴 흐름 밖(side 방향), 픽 후 자동 닫힘 -->
     <div
@@ -107,6 +129,11 @@ watch(open, (o) => {
 .hexInput {
   @include text-field;
   width: 76px; padding: 3px 8px; text-transform: uppercase;
+  &.flash { animation: cfPulse 0.2s ease-out; }
+}
+@keyframes cfPulse {
+  0% { border-color: var(--accent); background: var(--hover-bg); }
+  100% { border-color: var(--line); background: none; }
 }
 .pop {
   position: fixed; z-index: 30; /* §110: overflow 클리핑 회피 — 좌표는 toggleOpen에서 칩 기준 계산 */

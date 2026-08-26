@@ -1065,3 +1065,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 1. **최근 컬러 슬롯 관리** — 칩 우클릭 = 삭제(useRecentColors.removeRecentColor, 공유 스토어라 툴바·패널 팝업 동시 반영). 슬롯 하단 안내 문구 "recently applied · right-click to remove". Toolbar는 recents 프롭 대신 스토어 직결로 정리.
 2. **리소스 모니터 색** — --faint(회색) → 흰색 55% 오파시티(color-mix): 커스텀 캔버스 배경색 등 대부분의 작업 모드에서 가독 확보. hot(danger) 강조는 불변.
+
+## 112. 2026-08-25 — 캔버스 기본색 상향 + 컬러 입력 필드 커밋 문법 통일
+
+1. **기본값 고정** — 캔버스 컬러 #090909 → **#606060**, 그리드 컬러 #3B3B3B → **#888888** (--stage-bg/--stage-grid 토큰, reset to defaults 연동).
+2. **컬러 hex 필드 = 숫자 필드와 동일 커밋 문법** — ColorField·ColorPicker의 hex 입력에 Enter = 즉시 커밋+블러, 커밋 시 액센트 펄스 플래시(0.2s, StepField와 동일 피드백). 빈 값 Enter = 기본 복귀도 플래시.
+- 검증: 기본 rgb(96,96,96)/#888888, Enter로 445566 적용+블러, 빈 값 복귀. (플래시는 rAF 기반이라 숨김 팬 검증 한계 — 실브라우저 정상)
