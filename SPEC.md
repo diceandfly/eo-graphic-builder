@@ -1144,3 +1144,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **패널 패딩 축소** — 상단 16→13, 하단 24→18, 좌우 --panel-pad 18→15px.
 4. **정렬 기준 프레임 폴백(§123 보완)** — `alignRefFrame()`: 활성 프레임 → 부재 시(워크스페이스 재로딩 등) 선택 블록의 **소유 프레임**(§92 중심점·z상위, `ownerFrameOf()` 공용화 — frameOwnedUnits도 재사용) 폴백. 정렬바 활성도 동일 판정. 프레임 밖+활성 부재 = 비활성.
 - 검증: doc 스위트 +3(폴백 판정·right 정렬·null) = 17 그린, 압축 -1.67 전환 시 threadDir 불변·direction만 반전(브라우저), 패널 스크린샷(필드+화살표·패딩).
+
+## 125. 2026-08-26 — 컬러 개편(STEEL GREY/신규 VOID GREY·커스텀 C키)·서픽스 인박스·썸 축소·화살표 단위
+
+1. **브랜드 컬러 개편** — 구 VOID GREY(#8E8E8E) → **STEEL GREY**로 개명, **VOID GREY(#3B3B3B) 신규 7번 스와치** 추가. 커스텀 컬러 단축키 7 → **C**. 숫자키 1~7 = 브랜드 7색. 칩 inset 스트로크 등 기존 #8E8E8E 참조는 --steel-grey로 전환(시각 불변). CLAUDE.md·메모리의 컬러명 표기 갱신.
+2. **필드 단위 인박스(§113 보완)** — 슬라이더 서픽스(x·%·% × UNIT HEIGHT)를 필드 보더 박스 안 어도른먼트로 이동: 입력 텍스트와 분리(선택·편집 불가, pointer-events none), 서픽스 클릭 = 입력 포커스. 표준 input-adornment 패턴.
+3. **슬라이더 썸 10→8px** (--thumb-size).
+4. **화살표 단위** — 프레임 margin·gutter x/y(px 모드)와 유닛 gutter(fixed) 화살표 5px 단위 (cm 모드는 0.01 유지).
+- 검증: 스와치 7+커스텀 8칩 렌더, 7키=#3B3B3B·C키=커스텀 적용, 서픽스 인박스 4종 확인, 썸 8px, geo 30·doc 17 그린.

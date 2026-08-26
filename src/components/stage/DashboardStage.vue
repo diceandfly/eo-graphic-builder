@@ -484,13 +484,13 @@ function onKeyDown(e) {
     props.actions.exportSvg();
     return;
   }
-  // 1~6 = 브랜드 컬러 (6 = BLACK, §82), 7 = 커스텀 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
-  const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5 };
+  // 1~7 = 브랜드 컬러 (7 = VOID GREY, §125), C = 커스텀 컬러 (선택 있으면 적용, 없으면 현재 컬러 지정)
+  const DIGITS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5, Digit7: 6 };
   if (!mod && !e.shiftKey && DIGITS[e.code] != null) {
     onFill(BRAND_COLORS[DIGITS[e.code]]);
     return;
   }
-  if (!mod && !e.shiftKey && e.code === 'Digit7') {
+  if (!mod && !e.shiftKey && e.code === 'KeyC') {
     onFill(customColor.value);
     return;
   }

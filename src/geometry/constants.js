@@ -44,17 +44,19 @@ export const BRAND_TOKENS = {
   'world-green': '#55BB73',
   'horizon-blue': '#6ECBD6',
   'space-black': '#0B0B0B',
-  'void-grey': '#8E8E8E',
+  'steel-grey': '#8E8E8E', // §125: 구 VOID GREY에서 개명
+  'void-grey': '#3B3B3B',  // §125: 신규 (7번 스와치)
   'halo-white': '#EFEAE1',
 };
-// 스와치 구성 (표시 순서). 6번은 §82 BLACK(#000000) → §85 SPACE BLACK으로 교체.
+// 스와치 구성 (표시 순서). 6번은 §82 BLACK(#000000) → §85 SPACE BLACK, 7번은 §125 VOID GREY.
 const SWATCHES = [
   ['EO NEON', 'eo-neon'],
   ['WORLD GREEN', 'world-green'],
   ['HORIZON BLUE', 'horizon-blue'],
-  ['VOID GREY', 'void-grey'],
+  ['STEEL GREY', 'steel-grey'],
   ['HALO WHITE', 'halo-white'],
   ['SPACE BLACK', 'space-black'],
+  ['VOID GREY', 'void-grey'],
 ];
 export const BRAND_COLORS = SWATCHES.map(([, k]) => BRAND_TOKENS[k]);
 // BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~6) 안내용

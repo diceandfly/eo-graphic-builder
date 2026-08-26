@@ -9,7 +9,8 @@
   --world-green: #55bb73;
   --horizon-blue: #6ecbd6;
   --space-black: #0b0b0b;
-  --void-grey: #8e8e8e;
+  --steel-grey: #8e8e8e; /* §125: 구 void-grey 개명 */
+  --void-grey: #3b3b3b;  /* §125: 신규 7번 스와치 */
   --halo-white: #efeae1;
 
   /* ── 2층: 시맨틱 — 표면 */

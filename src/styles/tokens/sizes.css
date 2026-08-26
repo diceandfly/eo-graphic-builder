@@ -10,7 +10,7 @@
   --icon-size: 16px;
 
   /* 슬라이더 썸. 사용처: style.css .rg::-webkit-slider-thumb / -moz-range-thumb */
-  --thumb-size: 10px;
+  --thumb-size: 8px; /* §125: 10→8 소폭 축소 */
 
   /* 체크박스 한 변. 사용처: style.css input[type=checkbox] */
   --check-size: 12px;

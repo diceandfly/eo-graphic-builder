@@ -66,23 +66,22 @@ function bump(d) {
   <div class="row">
     <div class="head">
       <span class="label">{{ label }}</span>
-      <span class="valEdit">
-        <span class="sf" :class="{ flash }">
-          <input
-            class="valIn" type="number"
-            :value="mixed ? '' : fmt(modelValue)" placeholder="—"
-            @change="onField" @keydown="onFieldKey"
-          />
-          <span class="btns">
-            <button tabindex="-1" @click="bump(1)">
-              <svg viewBox="0 0 8 6"><path d="M4 1 7 5H1z" /></svg>
-            </button>
-            <button tabindex="-1" @click="bump(-1)">
-              <svg viewBox="0 0 8 6"><path d="M1 1h6L4 5z" /></svg>
-            </button>
-          </span>
-        </span>
+      <!-- §125: 단위는 필드 박스 안의 어도른먼트 — 입력 텍스트와 분리(편집 불가), 클릭 시 입력 포커스 -->
+      <span class="sf" :class="{ flash }" @click="$event.currentTarget.querySelector('input').focus()">
+        <input
+          class="valIn" type="number"
+          :value="mixed ? '' : fmt(modelValue)" placeholder="—"
+          @change="onField" @keydown="onFieldKey"
+        />
         <span v-if="suffix" class="suffix">{{ suffix }}</span>
+        <span class="btns">
+          <button tabindex="-1" @click.stop="bump(1)">
+            <svg viewBox="0 0 8 6"><path d="M4 1 7 5H1z" /></svg>
+          </button>
+          <button tabindex="-1" @click.stop="bump(-1)">
+            <svg viewBox="0 0 8 6"><path d="M1 1h6L4 5z" /></svg>
+          </button>
+        </span>
       </span>
     </div>
     <input
@@ -101,11 +100,11 @@ function bump(d) {
 .row { margin-bottom: 12px; }
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
-.valEdit { display: flex; align-items: center; gap: 4px; }
-// 필드+화살표 — StepField와 동일 문법 (§124)
+// 필드+화살표 — StepField와 동일 문법 (§124), 단위 어도른먼트 내장 (§125)
 .sf {
   display: flex; align-items: stretch;
   border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: text;
   &:focus-within { border-color: var(--accent); }
   &.flash { animation: slPulse 0.2s ease-out; }
 }
@@ -131,5 +130,8 @@ function bump(d) {
   svg { width: 7px; height: 5px; fill: var(--faint); }
   &:hover svg { fill: var(--accent); }
 }
-.suffix { font-size: var(--fs-xs); color: var(--faint); white-space: nowrap; }
+.suffix {
+  font-size: var(--fs-xs); color: var(--faint); white-space: nowrap;
+  align-self: center; padding-right: 6px; pointer-events: none; // 편집 대상 아님 — 클릭은 .sf가 입력 포커스로
+}
 </style>

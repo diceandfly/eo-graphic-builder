@@ -331,6 +331,7 @@ function setStrokeColor(c) {
         <Slider
           :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
           :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+          :arrow-step="isCm ? 0.01 : 5"
           @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
         />
         <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" />
@@ -338,11 +339,13 @@ function setStrokeColor(c) {
         <Slider
           :label="`gutter x (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
           :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+          :arrow-step="isCm ? 0.01 : 5"
           @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
         />
         <Slider
           :label="`gutter y (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
           :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+          :arrow-step="isCm ? 0.01 : 5"
           @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
         />
       </template>
@@ -372,7 +375,7 @@ function setStrokeColor(c) {
       <Slider
         v-if="p.gutterMode === 'fixed'"
         label="gutter" v-model="p.gutterPx"
-        :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1"
+        :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1" :arrow-step="5"
         :mixed="mixed('gutterPx')"
       />
       <Slider

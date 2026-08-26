@@ -4,7 +4,7 @@
 
 ## 대화·표기
 - **한국어 존댓말**로 응답.
-- 색은 **브랜드 컬러명**으로 지칭: EO NEON(#F9EE48) · WORLD GREEN(#55BB73) · HORIZON BLUE(#6ECBD6) · SPACE BLACK(#0B0B0B) · VOID GREY(#8E8E8E) · HALO WHITE(#EFEAE1). ("옆랑" 같은 오타 금지)
+- 색은 **브랜드 컬러명**으로 지칭: EO NEON(#F9EE48) · WORLD GREEN(#55BB73) · HORIZON BLUE(#6ECBD6) · SPACE BLACK(#0B0B0B) · STEEL GREY(#8E8E8E, 구 VOID GREY) · VOID GREY(#3B3B3B, §125 신규) · HALO WHITE(#EFEAE1). ("옆랑" 같은 오타 금지)
 
 ## 문서가 곧 기억
 - **SPEC.md** = 전체 이력·확정 사양의 단일 출처. 새 세션은 SPEC.md §순서대로 훑으면 맥락 복구됨. **매 작업 라운드마다 SPEC에 §N 항목 추가 후 커밋·푸시**가 관례.

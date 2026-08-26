@@ -146,7 +146,7 @@ watch(open, (o) => {
 .recentChip {
   width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
   border-radius: var(--radius);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--void-grey) 40%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--steel-grey) 40%, transparent);
   &:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 }
 </style>
