@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
-import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX } from '../../geometry/constants.js';
+import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_RATIO } from '../../geometry/constants.js';
 
 // 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
 // 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
@@ -76,6 +76,14 @@ function onSeamCutoff(e) {
   const v = Number(e.target.value);
   if (Number.isFinite(v) && v >= 10) props.view.seamCutoff = Math.min(400, Math.round(v));
   e.target.value = props.view.seamCutoff;
+}
+// 유닛 설정 일괄 초기화 — 하한 2px/0.1% + 가이드 색 기본 (§88)
+function resetUnitDefaults() {
+  if (props.limits) {
+    props.limits.unitMin = UNIT_MIN;
+    props.limits.threadMinRatio = THREAD_MIN_RATIO;
+  }
+  props.view.guideColor = null;
 }
 // 캔버스 그리드 옵션 일괄 초기화 (크기·스냅·격자색·배경색 — §85)
 function resetGridDefaults() {
@@ -180,19 +188,7 @@ function resetGridDefaults() {
           @pointermove="resetIdle"
           @change="resetIdle"
         >
-          <div class="menuTitle">Unit grid color</div>
-          <div class="menuRow">
-            <span class="preview" :style="{ background: view.guideColor || 'var(--guide)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.guideColor || ''"
-              @keydown.enter="onGuideColor"
-              @change="onGuideColor"
-            />
-          </div>
-          <button class="miniBtn" @click="view.guideColor = null">reset to default</button>
-          <!-- 지오메트리 하한 (§87) — export 결과에 영향, eo.prefs(워크스페이스) 저장 -->
-          <div v-if="limits" class="menuTitle sect">Geometry limits</div>
+          <div class="menuTitle">Unit setting</div>
           <label v-if="limits" class="menuRow">
             <span class="rowGrow">Unit min (px)</span>
             <input class="numInput" type="number" min="1" max="50" :value="limits.unitMin" @change="onUnitMin" />
@@ -204,6 +200,17 @@ function resetGridDefaults() {
               :value="+(limits.threadMinRatio * 100).toFixed(3)" @change="onThreadMin"
             />
           </label>
+          <div class="menuRow">
+            <span class="rowGrow">Unit grid color</span>
+            <span class="preview" :style="{ background: view.guideColor || 'var(--guide)' }" />
+            <input
+              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
+              :value="view.guideColor || ''"
+              @keydown.enter="onGuideColor"
+              @change="onGuideColor"
+            />
+          </div>
+          <button class="miniBtn" @click="resetUnitDefaults">reset to default</button>
         </div>
       </div>
       <div class="optWrap">

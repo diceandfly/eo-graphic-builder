@@ -913,3 +913,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **저장/열기 범위 라벨 구체화** — "Canvas — units · groups · links" / "Camera — zoom & pan position" / "Workspace — tools · colors · view options".
 4. **리소스 모니터** — OBJ / MEM / FPS 순서로 변경 + 성능 저하 시 해당 항목 danger 색 강조 (OBJ>2000 · MEM 힙 사용률>70% · FPS<30). FPS는 첫 측정 전 미표시.
 - 검증: 메뉴 순서·라벨, Thread min 0.06 입력 → prefs.limits 0.0006 반영, 모니터 "OBJ 1 · MEM 51MB · FPS 0(빨강)" 스크린샷 — 숨김 팬에서 rAF 정지로 FPS 0 = hot 강조 동작 확인.
+
+## 88. 2026-08-25 — 저장/열기 3분류 재편 + UNIT SETTING 팝업 통합
+
+1. **저장/열기 범위 3분류** (v3):
+   - **Work data** — units · groups · links · layout (캔버스 데이터)
+   - **Tools setting** — eyedropScope·blend·arrange·rectQuick·currentColor·customColor·recentColors·customRatios
+   - **Viewport setting** — grid(캔버스 격자)·view(뷰 옵션·색)·limits(지오메트리 하한)
+   - **카메라(줌·팬)는 토글 없이 항상 저장**(data.camera), 로드 시 마지막 위치로 자동 복원. v1·2 파일(viewport/workspace 키) 하위 호환.
+   - 저장 기본: work만 on / 열기 기본: 전체 on. 설정 로드는 eo.prefs에 키 단위 병합 후 'eo:prefs'로 라이브 반영.
+2. **유닛 그리드 우클릭 = UNIT SETTING 팝업** — 그룹 분할 없이 단일 구조: Unit min(px) → Thread min(%) → Unit grid color → reset to default(하한 2px/0.1% + 가이드 색 일괄 복구).
+- 검증: 팝업 구조·reset(9→2 복구), 저장 JSON v3 키(camera + tools 8키 + viewSettings 3키), 파일 주입 로드 — camera transform(123,45,0.77) 자동 복원·stageBgColor 라이브 반영·tools 병합·유닛 보존.

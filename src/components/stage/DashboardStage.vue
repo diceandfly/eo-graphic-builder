@@ -183,9 +183,13 @@ function commitRecentColor(c) {
 }
 // 사각형 더블클릭 즉시 생성 크기 (사각 툴 우클릭 메뉴에서 편집 — §85)
 const rectQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}) });
-// 프로젝트 JSON 저장/열기 범위 (저장·열기 버튼 우클릭 메뉴 — §86)
-const saveScope = reactive({ objects: true, viewport: true, workspace: false, ...(prefs.saveScope || {}) });
-const openScope = reactive({ objects: true, viewport: true, workspace: true, ...(prefs.openScope || {}) });
+// 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.
+// work = 캔버스 데이터 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
+const pickScope = (src) => ({
+  work: src?.work ?? true, tools: src?.tools ?? false, viewport: src?.viewport ?? false,
+});
+const saveScope = reactive(pickScope(prefs.saveScope));
+const openScope = reactive({ ...pickScope(prefs.openScope), tools: prefs.openScope?.tools ?? true, viewport: prefs.openScope?.viewport ?? true });
 // 지오메트리 하한 (유닛 그리드 버튼 우클릭 메뉴 — §87). LIMITS(플레인)로 흘려보내고
 // 변경 시 params 객체 교체로 파생 캐시를 무효화해 즉시 재렌더.
 const limitsCfg = reactive({

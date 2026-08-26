@@ -13,11 +13,11 @@ defineProps({
 });
 const emit = defineEmits(['save', 'open', 'reset']);
 
-// 저장/열기 범위 — 어떤 계통의 정보인지 구체 항목으로 표기 (§87)
+// 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원
 const SCOPE_LABELS = {
-  objects: 'Canvas — units · groups · links',
-  viewport: 'Camera — zoom & pan position',
-  workspace: 'Workspace — tools · colors · view options',
+  work: 'Work data — units · groups · links · layout',
+  tools: 'Tools setting — tool customization',
+  viewport: 'Viewport setting — grid & render',
 };
 const openMenu = ref(null); // 'manual' | 'save' | 'open' | null
 function onContext(key, e) {

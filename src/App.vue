@@ -115,23 +115,27 @@ async function copySelectionPng() {
 }
 const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언랩
 
-// JSON 프로젝트 저장/열기 — 저장·열기 버튼 우클릭 메뉴의 범위 토글로 큰분류 선택 (§86)
-// objects = 유닛·그룹·링크 / viewport = 줌·팬 / workspace = 작업환경(eo.prefs)·커스텀 비율
+// JSON 프로젝트 저장/열기 — 저장·열기 버튼 우클릭 메뉴의 3분류 토글 (§88)
+// work = units·groups·links·배치 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
+// 카메라(줌·팬)는 토글 없이 항상 저장, 로드 시 마지막 위치로 자동 복원
+const TOOLS_KEYS = ['eyedropScope', 'blend', 'arrange', 'rectQuick', 'currentColor', 'customColor', 'recentColors'];
+const VIEWSET_KEYS = ['grid', 'view', 'limits'];
+const readJson = (key, fallback) => {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; }
+};
+const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 function saveProject(scope = {}) {
-  const data = { version: 2 };
-  if (scope.objects !== false) {
+  const data = { version: 3, camera: { ...viewport.vp } };
+  if (scope.work !== false) {
     data.units = doc.units;
     data.groupNames = doc.groupNames;
     data.linkScopes = doc.linkScopes;
   }
-  if (scope.viewport !== false) data.viewport = { ...viewport.vp };
-  if (scope.workspace) {
-    let prefsData = {};
-    let ratios = [];
-    try { prefsData = JSON.parse(localStorage.getItem('eo.prefs') || '{}'); } catch { /* 무시 */ }
-    try { ratios = JSON.parse(localStorage.getItem('eo.customRatios') || '[]'); } catch { /* 무시 */ }
-    data.workspace = { prefs: prefsData, customRatios: ratios };
+  const prefsData = readJson('eo.prefs', {});
+  if (scope.tools) {
+    data.tools = { ...pick(prefsData, TOOLS_KEYS), customRatios: readJson('eo.customRatios', []) };
   }
+  if (scope.viewport) data.viewSettings = pick(prefsData, VIEWSET_KEYS);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -143,20 +147,34 @@ function saveProject(scope = {}) {
 async function openProject(file, scope = {}) {
   try {
     const data = JSON.parse(await file.text());
-    if (scope.objects !== false && Array.isArray(data.units)) {
+    if (scope.work !== false && Array.isArray(data.units)) {
       docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes });
     }
-    if (scope.viewport !== false && data.viewport) Object.assign(viewport.vp, data.viewport);
-    if (scope.workspace !== false) {
-      if (data.workspace?.prefs) {
-        localStorage.setItem('eo.prefs', JSON.stringify(data.workspace.prefs));
-        window.dispatchEvent(new Event('eo:prefs')); // DashboardStage가 라이브 반영
-      }
-      const ratios = data.workspace?.customRatios ?? data.customRatios; // v1 하위 호환
+    // 카메라: 항상 마지막 저장 위치로 (v3 camera, v1·2 viewport 하위 호환)
+    const cam = data.camera ?? data.viewport;
+    if (cam) Object.assign(viewport.vp, cam);
+    // 설정 병합: v3 tools/viewSettings, v2 workspace.prefs 하위 호환
+    const legacy = data.workspace?.prefs;
+    const toolsSrc = data.tools ?? (legacy ? pick(legacy, TOOLS_KEYS) : null);
+    const viewSrc = data.viewSettings ?? (legacy ? pick(legacy, VIEWSET_KEYS) : null);
+    let touched = false;
+    const merged = readJson('eo.prefs', {});
+    if (scope.tools !== false && toolsSrc) {
+      Object.assign(merged, pick(toolsSrc, TOOLS_KEYS));
+      touched = true;
+      const ratios = toolsSrc.customRatios ?? data.workspace?.customRatios ?? data.customRatios;
       if (ratios) {
         localStorage.setItem('eo.customRatios', JSON.stringify(ratios));
         window.dispatchEvent(new Event('eo:ratios'));
       }
+    }
+    if (scope.viewport !== false && viewSrc) {
+      Object.assign(merged, pick(viewSrc, VIEWSET_KEYS));
+      touched = true;
+    }
+    if (touched) {
+      localStorage.setItem('eo.prefs', JSON.stringify(merged));
+      window.dispatchEvent(new Event('eo:prefs')); // DashboardStage가 라이브 반영
     }
   } catch (err) {
     console.error('invalid project file', err);
