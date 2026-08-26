@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import ColorPicker from './ColorPicker.vue';
+import { blurActive } from '../../utils/dom.js';
 
 // 컬러 옵션 행 공용 컨트롤 (§90·§91) — 미리보기 칩 + hex 입력.
 // 칩 클릭 = 별도 플로팅 픽커 팝오버(메뉴 레이아웃 불변, 칩 왼쪽에 표시).
@@ -34,6 +35,7 @@ function onPopUp() {
   }
 }
 function closeOutside() {
+  blurActive(); // 닫히기 전에 pending hex 입력 커밋 (§93)
   open.value = false;
 }
 watch(open, (o) => {

@@ -6,6 +6,7 @@ import StepField from '../controls/StepField.vue';
 import ColorField from '../controls/ColorField.vue';
 import { ICONS } from '../../ui/icons.js';
 import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_RATIO } from '../../geometry/constants.js';
+import { blurActive } from '../../utils/dom.js';
 
 // 우하단 코너 바 — 캔버스 그리드 / 바운딩박스 / 유닛 그리드 토글 + 줌%
 // 각 토글 버튼 우클릭 = 옵션 메뉴 (그리드: 격자 크기·스냅 / 바운딩박스: 방향키 px·링크 배지 / 유닛 그리드: 가이드 색)
@@ -32,6 +33,7 @@ function onContext(key, e) {
   if (openMenu.value) resetIdle();
 }
 function closeMenu() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   clearTimeout(idleTimer);
   openMenu.value = null;
 }

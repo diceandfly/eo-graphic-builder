@@ -550,6 +550,12 @@ function onKeyDown(e) {
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
   if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
+  // A = 프레임 조작 모드 토글 (§93)
+  if (!mod && !e.shiftKey && e.code === 'KeyA') {
+    e.preventDefault();
+    toggleFrameMode();
+    return;
+  }
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
   if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) doOrder('front');
@@ -1474,9 +1480,9 @@ onBeforeUnmount(() => {
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
 .stage.framedraw, .stage.framedraw .hit { cursor: crosshair; }
-/* 프레임 조작 모드 커서 — 꽉 찬 화살표 (HALO WHITE 채움 + SPACE BLACK 윤곽) */
+/* 프레임 조작 모드 커서 (§93) — OS 기본 화살표 실루엣 유지, 속만 EO NEON 채움. 광학 보정 +5% (21px) */
 .stage.framesel, .stage.framesel .hit {
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" fill="%23EFEAE1" stroke="%230B0B0B" stroke-width="1.5"/></svg>') 3 3, default;
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24"><path d="M5.5 2 5.5 19.5 9.8 15.5 12.6 21.6 15.3 20.3 12.5 14.3 18.5 14Z" fill="%23F9EE48" stroke="%230B0B0B" stroke-width="1.4"/></svg>') 5 2, default;
 }
 .rectDraw { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gridline { stroke: var(--stage-grid); fill: none; }

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import { ICONS } from '../../ui/icons.js';
+import { blurActive } from '../../utils/dom.js';
 
 // 대시보드 좌상단 — 파일 작업 바 (manual / save / open / reset). export는 우클릭 메뉴로 이동 (§60).
 // 우클릭 메뉴 (§86): manual = 리소스 모니터 토글, save/open = JSON 저장·불러오기 범위 토글
@@ -26,6 +27,7 @@ function onContext(key, e) {
   openMenu.value = openMenu.value === key ? null : key;
 }
 function closeCtxMenu() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   openMenu.value = null;
 }
 watch(openMenu, (open) => {

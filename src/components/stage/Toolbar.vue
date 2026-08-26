@@ -6,6 +6,7 @@ import StepField from '../controls/StepField.vue';
 import ColorPicker from '../controls/ColorPicker.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
+import { blurActive } from '../../utils/dom.js';
 
 // 대시보드 하단 중앙 — 스와치 바 + 작업 도구 바 (두 FloatingBar, gap 분리).
 // 파일 작업(export/save/open/reset)은 FileBar(좌상단)로 분리 (§59).
@@ -38,6 +39,7 @@ function onToolContext(key, e) {
   if (menuOpen.value) resetIdle();
 }
 function closeMenu() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   clearTimeout(idleTimer);
   menuOpen.value = false;
 }
@@ -53,6 +55,7 @@ function onBlendContext(e) {
   blendOpen.value = !blendOpen.value;
 }
 function closeBlend() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   blendOpen.value = false;
 }
 watch(blendOpen, (open) => {
@@ -64,6 +67,7 @@ function onArrangeContext(e) {
   arrangeOpen.value = !arrangeOpen.value;
 }
 function closeArrange() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   arrangeOpen.value = false;
 }
 watch(arrangeOpen, (open) => {
@@ -77,6 +81,7 @@ function onCustomContext(e) {
   customOpen.value = !customOpen.value;
 }
 function closeCustom() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   customOpen.value = false;
 }
 watch(customOpen, (open) => {
@@ -94,6 +99,7 @@ function onFrameContext(e) {
   frameOpen.value = !frameOpen.value;
 }
 function closeFrame() {
+  blurActive(); // 닫히기 전에 pending 입력 커밋 (§93)
   frameOpen.value = false;
 }
 watch(frameOpen, (open) => {
@@ -140,7 +146,7 @@ watch(frameOpen, (open) => {
       <!-- 선택툴: 우클릭 = 프레임 조작 모드 스왑 (꽉 찬 커서, §92) -->
       <IconButton
         :paths="frameMode ? null : ICONS.select"
-        :tip="frameMode ? 'Frame select — right-click to exit' : 'Select (V) — right-click: frame mode'"
+        :tip="frameMode ? 'Frame select (A)' : 'Select (V)'"
         :active="mode === 'select'"
         @click="emit('update:mode', 'select')"
         @contextmenu.prevent="emit('toggleFrameMode')"
@@ -153,7 +159,7 @@ watch(frameOpen, (open) => {
       <!-- 프레임 툴 (F, §92): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
       <div class="toolWrap">
         <IconButton
-          :paths="ICONS.rect"
+          :paths="ICONS.frame"
           :tip="frameOpen ? '' : 'Frame (F)'"
           :active="mode === 'frame' || frameOpen"
           @click="emit('update:mode', 'frame')"
