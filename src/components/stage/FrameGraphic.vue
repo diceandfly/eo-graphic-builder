@@ -1,11 +1,11 @@
 <script setup>
 import { computed } from 'vue';
-import { rectGridLines } from '../../geometry/rectGrid.js';
+import { frameGridLines } from '../../geometry/frameGrid.js';
 
-// 직사각형 오브젝트 렌더 — 레이아웃 프레임. 스트로크 없음(§64), 그리드는 가이드 전용(export 미포함).
+// 프레임 오브젝트 렌더 (§92: rect에서 재정의) — 그리드는 가이드 전용(export 미포함).
 const props = defineProps({ params: Object });
 const p = computed(() => props.params);
-const grid = computed(() => (p.value.gridOn ? rectGridLines(p.value) : null));
+const grid = computed(() => (p.value.gridOn ? frameGridLines(p.value) : null));
 </script>
 
 <template>

@@ -76,9 +76,9 @@ function exportPreset(preset) {
 // 타입별 export 아이템 구성 (rect는 도형 정보만, 그리드 가이드 미포함)
 function exportItem(u) {
   const p = u.params;
-  if (u.type === 'rect') {
+  if (u.type === 'frame') {
     return {
-      type: 'rect', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn,
+      type: 'frame', x: u.x, y: u.y, W: p.W, H: p.H, fill: p.fill, fillOn: p.fillOn,
       drawMode: p.drawMode, stroke: p.stroke, strokeW: p.strokeW,
     };
   }
@@ -118,7 +118,7 @@ const presetList = presetsApi.presets; // top-level ref — 템플릿 자동 언
 // JSON 프로젝트 저장/열기 — 저장·열기 버튼 우클릭 메뉴의 3분류 토글 (§88)
 // work = units·groups·links·배치 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
 // 카메라(줌·팬)는 토글 없이 항상 저장, 로드 시 마지막 위치로 자동 복원
-const TOOLS_KEYS = ['eyedropScope', 'blend', 'arrange', 'rectQuick', 'currentColor', 'customColor', 'recentColors'];
+const TOOLS_KEYS = ['eyedropScope', 'blend', 'arrange', 'frameQuick', 'rectQuick', 'currentColor', 'customColor', 'recentColors'];
 const VIEWSET_KEYS = ['grid', 'view', 'limits'];
 const readJson = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; } catch { return fallback; }

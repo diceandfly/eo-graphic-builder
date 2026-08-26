@@ -943,3 +943,13 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 1. **저배율 격자 소실 픽스 + 페이드** — `<pattern>` 내부에서 vector-effect: non-scaling-stroke가 무시되어(타일 별도 래스터화) 12%대 줌부터 격자 선이 0.1px대로 사라지던 문제. 패턴 좌표계에서 `stroke-width = 1/scale` 수동 보정으로 전 배율 화면 1px 유지. 추가로 15%→5% 구간 선형 오파시티 페이드(바닥 0.15) — 극저배율 격자 노이즈 완화, 점진 감쇠로 줌 제스처와 연속(검증: 20%/15%=1.0, 10%=0.575, 5% 이하=0.15).
 2. ColorField 팝오버 형태(§90 개정 항목 참고) · seam 토글 라벨 "Auto seam stroke"(동작은 기존 자동 온오프 그대로 — 별도 auto 토글은 상태 중복이라 도입 안 함).
+
+## 92. 2026-08-25 — Frame 툴 재정의 (rect → frame) + 프레임 조작 모드
+
+**Phase 2 직전 대수술.** rect 툴을 Frame으로 재정의 — 컨테이너 성격 부여.
+
+1. **타입 마이그레이션** — type 'rect' → 'frame', Rect-N → Frame-N (migrateUnit 자동 변환, 구버전 문서 호환). 파일·API 리네임: rectGrid.js→frameGrid.js(rectGridLines→frameGridLines), RectGraphic.vue→FrameGraphic.vue, createRect(Params)→createFrame(Params), nextRectVer→nextFrameVer. 단축키 **R → F**, 툴팁 Frame (F), Quick frame(prefs.frameQuick, 구 rectQuick 폴백). 나머지 기능(그리드·스타일·px/cm·스냅) 동일.
+2. **소유권 규칙 (§91 토론 확정)** — 유닛/그룹 블록의 **bbox 중심점**이 들어있는 프레임 중 **z-오더 최상위 1개**에 귀속. 이동 시작 시점 1회 동적 판정(영속 부모 관계 없음), 그룹은 블록 통째, 프레임은 프레임을 데려가지 않음. 겹침 시 z-오더(Q/W)로 소유권 조정 가능.
+3. **프레임 조작 모드** — 선택툴 우클릭 = 커서 스왑(꽉 찬 화살표: HALO WHITE 채움+SPACE BLACK 윤곽 data-URI 커서, 툴바 아이콘도 채움형). 모드 중: 프레임만 선택·조작(유닛 히트 패스스루), 마퀴도 프레임만. **이동(드래그·방향키) 시 소유 유닛 동반**, 리사이즈는 프레임만(내용물 불변). 일반 커서: 프레임 완전 패스스루(클릭·마퀴가 유닛/캔버스로 통과), 프레임 위 마퀴 셀렉트 가능해짐. 모드 전환 시 선택 해제.
+4. **복제 = 내용물 포함** — 프레임 모드의 Alt+드래그·오버레이 dup 버튼이 프레임+소유 유닛을 함께 복제(⇧D 체인 호환).
+- 검증(합성 이벤트): rect 문서 자동 마이그레이션(frame:Frame-1), 일반 모드 패스스루(frame none/unit auto), 모드 토글(포인터 반전+커서 클래스+채움 아이콘), 프레임 드래그 +60/+40 → 중심점 안 유닛만 동반·걸침/밖 유닛 불동, 이동 후 중심이 들어온 유닛의 소유권 갱신 확인(복제 3개), Alt복제 내용물 포함·언두 1회 복원, F키 드로우 150×100 → Frame-2 생성. 회귀 30/30.

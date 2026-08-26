@@ -47,8 +47,8 @@ const linked = computed(() => {
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
 const p = computed(() => props.unit?.params);
-// 직사각형 오브젝트: 전용 섹션(GRID) 분기
-const isRect = computed(() => typeOf(props.unit) === 'rect');
+// 프레임 오브젝트: 전용 섹션(GRID) 분기
+const isFrame = computed(() => typeOf(props.unit) === 'frame');
 const ON_OFF = [{ value: 'on', label: 'on' }, { value: 'off', label: 'off' }];
 // 링크 스코프 범주는 스코프형 타입(유닛)만 — rect가 섞이면 칩 숨김 (rect 링크는 전체 동기화)
 const scopeChipsVisible = computed(() => props.selected.every((u) => isLinkScoped(u)));
@@ -153,7 +153,7 @@ function applyPhysical(pp) {
 }
 
 // ─── px/cm 표기 단위 (rect 전용, §75) — 내부 저장은 항상 px, dpi 기준 환산 표시 ───
-const isCm = computed(() => isRect.value && p.value.unitMode === 'cm');
+const isCm = computed(() => isFrame.value && p.value.unitMode === 'cm');
 const unitSuffix = computed(() => (isCm.value ? 'cm' : 'px'));
 const round2 = (n) => Math.round(n * 100) / 100;
 const toDisp = (v) => (isCm.value ? round2((v * 2.54) / dpi.value) : v);
@@ -220,7 +220,7 @@ function onStrokeHex(e) {
         <h2>Size</h2>
         <div class="headBtns">
           <!-- rect 전용 px/cm 표기 토글 — SIZE·RATIO·GRID 표기에 공통 적용 (§75) -->
-          <div v-if="isRect" class="unitSeg">
+          <div v-if="isFrame" class="unitSeg">
             <button :class="{ on: !isCm }" @click="setUnitMode('px')">px</button>
             <button :class="{ on: isCm }" @click="setUnitMode('cm')">cm</button>
           </div>
@@ -256,7 +256,7 @@ function onStrokeHex(e) {
       </div>
       <div class="ratioHead">ratio</div>
       <!-- 직사각형: px 모드 = 디지털 비율 / cm 모드 = 출판 규격 + dpi (단위 토글로 태그 스왑, §75) -->
-      <template v-if="isRect">
+      <template v-if="isFrame">
         <div v-if="!isCm" class="ratioRow">
           <ChipRow
             :model-value="aspect" :chips="RECT_DIGITAL" :tol="ASPECT_TOL"
@@ -280,7 +280,7 @@ function onStrokeHex(e) {
     </section>
 
     <!-- 직사각형 전용: 렌더 스타일 — fill(면) / stroke(외곽선) 토글 (§75) -->
-    <template v-if="isRect">
+    <template v-if="isFrame">
     <section>
       <h2>Style</h2>
       <Toggle
@@ -331,7 +331,7 @@ function onStrokeHex(e) {
     </section>
     </template>
 
-    <template v-if="!isRect">
+    <template v-if="!isFrame">
     <section>
       <h2>Grid</h2>
       <Slider

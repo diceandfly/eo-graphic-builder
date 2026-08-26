@@ -16,12 +16,13 @@ const props = defineProps({
   arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
   recentColors: Array, // 최근 사용 커스텀 컬러 (팝업 하단 슬롯, §85)
-  rectQuickCfg: Object, // 사각형 더블클릭 즉시 생성 크기 { w, h } (§85)
-}); // mode: 'select' | 'eyedrop' | 'rect'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'rectQuick']);
+  frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 크기 { w, h } (§85·§92)
+  frameMode: Boolean, // 프레임 조작 모드 (선택툴 우클릭 스왑, §92)
+}); // mode: 'select' | 'eyedrop' | 'frame'
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'frameQuick', 'toggleFrameMode']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 
-// 도구 순서: select → rect → eyedrop → blend → arrange (§85에서 rect를 스포이드 왼쪽으로)
+// 도구 순서: select → frame → eyedrop → blend → arrange (§85에서 스포이드 왼쪽 배치, §92에서 rect→frame)
 
 // 스포이드 우클릭 → 범주 스코프 메뉴 (5초 무조작 시 자동 닫힘)
 const menuOpen = ref(false);
@@ -86,17 +87,17 @@ function onPick(c) {
   emit('fill', c); // 라이브 적용 (선택 없으면 현재 컬러만 갱신됨)
 }
 
-// 사각 툴 우클릭 → 더블클릭 즉시 생성 크기 편집 (§85)
-const rectOpen = ref(false);
-function onRectContext(e) {
+// 프레임 툴 우클릭 → 더블클릭 즉시 생성 크기 편집 (§85)
+const frameOpen = ref(false);
+function onFrameContext(e) {
   e.preventDefault();
-  rectOpen.value = !rectOpen.value;
+  frameOpen.value = !frameOpen.value;
 }
-function closeRect() {
-  rectOpen.value = false;
+function closeFrame() {
+  frameOpen.value = false;
 }
-watch(rectOpen, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeRect, { once: true }), 0);
+watch(frameOpen, (open) => {
+  if (open) setTimeout(() => window.addEventListener('pointerdown', closeFrame, { once: true }), 0);
 });
 </script>
 
@@ -136,30 +137,38 @@ watch(rectOpen, (open) => {
 
     <!-- 도구 바 -->
     <FloatingBar>
+      <!-- 선택툴: 우클릭 = 프레임 조작 모드 스왑 (꽉 찬 커서, §92) -->
       <IconButton
-        :paths="ICONS.select" tip="Select (V)"
+        :paths="frameMode ? null : ICONS.select"
+        :tip="frameMode ? 'Frame select — right-click to exit' : 'Select (V) — right-click: frame mode'"
         :active="mode === 'select'"
         @click="emit('update:mode', 'select')"
-      />
-      <!-- 직사각형 툴 (R): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
+        @contextmenu.prevent="emit('toggleFrameMode')"
+      >
+        <svg v-if="frameMode" class="fillArrow" viewBox="0 0 24 24">
+          <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+          <path class="tail" d="M13 13l9 9" />
+        </svg>
+      </IconButton>
+      <!-- 프레임 툴 (F, §92): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
       <div class="toolWrap">
         <IconButton
           :paths="ICONS.rect"
-          :tip="rectOpen ? '' : 'Rectangle (R)'"
-          :active="mode === 'rect' || rectOpen"
-          @click="emit('update:mode', 'rect')"
-          @dblclick="emit('rectQuick')"
-          @contextmenu="onRectContext"
+          :tip="frameOpen ? '' : 'Frame (F)'"
+          :active="mode === 'frame' || frameOpen"
+          @click="emit('update:mode', 'frame')"
+          @dblclick="emit('frameQuick')"
+          @contextmenu="onFrameContext"
         />
-        <div v-if="rectOpen && rectQuickCfg" class="menu" @pointerdown.stop>
-          <div class="menuTitle">Quick rectangle</div>
+        <div v-if="frameOpen && frameQuickCfg" class="menu" @pointerdown.stop>
+          <div class="menuTitle">Quick frame</div>
           <div class="menuRow">
             <span class="rowLabel">width (px)</span>
-            <StepField v-model="rectQuickCfg.w" :min="50" :max="8000" :step="10" />
+            <StepField v-model="frameQuickCfg.w" :min="50" :max="8000" :step="10" />
           </div>
           <div class="menuRow">
             <span class="rowLabel">height (px)</span>
-            <StepField v-model="rectQuickCfg.h" :min="50" :max="8000" :step="10" />
+            <StepField v-model="frameQuickCfg.h" :min="50" :max="8000" :step="10" />
           </div>
           <div class="menuNote">double-click the tool to create</div>
         </div>
@@ -260,6 +269,11 @@ watch(rectOpen, (open) => {
 }
 // 최근 커스텀 컬러 슬롯 — 스와치 칩과 동일 문법의 소형 칩
 .recentRow { display: flex; gap: 6px; margin-top: 2px; }
+.fillArrow {
+  width: var(--icon-size); height: var(--icon-size);
+  path { fill: var(--accent); }
+  .tail { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: square; }
+}
 .recentChip {
   width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
   border-radius: var(--radius);

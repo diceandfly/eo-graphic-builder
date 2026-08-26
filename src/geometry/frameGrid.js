@@ -1,5 +1,5 @@
-// 직사각형 내부 레이아웃 그리드 라인 (로컬 px 좌표) — 렌더(RectGraphic)와 스냅(이동) 공유
-export function rectGridLines(p) {
+// 프레임 내부 레이아웃 그리드 라인 (로컬 px 좌표) — 렌더(FrameGraphic)와 스냅(이동) 공유
+export function frameGridLines(p) {
   const { W, H, margin, rows, cols, gutterX, gutterY } = p;
   const mx = margin;
   const my = margin;

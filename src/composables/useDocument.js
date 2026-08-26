@@ -39,8 +39,8 @@ export function createParams(overrides = {}) {
 const DOC_KEY = 'eo.doc';
 
 // 구버전 스키마 호환: groupId(단일) → groups(중첩 스택, 바깥쪽이 끝)
-// 직사각형 오브젝트 파라미터 (그리기 툴 R) — 레이아웃 프레임 성격. 스트로크 없음 (§64).
-export function createRectParams(overrides = {}) {
+// 프레임 오브젝트 파라미터 (그리기 툴 F, §92: rect에서 재정의) — 레이아웃 프레임.
+export function createFrameParams(overrides = {}) {
   return {
     W: 300,
     H: 200,
@@ -64,8 +64,13 @@ export function createRectParams(overrides = {}) {
 
 function migrateUnit(u) {
   if (!u.type) u.type = 'unit';
-  // 구버전 rect: 이후 추가된 키(drawMode 등)를 기본값으로 보충
-  if (u.type === 'rect' && u.params) u.params = { ...createRectParams(), ...u.params };
+  // §92: rect → frame 재정의 (기존 문서 자동 마이그레이션, 이름도 Rect-N → Frame-N)
+  if (u.type === 'rect') {
+    u.type = 'frame';
+    if (u.name) u.name = u.name.replace(/^Rect-/, 'Frame-');
+  }
+  // 구버전 frame: 이후 추가된 키(drawMode 등)를 기본값으로 보충
+  if (u.type === 'frame' && u.params) u.params = { ...createFrameParams(), ...u.params };
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   if (u.linkId === undefined) u.linkId = null;
@@ -89,8 +94,8 @@ export function useDocument() {
   const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
 
   let nextId = 2;
-  let nextUnitVer = 2; // 유닛/사각형 넘버링 분리 (§64)
-  let nextRectVer = 1;
+  let nextUnitVer = 2; // 유닛/프레임 넘버링 분리 (§64)
+  let nextFrameVer = 1;
   let nextGroup = 1;
   let nextLink = 1;
   const doc = reactive({
@@ -108,14 +113,14 @@ export function useDocument() {
       return Math.max(m, mt ? Number(mt[1]) : 0);
     }, 0) + 1;
     nextId = doc.units.reduce((m, u) => Math.max(m, u.id), 0) + 1;
-    nextUnitVer = maxVer(doc.units.filter((u) => u.type !== 'rect'));
-    nextRectVer = maxVer(doc.units.filter((u) => u.type === 'rect'));
+    nextUnitVer = maxVer(doc.units.filter((u) => u.type !== 'frame'));
+    nextFrameVer = maxVer(doc.units.filter((u) => u.type === 'frame'));
     nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
     nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
   }
   // 타입별 다음 이름 (접두어는 오브젝트 레지스트리에서)
   const nextName = (type) =>
-    `${namePrefix(type)}-${type === 'rect' ? nextRectVer++ : nextUnitVer++}`;
+    `${namePrefix(type)}-${type === 'frame' ? nextFrameVer++ : nextUnitVer++}`;
 
   // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 링크 스코프
   let saveTimer = null;
@@ -381,12 +386,12 @@ export function useDocument() {
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
-  // 직사각형 생성 (그리기 툴) — fill 기본값은 현재 컬러(없으면 createRectParams 기본)
-  function createRect(x, y, W = 300, H = 200, fill = null) {
-    const params = createRectParams(fill ? { fill } : {});
+  // 프레임 생성 (그리기 툴 F) — fill 기본값은 현재 컬러(없으면 createFrameParams 기본)
+  function createFrame(x, y, W = 300, H = 200, fill = null) {
+    const params = createFrameParams(fill ? { fill } : {});
     params.W = clamp(Math.round(W), LIMITS.unitMin, UNIT_MAX);
     params.H = clamp(Math.round(H), LIMITS.unitMin, UNIT_MAX);
-    return pushUnit(params, Math.round(x), Math.round(y), null, 'rect');
+    return pushUnit(params, Math.round(x), Math.round(y), null, 'frame');
   }
   function createUnit(x = 0, y = 0) {
     const params = createParams();
@@ -560,7 +565,7 @@ export function useDocument() {
     for (const u of doc.units) {
       if (!ids.has(u.id)) continue;
       // rect가 stroke 모드면 스와치 적용 대상 = 외곽선 색 (보이는 색을 바꿈, §75)
-      if (u.type === 'rect' && u.params.drawMode === 'stroke') u.params.stroke = color;
+      if (u.type === 'frame' && u.params.drawMode === 'stroke') u.params.stroke = color;
       else u.params.fill = color;
     }
   }
@@ -951,7 +956,7 @@ export function useDocument() {
   function resetDoc() {
     nextId = 1;
     nextUnitVer = 1;
-    nextRectVer = 1;
+    nextFrameVer = 1;
     nextGroup = 1;
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
@@ -969,7 +974,7 @@ export function useDocument() {
     doc, active, gutterMax, alignSelected, distributeSelected, resetDoc,
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
-    createRect, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
+    createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit,

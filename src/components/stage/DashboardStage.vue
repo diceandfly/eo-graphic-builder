@@ -6,13 +6,13 @@ import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
 import FileBar from './FileBar.vue';
-import RectGraphic from './RectGraphic.vue';
+import FrameGraphic from './FrameGraphic.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
-import { rectGridLines } from '../../geometry/rectGrid.js';
+import { frameGridLines } from '../../geometry/frameGrid.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
 
 // 실픽셀 대시보드 스테이지.
@@ -130,8 +130,42 @@ const selBounds = computed(() => {
     h: Math.max(...sel.map((u) => u.y + u.params.H)) - minY,
   };
 });
-const mode = ref('select'); // 'select' | 'eyedrop' | 'rect'
-const rectPreview = ref(null); // 직사각형 드래그 생성 미리보기 (월드 좌표)
+const mode = ref('select'); // 'select' | 'eyedrop' | 'frame'
+// ── 프레임 조작 모드 (§92) — 선택툴 우클릭으로 커서 스왑 ──
+// on: 프레임만 선택·조작(이동 시 내용물 동반), 유닛 패스스루 / off: 유닛 조작, 프레임 패스스루
+const frameMode = ref(false);
+function toggleFrameMode() {
+  frameMode.value = !frameMode.value;
+  props.actions.deselect(); // 모드 전환 시 혼합 선택 방지
+}
+// 소유권 판정 (§92): 유닛/그룹 블록의 bbox 중심점이 들어있는 프레임 중 z-오더 최상위 1개.
+// 이동 시작 시점에 1회 계산 — 영속 부모 관계 없음. 프레임은 프레임을 데려가지 않음.
+function frameOwnedUnits(frameIds) {
+  const moving = new Set(frameIds);
+  const frames = props.doc.units.filter((u) => u.type === 'frame');
+  const blocks = new Map(); // 그룹 통째 판정 (부분 이동으로 그룹 찢김 방지)
+  for (const u of props.doc.units) {
+    if (u.type === 'frame') continue;
+    const g = props.actions.outermost(u);
+    const key = g ? 'g' + g : 'u' + u.id;
+    if (!blocks.has(key)) blocks.set(key, []);
+    blocks.get(key).push(u);
+  }
+  const owned = [];
+  for (const members of blocks.values()) {
+    const minX = Math.min(...members.map((m) => m.x));
+    const minY = Math.min(...members.map((m) => m.y));
+    const cx = (minX + Math.max(...members.map((m) => m.x + m.params.W))) / 2;
+    const cy = (minY + Math.max(...members.map((m) => m.y + m.params.H))) / 2;
+    let owner = null; // 배열 순서 = z-오더 (마지막 매치가 최상위)
+    for (const f of frames) {
+      if (cx >= f.x && cx <= f.x + f.params.W && cy >= f.y && cy <= f.y + f.params.H) owner = f;
+    }
+    if (owner && moving.has(owner.id)) owned.push(...members);
+  }
+  return owned;
+}
+const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showStageGrid = ref(true); // 대시보드 배경 라인 그리드
 const pxs = (n) => n / vp.scale;
@@ -181,8 +215,8 @@ function commitRecentColor(c) {
   const arr = [c, ...recentColors.value.filter((x) => x !== c)].slice(0, 6);
   recentColors.value = arr;
 }
-// 사각형 더블클릭 즉시 생성 크기 (사각 툴 우클릭 메뉴에서 편집 — §85)
-const rectQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}) });
+// 프레임 더블클릭 즉시 생성 크기 (프레임 툴 우클릭 메뉴에서 편집 — §85·§92)
+const frameQuickCfg = reactive({ w: 1920, h: 800, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
 // 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.
 // work = 캔버스 데이터 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
 const pickScope = (src) => ({
@@ -200,7 +234,7 @@ LIMITS.threadMinRatio = limitsCfg.threadMinRatio;
 // thread min px 환산 기준: 선택(활성) 유닛의 W, rect·무선택이면 기본 유닛 960 (§89)
 const threadRefW = computed(() => {
   const u = activeUnit.value;
-  return u && u.type !== 'rect' ? u.params.W : 960;
+  return u && u.type !== 'frame' ? u.params.W : 960;
 });
 watch(limitsCfg, () => {
   LIMITS.unitMin = limitsCfg.unitMin;
@@ -213,7 +247,7 @@ watch(
   () => JSON.stringify({
     eyedropScope, grid: gridCfg, view, blend: blendCfg, arrange: arrangeCfg,
     currentColor: currentColor.value, customColor: customColor.value,
-    recentColors: recentColors.value, rectQuick: rectQuickCfg,
+    recentColors: recentColors.value, frameQuick: frameQuickCfg,
     saveScope, openScope, limits: limitsCfg,
   }),
   (s) => localStorage.setItem(PREFS_KEY, s)
@@ -345,12 +379,12 @@ function onArrange() {
   setLast('grid arrange', () => onArrange());
 }
 
-// 직사각형 즉시 생성 (툴 버튼 더블클릭): rectQuickCfg 크기, 스테이지 중앙 (§85)
-function onRectQuick() {
+// 프레임 즉시 생성 (툴 버튼 더블클릭): frameQuickCfg 크기, 스테이지 중앙 (§85)
+function onFrameQuick() {
   const r = el.value.getBoundingClientRect();
   const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
-  const { w, h } = rectQuickCfg;
-  props.actions.createRect(cx - w / 2, cy - h / 2, w, h, currentColor.value || null);
+  const { w, h } = frameQuickCfg;
+  props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, currentColor.value || null);
   mode.value = 'select';
 }
 
@@ -492,6 +526,18 @@ function onKeyDown(e) {
   }
   // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (ARROWS[e.key] && props.doc.selectedIds.length && frameMode.value) {
+    // 프레임 모드 방향키: 프레임 + 소유 유닛 동반 이동 (§92)
+    e.preventDefault();
+    const [ax, ay] = ARROWS[e.key];
+    const k = (e.shiftKey ? 10 : 1) * view.nudge;
+    const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+    const carried = frameOwnedUnits(sel.filter((x) => x.type === 'frame').map((x) => x.id));
+    props.actions.withGeomOp(() => {
+      for (const x of [...sel, ...carried]) { x.x += ax * k; x.y += ay * k; }
+    });
+    return;
+  }
   if (ARROWS[e.key] && props.doc.selectedIds.length) {
     e.preventDefault();
     const step = e.shiftKey ? view.nudge * 10 : view.nudge;
@@ -503,7 +549,7 @@ function onKeyDown(e) {
   }
   if (!mod && !e.shiftKey && e.code === 'KeyV') mode.value = 'select';
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
-  if (!mod && !e.shiftKey && e.code === 'KeyR') mode.value = 'rect';
+  if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') onArrange();
   if (!mod && !e.shiftKey && e.code === 'KeyQ' && props.doc.selectedIds.length) doOrder('front');
@@ -524,9 +570,9 @@ function onStageDown(e) {
   if (e.button === 1 || (e.button === 0 && spaceHeld.value)) {
     e.preventDefault();
     beginDrag(e, { kind: 'pan', x0: vp.x, y0: vp.y });
-  } else if (e.button === 0 && mode.value === 'rect') {
+  } else if (e.button === 0 && mode.value === 'frame') {
     const [wx, wy] = props.viewport.toWorld(...local(e));
-    beginDrag(e, { kind: 'rectdraw', wx, wy });
+    beginDrag(e, { kind: 'framedraw', wx, wy });
   } else if (e.button === 0) {
     const [lx, ly] = local(e);
     beginDrag(e, { kind: 'marquee', lx, ly });
@@ -542,10 +588,10 @@ function onUnitDown(u, e) {
   }
   if (e.button !== 0) return;
   e.preventDefault(); // alt+drag 시 브라우저/OS 기본 동작 차단
-  if (mode.value === 'rect') {
+  if (mode.value === 'frame') {
     // 그리기 모드: 유닛 위에서도 새 직사각형 드래그 시작
     const [wx, wy] = props.viewport.toWorld(...local(e));
-    beginDrag(e, { kind: 'rectdraw', wx, wy });
+    beginDrag(e, { kind: 'framedraw', wx, wy });
     return;
   }
   if (mode.value === 'eyedrop') {
@@ -583,7 +629,12 @@ function onUnitDown(u, e) {
   if (e.altKey) {
     // Alt+드래그 복제 대상: 멀티선택 안이면 선택 전체, 그룹 멤버면 그룹 전체(미선택이어도), 아니면 단일
     const inMulti = props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1;
-    const srcIds = inMulti ? props.doc.selectedIds : members;
+    let srcIds = inMulti ? [...props.doc.selectedIds] : [...members];
+    // 프레임 모드 복제 = 내용물 포함 (§92 확정 사양)
+    if (frameMode.value) {
+      const frameIds = srcIds.filter((id) => props.doc.units.find((x) => x.id === id)?.type === 'frame');
+      for (const o of frameOwnedUnits(frameIds)) if (!srcIds.includes(o.id)) srcIds.push(o.id);
+    }
     targets =
       srcIds.length > 1
         ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
@@ -602,6 +653,11 @@ function onUnitDown(u, e) {
     props.doc.activeId = u.id;
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
+  // 프레임 모드 이동 = 소유 유닛 동반 (§92) — 복제 드래그는 위에서 이미 사본에 포함됨
+  if (frameMode.value && !e.altKey) {
+    const frameIds = targets.filter((t) => t.type === 'frame').map((t) => t.id);
+    for (const o of frameOwnedUnits(frameIds)) if (!targets.includes(o)) targets.push(o);
+  }
   beginDrag(e, {
     kind: 'move',
     targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })),
@@ -619,8 +675,23 @@ function onAlign(t) {
 function onGroupAction(key) {
   if (key === 'flip') props.actions.flipSelected('h');
   else if (key === 'flipv') props.actions.flipSelected('v');
-  else if (key === 'dup') props.actions.duplicateSelectedOffset();
+  else if (key === 'dup') {
+    if (frameMode.value) dupFramesWithContents();
+    else props.actions.duplicateSelectedOffset();
+  }
   else if (key === 'del') props.actions.deleteSelected();
+}
+
+// 프레임 복제 (오버레이 dup 버튼, 프레임 모드): 내용물 포함 + 40px 오프셋 (§92)
+function dupFramesWithContents() {
+  const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id) && u.type === 'frame');
+  if (!sel.length) return;
+  const owned = frameOwnedUnits(sel.map((f) => f.id));
+  const copies = props.actions.duplicateUnits([...sel, ...owned]);
+  props.actions.withGeomOp(() => {
+    for (const c of copies) { c.x += 40; c.y += 40; }
+  });
+  props.actions.setSelection(copies.filter((c) => c.type === 'frame').map((c) => c.id));
 }
 
 // 통합 바운딩박스 리사이즈 (멀티/그룹)
@@ -677,9 +748,9 @@ function onMove(e) {
     vp.y = drag.y0 + dys;
     return;
   }
-  if (drag.kind === 'rectdraw') {
+  if (drag.kind === 'framedraw') {
     const [wx, wy] = props.viewport.toWorld(...local(e));
-    rectPreview.value = {
+    framePreview.value = {
       x: Math.min(drag.wx, wx), y: Math.min(drag.wy, wy),
       w: Math.abs(wx - drag.wx), h: Math.abs(wy - drag.wy),
     };
@@ -695,6 +766,7 @@ function onMove(e) {
     const [wx1, wy1] = props.viewport.toWorld(marquee.value.x, marquee.value.y);
     const [wx2, wy2] = props.viewport.toWorld(marquee.value.x + marquee.value.w, marquee.value.y + marquee.value.h);
     const ids = props.doc.units
+      .filter((u) => (frameMode.value ? u.type === 'frame' : u.type !== 'frame'))
       .filter((u) => u.x < wx2 && u.x + u.params.W > wx1 && u.y < wy2 && u.y + u.params.H > wy1)
       .map((u) => u.id);
     props.actions.setSelection(props.actions.expandGroups(ids));
@@ -804,8 +876,8 @@ function onMove(e) {
       const ox = [o.x, o.x + o.params.W / 2, o.x + o.params.W];
       const oy = [o.y, o.y + o.params.H / 2, o.y + o.params.H];
       // 사각형 레이아웃 그리드 스냅: 마진 박스 엣지 + 컬럼/로우(거터 포함) 라인
-      if (o.type === 'rect' && o.params.gridOn) {
-        const gl = rectGridLines(o.params);
+      if (o.type === 'frame' && o.params.gridOn) {
+        const gl = frameGridLines(o.params);
         ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
         oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
       }
@@ -932,8 +1004,8 @@ function snapEdge(axis, pos, excludeUnits, SNAP) {
         ? [o.x, o.x + o.params.W / 2, o.x + o.params.W]
         : [o.y, o.y + o.params.H / 2, o.y + o.params.H];
     // 사각형 레이아웃 그리드 라인도 리사이즈 스냅 후보 (이동 스냅과 동일 규칙 — §71 픽스)
-    if (o.type === 'rect' && o.params.gridOn) {
-      const gl = rectGridLines(o.params);
+    if (o.type === 'frame' && o.params.gridOn) {
+      const gl = frameGridLines(o.params);
       if (axis === 'x') cands.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
       else cands.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
     }
@@ -1034,16 +1106,16 @@ function onUp(e) {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
       if (moved < 4) props.actions.deselect(); // 제자리 클릭 = 선택 해제
       marquee.value = null;
-    } else if (drag.kind === 'rectdraw') {
+    } else if (drag.kind === 'framedraw') {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
       const fill = currentColor.value || null;
       if (moved < 4) {
-        props.actions.createRect(drag.wx, drag.wy, 300, 200, fill); // 클릭 = 기본 크기
-      } else if (rectPreview.value) {
-        const r = rectPreview.value;
-        props.actions.createRect(r.x, r.y, r.w, r.h, fill);
+        props.actions.createFrame(drag.wx, drag.wy, 300, 200, fill); // 클릭 = 기본 크기
+      } else if (framePreview.value) {
+        const r = framePreview.value;
+        props.actions.createFrame(r.x, r.y, r.w, r.h, fill);
       }
-      rectPreview.value = null;
+      framePreview.value = null;
       mode.value = 'select';
     }
   }
@@ -1086,7 +1158,7 @@ function applyPrefsFromStorage() {
   if (p2.currentColor !== undefined) currentColor.value = p2.currentColor;
   if (p2.customColor) customColor.value = p2.customColor;
   if (Array.isArray(p2.recentColors)) recentColors.value = p2.recentColors;
-  Object.assign(rectQuickCfg, p2.rectQuick || {});
+  Object.assign(frameQuickCfg, p2.frameQuick || p2.rectQuick || {});
   Object.assign(saveScope, p2.saveScope || {});
   Object.assign(openScope, p2.openScope || {});
   Object.assign(limitsCfg, p2.limits || {});
@@ -1123,7 +1195,7 @@ onBeforeUnmount(() => {
   <div
     ref="el"
     class="stage"
-    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', rectmode: mode === 'rect' }"
+    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', framedraw: mode === 'frame', framesel: frameMode && mode === 'select' }"
     :style="{
       ...(view.guideColor ? { '--unit-guide': view.guideColor } : {}),
       ...(view.stageGridColor ? { '--stage-grid': view.stageGridColor } : {}),
@@ -1154,17 +1226,19 @@ onBeforeUnmount(() => {
       />
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <g v-for="u in zOrdered" :key="u.id" :transform="`translate(${u.x} ${u.y})`">
-          <RectGraphic v-if="u.type === 'rect'" :params="u.params" />
+          <FrameGraphic v-if="u.type === 'frame'" :params="u.params" />
           <UnitGraphic
             v-else
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
             :seam-width="seamW"
           />
+          <!-- 패스스루 (§92): 일반 커서 = 프레임 무시, 프레임 모드 = 유닛 무시 (그리기/스포이드 모드는 전부 활성) -->
           <rect
             class="hit"
             :width="u.params.W" :height="u.params.H"
             fill="transparent"
+            :style="{ pointerEvents: mode !== 'select' ? 'auto' : frameMode === (u.type === 'frame') ? 'auto' : 'none' }"
             @pointerdown.stop="onUnitDown(u, $event)"
             @contextmenu.prevent.stop="onUnitContext(u, $event)"
           />
@@ -1273,9 +1347,9 @@ onBeforeUnmount(() => {
       </g>
       <g :transform="`translate(${vp.x} ${vp.y}) scale(${vp.scale})`">
         <rect
-          v-if="rectPreview"
+          v-if="framePreview"
           class="rectDraw"
-          :x="rectPreview.x" :y="rectPreview.y" :width="rectPreview.w" :height="rectPreview.h"
+          :x="framePreview.x" :y="framePreview.y" :width="framePreview.w" :height="framePreview.h"
         />
       </g>
       <rect
@@ -1292,11 +1366,13 @@ onBeforeUnmount(() => {
       :arrange-cfg="arrangeCfg"
       :custom-color="customColor"
       :recent-colors="recentColors"
-      :rect-quick-cfg="rectQuickCfg"
+      :frame-quick-cfg="frameQuickCfg"
+      :frame-mode="frameMode"
       @fill="onFill"
       @blend="onBlend"
       @arrange="onArrange"
-      @rect-quick="onRectQuick"
+      @frame-quick="onFrameQuick"
+      @toggle-frame-mode="toggleFrameMode"
       @update:custom-color="(c) => (customColor = c)"
     />
     <FileBar
@@ -1397,7 +1473,11 @@ onBeforeUnmount(() => {
 .gapline { stroke: var(--guide); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gaptext { fill: var(--guide); font-family: inherit; user-select: none; }
 .stage.eyedrop, .stage.eyedrop .hit { cursor: crosshair; }
-.stage.rectmode, .stage.rectmode .hit { cursor: crosshair; }
+.stage.framedraw, .stage.framedraw .hit { cursor: crosshair; }
+/* 프레임 조작 모드 커서 — 꽉 찬 화살표 (HALO WHITE 채움 + SPACE BLACK 윤곽) */
+.stage.framesel, .stage.framesel .hit {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" fill="%23EFEAE1" stroke="%230B0B0B" stroke-width="1.5"/></svg>') 3 3, default;
+}
 .rectDraw { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .gridline { stroke: var(--stage-grid); fill: none; }
 </style>
