@@ -184,7 +184,7 @@ function setUnitMode(mode) {
 }
 
 // stroke 색 (§110) — 공유 픽커 팝업(ColorField) + 최근 컬러, 적용 색은 recents에 편입(디바운스)
-const { recentColors, commitRecentColor } = useRecentColors();
+const { recentColors, commitRecentColor, removeRecentColor } = useRecentColors();
 let strokeRecentTimer = null;
 function setStrokeColor(c) {
   if (!c) return; // 빈 hex(기본 복귀)는 stroke 색엔 의미 없음 — 유지
@@ -303,6 +303,7 @@ function setStrokeColor(c) {
           <ColorField
             :model-value="p.stroke" :recents="recentColors" side="right" :fallback="p.stroke"
             @update:model-value="setStrokeColor"
+            @remove-recent="removeRecentColor"
           />
         </div>
         <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable suffix="px" />

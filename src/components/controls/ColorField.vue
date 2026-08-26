@@ -13,7 +13,7 @@ const props = defineProps({
   recents: { type: Array, default: null }, // 최근 사용 컬러 슬롯 (§110 — 컬러 툴바와 공유)
   side: { type: String, default: 'left' }, // 팝오버 방향 'left' | 'right' (패널처럼 좌측 클리핑 시 right)
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'removeRecent']);
 
 const open = ref(false);
 const popStyle = ref({});
@@ -78,14 +78,18 @@ watch(open, (o) => {
       @keydown.enter="open = false"
     >
       <ColorPicker :model-value="modelValue || '#888888'" @update:model-value="onPick" />
-      <!-- 최근 사용 컬러 (컬러 툴바와 동일 소스·문법, §110) -->
-      <div v-if="recents && recents.length" class="recentRow">
-        <button
-          v-for="rc in recents" :key="rc"
-          class="recentChip" :style="{ background: rc }" :title="rc"
-          @click="onPick(rc)"
-        />
-      </div>
+      <!-- 최근 사용 컬러 (컬러 툴바와 동일 소스·문법, §110·§111) -->
+      <template v-if="recents && recents.length">
+        <div class="recentRow">
+          <button
+            v-for="rc in recents" :key="rc"
+            class="recentChip" :style="{ background: rc }" :title="rc"
+            @click="onPick(rc)"
+            @contextmenu.prevent="emit('removeRecent', rc)"
+          />
+        </div>
+        <div class="recentNote">recently applied · right-click to remove</div>
+      </template>
     </div>
   </div>
 </template>
@@ -111,6 +115,7 @@ watch(open, (o) => {
   display: flex; flex-direction: column; gap: 8px;
 }
 .recentRow { display: flex; gap: 6px; }
+.recentNote { font-size: var(--fs-2xs); letter-spacing: var(--ls-base); color: var(--faint); white-space: nowrap; }
 .recentChip {
   width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
   border-radius: var(--radius);

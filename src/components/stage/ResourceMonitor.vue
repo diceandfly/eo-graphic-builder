@@ -47,7 +47,8 @@ const fpsHot = computed(() => fps.value != null && fps.value < 30);
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + var(--bar-h, 42px) + 10px);
   display: flex; gap: 12px; pointer-events: none;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base);
-  color: var(--faint); font-variant-numeric: tabular-nums;
+  /* §111: 흰색+오파시티 — 커스텀 캔버스 색 등 대부분의 배경에서 가독 */
+  color: color-mix(in srgb, #ffffff 55%, transparent); font-variant-numeric: tabular-nums;
 }
 .cell { display: inline-flex; align-items: baseline; gap: 3px; }
 .cell.hot { color: var(--danger); }

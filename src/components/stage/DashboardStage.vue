@@ -1386,7 +1386,6 @@ onBeforeUnmount(() => {
       :blend-cfg="blendCfg"
       :arrange-cfg="arrangeCfg"
       :custom-color="customColor"
-      :recent-colors="recentColors"
       :frame-quick-cfg="frameQuickCfg"
       :frame-mode="frameMode"
       @fill="onFill"

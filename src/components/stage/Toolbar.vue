@@ -6,6 +6,7 @@ import StepField from '../controls/StepField.vue';
 import ColorPicker from '../controls/ColorPicker.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
+import { useRecentColors } from '../../composables/useRecentColors.js';
 import { blurActive } from '../../utils/dom.js';
 import { registerPopup, unregisterPopup, POPUP_IDLE_MS } from '../../utils/popupBus.js';
 
@@ -17,12 +18,13 @@ const props = defineProps({
   blendCfg: Object,    // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
   arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
-  recentColors: Array, // 최근 사용 커스텀 컬러 (팝업 하단 슬롯, §85)
   frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 크기 { w, h } (§85·§92)
   frameMode: Boolean, // 프레임 조작 모드 (선택툴 우클릭 스왑, §92)
 }); // mode: 'select' | 'eyedrop' | 'frame'
 const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'frameQuick', 'toggleFrameMode']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
+// 최근 컬러 — 공유 스토어 직결 (§110·§111)
+const { recentColors, removeRecentColor } = useRecentColors();
 
 // 도구 순서: select → frame → eyedrop → blend → arrange (§85에서 스포이드 왼쪽 배치, §92에서 rect→frame)
 
@@ -82,14 +84,18 @@ function onPick(c) {
         <div v-if="openPopup === 'custom'" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Custom color</div>
           <ColorPicker :model-value="customColor" @update:model-value="onPick" />
-          <!-- 최근 사용 컬러 슬롯 (오브젝트에 실제 적용된 비 브랜드 컬러 자동 저장, 최대 6 — §86) -->
-          <div v-if="recentColors && recentColors.length" class="recentRow">
-            <button
-              v-for="rc in recentColors" :key="rc"
-              class="recentChip" :style="{ background: rc }" :title="rc"
-              @click="onPick(rc)"
-            />
-          </div>
+          <!-- 최근 사용 컬러 슬롯 (오브젝트에 실제 적용된 비 브랜드 컬러 자동 저장, 최대 6 — §86·§111) -->
+          <template v-if="recentColors.length">
+            <div class="recentRow">
+              <button
+                v-for="rc in recentColors" :key="rc"
+                class="recentChip" :style="{ background: rc }" :title="rc"
+                @click="onPick(rc)"
+                @contextmenu.prevent="removeRecentColor(rc)"
+              />
+            </div>
+            <div class="menuNote">recently applied · right-click to remove</div>
+          </template>
         </div>
       </div>
     </FloatingBar>

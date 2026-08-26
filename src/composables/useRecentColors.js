@@ -10,5 +10,9 @@ export function useRecentColors() {
     if (!c) return;
     recentColors.value = [c, ...recentColors.value.filter((x) => x !== c)].slice(0, 6);
   }
-  return { recentColors, commitRecentColor };
+  // 저장 칩 우클릭 삭제 (§111)
+  function removeRecentColor(c) {
+    recentColors.value = recentColors.value.filter((x) => x !== c);
+  }
+  return { recentColors, commitRecentColor, removeRecentColor };
 }
