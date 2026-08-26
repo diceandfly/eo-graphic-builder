@@ -317,10 +317,11 @@ const CTX_ACTIONS = [
   { key: 'flip', label: 'Flip horizontal (⇧H)' },
   { key: 'flipv', label: 'Flip vertical (⇧V)' },
 ];
-const CTX_ORDER = [
-  { key: 'front', label: 'Bring to front (Q)' },
-  { key: 'back', label: 'Send to back (W)' },
-];
+// §107 잠정 숨김 (복귀 대비 보존) — 단축키 Q/W와 onCtxAction 분기는 유지
+// const CTX_ORDER = [
+//   { key: 'front', label: 'Bring to front (Q)' },
+//   { key: 'back', label: 'Send to back (W)' },
+// ];
 function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
   else if (key === 'flip') doFlip('h');
@@ -1435,11 +1436,7 @@ onBeforeUnmount(() => {
         v-for="a in CTX_ACTIONS" :key="a.key"
         class="ctxItem" @click="onCtxAction(a.key)"
       >{{ a.label }}</button>
-      <div class="ctxSep" />
-      <button
-        v-for="a in CTX_ORDER" :key="a.key"
-        class="ctxItem" @click="onCtxAction(a.key)"
-      >{{ a.label }}</button>
+      <!-- 오더 그룹(CTX_ORDER)은 §107에서 잠정 숨김 — 단축키 Q/W는 유지, 복귀 대비 정의 보존 -->
       <div class="ctxSep" />
       <button
         class="ctxItem" :class="{ off: !canRegisterPreset }"

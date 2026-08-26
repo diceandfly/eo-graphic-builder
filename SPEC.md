@@ -1036,3 +1036,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 106. 2026-08-25 — 패턴 아이콘 = EO 심볼 스트로크판
 
 - 필 심볼 단독 사용이 이질적이라 대안 탐색: ① 전단 3단 바 라인 재해석 ② 원본 폴리곤 윤곽 스트로크판(non-scaling 1.2px) 시안 비교 → **최종: 솔리드 심볼 13px 고정**(필 밀도 광학 보정). ICONS.pattern(3단 바)은 미사용 보존, 원본 SVG는 assets 보존.
+
+## 107. 2026-08-25 — 컨텍스트 메뉴 오더 그룹 잠정 숨김
+
+- Bring to front / Send to back 그룹을 메뉴에서 숨김 (정의는 주석 보존, 복귀 대비). 단축키 Q/W는 그대로 동작.
