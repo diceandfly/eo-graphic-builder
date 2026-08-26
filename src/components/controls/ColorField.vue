@@ -16,7 +16,19 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const open = ref(false);
+const popStyle = ref({});
 let picked = false; // 팝오버 안에서 실제 색 변경이 있었는지 (hex 필드 클릭만으로는 닫지 않음)
+
+// §110 픽스: 팝오버를 fixed로 — 패널의 overflow 클리핑(스크롤 박스)에 잘리지 않도록
+function toggleOpen(e) {
+  if (!open.value) {
+    const r = e.currentTarget.getBoundingClientRect();
+    popStyle.value = props.side === 'right'
+      ? { left: `${r.right + 12}px`, top: `${r.top - 10}px` }
+      : { right: `${window.innerWidth - r.left + 12}px`, top: `${r.top - 10}px` };
+  }
+  open.value = !open.value;
+}
 
 function onHex(e) {
   let t = e.target.value.trim();
@@ -51,7 +63,7 @@ watch(open, (o) => {
   <div class="cf">
     <button
       class="preview" :style="{ background: modelValue || fallback }"
-      title="pick color" @click="open = !open"
+      title="pick color" @click="toggleOpen"
     />
     <input
       class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
@@ -60,7 +72,7 @@ watch(open, (o) => {
     />
     <!-- 플로팅 픽커 — 메뉴 흐름 밖(side 방향), 픽 후 자동 닫힘 -->
     <div
-      v-if="open" class="pop" :class="side"
+      v-if="open" class="pop" :style="popStyle"
       @pointerdown.stop
       @pointerup="onPopUp"
       @keydown.enter="open = false"
@@ -93,12 +105,10 @@ watch(open, (o) => {
   width: 76px; padding: 3px 8px; text-transform: uppercase;
 }
 .pop {
-  position: absolute; top: 0;
+  position: fixed; z-index: 30; /* §110: overflow 클리핑 회피 — 좌표는 toggleOpen에서 칩 기준 계산 */
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 12px;
   display: flex; flex-direction: column; gap: 8px;
-  &.left { right: calc(100% + 12px); }
-  &.right { left: calc(100% + 12px); }
 }
 .recentRow { display: flex; gap: 6px; }
 .recentChip {

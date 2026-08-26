@@ -1058,5 +1058,5 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 110. 2026-08-25 — 프레임 STYLE: fill/stroke 독립 토글 + stroke 색 공유 픽커 팝업
 
 1. **배타 MODE(fill|stroke) 폐기 → 독립 on/off 2토글** — fill on/off(확장 옵션 없음) + stroke on/off(on일 때 색·두께 확장). 조합 자유(둘 다 off = 그리드 가이드만). params: drawMode 삭제, strokeOn 신설(구버전 drawMode는 migrateUnit에서 이관). 렌더·export 단일 rect에 fill/stroke 속성 조합. setFill 스와치 규칙: fill off + stroke on일 때만 외곽선 색에 적용.
-2. **stroke 색 = 공유 픽커 팝업** — hex 행 대신 ColorField(side="right", 패널 오른쪽으로 팝업). ColorField에 recents·side 프롭 추가 — **최근 컬러를 컬러 툴바와 단일 스토어 공유**(composables/useRecentColors 모듈 싱글턴으로 승격, 영속은 기존 eo.prefs 워처). stroke에 적용한 색도 recents에 편입(500ms 디바운스).
+2. **stroke 색 = 공유 픽커 팝업** — hex 행 대신 ColorField(side="right"). ⚠ 초판의 absolute 팝오버가 패널 overflow-y:auto에 클리핑되어 안 보이던 버그 → **fixed 포지셔닝**(toggleOpen에서 칩 rect 기준 좌표 계산, z-index 30)으로 픽스 — 코너 메뉴(left)와 패널(right) 공통. ColorField에 recents·side 프롭 추가 — **최근 컬러를 컬러 툴바와 단일 스토어 공유**(composables/useRecentColors 모듈 싱글턴으로 승격, 영속은 기존 eo.prefs 워처). stroke에 적용한 색도 recents에 편입(500ms 디바운스).
 - 검증: fill+stroke 동시 렌더(#3b3b3b + #EFEAE1/5), 칩 클릭 → 우측 팝업, SV 픽 → stroke 적용·자동 닫힘·fill 유지, 픽한 색이 툴바 커스텀 팝업 recents에 공유(#B38C47). 회귀 30/30.
