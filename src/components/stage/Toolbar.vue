@@ -128,11 +128,11 @@ function onPick(c) {
         <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Quick frame</div>
           <div class="menuRow">
-            <span class="rowLabel">width (px)</span>
+            <span class="rowLabel">width</span>
             <StepField v-model="frameQuickCfg.w" :min="50" :max="8000" :step="10" />
           </div>
           <div class="menuRow">
-            <span class="rowLabel">height (px)</span>
+            <span class="rowLabel">height</span>
             <StepField v-model="frameQuickCfg.h" :min="50" :max="8000" :step="10" />
           </div>
           <div class="menuNote">double-click the tool to create</div>
@@ -184,7 +184,7 @@ function onPick(c) {
             <StepField v-model="blendCfg.count" :min="1" :max="100" :step="1" />
           </div>
           <div class="menuRow">
-            <span class="rowLabel">gap (px)</span>
+            <span class="rowLabel">gap</span>
             <StepField v-model="blendCfg.gap" :min="0" :max="2000" :step="5" />
           </div>
           <div class="menuRow">
@@ -205,7 +205,7 @@ function onPick(c) {
         <div v-if="openPopup === 'arrange' && arrangeCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Grid arrange</div>
           <div class="menuRow">
-            <span class="rowLabel">gap (px)</span>
+            <span class="rowLabel">gap</span>
             <StepField v-model="arrangeCfg.gap" :min="0" :max="2000" :step="5" />
           </div>
           <div class="menuRow">

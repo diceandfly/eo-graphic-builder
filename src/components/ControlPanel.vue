@@ -238,13 +238,13 @@ function setStrokeColor(c) {
         </div>
       </div>
       <NumberField
-        :label="`width (${unitSuffix})`" :model-value="toDisp(dispW)"
+        :label="isFrame ? `width (${unitSuffix})` : 'width'" :model-value="toDisp(dispW)"
         :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('W')"
         @update:model-value="(v) => setSizeField('W', v)"
       />
       <NumberField
-        :label="`height (${unitSuffix})`" :model-value="toDisp(dispH)"
+        :label="isFrame ? `height (${unitSuffix})` : 'height'" :model-value="toDisp(dispH)"
         :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('H')"
         @update:model-value="(v) => setSizeField('H', v)"
@@ -306,7 +306,7 @@ function setStrokeColor(c) {
             @remove-recent="removeRecentColor"
           />
         </div>
-        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable suffix="px" />
+        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" editable />
       </template>
     </section>
 
@@ -320,20 +320,20 @@ function setStrokeColor(c) {
       <template v-if="p.gridOn">
         <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
         <Slider
-          label="margin" :model-value="toDisp(p.margin)"
-          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
+          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" editable
           @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
         />
         <Slider label="rows" v-model="p.rows" :min="1" :max="12" :step="1" editable />
         <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" editable />
         <Slider
-          label="gutter x" :model-value="toDisp(p.gutterX)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          :label="`gutter x (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable
           @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
         />
         <Slider
-          label="gutter y" :model-value="toDisp(p.gutterY)"
-          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable :suffix="unitSuffix"
+          :label="`gutter y (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
+          :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" editable
           @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
         />
       </template>
@@ -362,13 +362,13 @@ function setStrokeColor(c) {
       />
       <Slider
         v-if="p.gutterMode === 'fixed'"
-        label="gutter (px)" v-model="p.gutterPx"
+        label="gutter" v-model="p.gutterPx"
         :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1"
-        :display="mixed('gutterPx') ? '—' : `${p.gutterPx}px`"
+        :display="mixed('gutterPx') ? '—' : String(p.gutterPx)"
       />
       <Slider
         v-else
-        label="gutter (ratio)" v-model="p.g"
+        label="gutter" v-model="p.g"
         :min="G_MIN" :max="G_MAX" :step="G_STEP"
         :display="mixed('g') ? '—' : p.g.toFixed(3)"
       />

@@ -1071,3 +1071,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **기본값 고정** — 캔버스 컬러 #090909 → **#606060**, 그리드 컬러 #3B3B3B → **#888888** (--stage-bg/--stage-grid 토큰, reset to defaults 연동).
 2. **컬러 hex 필드 = 숫자 필드와 동일 커밋 문법** — ColorField·ColorPicker의 hex 입력에 Enter = 즉시 커밋+블러, 커밋 시 액센트 펄스 플래시(0.2s, StepField와 동일 피드백). 빈 값 Enter = 기본 복귀도 플래시.
 - 검증: 기본 rgb(96,96,96)/#888888, Enter로 445566 적용+블러, 빈 값 복귀. (플래시는 rAF 기반이라 숨김 팬 검증 한계 — 실브라우저 정상)
+
+## 113. 2026-08-25 — 단위 표기 통일: 모드 전환 필드만 라벨 괄호, 그 외 무표기
+
+- 규칙 확정(논의: 값 옆 suffix는 무단위 필드와 우측 라인이 어긋나는 문제): **px/cm 전환이 일어나는 필드만 라벨 뒤 괄호**(프레임 width/height·margin·gutter x/y — 전환 시 (px)↔(cm) 갱신), **그 외 모든 필드는 단위 표기 제거**(유닛 W/H·gutter, stroke width, 코너 팝업 Grid size·nudge·Unit/Thread min·seam 컷오프, 툴바 팝업 w/h·gap, 유닛 gutter 값의 px 표기 포함).
+- 검증: 유닛 라벨 무표기, 프레임 5필드만 (px), cm 전환 시 (cm) 갱신.

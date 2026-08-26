@@ -93,7 +93,7 @@ function resetGridDefaults() {
             <ColorField v-model="view.stageGridColor" fallback="var(--stage-grid)" />
           </div>
           <label class="menuRow">
-            <span class="rowGrow">Grid size (px)</span>
+            <span class="rowGrow">Grid size</span>
             <StepField
               :model-value="gridCfg.size" :min="STAGE_GRID_MIN" :max="STAGE_GRID_MAX" :step="10"
               @update:model-value="setGridSize"
@@ -122,7 +122,7 @@ function resetGridDefaults() {
         >
           <div class="menuTitle">Bounding box setting</div>
           <label class="menuRow">
-            <span class="rowGrow">Arrow nudge (px)</span>
+            <span class="rowGrow">Arrow nudge</span>
             <StepField :model-value="view.nudge" :min="1" :max="500" :step="1" @update:model-value="setNudge" />
           </label>
           <label class="menuRow">
@@ -151,11 +151,11 @@ function resetGridDefaults() {
         >
           <div class="menuTitle">Unit setting</div>
           <label v-if="limits" class="menuRow">
-            <span class="rowGrow">Unit min (px)</span>
+            <span class="rowGrow">Unit min</span>
             <StepField v-model="limits.unitMin" :min="1" :max="200" :step="5" />
           </label>
           <label v-if="limits" class="menuRow">
-            <span class="rowGrow">Thread min (px)</span>
+            <span class="rowGrow">Thread min</span>
             <StepField v-model="limits.threadMinPx" :min="0" :max="50" :step="0.5" />
           </label>
           <div class="menuRow">
@@ -188,7 +188,7 @@ function resetGridDefaults() {
             <span>Auto seam stroke</span>
           </label>
           <label class="menuRow">
-            <span class="rowGrow">Off above zoom (%)</span>
+            <span class="rowGrow">Off above zoom</span>
             <StepField
               :model-value="view.seamCutoff" :min="10" :max="400" :step="5"
               @update:model-value="setSeamCutoff"
