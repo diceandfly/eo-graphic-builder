@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import StepField from '../controls/StepField.vue';
+import ColorField from '../controls/ColorField.vue';
 import { ICONS } from '../../ui/icons.js';
 import { STAGE_GRID, STAGE_GRID_MIN, STAGE_GRID_MAX, UNIT_MIN, THREAD_MIN_RATIO } from '../../geometry/constants.js';
 
@@ -42,18 +43,6 @@ watch(openMenu, (open) => {
 const setGridSize = (v) => { props.gridCfg.size = Math.round(v); };
 const setNudge = (v) => { props.view.nudge = Math.round(v); };
 const setSeamCutoff = (v) => { props.view.seamCutoff = Math.round(v); };
-// hex 컬러 입력 공통 처리 — 빈 값 = 기본색 복귀(null)
-function hexSetter(key) {
-  return (e) => {
-    let t = e.target.value.trim();
-    if (!t) { props.view[key] = null; return; }
-    if (t[0] !== '#') t = '#' + t;
-    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t)) props.view[key] = t;
-  };
-}
-const onGuideColor = hexSetter('guideColor');
-const onStageGridColor = hexSetter('stageGridColor');
-const onStageBgColor = hexSetter('stageBgColor');
 // 지오메트리 하한 (§87·§89) — px 입력·소수점 허용, thread는 선택 유닛 W 기준 비율 저장(닮은꼴 보존, 상한 5%)
 const threadMinPx = () => +(props.limits.threadMinRatio * props.refW).toFixed(2);
 const setThreadMinPx = (v) => { props.limits.threadMinRatio = Math.min(0.05, v / props.refW); };
@@ -94,21 +83,11 @@ function resetGridDefaults() {
           <div class="menuTitle">Canvas grid</div>
           <div class="menuRow">
             <span class="rowGrow">Canvas color</span>
-            <span class="preview" :style="{ background: view.stageBgColor || 'var(--bg)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.stageBgColor || ''"
-              @keydown.enter="onStageBgColor" @change="onStageBgColor"
-            />
+            <ColorField v-model="view.stageBgColor" fallback="var(--bg)" />
           </div>
           <div class="menuRow">
             <span class="rowGrow">Grid color</span>
-            <span class="preview" :style="{ background: view.stageGridColor || 'var(--stage-grid)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.stageGridColor || ''"
-              @keydown.enter="onStageGridColor" @change="onStageGridColor"
-            />
+            <ColorField v-model="view.stageGridColor" fallback="var(--stage-grid)" />
           </div>
           <label class="menuRow">
             <span class="rowGrow">Grid size (px)</span>
@@ -182,13 +161,7 @@ function resetGridDefaults() {
           </label>
           <div class="menuRow">
             <span class="rowGrow">Unit grid color</span>
-            <span class="preview" :style="{ background: view.guideColor || 'var(--guide)' }" />
-            <input
-              class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"
-              :value="view.guideColor || ''"
-              @keydown.enter="onGuideColor"
-              @change="onGuideColor"
-            />
+            <ColorField v-model="view.guideColor" fallback="var(--guide)" />
           </div>
           <button class="miniBtn" @click="resetUnitDefaults">reset to default</button>
         </div>
@@ -246,16 +219,8 @@ function resetGridDefaults() {
   display: flex; align-items: center; gap: var(--sp-3);
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
-.hexInput {
-  @include text-field;
-  width: 76px; padding: 3px 8px; text-transform: uppercase;
-}
 .rowGrow { flex: 1; }
 .sect { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
-.preview {
-  width: var(--swatch-chip); height: var(--swatch-chip); flex-shrink: 0;
-  border: 1px solid var(--line); border-radius: var(--radius);
-}
 .miniBtn {
   @include bordered-control;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;

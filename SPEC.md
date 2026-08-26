@@ -932,3 +932,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **하한 소수점 허용** — Unit min 0.1~50px(소수 2자리), Thread min px 소수 입력.
 4. **코너 바 팝업 입력칸 스테퍼 통일** — Grid size·Arrow nudge·Unit min·Thread min·seam 컷오프 전부 StepField(작업 툴바 팝업과 동일한 SVG 삼각형 화살표)로 교체. numInput 스타일 제거.
 - 검증: 960 유닛에서 0.96px 표시(구 비율 환산 정확) → ▲ 스텝 +0.1 → 1.06, Unit min 1.5 소수 유지, reset → 2px(비율 0.002083) 저장, 4개 팝업 모두 스테퍼 렌더.
+
+## 90. 2026-08-25 — 컬러 옵션 행 공용 컨트롤 ColorField (칩 클릭 = 인라인 픽커)
+
+- `controls/ColorField.vue` 신설: 미리보기 칩 + hex 입력 + **칩 클릭 시 인라인 ColorPicker**(라이브 적용, 저장 슬롯 없음, 빈 hex = 기본 복귀 null). 코너 바의 Canvas color · Grid color · Unit grid color 3곳 교체 — ZoomBadge의 hexSetter/preview/hexInput 중복 제거.
+- 스파게티 우려에 대한 답: 픽커(ColorPicker)는 한 벌, 진입 UI만 용도별 두 겹(스와치형 팝업 vs 옵션 행 인라인) — 공용 컴포넌트로 묶어서 오히려 중복 3벌이 1벌로 줄었음. 이후 컬러 입력 UI는 전부 ColorField 재사용이 규칙.
+- 검증: 그리드 메뉴 ColorField 2개(+유닛 메뉴 1개), 칩 클릭 → picker(sv/hue) 표시, SV 패드 클릭 → 배경 rgb(179,36,36) 라이브 적용, hex 비움 → 기본 복귀.
