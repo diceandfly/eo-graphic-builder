@@ -1456,3 +1456,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 182. 2026-08-26 — 저장 파일명에 날짜·시분 스탬프
 
 - `eo-project.json` → **`eo-project_YYYY-MM-DD_HHmm.json`** (예: eo-project_2026-08-29_0434.json). 적정선 = 분까지: 같은 날 다중 저장 구분 가능, 초 단위는 가독성 위해 생략.
+
+## 183. 2026-08-26 — 저장 다이얼로그 + 파일명 개정 (§182 개정)
+
+- **파일명**: eo-project → `eo-workspace-data_YYYY-MM-DD_HHmm.json`, eo-presets → `eo-graphic-unit-preset.json`.
+- **저장 방식**: 즉시 다운로드 → **위치/이름 선택 다이얼로그**(File System Access API, `utils/saveFile.js`) — 워크스페이스 저장·프리셋 export 공통. 취소 시 무동작, 미지원 브라우저는 기존 즉시 다운로드 폴백.
+- 검증: 다이얼로그 경로 파일명 2종·API 부재 시 폴백 파일명 확인, geo 30·doc 31 그린.

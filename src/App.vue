@@ -6,6 +6,7 @@ import { usePresets } from './composables/usePresets.js';
 import { deriveUnit } from './geometry/derive.js';
 import { downloadSvg, downloadCompositeSvg, buildSelectionSvg } from './export/exportSvg.js';
 import { copyTextToClipboard, copySvgAsPng } from './utils/clipboard.js';
+import { saveFileAs } from './utils/saveFile.js';
 import DashboardStage from './components/stage/DashboardStage.vue';
 import ControlPanel from './components/ControlPanel.vue';
 
@@ -150,16 +151,11 @@ function saveProject(scope = {}) {
   }
   if (scope.viewport) data.viewSettings = pick(prefsData, VIEWSET_KEYS);
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  // §182: 파일명에 날짜+시분 — 같은 날 여러 저장 구분 가능, 초 단위는 가독성 위해 생략
+  // §182·§183: 파일명 = 날짜+시분(같은 날 다중 저장 구분, 초 생략) + 저장 위치 다이얼로그
   const d = new Date();
   const p2 = (n) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
-  a.download = `eo-project_${stamp}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  saveFileAs(blob, `eo-workspace-data_${stamp}.json`);
 }
 async function openProject(file, scope = {}) {
   try {

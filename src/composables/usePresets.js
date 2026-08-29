@@ -1,5 +1,6 @@
 import { reactive, computed, watch } from 'vue';
 import { createParams } from './useDocument.js';
+import { saveFileAs } from '../utils/saveFile.js';
 
 // 유닛 프리셋 스토어 — 파라미터 1벌 단위 등록/삭제/이름변경. localStorage 영속.
 // 리스트 1번은 항상 기본 유닛 프리셋(Default) — 삭제·이름변경 불가, 저장소 미포함(런타임 생성).
@@ -56,12 +57,7 @@ export function usePresets() {
   function exportJson() {
     const data = { version: 1, presets: stored.map((p) => ({ name: p.name, params: p.params })) };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'eo-presets.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    saveFileAs(blob, 'eo-graphic-unit-preset.json'); // §183: 이름 개정 + 저장 다이얼로그
   }
   async function importJson(file) {
     let list;
