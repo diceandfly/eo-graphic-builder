@@ -466,6 +466,7 @@ function isTyping(e) {
   return t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type);
 }
 function onKeyDown(e) {
+  if (showManual.value) return; // §158: 도움말 오버레이 중 단축키 전면 락 (Esc는 오버레이가 처리)
   if (isTyping(e)) return;
   if (e.code === 'Space' && !e.repeat) {
     spaceHeld.value = true;

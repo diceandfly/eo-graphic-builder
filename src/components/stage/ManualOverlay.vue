@@ -37,10 +37,20 @@ function onKey(e) {
 }
 onMounted(() => window.addEventListener('keydown', onKey));
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+// §158: 전면 입력 락 — 오버레이 위의 포인터/휠이 스테이지 핸들러(팬·줌·선택)로 버블되지 않게.
+// 딤 자체 클릭만 닫기로 처리 (키보드 락은 DashboardStage onKeyDown의 showManual 가드가 담당)
+function onDimDown(e) {
+  if (e.target === e.currentTarget) emit('close');
+}
 </script>
 
 <template>
-  <div class="manualDim" @pointerdown.self="emit('close')">
+  <div
+    class="manualDim"
+    @pointerdown.stop="onDimDown"
+    @pointerup.stop @pointermove.stop @click.stop @dblclick.stop
+    @wheel.stop @contextmenu.stop.prevent
+  >
     <div class="manualPanel">
       <button class="closeBtn" title="close (Esc)" @click="emit('close')">
         <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
