@@ -49,9 +49,13 @@ const docEl = ref(null);
 onMounted(async () => {
   window.addEventListener('keydown', onKey);
   // §162·§164: 2열 표(단축키·조작 안내류)는 전부 첫 컬럼 160px 고정으로 통일 — 설명 컬럼이 나머지를 차지
+  // §167: 3열 표는 표별 컬럼 배분 (첫 헤더로 식별) — 이름/도구/버튼 열은 줄바꿈 없이 내용 폭 확보
   await nextTick();
+  const TABLE_CLASS = { '위치': 't-layout', '도구': 't-tools', '버튼': 't-view' };
   for (const t of docEl.value?.querySelectorAll('table') ?? []) {
-    if (t.querySelectorAll('thead th, tr:first-child th').length === 2) t.classList.add('kbdTable');
+    const ths = t.querySelectorAll('thead th, tr:first-child th');
+    if (ths.length === 2) t.classList.add('kbdTable');
+    else if (TABLE_CLASS[ths[0]?.textContent.trim()]) t.classList.add(TABLE_CLASS[ths[0].textContent.trim()]);
   }
 });
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
@@ -140,5 +144,18 @@ function onDimDown(e) {
   /* §162: 단축키 표 — 키 컬럼 160px 고정, 설명 컬럼이 나머지 전부 */
   :deep(table.kbdTable) { table-layout: fixed; }
   :deep(table.kbdTable th:first-child), :deep(table.kbdTable td:first-child) { width: 160px; }
+  /* §167: 3열 표 컬럼 배분 — 1열은 줄바꿈 금지 폭 확보, 지정 열만 넓히고 나머지가 흡수 */
+  :deep(table.t-layout), :deep(table.t-tools), :deep(table.t-view) { table-layout: fixed; }
+  :deep(table.t-layout td:first-child), :deep(table.t-tools td:first-child), :deep(table.t-view td:first-child) { white-space: nowrap; }
+  /* 화면 구성: 위치 84(+2글자·무줄바꿈) · 이름 132(무줄바꿈) · 역할 = 나머지 */
+  :deep(table.t-layout th:nth-child(1)) { width: 84px; }
+  :deep(table.t-layout th:nth-child(2)) { width: 132px; }
+  :deep(table.t-layout td:nth-child(2)) { white-space: nowrap; }
+  /* 도구 바: 도구 128(무줄바꿈) · 우클릭 260(+2글자) · 좌클릭 = 나머지 */
+  :deep(table.t-tools th:nth-child(1)) { width: 128px; }
+  :deep(table.t-tools th:nth-child(3)) { width: 260px; }
+  /* 보기 옵션: 버튼 158(무줄바꿈) · 좌클릭 268(+4글자) · 우클릭 = 나머지 */
+  :deep(table.t-view th:nth-child(1)) { width: 158px; }
+  :deep(table.t-view th:nth-child(2)) { width: 268px; }
 }
 </style>
