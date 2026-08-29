@@ -936,28 +936,13 @@ export function useDocument() {
   }
 
   // 스마트 그리드 배열 (G): 선택 블록들을 선택 bbox 좌상단 기준 그리드로 재배치.
-  // 읽기 순서(위→아래, 왼→오른쪽) 보존, 셀 크기 = 해당 행/열의 블록 최대 치수, 간격 = gap.
-  // columns 0 = 자동 (ceil(sqrt(n))). axis 'x'|'y' = 해당 축만 정렬(§130): 현재 좌표 순서대로
-  // gap 간격 재배치, 교차축은 손대지 않음.
-  function arrangeGrid({ gap = 40, columns = 0, axis = 'grid' } = {}) {
+  // 읽기 순서(위→아래, 왼→오른쪽) 보존, 셀 크기 = 해당 행/열의 블록 최대 치수.
+  // 간격은 축별 gapX/gapY (§198: axis 모드 폐지 — 항상 그리드, gap만 축 분리).
+  // columns 0 = 자동 (ceil(sqrt(n))).
+  function arrangeGrid({ gapX = 40, gapY = 40, columns = 0 } = {}) {
     const blocks = blocksOf(doc.selectedIds);
     if (blocks.length < 2) return 0;
     const items = blocks.map((b) => ({ b, bb: bboxOf(b), carry: carryOf(b) }));
-    if (axis === 'x' || axis === 'y') {
-      const lo = axis === 'x' ? 'minX' : 'minY';
-      const hi = axis === 'x' ? 'maxX' : 'maxY';
-      items.sort((a, z) => a.bb[lo] - z.bb[lo]);
-      let cursor = items[0].bb[lo];
-      for (const it of items) {
-        const d = cursor - it.bb[lo];
-        for (const u of [...it.b, ...it.carry]) {
-          if (axis === 'x') u.x += d;
-          else u.y += d;
-        }
-        cursor += it.bb[hi] - it.bb[lo] + gap;
-      }
-      return items.length;
-    }
     const avgH = items.reduce((t, i) => t + (i.bb.maxY - i.bb.minY), 0) / items.length;
     items.sort((a, z) => {
       const ay = (a.bb.minY + a.bb.maxY) / 2;
@@ -984,9 +969,9 @@ export function useDocument() {
         const dy = ys - it.bb.minY;
         for (const u of it.b) { u.x += dx; u.y += dy; }
         for (const u of it.carry) { u.x += dx; u.y += dy; }
-        xs += colW[c] + gap;
+        xs += colW[c] + gapX;
       }
-      ys += rowH[r] + gap;
+      ys += rowH[r] + gapY;
     }
     return items.length;
   }

@@ -17,7 +17,7 @@ const props = defineProps({
   mode: String, fill: String,
   scope: Object,       // 스포이드 범주 토글 { size, orientation, grid, shape, color }
   blendCfg: Object,    // 블렌드 설정 reactive 스토어 { axis, count, gap, scale }
-  arrangeCfg: Object,  // 그리드 배열 설정 { gap, columns(0=auto) }
+  arrangeCfg: Object,  // 그리드 배열 설정 { gapX, gapY, columns(0=auto) }
   customColor: String, // 커스텀 컬러 (7번 스와치)
   frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 설정 { w, h, margin, gutter } (§85·§92·§116)
   frameMode: Boolean, // 프레임 조작 모드 (선택툴 우클릭 스왑, §92)
@@ -127,7 +127,7 @@ function onPick(c) {
           @dblclick="emit('frameQuick')"
           @contextmenu="togglePopup('frame', $event)"
         />
-        <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
+        <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu qf" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Quick frame</div>
           <div class="menuRow">
             <span class="rowLabel">width</span>
@@ -224,24 +224,20 @@ function onPick(c) {
         />
         <div v-if="openPopup === 'arrange' && arrangeCfg" class="menu" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Grid arrange</div>
-          <!-- §130: x/y = 해당 축만 gap 재배치 (교차축 불변), grid = 종전 그리드 -->
+          <!-- §198: axis 모드 폐지 — 항상 그리드, 간격만 x/y 분리 -->
           <div class="menuRow">
-            <span class="rowLabel">axis</span>
-            <div class="segMini">
-              <button :class="{ on: arrangeCfg.axis === 'grid' }" @click="arrangeCfg.axis = 'grid'">grid</button>
-              <button :class="{ on: arrangeCfg.axis === 'x' }" @click="arrangeCfg.axis = 'x'">x</button>
-              <button :class="{ on: arrangeCfg.axis === 'y' }" @click="arrangeCfg.axis = 'y'">y</button>
-            </div>
+            <span class="rowLabel">gap x</span>
+            <StepField v-model="arrangeCfg.gapX" :min="0" :max="2000" :step="5" />
           </div>
           <div class="menuRow">
-            <span class="rowLabel">gap</span>
-            <StepField v-model="arrangeCfg.gap" :min="0" :max="2000" :step="5" />
+            <span class="rowLabel">gap y</span>
+            <StepField v-model="arrangeCfg.gapY" :min="0" :max="2000" :step="5" />
           </div>
-          <div v-if="arrangeCfg.axis === 'grid'" class="menuRow">
+          <div class="menuRow">
             <span class="rowLabel">columns</span>
             <StepField v-model="arrangeCfg.columns" :min="0" :max="50" :step="1" />
           </div>
-          <div v-if="arrangeCfg.axis === 'grid'" class="menuNote">columns 0 = auto (√n)</div>
+          <div class="menuNote">columns 0 = auto (√n)</div>
         </div>
       </div>
     </FloatingBar>
@@ -292,6 +288,13 @@ function onPick(c) {
 .menuRow {
   display: flex; align-items: center; gap: var(--sp-3);
   font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
+}
+// §198: 퀵프레임 메뉴 — 컬러 행(라벨+칩+hex)이 폭 기준, 모든 컨트롤을 우측 정렬로 통일.
+// 라벨 고정폭 해제(space-between이 정렬 담당)로 전체 폭도 축소
+.menu.qf {
+  .menuRow { justify-content: space-between; }
+  .rowLabel { width: auto; }
+  .menuNote { white-space: normal; }
 }
 .rowLabel { color: var(--faint); width: 62px; }
 .menuNote { font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; }

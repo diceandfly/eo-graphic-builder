@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import ColorPicker from './ColorPicker.vue';
 import { blurActive } from '../../utils/dom.js';
 
@@ -32,14 +32,32 @@ function ping() {
 let picked = false; // 팝오버 안에서 실제 색 변경이 있었는지 (hex 필드 클릭만으로는 닫지 않음)
 
 // §110 픽스: 팝오버를 fixed로 — 패널의 overflow 클리핑(스크롤 박스)에 잘리지 않도록
-function toggleOpen(e) {
-  if (!open.value) {
-    const r = e.currentTarget.getBoundingClientRect();
-    popStyle.value = props.side === 'right'
-      ? { left: `${r.right + 12}px`, top: `${r.top - 10}px` }
-      : { right: `${window.innerWidth - r.left + 12}px`, top: `${r.top - 10}px` };
+// §198: transform 조상(하단 툴바 등)이 있으면 fixed의 기준이 뷰포트가 아니라 그 조상이 됨 —
+// 렌더 직후 실측 오차를 한 번 보정 (기준이 뷰포트인 호스트는 오차 0이라 무영향)
+const popEl = ref(null);
+async function toggleOpen(e) {
+  if (open.value) {
+    open.value = false;
+    return;
   }
-  open.value = !open.value;
+  const r = e.currentTarget.getBoundingClientRect();
+  popStyle.value = props.side === 'right'
+    ? { left: `${r.right + 12}px`, top: `${r.top - 10}px` }
+    : { right: `${window.innerWidth - r.left + 12}px`, top: `${r.top - 10}px` };
+  open.value = true;
+  await nextTick();
+  const p = popEl.value?.getBoundingClientRect();
+  if (!p) return;
+  const dy = p.top - (r.top - 10);
+  // 하단 툴바처럼 칩이 화면 아래쪽이면 팝오버가 뷰포트 밖으로 나가지 않게 클램프
+  const top = Math.max(8, Math.min(r.top - 10, window.innerHeight - p.height - 8));
+  if (props.side === 'right') {
+    const dx = p.left - (r.right + 12);
+    popStyle.value = { left: `${r.right + 12 - dx}px`, top: `${top - dy}px` };
+  } else {
+    const dx = p.right - (r.left - 12);
+    popStyle.value = { right: `${window.innerWidth - r.left + 12 + dx}px`, top: `${top - dy}px` };
+  }
 }
 
 function onHex(e) {
@@ -95,7 +113,7 @@ watch(open, (o) => {
     />
     <!-- 플로팅 픽커 — 메뉴 흐름 밖(side 방향), 픽 후 자동 닫힘 -->
     <div
-      v-if="open" class="pop" :style="popStyle"
+      v-if="open" ref="popEl" class="pop" :style="popStyle"
       @pointerdown.stop
       @pointerup="onPopUp"
       @keydown.enter="open = false"

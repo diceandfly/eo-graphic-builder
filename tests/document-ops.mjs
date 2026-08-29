@@ -120,14 +120,14 @@ function centerIn(u, f) {
   centerIn(u, f1);
   const rel = [u.x - f1.x, u.y - f1.y];
   api.doc.selectedIds = [f1.id, f2.id];
-  api.arrangeGrid({ gap: 40 });
+  api.arrangeGrid({ gapX: 40, gapY: 40 });
   ok('어레인지: 프레임 이동 시 내용물 동반', () => {
     assert.deepEqual([u.x - f1.x, u.y - f1.y], rel);
   });
   // 혼합 선택: 소유 유닛이 별도 선택되면 자기 블록으로만 이동 (이중 이동 없음)
   centerIn(u, f1);
   api.doc.selectedIds = [u.id, f1.id, f2.id];
-  api.arrangeGrid({ gap: 40 });
+  api.arrangeGrid({ gapX: 40, gapY: 40 });
   ok('어레인지: 혼합 선택 시 이중 이동 없음', () => {
     for (const o of [u, f1, f2]) {
       assert.ok(Number.isFinite(o.x) && Number.isFinite(o.y));
@@ -137,27 +137,22 @@ function centerIn(u, f) {
   });
 }
 
-// 5b. 어레인지 축 모드 (§130): 해당 축만 gap 재배치, 교차축 불변
+// 5b. 어레인지 축별 간격 (§198): gapX/gapY가 각각 열/행 간격에 적용
 {
   const api = fresh();
   const u1 = api.doc.units[0];           // 960×800 @ (0,0)
-  const u2 = api.createUnit(4000, 1500); // 중심 배치 → x 3520, y 1100
+  const u2 = api.createUnit(4000, 1500); // 중심 배치
   const u3 = api.createUnit(2500, 3000);
-  const ys = [u1.y, u2.y, u3.y];
-  api.setSelection([u1.id, u2.id, u3.id]);
-  api.arrangeGrid({ gap: 50, axis: 'x' });
-  ok('어레인지 x축: 좌표순 gap 재배치 + y 불변', () => {
-    const sorted = [u1, u2, u3].sort((a, z) => a.x - z.x);
-    assert.equal(sorted[1].x, sorted[0].x + sorted[0].params.W + 50);
-    assert.equal(sorted[2].x, sorted[1].x + sorted[1].params.W + 50);
-    assert.deepEqual([u1.y, u2.y, u3.y], ys);
-  });
-  const xs = [u1.x, u2.x, u3.x];
-  api.arrangeGrid({ gap: 30, axis: 'y' });
-  ok('어레인지 y축: x 불변', () => {
-    const sorted = [u1, u2, u3].sort((a, z) => a.y - z.y);
-    assert.equal(sorted[1].y, sorted[0].y + sorted[0].params.H + 30);
-    assert.deepEqual([u1.x, u2.x, u3.x], xs);
+  const u4 = api.createUnit(1200, 900);
+  api.setSelection([u1.id, u2.id, u3.id, u4.id]);
+  api.arrangeGrid({ gapX: 50, gapY: 120, columns: 2 });
+  ok('어레인지: gapX/gapY 축별 간격 적용', () => {
+    // 2×2 그리드 — 읽기 순서 정렬 후 셀 좌상단 간격 검증
+    const sorted = [u1, u2, u3, u4].sort((a, z) => (a.y - z.y) || (a.x - z.x));
+    const colW = Math.max(sorted[0].params.W, sorted[2].params.W);
+    const rowH = Math.max(sorted[0].params.H, sorted[1].params.H);
+    assert.equal(sorted[1].x, sorted[0].x + colW + 50);
+    assert.equal(sorted[2].y, sorted[0].y + rowH + 120);
   });
 }
 

@@ -1520,3 +1520,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 197. 2026-08-26 — 마우스 분할선 상단 1u 하향
 
 - 분할선 이동(§193·§196) 후 상단 끝이 바디 아치 밖으로 살짝 돌출 — 상단 시작점 y2→3 (하단 y10 유지).
+
+## 198. 2026-08-29 — 어레인지 gap 축 분리·퀵프레임 픽커 픽스·컨텍스트 메뉴 배타
+
+1. **그리드 어레인지 개편** — §130의 axis(grid/x/y) 모드 토글 폐지(불필요 판정). 항상 그리드 배치, 간격만 **gapX/gapY 축별 입력**으로 분리. `arrangeGrid({ gapX, gapY, columns })`, 팝업은 gap x·gap y·columns 3행. 구버전 prefs `{ gap, axis }`는 gap→gapX/gapY 복제·axis 폐기로 마이그레이션.
+2. **퀵프레임 컬러픽커 미표시 픽스** — ColorField 팝오버(`position: fixed`)의 기준이 툴바의 `transform: translateX(-50%)` 조상 때문에 뷰포트가 아니게 되어 화면 밖(y≈1400)에 뜨던 문제. 렌더 직후 실측 오차를 1회 보정(transform 조상 없는 호스트는 오차 0 무영향) + 뷰포트 하단 클램프(칩이 화면 아래쪽이어도 픽커 전체 표시).
+3. **퀵프레임 팝업 폭·정렬** — `.menu.qf`: 라벨 고정폭(62px) 해제 + `justify-content: space-between`으로 전체 폭 축소, 모든 컨트롤(스텝필드·컬러)을 우측 엣지 정렬. 노트는 줄바꿈 허용.
+4. **컨텍스트 메뉴 자동 닫힘** — 툴바(FloatingBar가 pointerdown stop)를 눌러도 닫히도록 닫힘 리스너를 **캡처 단계**로 전환(메뉴 내부는 `.ctxMenu` closest 가드로 제외), popupBus 전역 배타에도 등록 — 툴바 우클릭 팝업이 열리면 컨텍스트 메뉴가 닫히고 역방향도 동일.
+5. 테스트: 어레인지 축 모드 2케이스 → gapX/gapY 그리드 1케이스로 대체 (doc 30케이스).

@@ -17,6 +17,7 @@ import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
 import { useRecentColors } from '../../composables/useRecentColors.js';
+import { registerPopup, unregisterPopup } from '../../utils/popupBus.js';
 
 // 실픽셀 대시보드 스테이지.
 // 조작: 좌클릭 = 선택/이동/리사이즈, 휠 = 팬, 핀치·⌘+휠 = 커서 중심 줌,
@@ -208,7 +209,16 @@ const seamW = computed(() => {
 // 블렌드 설정 (툴 버튼 우클릭 메뉴에서 편집, 좌클릭/B로 즉시 적용)
 const blendCfg = reactive({ axis: 'h', count: 7, gap: 30, scale: 0.4, ...(prefs.blend || {}) });
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
-const arrangeCfg = reactive({ gap: 40, columns: 0, axis: 'grid', ...(prefs.arrange || {}) }); // axis: 'grid'|'x'|'y' (§130)
+// §198: axis 모드 폐지, gap → gapX/gapY 분리. 구버전 prefs { gap, axis } 마이그레이션 포함
+function migrateArrange(p = {}) {
+  const { gap, axis, ...rest } = p;
+  if (gap !== undefined) {
+    if (rest.gapX === undefined) rest.gapX = gap;
+    if (rest.gapY === undefined) rest.gapY = gap;
+  }
+  return rest;
+}
+const arrangeCfg = reactive({ gapX: 40, gapY: 40, columns: 0, ...migrateArrange(prefs.arrange) });
 // 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
@@ -272,8 +282,20 @@ function onUnitContext(u, e) {
 function closeCtx() {
   ctxMenu.value = null;
 }
+// §198: 메뉴 밖 어떤 포인터 입력이든 닫기 — 캡처 단계라 툴바류(@pointerdown.stop 내부)를
+// 눌러도 닫힌다 (버블 리스너였던 종전엔 FloatingBar가 stop해 안 닫혔음)
+function closeCtxOutside(e) {
+  if (e.target instanceof Element && e.target.closest('.ctxMenu')) return;
+  closeCtx();
+}
 watch(ctxMenu, (open) => {
-  if (open) setTimeout(() => window.addEventListener('pointerdown', closeCtx, { once: true }), 0);
+  if (open) {
+    registerPopup(closeCtx); // 툴바 팝업과 전역 배타 — 어느 쪽이 열리든 남은 쪽이 닫힘
+    setTimeout(() => window.addEventListener('pointerdown', closeCtxOutside, true), 0);
+  } else {
+    unregisterPopup(closeCtx);
+    window.removeEventListener('pointerdown', closeCtxOutside, true);
+  }
 });
 // 유닛 프리셋 등록 가능 조건: 단일 선택 + 프리셋 가능 타입 — 아니면 메뉴 항목 비활성 (§70)
 const canRegisterPreset = computed(
@@ -384,11 +406,7 @@ function onArrange() {
     toast('Select 2+ items to arrange');
     return;
   }
-  toast(
-    arrangeCfg.axis === 'x' ? `Arranged ${n} blocks along x`
-      : arrangeCfg.axis === 'y' ? `Arranged ${n} blocks along y`
-        : `Arranged ${n} blocks into a grid`
-  );
+  toast(`Arranged ${n} blocks into a grid`);
   setLast('grid arrange', () => onArrange());
 }
 
@@ -1221,7 +1239,7 @@ function applyPrefsFromStorage() {
   Object.assign(gridCfg, p2.grid || {});
   Object.assign(view, p2.view || {});
   Object.assign(blendCfg, p2.blend || {});
-  Object.assign(arrangeCfg, p2.arrange || {});
+  Object.assign(arrangeCfg, migrateArrange(p2.arrange));
   if (p2.currentColor !== undefined) currentColor.value = p2.currentColor;
   if (p2.customColor) customColor.value = p2.customColor;
   if (Array.isArray(p2.recentColors)) recentColors.value = p2.recentColors;
