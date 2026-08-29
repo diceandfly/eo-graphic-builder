@@ -6,6 +6,7 @@ import SelectionOverlay from './SelectionOverlay.vue';
 import ZoomBadge from './ZoomBadge.vue';
 import Toolbar from './Toolbar.vue';
 import FileBar from './FileBar.vue';
+import ManualOverlay from './ManualOverlay.vue';
 import FrameGraphic from './FrameGraphic.vue';
 import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
@@ -157,6 +158,7 @@ const activeFrameRect = computed(() => {
   return { x: f.x, y: f.y, w: f.params.W, h: f.params.H };
 });
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
+const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
 // 코너 바 아이콘 = 마스터 토글: 유닛·프레임 그리드 동시 (개별 토글은 우클릭 메뉴)
@@ -1457,7 +1459,9 @@ onBeforeUnmount(() => {
       @save="actions.saveProject({ ...saveScope })"
       @open="(f) => actions.openProject(f, { ...openScope })"
       @reset="onReset"
+      @manual="showManual = true"
     />
+    <ManualOverlay v-if="showManual" @close="showManual = false" />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
     <ManagerBar />

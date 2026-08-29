@@ -13,7 +13,7 @@ defineProps({
   saveScope: Object, // { objects, viewport, workspace }
   openScope: Object,
 });
-const emit = defineEmits(['save', 'open', 'reset']);
+const emit = defineEmits(['save', 'open', 'reset', 'manual']);
 
 // 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원
 const SCOPE_LABELS = {
@@ -47,7 +47,7 @@ watch(openMenu, (open) => {
 });
 
 const ACTIONS = [
-  { key: 'manual', tip: 'Manual — coming soon', paths: ICONS.manual }, // 자리만 확보 (§74)
+  { key: 'manual', tip: 'Manual', paths: ICONS.manual }, // §157: 도움말 오버레이 (우클릭 = 모니터 토글)
   { key: 'save', tip: 'Save JSON', paths: ICONS.save },
   { key: 'open', tip: 'Open JSON', paths: ICONS.open },
   { key: 'reset', tip: 'Reset dashboard', paths: ICONS.resetArrow },
@@ -68,7 +68,7 @@ const RESET_TONES = ['default', 'danger', 'doom'];
 const RESET_ICONS = [ICONS.resetArrow, ICONS.resetArrow, ICONS.tombstone];
 
 function onAction(key) {
-  if (key === 'manual') return; // 좌클릭 no-op — 추후 기획 (우클릭 = 모니터 토글)
+  if (key === 'manual') { emit('manual'); return; } // §157: 도움말 오버레이
   if (key === 'save') emit('save');
   else if (key === 'open') fileEl.value.click();
   else if (key === 'reset') {
