@@ -25,7 +25,10 @@ const iconSvg = (name) => {
   if (!paths) return `{icon:${name}}`; // 오타 시 토큰 노출로 바로 발견
   const crop = ICON_CROP[name];
   const vb = crop ? crop.join(' ') : '0 0 24 24';
-  const w = crop ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px"` : '';
+  // §174: 마우스 글리프는 좌측 여백을 살리고 우측은 텍스트에 밀착
+  const w = crop
+    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:3px;margin-right:1px"`
+    : '';
   return `<svg class="mdIco" viewBox="${vb}"${w}>${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 };
 const html = computed(() => {
