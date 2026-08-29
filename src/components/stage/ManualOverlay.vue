@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { marked } from 'marked';
 import manualMd from '../../../docs/MANUAL.md?raw';
 
@@ -35,7 +35,16 @@ function onClick(e) {
 function onKey(e) {
   if (e.key === 'Escape') emit('close');
 }
-onMounted(() => window.addEventListener('keydown', onKey));
+const docEl = ref(null);
+onMounted(async () => {
+  window.addEventListener('keydown', onKey);
+  // §162: 단축키 표(첫 헤더가 '키'/'조작')는 키 컬럼 고정 폭으로 통일 — 설명 컬럼이 나머지를 차지
+  await nextTick();
+  for (const t of docEl.value?.querySelectorAll('table') ?? []) {
+    const first = t.querySelector('th')?.textContent.trim();
+    if (first === '키' || first === '조작') t.classList.add('kbdTable');
+  }
+});
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 // §158: 전면 입력 락 — 오버레이 위의 포인터/휠이 스테이지 핸들러(팬·줌·선택)로 버블되지 않게.
 // 딤 자체 클릭만 닫기로 처리 (키보드 락은 DashboardStage onKeyDown의 showManual 가드가 담당)
@@ -55,7 +64,7 @@ function onDimDown(e) {
       <button class="closeBtn" title="close (Esc)" @click="emit('close')">
         <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
       </button>
-      <div class="doc" @click="onClick" v-html="html" />
+      <div ref="docEl" class="doc" @click="onClick" v-html="html" />
     </div>
   </div>
 </template>
@@ -110,5 +119,8 @@ function onDimDown(e) {
   }
   :deep(th), :deep(td) { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
   :deep(th) { color: var(--faint); text-transform: uppercase; letter-spacing: var(--ls-base); font-weight: var(--fw-semibold); }
+  /* §162: 단축키 표 — 키 컬럼 160px 고정, 설명 컬럼이 나머지 전부 */
+  :deep(table.kbdTable) { table-layout: fixed; }
+  :deep(table.kbdTable th:first-child), :deep(table.kbdTable td:first-child) { width: 160px; }
 }
 </style>
