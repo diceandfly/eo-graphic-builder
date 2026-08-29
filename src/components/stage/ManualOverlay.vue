@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { marked } from 'marked';
+import { ICONS } from '../../ui/icons.js';
 import manualMd from '../../../docs/MANUAL.md?raw';
 
 // 도움말 오버레이 (§157) — docs/MANUAL.md를 빌드에 번들(?raw)해 렌더.
@@ -15,13 +16,22 @@ function slug(text) {
     .replace(/[^\p{L}\p{N}\s-]/gu, '')
     .replace(/\s+/g, '-');
 }
+// §166: {icon:이름} 토큰 → UI 아이콘 사전(icons.js)의 인라인 SVG — 문서와 실제 UI가 같은 아이콘 공유.
+// 13px + 베이스라인 보정(-2px)이라 라인박스(폰트 12px·행간 1.7)보다 작아 행간에 영향 없음.
+const iconSvg = (name) => {
+  const paths = ICONS[name];
+  if (!paths) return `{icon:${name}}`; // 오타 시 토큰 노출로 바로 발견
+  return `<svg class="mdIco" viewBox="0 0 24 24">${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+};
 const html = computed(() => {
   const renderer = new marked.Renderer();
   renderer.heading = ({ tokens, depth }) => {
     const text = tokens.map((t) => t.raw ?? '').join('');
     return `<h${depth} id="${slug(text)}">${marked.parseInline(text)}</h${depth}>`;
   };
-  return marked.parse(manualMd, { renderer, gfm: true });
+  return marked
+    .parse(manualMd, { renderer, gfm: true })
+    .replace(/\{icon:([a-zA-Z]+)\}/g, (_, n) => iconSvg(n));
 });
 
 // 목차 앵커 클릭: 기본 해시 내비게이션 대신 오버레이 내부 스크롤
@@ -120,6 +130,13 @@ function onDimDown(e) {
   }
   :deep(th), :deep(td) { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
   :deep(th) { color: var(--faint); text-transform: uppercase; letter-spacing: var(--ls-base); font-weight: var(--fw-semibold); }
+  /* §166: 인라인 아이콘 — 라인박스보다 작게(13px), 행간 불변 */
+  :deep(.mdIco) {
+    width: 13px; height: 13px; display: inline-block; vertical-align: -2px;
+    margin-right: 3px; flex-shrink: 0;
+    fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: square; stroke-linejoin: miter;
+  }
   /* §162: 단축키 표 — 키 컬럼 160px 고정, 설명 컬럼이 나머지 전부 */
   :deep(table.kbdTable) { table-layout: fixed; }
   :deep(table.kbdTable th:first-child), :deep(table.kbdTable td:first-child) { width: 160px; }
