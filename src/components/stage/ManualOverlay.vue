@@ -20,6 +20,11 @@ function slug(text) {
 // 13px + 베이스라인 보정(-2px)이라 라인박스(폰트 12px·행간 1.7)보다 작아 행간에 영향 없음.
 // §172: 세로로 긴 글리프(마우스)는 뷰박스를 크롭하고 폭을 비율대로 좁혀 옆 텍스트와의 여백 제거
 const ICON_CROP = { mouseL: [5, 1, 14, 22], mouseR: [5, 1, 14, 22] };
+// §176: 클릭 버튼 셀 채움 (사선 마크 대체) — 좌/우 상단 쿼터를 솔리드로
+const ICON_FILL = {
+  mouseL: 'M12 10H5V9a7 7 0 0 1 7-7z',
+  mouseR: 'M12 10h7V9a7 7 0 0 0-7-7z',
+};
 const iconSvg = (name) => {
   const paths = ICONS[name];
   if (!paths) return `{icon:${name}}`; // 오타 시 토큰 노출로 바로 발견
@@ -29,7 +34,8 @@ const iconSvg = (name) => {
   const w = crop
     ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:3px;margin-right:1px"`
     : '';
-  return `<svg class="mdIco" viewBox="${vb}"${w}>${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+  const fill = ICON_FILL[name] ? `<path class="fillP" d="${ICON_FILL[name]}"/>` : '';
+  return `<svg class="mdIco" viewBox="${vb}"${w}>${fill}${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 };
 const html = computed(() => {
   const renderer = new marked.Renderer();
@@ -149,6 +155,7 @@ function onDimDown(e) {
     fill: none; stroke: currentColor; stroke-width: 2;
     stroke-linecap: square; stroke-linejoin: miter;
   }
+  :deep(.mdIco .fillP) { fill: currentColor; stroke: none; } /* §176: 클릭 셀 채움 */
   /* §162: 단축키 표 — 키 컬럼 160px 고정, 설명 컬럼이 나머지 전부 */
   :deep(table.kbdTable) { table-layout: fixed; }
   :deep(table.kbdTable th:first-child), :deep(table.kbdTable td:first-child) { width: 160px; }
@@ -159,9 +166,9 @@ function onDimDown(e) {
   :deep(table.t-layout th:nth-child(1)) { width: 84px; }
   :deep(table.t-layout th:nth-child(2)) { width: 132px; }
   :deep(table.t-layout td:nth-child(2)) { white-space: nowrap; }
-  /* 도구 바 (§175): 도구 128(무줄바꿈) · 우클릭 250(스포이드 범주 나열 2줄 수용) · 좌클릭 = 나머지 */
+  /* 도구 바 (§175 정정): 도구 128(무줄바꿈) · 우클릭 195 축소 · 좌클릭 = 나머지(~273, Frame 설명 2줄대) */
   :deep(table.t-tools th:nth-child(1)) { width: 128px; }
-  :deep(table.t-tools th:nth-child(3)) { width: 250px; }
+  :deep(table.t-tools th:nth-child(3)) { width: 195px; }
   /* 보기 옵션 (§175): 좌클릭 170(최장 셀 2줄) · 우클릭 230(최장 나열 3줄) · 버튼 = 나머지(무줄바꿈 유지) */
   :deep(table.t-view th:nth-child(2)) { width: 170px; }
   :deep(table.t-view th:nth-child(3)) { width: 230px; }
