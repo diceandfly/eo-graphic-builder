@@ -32,7 +32,7 @@ const iconSvg = (name) => {
   const vb = crop ? crop.join(' ') : '0 0 24 24';
   // §174: 마우스 글리프는 좌측 여백을 살리고 우측은 텍스트에 밀착
   const w = crop
-    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:4px;margin-right:3px"` /* 내부 여백 1px과 합쳐 총 ~3px */
+    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:3px;margin-right:4px"` /* §188: 1px 좌측 시프트 (전체 점유 폭 불변) */
     : '';
   const fill = ICON_FILL[name] ? `<path class="fillP" d="${ICON_FILL[name]}"/>` : '';
   return `<svg class="mdIco" viewBox="${vb}"${w}>${fill}${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
