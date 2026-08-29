@@ -20,10 +20,11 @@ function slug(text) {
 // 13px + 베이스라인 보정(-2px)이라 라인박스(폰트 12px·행간 1.7)보다 작아 행간에 영향 없음.
 // §172·§181: 세로로 긴 글리프(마우스)는 뷰박스 크롭 + 비율 폭. 우측 2u(≈1px)는 내부 여백으로 남김
 const ICON_CROP = { mouseL: [5, 1, 16, 22], mouseR: [5, 1, 16, 22] };
-// §176·§193: 클릭 버튼 셀 "전체" 채움 — 착시 보정은 분할선 이동(§193)이 담당
+// §176·§193·§194: 클릭 버튼 셀 채움 — 셀 경계보다 살짝 크게(스트로크 밑으로 오버랩)
+// 스트로크가 채움 위에 그려지므로 이음새 빈틈이 생기지 않음. 착시 보정은 분할선 이동(§193)이 담당.
 const ICON_FILL = {
-  mouseL: 'M11 10H5V9a7 7 0 0 1 7-7h-1z',
-  mouseR: 'M13 10h6V9a7 7 0 0 0-7-7h1z',
+  mouseL: 'M12 11H4.5V9A7.5 7.5 0 0 1 12 1.5z',
+  mouseR: 'M12 11h7.5V9A7.5 7.5 0 0 0 12 1.5z',
 };
 const iconSvg = (name) => {
   const paths = ICONS[name];
@@ -32,7 +33,7 @@ const iconSvg = (name) => {
   const vb = crop ? crop.join(' ') : '0 0 24 24';
   // §174: 마우스 글리프는 좌측 여백을 살리고 우측은 텍스트에 밀착
   const w = crop
-    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:2px;margin-right:5px"` /* §188: 1px 좌측 시프트 (전체 점유 폭 불변) */
+    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:1px;margin-right:4px"` /* §188: 1px 좌측 시프트 (전체 점유 폭 불변) */
     : '';
   const fill = ICON_FILL[name] ? `<path class="fillP" d="${ICON_FILL[name]}"/>` : '';
   return `<svg class="mdIco" viewBox="${vb}"${w}>${fill}${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
@@ -151,7 +152,7 @@ function onDimDown(e) {
   /* §166: 인라인 아이콘 — 라인박스보다 작게(13px), 행간 불변 */
   :deep(.mdIco) {
     width: 13px; height: 13px; display: inline-block; vertical-align: -2px;
-    margin-right: 4px; flex-shrink: 0; /* §186: 최종 4px — 간격은 CSS만 담당 */
+    margin-right: 3px; flex-shrink: 0; /* §194: 최종 3px */
     fill: none; stroke: currentColor; stroke-width: 2;
     stroke-linecap: square; stroke-linejoin: miter;
   }
