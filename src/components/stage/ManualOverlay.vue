@@ -32,7 +32,7 @@ const iconSvg = (name) => {
   const vb = crop ? crop.join(' ') : '0 0 24 24';
   // §174: 마우스 글리프는 좌측 여백을 살리고 우측은 텍스트에 밀착
   const w = crop
-    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:3px;margin-right:2px"` /* 내부 여백 1px과 합쳐 총 ~3px */
+    ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px;margin-left:4px;margin-right:3px"` /* 내부 여백 1px과 합쳐 총 ~3px */
     : '';
   const fill = ICON_FILL[name] ? `<path class="fillP" d="${ICON_FILL[name]}"/>` : '';
   return `<svg class="mdIco" viewBox="${vb}"${w}>${fill}${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
@@ -151,7 +151,7 @@ function onDimDown(e) {
   /* §166: 인라인 아이콘 — 라인박스보다 작게(13px), 행간 불변 */
   :deep(.mdIco) {
     width: 13px; height: 13px; display: inline-block; vertical-align: -2px;
-    margin-right: 3px; flex-shrink: 0; /* §186: 소스 공백 제거 후 3px 복귀 — 간격은 CSS만 담당 */
+    margin-right: 4px; flex-shrink: 0; /* §186: 최종 4px — 간격은 CSS만 담당 */
     fill: none; stroke: currentColor; stroke-width: 2;
     stroke-linecap: square; stroke-linejoin: miter;
   }
