@@ -1314,3 +1314,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - 퀵프레임 옵션 맨 아래 color 행 추가 — ColorField(공유 recents 스토어 직결, 우클릭 삭제 포함). `frameQuickCfg.fill`: hex = 고정 색, **빈 hex(null) = 현재 컬러 따름**(종전 동작). eo.prefs·저장 파일(tools) 자동 동승.
 - 검증: 팝업 5행(width/height/margin/gutter/color), hex 55BB73 지정 → 더블클릭 생성 프레임 fill 반영, 빈 hex → null 복귀. geo 30·doc 31 그린.
+
+## 154. 2026-08-26 — 프로덕션 빌드 검증 (배포 준비 ①)
+
+- `npm run build` 최초 검증: 79모듈, **JS 190KB(gzip 64KB) + CSS 36KB(gzip 6KB)** — 정적 산출물 3파일. vite preview로 스모크: 앱 마운트·유닛 렌더·플로팅 바 5종·Pretendard 로드 정상, 콘솔 에러 0. 배포 블로커 없음.
+- 배포 전 논의 메모: ① 협업/서버 저장 방식은 3안(웹배포+JSON / 계정 없는 팀 문서 저장소 / Yjs 실시간 협업) 중 결정 대기 ② 애니메이션 파라미터는 연속형+**이산형 스텝 전환**까지 테스트 예정(사용자 확정) ③ export 실시간 캡처 금지는 **앱 내부 파이프라인 한정** — 외부 녹화 툴 사용은 제한 없음.
