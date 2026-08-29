@@ -4,6 +4,7 @@ import IconButton from '../ui/IconButton.vue';
 import FloatingBar from '../ui/FloatingBar.vue';
 import StepField from '../controls/StepField.vue';
 import ColorPicker from '../controls/ColorPicker.vue';
+import ColorField from '../controls/ColorField.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
 import { ICONS } from '../../ui/icons.js';
 import { useRecentColors } from '../../composables/useRecentColors.js';
@@ -144,6 +145,15 @@ function onPick(c) {
           <div class="menuRow">
             <span class="rowLabel">gutter</span>
             <StepField v-model="frameQuickCfg.gutter" :min="0" :max="100" :step="1" />
+          </div>
+          <!-- §153: 퀵프레임 fill — 최근 컬러(공유 스토어) 픽커, 빈 hex = 현재 컬러 따름 -->
+          <div class="menuRow">
+            <span class="rowLabel">color</span>
+            <ColorField
+              v-model="frameQuickCfg.fill" :fallback="fill || '#3b3b3b'"
+              :recents="recentColors"
+              @remove-recent="removeRecentColor"
+            />
           </div>
           <div class="menuNote">double-click the tool to create</div>
         </div>

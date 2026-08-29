@@ -1309,3 +1309,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 픽스: copyActive = 선택 전체를 bbox 중심 기준 상대 배치로 저장, pasteAt = 대상점 중심으로 세트 재생성 — 그룹은 새 gid 재생성(duplicateUnits 관례·이름 승계), 링크는 원본 그룹 합류(§129 현행 문법), 사본 전체 선택. cleanupLinks/pruneMeta로 잔여 정리. 단일 선택은 종전과 동일(대상점 = 유닛 중심).
 - 시나리오 점검: 컨텍스트 메뉴 "Copy as SVG (⌘C)"가 내부 클립보드를 안 채우던 비대칭도 발견 — ⌘C와 동일하게 copyActive 동기화(라벨 패리티). Alt드래그 복제(duplicateUnits)·오버레이 dup(duplicateSelectedOffset)·⇧D는 별도 경로로 이상 없음 확인.
 - 검증: doc +5(멀티 3개·상대 배치·그룹 재생성/링크 합류·단일 중심·프레임 타입) = 31 그린, 브라우저 ⌘C/⌘V 실키 3개 붙여넣기+전체 선택.
+
+## 153. 2026-08-26 — 퀵프레임 팝업에 컬러 픽커 (최근 컬러 공유)
+
+- 퀵프레임 옵션 맨 아래 color 행 추가 — ColorField(공유 recents 스토어 직결, 우클릭 삭제 포함). `frameQuickCfg.fill`: hex = 고정 색, **빈 hex(null) = 현재 컬러 따름**(종전 동작). eo.prefs·저장 파일(tools) 자동 동승.
+- 검증: 팝업 5행(width/height/margin/gutter/color), hex 55BB73 지정 → 더블클릭 생성 프레임 fill 반영, 빈 hex → null 복귀. geo 30·doc 31 그린.

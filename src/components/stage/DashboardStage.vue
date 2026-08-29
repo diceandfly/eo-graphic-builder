@@ -216,7 +216,8 @@ const { recentColors, commitRecentColor } = useRecentColors();
 if (Array.isArray(prefs.recentColors)) recentColors.value = prefs.recentColors;
 // 프레임 더블클릭 즉시 생성 크기 (프레임 툴 우클릭 메뉴에서 편집 — §85·§92)
 // margin·gutter는 통합 1값(gutter = X/Y 공유, §116 결정 — 세밀 조정은 메인 패널)
-const frameQuickCfg = reactive({ w: 1920, h: 1080, margin: 20, gutter: 20, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
+// fill(§153): null = 현재 컬러 따름, hex = 고정 색
+const frameQuickCfg = reactive({ w: 1920, h: 1080, margin: 20, gutter: 20, fill: null, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
 // 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.
 // work = 캔버스 데이터 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
 const pickScope = (src) => ({
@@ -393,8 +394,8 @@ function onArrange() {
 function onFrameQuick() {
   const r = el.value.getBoundingClientRect();
   const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
-  const { w, h, margin, gutter } = frameQuickCfg;
-  props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, currentColor.value || null,
+  const { w, h, margin, gutter, fill } = frameQuickCfg;
+  props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, fill || currentColor.value || null,
     { margin, gutterX: gutter, gutterY: gutter });
   mode.value = 'select';
 }
