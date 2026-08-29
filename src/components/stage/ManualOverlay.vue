@@ -20,10 +20,10 @@ function slug(text) {
 // 13px + 베이스라인 보정(-2px)이라 라인박스(폰트 12px·행간 1.7)보다 작아 행간에 영향 없음.
 // §172·§181: 세로로 긴 글리프(마우스)는 뷰박스 크롭 + 비율 폭. 우측 2u(≈1px)는 내부 여백으로 남김
 const ICON_CROP = { mouseL: [5, 1, 16, 22], mouseR: [5, 1, 16, 22] };
-// §176: 클릭 버튼 셀 채움 (사선 마크 대체) — 좌/우 상단 쿼터를 솔리드로
+// §176·§190: 클릭 버튼 셀 채움 — 셀 전체가 아니라 1u 인셋 (솔리드가 커 보이는 착시 보정)
 const ICON_FILL = {
-  mouseL: 'M12 10H5V9a7 7 0 0 1 7-7z',
-  mouseR: 'M12 10h7V9a7 7 0 0 0-7-7z',
+  mouseL: 'M11 9H6V8a5 5 0 0 1 5-5z',
+  mouseR: 'M13 9h5V8a5 5 0 0 0-5-5z',
 };
 const iconSvg = (name) => {
   const paths = ICONS[name];
