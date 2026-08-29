@@ -15,7 +15,11 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* §160: 툴 전역 텍스트 드래그 락 — 입력칸과 도움말 본문만 예외 */
+  user-select: none;
+  -webkit-user-select: none;
 }
+input, textarea { user-select: text; -webkit-user-select: text; }
 #app { height: 100vh; }
 
 /* 슬라이더 — 2px 트랙 + 15px 사각 썸 (레퍼런스 .rg) */

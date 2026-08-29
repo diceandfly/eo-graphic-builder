@@ -83,6 +83,7 @@ function onDimDown(e) {
   &:hover svg { stroke: var(--accent); }
 }
 .doc {
+  user-select: text; -webkit-user-select: text; /* §160: 도움말 본문은 텍스트 드래그 허용 (전역 락 예외) */
   overflow-y: auto; padding: 26px 32px 40px;
   color: var(--text); font-size: var(--fs-sm); line-height: 1.7; letter-spacing: var(--ls-base);
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
