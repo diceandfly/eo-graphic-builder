@@ -38,11 +38,10 @@ function onKey(e) {
 const docEl = ref(null);
 onMounted(async () => {
   window.addEventListener('keydown', onKey);
-  // §162: 단축키 표(첫 헤더가 '키'/'조작')는 키 컬럼 고정 폭으로 통일 — 설명 컬럼이 나머지를 차지
+  // §162·§164: 2열 표(단축키·조작 안내류)는 전부 첫 컬럼 160px 고정으로 통일 — 설명 컬럼이 나머지를 차지
   await nextTick();
   for (const t of docEl.value?.querySelectorAll('table') ?? []) {
-    const first = t.querySelector('th')?.textContent.trim();
-    if (first === '키' || first === '조작') t.classList.add('kbdTable');
+    if (t.querySelectorAll('thead th, tr:first-child th').length === 2) t.classList.add('kbdTable');
   }
 });
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
@@ -73,12 +72,14 @@ function onDimDown(e) {
 .manualDim {
   position: absolute; inset: 0; z-index: 40;
   background: rgb(0 0 0 / 55%);
-  display: flex; align-items: center; justify-content: center;
 }
+/* §164: 중앙 정렬 대신 앱 그리드에 앵커 — 파일 바와 같은 세로 라인(left), 파일 바 아래 --sp-6 간격 */
 .manualPanel {
-  position: relative;
-  width: min(660px, calc(100% - 2 * var(--sp-6))); /* §163: 760→660 — 행당 글자 수 축소로 가독 개선 */
-  height: calc(100% - 2 * var(--sp-6));
+  position: absolute;
+  left: calc(var(--panel-w) + 2 * var(--sp-6));
+  top: calc(2 * var(--sp-6) + var(--bar-h, 42px));
+  width: min(660px, calc(100% - var(--panel-w) - 3 * var(--sp-6))); /* §163: 760→660 — 행당 글자 수 축소 */
+  height: calc(100% - 3 * var(--sp-6) - var(--bar-h, 42px));
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   display: flex; flex-direction: column; overflow: hidden;
 }
