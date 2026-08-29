@@ -156,8 +156,9 @@ function onDimDown(e) {
     stroke-linecap: square; stroke-linejoin: miter;
   }
   :deep(.mdIco .fillP) { fill: currentColor; stroke: none; } /* §176: 클릭 셀 채움 */
-  /* §179: 바로 뒤 텍스트가 링크면 아이콘도 링크 컬러로 묶어서 표시 */
-  :deep(.mdIco:has(+ a)) { color: var(--accent); }
+  /* §179·§191: 뒤 텍스트가 링크면 아이콘도 링크 컬러 — 연속 아이콘(예: 좌우/상하 뒤집기 2개)도 전부 */
+  :deep(.mdIco:has(+ a)),
+  :deep(.mdIco:has(+ .mdIco + a)) { color: var(--accent); }
   /* §162: 단축키 표 — 키 컬럼 160px 고정, 설명 컬럼이 나머지 전부 */
   :deep(table.kbdTable) { table-layout: fixed; }
   :deep(table.kbdTable th:first-child), :deep(table.kbdTable td:first-child) { width: 160px; }
