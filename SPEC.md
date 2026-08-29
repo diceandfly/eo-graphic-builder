@@ -1319,3 +1319,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - `npm run build` 최초 검증: 79모듈, **JS 190KB(gzip 64KB) + CSS 36KB(gzip 6KB)** — 정적 산출물 3파일. vite preview로 스모크: 앱 마운트·유닛 렌더·플로팅 바 5종·Pretendard 로드 정상, 콘솔 에러 0. 배포 블로커 없음.
 - 배포 전 논의 메모: ① 협업/서버 저장 방식은 3안(웹배포+JSON / 계정 없는 팀 문서 저장소 / Yjs 실시간 협업) 중 결정 대기 ② 애니메이션 파라미터는 연속형+**이산형 스텝 전환**까지 테스트 예정(사용자 확정) ③ export 실시간 캡처 금지는 **앱 내부 파이프라인 한정** — 외부 녹화 툴 사용은 제한 없음.
+
+## 155. 2026-08-26 — 배포 (A안: GitHub Pages 자동 배포)
+
+- `.github/workflows/deploy.yml`: main 푸시마다 npm test(geo+doc) → `vite build --base=/eo-graphic-builder/` → GitHub Pages 배포. Pages 활성화는 워크플로가 자동(enablement) — 계정·서버 비용 0.
+- URL: **https://diceandfly.github.io/eo-graphic-builder/** (레포 public 확인됨). base는 워크플로에서만 주입 — 로컬 dev·향후 타 호스팅 이전 시 설정 변경 불필요.
+- 테스터 안내(§154 논의): Chrome 권장 · 저장 = 브라우저 로컬(기기별) + JSON 파일 공유 · 브라우저당 문서 1개(자동저장 슬롯).
