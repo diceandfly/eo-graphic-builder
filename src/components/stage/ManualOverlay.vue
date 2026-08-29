@@ -24,8 +24,9 @@ const ICON_CROP = { mouseL: [3.5, 0.5, 18, 23], mouseR: [3.5, 0.5, 18, 23] };
 // §176·§193·§194: 클릭 버튼 셀 채움 — 셀 경계보다 살짝 크게(스트로크 밑으로 오버랩)
 // 스트로크가 채움 위에 그려지므로 이음새 빈틈이 생기지 않음. 착시 보정은 분할선 이동(§193)이 담당.
 const ICON_FILL = {
-  mouseL: 'M12 11H4.5V9A7.5 7.5 0 0 1 12 1.5z',
-  mouseR: 'M12 11h7.5V9A7.5 7.5 0 0 0 12 1.5z',
+  // §196: 분할선 2u 이동(mouseL x10·mouseR x14)에 맞춘 채움 — 경계 오버랩 유지
+  mouseL: 'M11 11H4.5V9A7.5 7.5 0 0 1 11 1.6z',
+  mouseR: 'M13 11h6.5V9A7.5 7.5 0 0 0 13 1.6z',
 };
 const iconSvg = (name) => {
   const paths = ICONS[name];
