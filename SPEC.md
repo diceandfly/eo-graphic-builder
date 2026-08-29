@@ -1462,3 +1462,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **파일명**: eo-project → `eo-workspace-data_YYYY-MM-DD_HHmm.json`, eo-presets → `eo-graphic-unit-preset.json`.
 - **저장 방식**: 즉시 다운로드 → **위치/이름 선택 다이얼로그**(File System Access API, `utils/saveFile.js`) — 워크스페이스 저장·프리셋 export 공통. 취소 시 무동작, 미지원 브라우저는 기존 즉시 다운로드 폴백.
 - 검증: 다이얼로그 경로 파일명 2종·API 부재 시 폴백 파일명 확인, geo 30·doc 31 그린.
+
+## 184. 2026-08-26 — 아이콘-텍스트 사이 스페이스 전수 제거
+
+- 74곳의 `{icon:} 텍스트` 공백 제거 — 간격은 CSS margin(1px)만 담당. DOM 전수 검사로 아이콘 뒤 공백 시작 텍스트 0건 확인.
