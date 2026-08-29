@@ -77,7 +77,7 @@ function onDimDown(e) {
 }
 .manualPanel {
   position: relative;
-  width: min(760px, calc(100% - 2 * var(--sp-6)));
+  width: min(660px, calc(100% - 2 * var(--sp-6))); /* §163: 760→660 — 행당 글자 수 축소로 가독 개선 */
   height: calc(100% - 2 * var(--sp-6));
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   display: flex; flex-direction: column; overflow: hidden;
