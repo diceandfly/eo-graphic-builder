@@ -153,7 +153,11 @@ function saveProject(scope = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'eo-project.json';
+  // §182: 파일명에 날짜+시분 — 같은 날 여러 저장 구분 가능, 초 단위는 가독성 위해 생략
+  const d = new Date();
+  const p2 = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
+  a.download = `eo-project_${stamp}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
