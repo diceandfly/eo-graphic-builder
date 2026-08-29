@@ -73,13 +73,13 @@ function onDimDown(e) {
   position: absolute; inset: 0; z-index: 40;
   background: rgb(0 0 0 / 55%);
 }
-/* §164: 중앙 정렬 대신 앱 그리드에 앵커 — 파일 바와 같은 세로 라인(left), 파일 바 아래 --sp-6 간격 */
+/* §164·§165: 앱 그리드 앵커 — 파일 바 "우측"에 --sp-6 간격, 상단 라인은 파일 바와 동일 (144px = 파일 바 폭) */
 .manualPanel {
   position: absolute;
-  left: calc(var(--panel-w) + 2 * var(--sp-6));
-  top: calc(2 * var(--sp-6) + var(--bar-h, 42px));
-  width: min(660px, calc(100% - var(--panel-w) - 3 * var(--sp-6))); /* §163: 760→660 — 행당 글자 수 축소 */
-  height: calc(100% - 3 * var(--sp-6) - var(--bar-h, 42px));
+  left: calc(var(--panel-w) + 3 * var(--sp-6) + 144px);
+  top: var(--sp-6);
+  width: min(660px, calc(100% - var(--panel-w) - 4 * var(--sp-6) - 144px)); /* §163: 760→660 — 행당 글자 수 축소 */
+  height: calc(100% - 2 * var(--sp-6));
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   display: flex; flex-direction: column; overflow: hidden;
 }
