@@ -151,7 +151,7 @@ function onDimDown(e) {
   /* §166: 인라인 아이콘 — 라인박스보다 작게(13px), 행간 불변 */
   :deep(.mdIco) {
     width: 13px; height: 13px; display: inline-block; vertical-align: -2px;
-    margin-right: 2px; flex-shrink: 0; /* §178: 3→2px — 아이콘-텍스트 밀착 */
+    margin-right: 1px; flex-shrink: 0; /* §178·§180: 3→2→1px — 아이콘-텍스트 밀착 */
     fill: none; stroke: currentColor; stroke-width: 2;
     stroke-linecap: square; stroke-linejoin: miter;
   }
