@@ -168,9 +168,9 @@ function onDimDown(e) {
   :deep(table.t-layout td:nth-child(2)) { white-space: nowrap; }
   /* 도구 바 (§175 정정): 도구 128(무줄바꿈) · 우클릭 195 축소 · 좌클릭 = 나머지(~273, Frame 설명 2줄대) */
   :deep(table.t-tools th:nth-child(1)) { width: 128px; }
-  :deep(table.t-tools th:nth-child(3)) { width: 195px; }
-  /* 보기 옵션 (§175): 좌클릭 170(최장 셀 2줄) · 우클릭 230(최장 나열 3줄) · 버튼 = 나머지(무줄바꿈 유지) */
-  :deep(table.t-view th:nth-child(2)) { width: 170px; }
-  :deep(table.t-view th:nth-child(3)) { width: 230px; }
+  :deep(table.t-tools th:nth-child(3)) { width: 207px; } /* §177: +1글자 (좌클릭 -1글자) */
+  /* 보기 옵션 (§175·§177): 좌클릭 194(+2글자) · 우클릭 206(-2글자) · 버튼 = 나머지(무줄바꿈 유지) */
+  :deep(table.t-view th:nth-child(2)) { width: 194px; }
+  :deep(table.t-view th:nth-child(3)) { width: 206px; }
 }
 </style>
