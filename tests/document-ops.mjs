@@ -312,7 +312,61 @@ function centerIn(u, f) {
   });
 }
 
-// 11. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
+// 11. 클립보드: 멀티 선택 복사·붙여넣기 (§152)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 960×800 @ (0,0)
+  const u2 = api.createUnit(3000, 1500);
+  const u3 = api.createUnit(5000, 400);
+  // 그룹(u1·u2) + 링크(u2·u3) 구조 포함
+  api.setSelection([u1.id, u2.id]);
+  api.groupSelected();
+  const origGid = api.outermost(u1);
+  api.setSelection([u2.id, u3.id]);
+  api.toggleLinkSelected();
+  const lid = u2.linkId;
+  // 3개 전체 복사 → 붙여넣기
+  api.setSelection([u1.id, u2.id, u3.id]);
+  api.copyActive();
+  const n0 = api.doc.units.length;
+  api.pasteAt(10000, 10000);
+  const pasted = api.doc.units.slice(n0);
+  ok('클립보드: 멀티 3개 전부 붙여넣기', () => {
+    assert.equal(pasted.length, 3);
+    assert.deepEqual(api.doc.selectedIds.length, 3);
+  });
+  ok('클립보드: 상대 배치 보존 + 대상점 중심', () => {
+    // 원본 u2-u1 상대 오프셋 = 사본 간 동일
+    assert.equal(pasted[1].x - pasted[0].x, u2.x - u1.x);
+    assert.equal(pasted[1].y - pasted[0].y, u2.y - u1.y);
+  });
+  ok('클립보드: 그룹 재생성(새 gid)·링크 합류', () => {
+    const g = api.outermost(pasted[0]);
+    assert.ok(g != null && g !== origGid);
+    assert.equal(api.outermost(pasted[1]), g);
+    assert.equal(pasted[1].linkId, lid); // §129 현행: 사본은 원본 링크그룹 합류
+    assert.equal(pasted[2].linkId, lid);
+  });
+  // 단일 선택 복사 = 종전 동작 (대상점 = 유닛 중심)
+  api.setSelection([u1.id]);
+  api.copyActive();
+  api.pasteAt(20000, 20000);
+  const single = api.doc.units[api.doc.units.length - 1];
+  ok('클립보드: 단일 붙여넣기 = 대상점 중심 배치', () => {
+    assert.equal(single.x + single.params.W / 2, 20000);
+    assert.equal(single.y + single.params.H / 2, 20000);
+  });
+  // 프레임 복사도 타입 보존
+  const f = api.createFrame(0, 5000, 500, 400);
+  api.setSelection([f.id]);
+  api.copyActive();
+  api.pasteAt(30000, 30000);
+  ok('클립보드: 프레임 타입 보존', () => {
+    assert.equal(api.doc.units[api.doc.units.length - 1].type, 'frame');
+  });
+}
+
+// 12. 히스토리: 이동 → undo 복원 (350ms 디바운스 대기)
 {
   const api = fresh();
   const u = api.doc.units[0];

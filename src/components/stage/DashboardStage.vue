@@ -1496,7 +1496,8 @@ onBeforeUnmount(() => {
         @click="onRegisterPreset"
       ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.presetAdd" :key="d" :d="d" /></svg>Register unit preset</button>
       <div class="ctxSep" />
-      <button class="ctxItem" @click="onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
+      <!-- §152: ⌘C와 동일하게 내부 클립보드도 채움 (라벨 패리티) -->
+      <button class="ctxItem" @click="actions.copyActive(); onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
       <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
     </div>

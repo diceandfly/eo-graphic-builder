@@ -1302,3 +1302,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 151. 2026-08-26 — 블렌드 프레임 제외
 
 - 선택에 프레임이 포함되면 블렌드 차단 + 경고 토스트 "Blend works on units — not frames" (프레임 = 레이아웃 컨테이너, 등비 사본 문법 무의미). 유닛/그룹 블렌드는 불변.
+
+## 152. 2026-08-26 — 내부 클립보드 멀티 지원 (⌘C/⌘V 1개만 붙던 버그 픽스)
+
+- 원인: SVG/PNG 시스템 클립보드는 selectionItems(멀티)를 쓰지만 **내부 클립보드(copyActive/pasteAt)는 활성 유닛 1개만** 저장하던 §초기 구조 잔재.
+- 픽스: copyActive = 선택 전체를 bbox 중심 기준 상대 배치로 저장, pasteAt = 대상점 중심으로 세트 재생성 — 그룹은 새 gid 재생성(duplicateUnits 관례·이름 승계), 링크는 원본 그룹 합류(§129 현행 문법), 사본 전체 선택. cleanupLinks/pruneMeta로 잔여 정리. 단일 선택은 종전과 동일(대상점 = 유닛 중심).
+- 시나리오 점검: 컨텍스트 메뉴 "Copy as SVG (⌘C)"가 내부 클립보드를 안 채우던 비대칭도 발견 — ⌘C와 동일하게 copyActive 동기화(라벨 패리티). Alt드래그 복제(duplicateUnits)·오버레이 dup(duplicateSelectedOffset)·⇧D는 별도 경로로 이상 없음 확인.
+- 검증: doc +5(멀티 3개·상대 배치·그룹 재생성/링크 합류·단일 중심·프레임 타입) = 31 그린, 브라우저 ⌘C/⌘V 실키 3개 붙여넣기+전체 선택.

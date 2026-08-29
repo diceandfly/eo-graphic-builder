@@ -419,15 +419,43 @@ export function useDocument() {
 
   // ---- 클립보드 (⌘C/⌘V) ----
   let clipboard = null;
+  // §152: 내부 클립보드 멀티 지원 — 선택 전체를 상대 배치(bbox 중심 기준)로 저장.
+  // 그룹은 붙여넣기 시 새 gid로 재생성(duplicateUnits와 동일 관례), 링크는 원본 그룹 합류(§129 현행 문법).
   function copyActive() {
-    if (active.value) {
-      clipboard = { type: active.value.type, params: { ...active.value.params }, linkId: active.value.linkId };
-    }
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    const src = sel.length ? sel : active.value ? [active.value] : [];
+    if (!src.length) return;
+    const bb = bboxOf(src);
+    const cx = (bb.minX + bb.maxX) / 2;
+    const cy = (bb.minY + bb.maxY) / 2;
+    clipboard = src.map((u) => ({
+      type: u.type, params: { ...u.params }, linkId: u.linkId,
+      groups: [...u.groups], dx: u.x - cx, dy: u.y - cy,
+    }));
   }
   function pasteAt(x, y) {
-    if (!clipboard) return;
-    const p = clipboard.params;
-    pushUnit({ ...p }, Math.round(x - p.W / 2), Math.round(y - p.H / 2), clipboard.linkId, clipboard.type || 'unit');
+    if (!clipboard?.length) return;
+    const gidMap = new Map(); // 원본 gid → 사본 gid
+    const ids = [];
+    for (const it of clipboard) {
+      const id = nextId++;
+      const groups = it.groups.map((g) => {
+        if (!gidMap.has(g)) {
+          gidMap.set(g, nextGroup++);
+          doc.groupNames[gidMap.get(g)] = doc.groupNames[g] ?? `Group-${gidMap.get(g)}`;
+        }
+        return gidMap.get(g);
+      });
+      doc.units.push({
+        id, type: it.type, name: nextName(it.type),
+        x: Math.round(x + it.dx), y: Math.round(y + it.dy),
+        groups, linkId: it.linkId, params: { ...it.params },
+      });
+      ids.push(id);
+    }
+    setSelection(ids);
+    cleanupLinks(); // 원본 링크그룹이 사라진 사본 등 1멤버 그룹 정리
+    pruneMeta();
   }
 
   function pushUnit(params, x, y, linkId = null, type = 'unit') {
