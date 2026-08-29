@@ -155,7 +155,7 @@ function saveProject(scope = {}) {
   const d = new Date();
   const p2 = (n) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}`;
-  saveFileAs(blob, `eo-workspace-data_${stamp}.json`);
+  saveFileAs(blob, `eo-workspace-data_${stamp}.json`, 'workspace'); // §199: 폴더 기억 버킷 분리
 }
 async function openProject(file, scope = {}) {
   try {

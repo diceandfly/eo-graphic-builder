@@ -1528,3 +1528,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 3. **퀵프레임 팝업 폭·정렬** — `.menu.qf`: 라벨 고정폭(62px) 해제 + `justify-content: space-between`으로 전체 폭 축소, 모든 컨트롤(스텝필드·컬러)을 우측 엣지 정렬. 노트는 줄바꿈 허용.
 4. **컨텍스트 메뉴 자동 닫힘** — 툴바(FloatingBar가 pointerdown stop)를 눌러도 닫히도록 닫힘 리스너를 **캡처 단계**로 전환(메뉴 내부는 `.ctxMenu` closest 가드로 제외), popupBus 전역 배타에도 등록 — 툴바 우클릭 팝업이 열리면 컨텍스트 메뉴가 닫히고 역방향도 동일.
 5. 테스트: 어레인지 축 모드 2케이스 → gapX/gapY 그리드 1케이스로 대체 (doc 30케이스).
+
+## 199. 2026-08-29 — 저장 다이얼로그 최근 폴더 기억 (id 버킷)
+
+- `saveFileAs(blob, name, id)` — `showSaveFilePicker`의 `id` 옵션 전달. 브라우저가 id별로 마지막 저장 폴더를 따로 기억해 다음 다이얼로그를 그 폴더에서 연다: 작업파일 `'workspace'` · 프리셋 `'preset'`. (기억은 origin별 — localhost와 배포본은 별개, 첫 저장만 브라우저 기본 폴더)

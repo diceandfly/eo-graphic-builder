@@ -57,7 +57,7 @@ export function usePresets() {
   function exportJson() {
     const data = { version: 1, presets: stored.map((p) => ({ name: p.name, params: p.params })) };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    saveFileAs(blob, 'eo-graphic-unit-preset.json'); // §183: 이름 개정 + 저장 다이얼로그
+    saveFileAs(blob, 'eo-graphic-unit-preset.json', 'preset'); // §183 다이얼로그 + §199 폴더 기억
   }
   async function importJson(file) {
     let list;

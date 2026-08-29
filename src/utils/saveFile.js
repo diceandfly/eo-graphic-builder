@@ -1,10 +1,13 @@
 // §183: 저장 다이얼로그 — File System Access API(크롬)로 위치/이름을 고르는 저장.
 // 미지원 브라우저·API 실패 시 기존 즉시 다운로드로 폴백, 사용자가 취소하면 조용히 종료.
-export async function saveFileAs(blob, suggestedName) {
+// §199: id = 용도별 마지막 저장 폴더 기억 버킷 ('workspace'·'preset' 등) — 브라우저가
+// id별로 최근 폴더를 따로 기억해 다음 다이얼로그를 그 폴더에서 연다.
+export async function saveFileAs(blob, suggestedName, id) {
   if (window.showSaveFilePicker) {
     try {
       const handle = await window.showSaveFilePicker({
         suggestedName,
+        ...(id ? { id } : {}),
         types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }],
       });
       const w = await handle.createWritable();
