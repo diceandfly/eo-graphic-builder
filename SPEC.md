@@ -1325,3 +1325,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - `.github/workflows/deploy.yml`: main 푸시마다 npm test(geo+doc) → `vite build --base=/eo-graphic-builder/` → GitHub Pages 배포. Pages 활성화는 워크플로가 자동(enablement) — 계정·서버 비용 0.
 - URL: **https://diceandfly.github.io/eo-graphic-builder/** (레포 public 확인됨). base는 워크플로에서만 주입 — 로컬 dev·향후 타 호스팅 이전 시 설정 변경 불필요.
 - 테스터 안내(§154 논의): Chrome 권장 · 저장 = 브라우저 로컬(기기별) + JSON 파일 공유 · 브라우저당 문서 1개(자동저장 슬롯).
+
+## 156. 2026-08-26 — 도움말 문서 (docs/MANUAL.md)
+
+- 전 기능 총망라 도움말을 **마크다운 단일 소스**로 작성 — 14섹션(화면 구성·조작·유닛 파라미터·컬러·도구·프레임·그룹/링크·정렬·스냅·보기·프리셋·저장/내보내기·단축키 표). 노션 업로드는 그대로 붙여넣기, 툴 내 문서화(매뉴얼 버튼 연결) 시에도 이 파일을 렌더 소스로 재사용하는 전략. 형식 결정(노션 vs 툴 내 위키)은 미정 — 콘텐츠 갱신은 이 파일에서만.
