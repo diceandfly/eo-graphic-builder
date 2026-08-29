@@ -18,10 +18,15 @@ function slug(text) {
 }
 // §166: {icon:이름} 토큰 → UI 아이콘 사전(icons.js)의 인라인 SVG — 문서와 실제 UI가 같은 아이콘 공유.
 // 13px + 베이스라인 보정(-2px)이라 라인박스(폰트 12px·행간 1.7)보다 작아 행간에 영향 없음.
+// §172: 세로로 긴 글리프(마우스)는 뷰박스를 크롭하고 폭을 비율대로 좁혀 옆 텍스트와의 여백 제거
+const ICON_CROP = { mouseL: [5, 1, 14, 22], mouseR: [5, 1, 14, 22] };
 const iconSvg = (name) => {
   const paths = ICONS[name];
   if (!paths) return `{icon:${name}}`; // 오타 시 토큰 노출로 바로 발견
-  return `<svg class="mdIco" viewBox="0 0 24 24">${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+  const crop = ICON_CROP[name];
+  const vb = crop ? crop.join(' ') : '0 0 24 24';
+  const w = crop ? ` style="width:${Math.round((13 * crop[2]) / crop[3])}px"` : '';
+  return `<svg class="mdIco" viewBox="${vb}"${w}>${paths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 };
 const html = computed(() => {
   const renderer = new marked.Renderer();
