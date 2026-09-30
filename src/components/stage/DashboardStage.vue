@@ -231,7 +231,22 @@ const presetPanel = ref(null);
 function togglePresetPanel(name) {
   presetPanel.value = presetPanel.value === name ? null : name;
 }
-// §208: 패널 크기 = 고정 (4열 기준) — 밀도는 브라우저의 3/4/6열 토글이 담당 (§207 그립 리사이즈 폐기)
+// §208·§214: 패널 폭 = 고정(4열 기준), 밀도는 열 토글 — **높이만** 상단 엣지 드래그로 조절 (로컬 영속)
+const panelH = ref(Number(localStorage.getItem('eo.presetFloatH')) || 620);
+function onHeightGripDown(e) {
+  e.preventDefault();
+  const sy = e.clientY;
+  const h0 = panelH.value;
+  const mv = (ev) => {
+    panelH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), window.innerHeight - 140);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', mv);
+    localStorage.setItem('eo.presetFloatH', String(Math.round(panelH.value)));
+  };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up, { once: true });
+}
 function panelCenterWorld() {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(r.width / 2, r.height / 2);
@@ -1677,8 +1692,10 @@ onBeforeUnmount(() => {
     <div
       v-if="presetPanel"
       class="presetFloat"
+      :style="{ height: panelH + 'px' }"
       @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
     >
+      <div class="heightGrip" title="drag to resize height" @pointerdown.stop="onHeightGripDown" />
       <PresetGridBrowser
         v-if="presetPanel === 'patterns'"
         title="Pattern presets"
@@ -1832,13 +1849,20 @@ onBeforeUnmount(() => {
 // 밀도 조절은 브라우저 헤더의 3/4/6열 토글 (§208: 그립 리사이즈 폐기).
 .presetFloat {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
-  z-index: 15;
-  width: 580px; height: 620px;
+  /* §214: 캔버스 우클릭 메뉴(z10)·이름 편집(z20)이 창 위로 겹치도록 오더 하향 */
+  z-index: 9;
+  width: 580px;
   max-width: calc(100% - 2 * var(--sp-6));
   max-height: calc(100% - 2 * var(--sp-6) - 52px);
   box-sizing: border-box; overflow: hidden;
   padding: var(--window-pad-y) var(--panel-pad) 14px; // §213
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+}
+// §214: 프리셋창 높이 조절 — 상단 엣지 스트립 (bottom 앵커라 위로 늘어남)
+.heightGrip {
+  position: absolute; top: 0; left: 0; right: 0; height: 7px;
+  cursor: ns-resize;
+  &:hover { box-shadow: inset 0 2px 0 var(--accent); }
 }
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체
 .frameNameInput {

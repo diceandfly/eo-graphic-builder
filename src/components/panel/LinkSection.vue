@@ -29,10 +29,10 @@ function onChip(k) {
     <h2>Link</h2>
     <!-- 단일 링크 멤버: 이 유닛만 링크에서 빼기 -->
     <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
-      unlink this unit
+      Unlink this unit
     </button>
     <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...draftScope })">
-      {{ linked ? 'unlink parameters' : 'link parameters' }}
+      {{ linked ? 'Unlink parameters' : 'Link parameters' }}
     </button>
     <div v-if="!single && chipsVisible" class="scopeChips">
       <button
@@ -53,7 +53,7 @@ section h2 {
 .ghost {
   width: 100%; margin-top: 2px; padding: 8px 12px;
   border: 1px solid var(--line); background: none; color: var(--text);
-  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
   cursor: pointer;
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }

@@ -285,8 +285,8 @@ Save unit shapes you use often and bring them back anytime.
 
 - {icon:presetAdd}**Register**: click a unit, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register unit preset
 - **Use**: open the panel with the unit presets button (**U**) in the bottom-right preset bar, then **drag a card onto the canvas** to create it right where you drop it (double-click = center of the view)
-- **Organize**: click a card to select it, **⇧click** for multi-select · drag onto another card to reorder, **drag onto a folder card to move it inside** · double-click a name to rename · 2/3/4/6-column toggle at the top right
-- **Folders**: `+ folder` creates one, click a folder to open it, `← back` returns to everything, `move out` moves the selection out of its folder (both buttons appear only when relevant). Search covers every folder and shows a folder badge on results
+- **Organize**: click a card to select it, **⇧click** for multi-select · drag onto another card to reorder, **drag onto a category card to move it inside** · double-click a name to rename · 2/3/4/6-column toggle at the top right
+- **Categories**: `+ Category` creates one, click a category to open it, `← Back` returns to everything, `Move out` moves the selection out of its category. Search covers every category and shows a badge on results
 - {icon:mouseR}**Right-click menu**: acts on the whole selection at once — Duplicate · Rename · Delete
 - {icon:trash}**Delete**: click the × at a thumbnail's top right twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your preset collection as a file
@@ -320,7 +320,7 @@ Your work keeps saving to the browser without you doing anything. Reload and the
 Save a frame together with the unit layout inside it, and bring the whole thing back anytime — the frame-level counterpart of [unit presets](#14-unit-presets).
 
 - {icon:patternAdd}**Register**: select a frame, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register pattern preset — the frame's settings and its units (layout, [groups and links](#10-groups-and-links) included) are saved under the frame's name
-- {icon:layers}**Use**: open the panel with the pattern presets button (**P**), then **drag a card onto the canvas** to create the whole pattern where you drop it (double-click = center of the view). Selection, folders, search, and the right-click menu work exactly like [unit presets](#14-unit-presets)
+- {icon:layers}**Use**: open the panel with the pattern presets button (**P**), then **drag a card onto the canvas** to create the whole pattern where you drop it (double-click = center of the view). Selection, categories, search, and the right-click menu work exactly like [unit presets](#14-unit-presets)
 - {icon:trash}**Delete**: click a card's × twice within 3 seconds (mistake-proofing)
 - **Update**: drag a frame from the canvas onto a pattern card to overwrite that pattern with the frame's current state
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file

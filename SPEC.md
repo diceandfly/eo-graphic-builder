@@ -1690,3 +1690,16 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **창 패딩 리듬** — 질문("패딩 토큰 관리?")에 대한 상태: 레이아웃 층위(sp-*·panel-pad)만 토큰, 컴포넌트 미세 패딩은 고유값(기존 정책). 이번에 **창 공통 패딩 토큰화·축소**: --panel-pad 15→12(+ --window-pad-y 12 신설 — 메인 패널·프리셋창 공유), 팝업 10/12→9/11 — 내부 gap(10)·외부 갭(14)과 같은 급의 리듬.
 3. **타이포 위계 2차** — 서브타이틀 잔여 문제(자간 넓음·all caps) 해결: **창 타이틀 = 문장형("Unit presets")·13px(fs-md)·semibold·--text·자간 0**, 팝업 타이틀(menuTitle)도 문장형 11px semibold --text로 통일. 위계 확정: 창 타이틀(13 semibold text) > 팝업 타이틀(11 semibold text) > 본문·값(11–12 text) > 라벨(11 dim 소형캡) > 섹션 캡스(11 accent — 브랜드 문법 유지) > 보조·노트(10 faint).
 4. **back/move out 버튼 상시 표시 복원** — §211의 상황부 숨김이 "버튼이 사라지는 오류"로 인식됨(정상 동작이었음) → 상시 표시 + 비활성(35%)으로 변경.
+
+## 214. 2026-10-01 — 타이포 전수 일관화(이니셜 캡)·카테고리 명칭·프리셋창 높이 조절
+
+1. **All Caps 정책 확정·전수 적용** — "위계가 많이 나뉜 섹션의 최상위 레벨"만 캡스: 메인 패널 섹션 h2(SIZE/GRID/… accent)·브랜드 타이틀만 유지. 그 외 전부 **이니셜 캡**으로:
+   - 컨트롤 라벨(NumberField/Slider/Toggle)·ControlPanel rowLabel/ratioHead/dpiWrap·팝업 rowLabel(믹스인): CSS `::first-letter` 대문자화 — 소문자 소스 40여 개 무수정 승격("Width", "Pitch compression", …).
+   - LinkSection ghost 버튼("Link parameters")·프리셋창 IO("Export JSON")·툴바 버튼("← Back"/"Move out")은 소스 텍스트 수정, 캡스 CSS 해제.
+   - 도움말 h2: 캡스·자간 해제, 13px 문장형(accent 유지). 표 헤더 th 캡스 해제(+dim).
+   - 유지: hex 입력 대문자화(기능성), 리소스 모니터 캡션, 상태값 토글(on/off·px/cm — 값 표기).
+2. **폴더 → 카테고리 명칭 전환** — 버튼("+ Category")·메뉴("Rename/Delete category")·기본 이름('Category')·툴팁·도움말 KR/EN. 내부 변수·저장 키는 유지(데이터 호환).
+3. **프리셋창 상단 엣지로 높이 조절** — 폭은 4열 고정, 높이만 상단 7px 스트립 드래그(ns-resize, 호버 시 액센트 라인), 로컬 영속(eo.presetFloatH).
+4. **Duplicate 삽입 위치** — 복제본이 배열 끝이 아니라 **원본 바로 뒤**에 (양 스토어).
+5. **검색행 마무리** — 버튼 3종 상시·동일 디자인(비활성은 형태 유지·글자만 faint — 흐림 0.35가 "안 보인다"는 피드백 해소), 검색창은 남은 공간 전부.
+6. **프리셋창 z-오더 하향(15→9)** — 캔버스 우클릭 메뉴(z10)·프레임 이름 편집(z20)이 창 위로 겹침.

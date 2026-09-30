@@ -186,18 +186,17 @@ function onFile(e) {
     </div>
     <!-- §210·§211: [검색] … [back·move out(상황부)] [+ folder] — 기호 버튼 대신 단어 라벨 -->
     <div class="toolRow">
-      <input v-model="q" class="pSearch" type="text" placeholder="search all" spellcheck="false" />
-      <span class="toolSpace" />
+      <input v-model="q" class="pSearch" type="text" placeholder="Search all" spellcheck="false" />
       <button
         class="tBtn" :disabled="currentFolder == null && !searching"
         title="back to all presets" @click="goUp"
-      >← back</button>
+      >← Back</button>
       <button
         class="tBtn" :disabled="!movableUp"
-        title="move selection out of its folder"
+        title="move selection out of its category"
         @click="emit('moveToFolder', selected, null)"
-      >move out</button>
-      <button class="tBtn" title="new folder" @click="emit('addFolder')">+ folder</button>
+      >Move out</button>
+      <button class="tBtn" title="new category" @click="emit('addFolder')">+ Category</button>
     </div>
     <div v-if="currentFolderName && !searching" class="crumb">▸ {{ currentFolderName }}</div>
     <div class="gridArea" @pointerdown.self="selected = []">
@@ -257,8 +256,8 @@ function onFile(e) {
       </div>
     </div>
     <div class="pIoRow">
-      <button class="pIoBtn" @click="emit('exportJson')">export json</button>
-      <button class="pIoBtn" @click="fileEl.click()">import json</button>
+      <button class="pIoBtn" @click="emit('exportJson')">Export JSON</button>
+      <button class="pIoBtn" @click="fileEl.click()">Import JSON</button>
       <input ref="fileEl" type="file" accept=".json,application/json" hidden @change="onFile" />
     </div>
 
@@ -288,8 +287,8 @@ function onFile(e) {
         <button class="pMenuItem" @click="menuDelete">Delete{{ menuIds.length > 1 ? ` (${menuIds.length})` : '' }}</button>
       </template>
       <template v-else>
-        <button class="pMenuItem" @click="startRename(menu.p, true); closeMenu()">Rename folder</button>
-        <button class="pMenuItem" @click="menuDelete">Delete folder</button>
+        <button class="pMenuItem" @click="startRename(menu.p, true); closeMenu()">Rename category</button>
+        <button class="pMenuItem" @click="menuDelete">Delete category</button>
       </template>
     </div>
   </div>
@@ -309,10 +308,9 @@ function onFile(e) {
 }
 .colToggle { margin-bottom: 0; }
 .toolRow { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
-.toolSpace { flex: 1; }
 .pSearch {
   @include text-field;
-  width: 190px; box-sizing: border-box; font-size: var(--fs-xs);
+  flex: 1; min-width: 0; box-sizing: border-box; font-size: var(--fs-xs);
   padding: 4px 8px;
 }
 .tBtn {
@@ -320,7 +318,8 @@ function onFile(e) {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 4px 10px;
   white-space: nowrap;
   &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-  &:disabled { opacity: 0.35; cursor: default; } /* §213: 상황부 숨김 → 상시 표시 + 비활성 */
+  /* §214: 비활성도 형태는 그대로 — 글자만 흐리게 (버튼이 안 보인다는 피드백) */
+  &:disabled { color: var(--faint); cursor: default; }
 }
 .crumb { font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); margin: -4px 0 8px; }
 .gridArea {
@@ -401,7 +400,7 @@ function onFile(e) {
 .pIoRow { display: flex; gap: 6px; margin-top: 12px; }
 .pIoBtn {
   @include bordered-control;
-  flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
+  flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
   padding: 5px 0;
   &:hover { border-color: var(--accent); color: var(--accent); }
 }

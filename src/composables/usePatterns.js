@@ -86,7 +86,7 @@ export function usePatterns() {
     while (names.has(`${base} (${i})`)) i += 1;
     return `${base} (${i})`;
   }
-  function addFolder(name = 'Folder') {
+  function addFolder(name = 'Category') {
     const f = { id: newId(), name: folderName(name) };
     folders.push(f);
     return f;
@@ -112,7 +112,8 @@ export function usePatterns() {
       const src = stored.find((x) => String(x.id) === String(id));
       if (!src) continue;
       const copy = { ...JSON.parse(JSON.stringify(src)), id: newId(), name: uniqueName(src.name) };
-      stored.push(copy);
+      const at = stored.findIndex((x) => String(x.id) === String(id)); // §214: 원본 바로 뒤 삽입
+      stored.splice(at + 1, 0, copy);
       out.push(copy);
     }
     return out;

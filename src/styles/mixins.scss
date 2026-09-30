@@ -85,7 +85,7 @@
     // 필드 행(rowLabel 보유) = 라벨 좌 · 컨트롤 우측 정렬 통일
     &:has(> .rowLabel) { justify-content: space-between; }
   }
-  .rowLabel { color: var(--dim); } // §212: 라벨층 = dim (자간 대신 회색도 위계)
+  .rowLabel { color: var(--dim); display: inline-block; &::first-letter { text-transform: uppercase; } } // §212 dim · §214 이니셜 캡
   .menuNote {
     font-size: var(--fs-2xs);
     color: var(--faint);

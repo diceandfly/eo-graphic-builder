@@ -527,8 +527,9 @@ function setStrokeColor(c) {
 .logoFill { fill: var(--accent); }
 .unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
 .ratioHead {
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--dim); margin-bottom: 6px; /* §212 */
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  color: var(--dim); margin-bottom: 6px; /* §214: 이니셜 캡 */
+  &::first-letter { text-transform: uppercase; }
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
@@ -572,7 +573,8 @@ section > :last-child { margin-bottom: 0; }
 }
 .dpiWrap {
   display: flex; align-items: center; gap: 5px; margin-left: 4px;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--dim); /* §212 */
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); /* §214: 이니셜 캡 */
+  &::first-letter { text-transform: uppercase; }
 }
 // NumberField 입력과 동일 규격 (W/H 행과 가로 정렬, §76)
 .dpiInput {
@@ -627,8 +629,9 @@ section > :last-child { margin-bottom: 0; }
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .rowLabel {
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--dim); flex: 1; /* §212: 라벨층 = dim */
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  color: var(--dim); flex: 1; /* §214: 이니셜 캡 */
+  &::first-letter { text-transform: uppercase; }
 }
 .colorPrev {
   width: 14px; height: 14px; flex-shrink: 0;

@@ -171,8 +171,8 @@ function onDimDown(e) {
 
   :deep(h1) { font-size: 16px; font-weight: var(--fw-bold); margin: 0 0 14px; color: var(--text); }
   :deep(h2) {
-    font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-transform: uppercase;
-    letter-spacing: var(--ls-caps); color: var(--accent);
+    font-size: 13px; font-weight: var(--fw-semibold); /* §214: 문장형 — 캡스·자간 해제 */
+    letter-spacing: 0; color: var(--accent);
     margin: 30px 0 10px; scroll-margin-top: 12px;
   }
   :deep(h3) { font-size: var(--fs-sm); font-weight: var(--fw-semibold); margin: 18px 0 8px; scroll-margin-top: 12px; }
@@ -190,7 +190,7 @@ function onDimDown(e) {
     width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: var(--fs-xs);
   }
   :deep(th), :deep(td) { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
-  :deep(th) { color: var(--faint); text-transform: uppercase; letter-spacing: var(--ls-base); font-weight: var(--fw-semibold); }
+  :deep(th) { color: var(--dim); letter-spacing: var(--ls-base); font-weight: var(--fw-semibold); } /* §214 */
   /* §166: 인라인 아이콘 — 라인박스보다 작게(13px), 행간 불변 */
   :deep(.mdIco) {
     width: 13px; height: 13px; display: inline-block; vertical-align: -2px;
