@@ -180,29 +180,34 @@ const activeFrameRect = computed(() => {
   return { x: f.x, y: f.y, w: f.params.W, h: f.params.H };
 });
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
+// §208: 프레임 이름 라벨 더블클릭 = 뷰포트 인라인 이름변경 (HTML input을 라벨 화면 위치에 오버레이)
+const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
+const frameNameEdit = ref(null); // { id, draft }
+function startFrameNameEdit(f) {
+  frameNameEdit.value = { id: f.id, draft: f.name };
+}
+function commitFrameName(e) {
+  if (e && e.isComposing) return; // 한글 조합 중 Enter 무시
+  const ed = frameNameEdit.value;
+  if (ed) {
+    const f = props.doc.units.find((u) => u.id === ed.id);
+    const t = ed.draft.trim();
+    if (f && t) f.name = t;
+  }
+  frameNameEdit.value = null;
+}
+const frameNameEditPos = computed(() => {
+  const ed = frameNameEdit.value;
+  const f = ed && props.doc.units.find((u) => u.id === ed.id);
+  if (!f) return null;
+  return { left: `${f.x * vp.scale + vp.x}px`, top: `${f.y * vp.scale + vp.y - 24}px` };
+});
 // §205·§207: 프리셋 플로팅 패널 (우하단 프리셋 바 토글) — 'units' | 'patterns' | null (상호 배타)
 const presetPanel = ref(null);
 function togglePresetPanel(name) {
   presetPanel.value = presetPanel.value === name ? null : name;
 }
-// §207: 패널 크기 — 좌상단 그립 드래그로 조절 (우하단 앵커 고정이라 좌상 방향이 자연), 로컬 영속
-const floatW = ref(Number(localStorage.getItem('eo.presetFloatW')) || 580);
-const floatH = ref(Number(localStorage.getItem('eo.presetFloatH')) || 620);
-function onGripDown(e) {
-  e.preventDefault();
-  const sx = e.clientX, sy = e.clientY, w0 = floatW.value, h0 = floatH.value;
-  const mv = (ev) => {
-    floatW.value = Math.min(Math.max(w0 + (sx - ev.clientX), 300), window.innerWidth - 120);
-    floatH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), window.innerHeight - 140);
-  };
-  const up = () => {
-    window.removeEventListener('pointermove', mv);
-    localStorage.setItem('eo.presetFloatW', String(Math.round(floatW.value)));
-    localStorage.setItem('eo.presetFloatH', String(Math.round(floatH.value)));
-  };
-  window.addEventListener('pointermove', mv);
-  window.addEventListener('pointerup', up, { once: true });
-}
+// §208: 패널 크기 = 고정 (4열 기준) — 밀도는 브라우저의 3/4/6열 토글이 담당 (§207 그립 리사이즈 폐기)
 function panelCenterWorld() {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(r.width / 2, r.height / 2);
@@ -1453,6 +1458,7 @@ onBeforeUnmount(() => {
           :class="{ sel: doc.selectedIds.includes(f.id) }"
           :transform="`translate(${f.x} ${f.y})`"
           @pointerdown.stop="onUnitDown(f, $event)"
+          @dblclick.stop="startFrameNameEdit(f)"
           @contextmenu.prevent.stop
         >
           <rect
@@ -1594,17 +1600,14 @@ onBeforeUnmount(() => {
     <div
       v-if="presetPanel"
       class="presetFloat"
-      :style="{ width: floatW + 'px', height: floatH + 'px' }"
       @pointerdown.stop @wheel.stop @contextmenu.stop
     >
-      <div class="floatGrip" title="drag to resize" @pointerdown.stop="onGripDown">
-        <svg viewBox="0 0 10 10"><path d="M8 1 1 8M9 5 5 9" /></svg>
-      </div>
       <PresetGridBrowser
         v-if="presetPanel === 'patterns'"
         title="Pattern Presets"
         :items="patterns"
         empty-text="right-click a frame to register a pattern"
+        thumb-aspect="16 / 9"
         :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
         @place="onPlacePattern"
         @remove="(id) => props.actions.patternRemove(id)"
@@ -1689,6 +1692,19 @@ onBeforeUnmount(() => {
       <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
     </div>
+    <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->
+    <input
+      v-if="frameNameEdit && frameNameEditPos"
+      v-focus
+      class="frameNameInput"
+      :style="frameNameEditPos"
+      v-model="frameNameEdit.draft"
+      spellcheck="false"
+      @pointerdown.stop @dblclick.stop @contextmenu.stop
+      @keydown.enter="commitFrameName"
+      @keydown.esc="frameNameEdit = null"
+      @blur="commitFrameName"
+    />
     <div v-if="toastMsg" class="toast">{{ toastMsg }}</div>
   </div>
 </template>
@@ -1717,24 +1733,24 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-// §205·§206·§207: 프리셋 플로팅 패널 — 프리셋 바(우하단) 위, 메인 패널과 동일 카드 스케일.
-// 기본 4열 × 3행대. 크기 조절은 좌상단 그립(onGripDown) — 우하단 앵커 고정이라 좌상 방향이 자연.
+// §205~§208: 프리셋 플로팅 패널 — 프리셋 바(우하단) 위, 고정 크기(4열 기준 폭).
+// 밀도 조절은 브라우저 헤더의 3/4/6열 토글 (§208: 그립 리사이즈 폐기).
 .presetFloat {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
   z-index: 15;
+  width: 580px; height: 620px;
   max-width: calc(100% - 2 * var(--sp-6));
   max-height: calc(100% - 2 * var(--sp-6) - 52px);
   box-sizing: border-box; overflow: hidden;
   padding: 13px var(--panel-pad) 18px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  :deep(.secHead) { padding-left: 10px; } /* 좌상단 리사이즈 그립과 타이틀 간섭 방지 */
 }
-.floatGrip {
-  position: absolute; top: 0; left: 0; width: 18px; height: 18px;
-  cursor: nwse-resize; display: flex; align-items: flex-start; justify-content: flex-start;
-  padding: 4px; box-sizing: border-box;
-  svg { width: 10px; height: 10px; fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: square; }
-  &:hover svg { stroke: var(--accent); }
+// §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체
+.frameNameInput {
+  @include text-field;
+  position: absolute; z-index: 20;
+  width: 140px; padding: 2px 6px;
+  font-size: var(--fs-xs); border-color: var(--accent); background: var(--panel);
 }
 // §201·§204: 프레임 이름 라벨 — 화면 고정 크기(pxs), 투명 패드로 호버 영역 확장
 .frameLabelG {

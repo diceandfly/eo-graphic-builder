@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import Toggle from '../controls/Toggle.vue';
 
-// 공용 프리셋 그리드 브라우저 (§207) — 유닛/패턴 프리셋 플로팅 패널이 공유하는 본문.
-// 헤더(타이틀 + 우측 검색) / 자동 열 썸네일 그리드(스크롤) / 하단 고정 JSON 입출력.
+// 공용 프리셋 그리드 브라우저 (§207·§208) — 유닛/패턴 프리셋 플로팅 패널이 공유하는 본문.
+// 헤더(타이틀 + 우측 3/4/6열 토글) / 검색 / 썸네일 그리드(스크롤) / 하단 고정 JSON 입출력.
 // 썸네일 내용은 #thumb 슬롯(호스트가 svg 렌더 제공). protectedId 항목은 이름변경 불가
 // (삭제 시도는 emit — 호스트가 안내 담당), showExportSvg면 우클릭 메뉴에 Export SVG.
 const props = defineProps({
@@ -12,10 +13,15 @@ const props = defineProps({
   protectedId: { default: null },
   showExportSvg: Boolean,
   viewBoxOf: { type: Function, required: true }, // item → svg viewBox 문자열
+  thumbAspect: { type: String, default: '1 / 1' }, // §208: 패턴은 16 / 9
 });
 const emit = defineEmits(['place', 'remove', 'rename', 'exportJson', 'importJson', 'exportSvg']);
 
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
+
+// §208: 열 수 토글 (3/4/6) — 두 프리셋 패널이 공유, 로컬 영속
+const cols = ref(['3', '4', '6'].includes(localStorage.getItem('eo.presetCols')) ? localStorage.getItem('eo.presetCols') : '4');
+watch(cols, (v) => localStorage.setItem('eo.presetCols', v));
 
 // 이름 검색 — 타이틀 행 우측 (§207)
 const q = ref('');
@@ -72,12 +78,16 @@ function onFile(e) {
   <div class="browser">
     <div class="secHead">
       <h2>{{ title }}</h2>
-      <input v-model="q" class="pSearch" type="text" placeholder="search" spellcheck="false" />
+      <Toggle
+        class="colToggle" v-model="cols"
+        :options="[{ value: '3', label: '3' }, { value: '4', label: '4' }, { value: '6', label: '6' }]"
+      />
     </div>
+    <input v-model="q" class="pSearch" type="text" placeholder="search" spellcheck="false" />
     <div class="gridArea">
       <div v-if="!items.length" class="pEmpty">{{ emptyText }}</div>
       <div v-else-if="!filtered.length" class="pEmpty">no matches for "{{ q }}"</div>
-      <div v-else class="pGrid">
+      <div v-else class="pGrid" :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }">
         <div
           v-for="p in filtered" :key="p.id" class="pCard"
           @click="emit('place', p)"
@@ -142,10 +152,11 @@ function onFile(e) {
     color: var(--accent); font-weight: var(--fw-semibold); margin: 0; white-space: nowrap;
   }
 }
+.colToggle { margin-bottom: 0; }
 .pSearch {
   @include text-field;
-  width: 150px; box-sizing: border-box; font-size: var(--fs-xs);
-  padding: 4px 8px;
+  width: 100%; box-sizing: border-box; font-size: var(--fs-xs);
+  padding: 4px 8px; margin-bottom: 10px;
 }
 .gridArea {
   flex: 1; min-height: 0; overflow-y: auto;
@@ -156,17 +167,17 @@ function onFile(e) {
   border: 1px dashed var(--line); border-radius: var(--radius);
   padding: 16px 12px; text-align: center;
 }
-// 열 수 = 패널 폭 자동 (카드 최소폭 120px ≈ 메인 패널 카드 스케일 → 기본 폭에서 4열)
-.pGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+// §208: 열 수 = 헤더 토글(3/4/6) — 인라인 grid-template-columns
+.pGrid { display: grid; gap: 10px; }
 .pCard {
   position: relative; cursor: pointer;
   border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
   &:hover { border-color: var(--accent); }
   &:hover .pDel { opacity: 1; }
 }
-// 정사각 썸네일 — contain 중앙 배치 (SVG preserveAspectRatio meet 기본값)
+// 썸네일 — contain 중앙 배치 (SVG preserveAspectRatio meet 기본값), 비율은 호스트 지정 (§208)
 .pThumb {
-  display: block; width: 100%; aspect-ratio: 1 / 1;
+  display: block; width: 100%; aspect-ratio: v-bind(thumbAspect);
   background: var(--stage-bg); border-radius: var(--radius);
 }
 .pName {

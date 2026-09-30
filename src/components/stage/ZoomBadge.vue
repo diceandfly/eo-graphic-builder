@@ -47,7 +47,6 @@ watch(openMenu, (open) => {
 // 정수 필드 콜백 (StepField — §89에서 스테퍼 통일)
 const setGridSize = (v) => { props.gridCfg.size = Math.round(v); };
 const setNudge = (v) => { props.view.nudge = Math.round(v); };
-const setSeamCutoff = (v) => { props.view.seamCutoff = Math.round(v); };
 // 지오메트리 하한 (§108) — 둘 다 문서 px 절대값, 소수점 허용. 환산 없음(입력 = 저장 = 표시).
 // 유닛 설정 일괄 초기화 — 하한 20px/1px + 가이드 색 기본 (§88·§109)
 function resetUnitDefaults() {
@@ -192,18 +191,9 @@ function resetGridDefaults() {
           @pointermove="resetIdle"
           @change="resetIdle"
         >
-          <div class="menuTitle">Render compensation</div>
-          <label class="menuRow">
-            <input type="checkbox" v-model="view.seamOn" />
-            <span>Auto seam stroke</span>
-          </label>
-          <label class="menuRow">
-            <span class="rowLabel">Off above zoom</span>
-            <StepField
-              :model-value="view.seamCutoff" :min="10" :max="400" :step="5"
-              @update:model-value="setSeamCutoff"
-            />
-          </label>
+          <div class="menuTitle">Zoom options</div>
+          <!-- §208: seam 스트로크 옵션 UI 삭제 — §200 지오메트리 픽스로 존재 이유가 거의 사라져
+               보정은 내부 자동(기존 기본값·줌 곡선)으로만 유지. 완전 제거는 잔여 케이스 관찰 후. -->
           <!-- §203: 선택 도구의 프레임 우선 전환 경계 (줌 % 미만 = 프레임 우선, 0 = 끔) -->
           <label class="menuRow">
             <span class="rowLabel">Frame first below</span>

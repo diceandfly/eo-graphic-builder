@@ -211,6 +211,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 
 ### Selecting Frames
 - **Frames can be selected and moved in V (normal select) too** — where a unit overlaps, the unit wins; click an empty area or the **name label at the top left** to grab the frame
+- **Double-click a frame's name label** to rename it in place
 - **Zoom out below a certain level and the select tool goes frame-first automatically** — the toolbar icon becomes a filled arrow, and clicking or dragging over units grabs the frame. Handy for picking and moving frames from a distance
 - The switching level is set under **Frame first below** in the [% badge {icon:mouseR}right-click menu](#13-view-options-corner-bar) (0 = off)
 - Need the opposite of what the current zoom gives you? **{icon:mouseR}Right-click** the {icon:select}select tool — it flips temporarily, and reverts to the automatic rule when you zoom or switch tools
@@ -270,7 +271,7 @@ Dragging an object gets automatic help:
 | {icon:canvasGrid}Background grid | Show/hide the grid | Background & grid colors (b/w) · grid size · snap to grid · reset |
 | {icon:boxSelect}Selection box | Show/hide selection marks | Nudge distance · group outlines · link icon display |
 | {icon:unitGrid}Unit/frame grids | Show/hide both grids at once (G) | Unit minimum size · thread minimum thickness · grid color · unit/frame grids individually |
-| % badge | Back to 100% | Seam compensation · [frame-first switching level](#9-frames) |
+| % badge | Back to 100% | [Frame-first switching level](#9-frames) |
 
 - **Unit min / Thread min** — floors that keep units from getting smaller, and [threads (teeth)](#6-unit-parameters-main-panel) from being drawn thinner, than these values
 - **Resource monitor** — {icon:mouseR}right-click the {icon:manual}help button to toggle. Shows object count, memory, and responsiveness
@@ -282,7 +283,7 @@ Dragging an object gets automatic help:
 Save unit shapes you use often and bring them back anytime.
 
 - {icon:presetAdd}**Register**: click a unit, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register unit preset
-- **Use**: press the unit presets button (EO symbol) in the bottom-right preset bar to open the list panel. Click one to create it at the center of the view (search box on top · click a name to rename · drag the panel's top-left grip to resize)
+- **Use**: press the unit presets button (EO symbol) in the bottom-right preset bar to open the list panel. Click one to create it at the center of the view (search box · click a name to rename · 3/4/6-column toggle at the top right)
 - {icon:trash}**Delete**: click the × at a thumbnail's top right twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your preset collection as a file
 - Register and delete can be undone with ⌘Z
@@ -314,7 +315,7 @@ Your work keeps saving to the browser without you doing anything. Reload and the
 Save a frame together with the unit layout inside it, and bring the whole thing back anytime — the frame-level counterpart of [unit presets](#14-unit-presets).
 
 - {icon:patternAdd}**Register**: select a frame, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register pattern preset — the frame's settings and its units (layout, [groups and links](#10-groups-and-links) included) are saved under the frame's name
-- {icon:layers}**Use**: press the pattern presets button in the bottom-right preset bar to open the list panel. Click a pattern to create it whole at the center of the view (search box on top · click a name to rename · drag the panel's top-left grip to resize)
+- {icon:layers}**Use**: press the pattern presets button in the bottom-right preset bar to open the list panel. Click a pattern to create it whole at the center of the view (search box · click a name to rename · 3/4/6-column toggle at the top right)
 - {icon:trash}**Delete**: click a card's × twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file
 - Register and delete can be undone with ⌘Z
