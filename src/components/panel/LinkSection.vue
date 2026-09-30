@@ -11,7 +11,9 @@ const props = defineProps({
 });
 const emit = defineEmits(['link', 'scopeToggle', 'unlinkOne']);
 
-const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color', orientation: 'orientation' };
+// §205: orientation 칩 삭제 (사용자 확정 — 회전·반전은 항상 개별 운용, 칩으로 켤 일이 없음).
+// 내부 범주와 기본값(off)은 useDocument에 유지 — 앵커/발산 판정이 오리엔트를 계속 참조한다.
+const LINK_CATS = { size: 'size', grid: 'grid', shape: 'shape', color: 'color' };
 // 기본: color·orientation off (useDocument linkScopeDefault와 동일 값 유지)
 const draftScope = reactive({ size: true, orientation: false, grid: true, shape: true, color: false });
 const scopeOn = (k) =>

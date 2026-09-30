@@ -521,4 +521,69 @@ function centerIn(u, f) {
   });
 }
 
+// 17. 링크 앵커 공유 (§205): 핸들 리사이즈 중에는 활성의 로컬 앵커가 링크로 공유됨
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 0°
+  const u2 = api.createUnit(3000, 1500); // 0°
+  const u3 = api.createUnit(1500, 3000);
+  api.setSelection([u1.id, u2.id, u3.id]);
+  api.toggleLinkSelected();
+  api.doc.activeId = u3.id;
+  api.doc.selectedIds = [u3.id];
+  api.rotate(1);
+  api.rotate(1); // u3 = 180°
+  await sleep(10);
+  api.doc.activeId = u1.id;
+  api.doc.selectedIds = [u1.id];
+  await sleep(10);
+  const p2 = { x: u2.x, y: u2.y };
+  const p3 = { x: u3.x, y: u3.y };
+  api.setLinkResizeAnchor([1, 1]); // 활성이 좌상단 핸들을 잡은 상황 — 앵커 = 로컬 우하
+  u1.params.W = 1200;
+  await sleep(10);
+  ok('링크 앵커 공유: 같은 오리엔트 = 활성과 동일(우하 고정, 좌로 확장) · 180° = 정반대(좌상 고정)', () => {
+    assert.equal(u2.x, p2.x - 240);
+    assert.equal(u2.y, p2.y);
+    assert.equal(u3.x, p3.x);
+    assert.equal(u3.y, p3.y);
+  });
+  api.setLinkResizeAnchor(null); // 드래그 종료 — 기본(로컬 원점) 복귀
+}
+
+// 18. 패턴 프리셋 (§205): 프레임+내용물 캡처 → 통째 재생성 (그룹·링크는 새 id)
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  u1.x -= 300; // 프레임 안 비대칭 배치
+  const u2 = api.createUnit(f.x + 1500, f.y + 1000);
+  api.setSelection([u1.id, u2.id]);
+  api.toggleLinkSelected();
+  api.groupSelected();
+  const lid0 = u1.linkId;
+  const gid0 = u1.groups[0];
+  const count0 = api.doc.units.length;
+  const pat = api.capturePattern(f.id);
+  ok('패턴 캡처: 프레임+소유 유닛·그룹·링크 수집', () => {
+    assert.equal(pat.units.length, 2);
+    assert.equal(pat.frame.W, 2000);
+    assert.ok(pat.linkScopes[lid0]);
+    assert.ok(pat.units.every((u) => u.linkId === lid0));
+  });
+  const nf = api.placePattern({ ...pat, name: 'P1' }, 9000, 9000);
+  const placed = api.doc.units.slice(count0 + 1); // 새 프레임 뒤의 유닛들
+  ok('패턴 배치: 상대 배치·이름 보존 + 그룹/링크 새 id 재구성', () => {
+    assert.equal(api.doc.units.length, count0 + 3);
+    assert.equal(nf.name, 'P1');
+    assert.equal(nf.x + nf.params.W / 2, 9000);
+    assert.equal(placed.length, 2);
+    assert.equal(placed[0].x - nf.x, u1.x - f.x); // 상대 오프셋 보존
+    assert.equal(placed[0].y - nf.y, u1.y - f.y);
+    assert.ok(placed[0].linkId && placed[0].linkId === placed[1].linkId && placed[0].linkId !== lid0);
+    assert.ok(placed[0].groups[0] && placed[0].groups[0] === placed[1].groups[0] && placed[0].groups[0] !== gid0);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

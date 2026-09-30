@@ -12,10 +12,12 @@ import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
+import PatternBrowser from '../panel/PatternBrowser.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
+import { canvasPointToLocal } from '../../geometry/derive.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
 import { useRecentColors } from '../../composables/useRecentColors.js';
 import { registerPopup, unregisterPopup } from '../../utils/popupBus.js';
@@ -27,6 +29,7 @@ const props = defineProps({
   doc: Object,      // useDocument().doc
   viewport: Object, // useViewport() 반환값
   actions: Object,  // useDocument() 액션 (select/deselect/rotate/flipActive/duplicateFrom/setSize)
+  patterns: { type: Array, default: () => [] }, // §205: 패턴 프리셋 목록 (usePatterns)
 });
 
 const { vp, panBy, zoomAt, resetAt } = props.viewport;
@@ -164,6 +167,18 @@ const activeFrameRect = computed(() => {
   return { x: f.x, y: f.y, w: f.params.W, h: f.params.H };
 });
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
+// §205: 패턴 매니저 플로팅 패널 (우하단 매니저 바 layers 버튼 토글)
+const showPatterns = ref(false);
+function onPlacePattern(p) {
+  const r = el.value.getBoundingClientRect();
+  const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
+  props.actions.placePattern(p, cx, cy);
+  toast(`Placed "${p.name}"`);
+}
+async function onImportPatterns(file) {
+  const n = await props.actions.patternImportJson(file);
+  toast(n ? `Imported ${n} pattern${n > 1 ? 's' : ''}` : 'No patterns found in that file');
+}
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
@@ -304,6 +319,7 @@ watch(ctxMenu, (open) => {
   }
 });
 // 유닛 프리셋 등록 가능 조건: 단일 선택 + 프리셋 가능 타입 — 아니면 메뉴 항목 비활성 (§70)
+// (§205: 프레임 선택 시 자동 비활성 — isPresetable이 유닛 한정)
 const canRegisterPreset = computed(
   () =>
     !!ctxMenu.value &&
@@ -314,6 +330,19 @@ function onRegisterPreset() {
   if (!canRegisterPreset.value) return;
   const p = props.actions.registerPreset(ctxMenu.value.u);
   toast(`Registered "${p.name}" — browse presets when nothing is selected`);
+  closeCtx();
+}
+// §205: 패턴 프리셋 등록 — 단일 프레임 선택 시에만 (유닛 프리셋의 단일 유닛 규칙과 대칭)
+const canRegisterPattern = computed(
+  () =>
+    !!ctxMenu.value &&
+    props.doc.selectedIds.length === 1 &&
+    ctxMenu.value.u.type === 'frame'
+);
+function onRegisterPattern() {
+  if (!canRegisterPattern.value) return;
+  const p = props.actions.registerPattern(ctxMenu.value.u);
+  if (p) toast(`Registered "${p.name}" — open the pattern manager (bottom right)`);
   closeCtx();
 }
 // 직전 행동 반복 (⇧D §74) — 반복 가능한 조작이 실행될 때마다 등록
@@ -994,6 +1023,13 @@ function onMove(e) {
   const { dir, u, x0, y0, W0, H0, ratio } = drag;
   const p = u.params;
   const sym = e.altKey ? 2 : 1; // 중심 대칭이면 양쪽이 함께 움직여 변화량 2배
+  // §205: 링크 앵커 공유 — 지금 잡은 앵커(반대편 변/중심)를 활성의 로컬 좌표로 환산해 전달.
+  // 미러 워처가 이 값으로 링크 멤버들을 각자 오리엔트에 맞는 "논리적 동일 앵커"에 고정한다.
+  {
+    const ax = e.altKey ? 0.5 : dir.includes('w') ? 1 : dir.includes('e') ? 0 : 0.5;
+    const ay = e.altKey ? 0.5 : dir.includes('n') ? 1 : dir.includes('s') ? 0 : 0.5;
+    props.actions.setLinkResizeAnchor(canvasPointToLocal(p, ax, ay));
+  }
   let W = W0, H = H0;
   if (dir.includes('e')) W = W0 + dx * sym;
   if (dir.includes('w')) W = W0 - dx * sym;
@@ -1188,6 +1224,7 @@ function onUp(e) {
       });
     }
     if (drag.kind === 'resize') {
+      props.actions.setLinkResizeAnchor(null); // §205: 링크 앵커 공유 종료 → 기본(로컬 원점) 복귀
       props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
     } else if (drag.kind === 'resizeg') {
       props.actions.normalizeSelected();
@@ -1505,7 +1542,18 @@ onBeforeUnmount(() => {
     <ManualOverlay v-if="showManual" @close="showManual = false" />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
-    <ManagerBar />
+    <ManagerBar :patterns-open="showPatterns" @toggle-patterns="showPatterns = !showPatterns" />
+    <!-- §205: 패턴 매니저 플로팅 패널 — 매니저 바 위, 우측 정렬 -->
+    <div v-if="showPatterns" class="patternPanel" @pointerdown.stop @wheel.stop @contextmenu.stop>
+      <PatternBrowser
+        :patterns="patterns"
+        @place-pattern="onPlacePattern"
+        @delete-pattern="(id) => props.actions.patternRemove(id)"
+        @rename-pattern="(id, name) => props.actions.patternRename(id, name)"
+        @export-patterns="props.actions.patternExportJson"
+        @import-patterns="onImportPatterns"
+      />
+    </div>
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides || showFrameGrid"
@@ -1541,6 +1589,11 @@ onBeforeUnmount(() => {
         :disabled="!canRegisterPreset"
         @click="onRegisterPreset"
       ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.presetAdd" :key="d" :d="d" /></svg>Register unit preset</button>
+      <button
+        class="ctxItem" :class="{ off: !canRegisterPattern }"
+        :disabled="!canRegisterPattern"
+        @click="onRegisterPattern"
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.patternAdd" :key="d" :d="d" /></svg>Register pattern preset</button>
       <div class="ctxSep" />
       <!-- §152: ⌘C와 동일하게 내부 클립보드도 채움 (라벨 패리티) -->
       <button class="ctxItem" @click="actions.copyActive(); onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
@@ -1575,6 +1628,16 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
+// §205: 패턴 매니저 플로팅 패널 — 매니저 바(우하단) 위, 메인 패널과 동일 카드 문법
+.patternPanel {
+  position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
+  z-index: 15;
+  width: 250px; max-height: calc(100% - 2 * var(--sp-6) - 52px);
+  overflow-y: auto; box-sizing: border-box;
+  padding: 13px var(--panel-pad) 18px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
 // §201·§204: 프레임 이름 라벨 — 화면 고정 크기(pxs), 투명 패드로 호버 영역 확장
 .frameLabelG {
   cursor: default;

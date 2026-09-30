@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useDocument } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
+import { usePatterns } from './composables/usePatterns.js';
 import { deriveUnit } from './geometry/derive.js';
 import { BRAND_PALETTE } from './geometry/brandColors.js';
 import { downloadSvg, downloadCompositeSvg, buildSelectionSvg } from './export/exportSvg.js';
@@ -14,6 +15,7 @@ import ControlPanel from './components/ControlPanel.vue';
 const docApi = useDocument();
 const viewport = useViewport();
 const presetsApi = usePresets();
+const patternsApi = usePatterns(); // §205: 패턴 프리셋 스토어
 const { doc, active, gutterMax } = docApi;
 
 const stageRef = ref(null);
@@ -219,15 +221,25 @@ function onUnlinkOne() {
 
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
-// 프리셋 등록/삭제/이름변경도 ⌘Z 히스토리에 편입 (§103)
+// 프리셋·패턴 등록/삭제/이름변경도 ⌘Z 히스토리에 편입 (§103·§205)
 docApi.registerHistoryExtra(
-  () => presetsApi.serialize(),
-  (v) => presetsApi.restore(v)
+  () => ({ presets: presetsApi.serialize(), patterns: patternsApi.serialize() }),
+  (v) => {
+    if (Array.isArray(v)) { presetsApi.restore(v); return; } // 구 스냅샷(프리셋 배열) 호환
+    presetsApi.restore(v?.presets ?? []);
+    patternsApi.restore(v?.patterns ?? []);
+  }
 );
 
 const stageActions = {
   ...docApi, exportSvg, saveProject, openProject, copySelectionSvg, copySelectionPng,
   registerPreset: (u) => presetsApi.register(u.params, u.name),
+  // §205: 패턴 프리셋 — 캡처는 useDocument, 목록·IO는 usePatterns
+  registerPattern: (f) => patternsApi.register(docApi.capturePattern(f.id), f.name),
+  patternRemove: patternsApi.remove,
+  patternRename: patternsApi.rename,
+  patternExportJson: patternsApi.exportJson,
+  patternImportJson: patternsApi.importJson,
 };
 </script>
 
@@ -259,7 +271,7 @@ const stageActions = {
         @fill="docApi.setFill"
       />
     </aside>
-    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" />
+    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" />
   </div>
 </template>
 

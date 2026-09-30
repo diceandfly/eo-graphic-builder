@@ -1,12 +1,19 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Toggle from '../controls/Toggle.vue';
 import UnitGraphic from '../stage/UnitGraphic.vue';
 
 // 프리셋 브라우저 — 선택 없음 상태의 패널 본문 (§68 부채 ③: ControlPanel에서 분리).
-// 썸네일/리스트 뷰, 인라인 이름 편집, 우클릭 메뉴(Export/Rename/Delete), JSON 입출력.
-defineProps({
+// 썸네일/리스트 뷰, 검색(§205), 인라인 이름 편집, 우클릭 메뉴(Export/Rename/Delete), JSON 입출력.
+const props = defineProps({
   presets: { type: Array, default: () => [] },
+});
+
+// §205: 이름 검색 — 패턴 브라우저와 동일 디자인
+const q = ref('');
+const filtered = computed(() => {
+  const t = q.value.trim().toLowerCase();
+  return t ? props.presets.filter((p) => p.name.toLowerCase().includes(t)) : props.presets;
 });
 const emit = defineEmits([
   'placePreset', 'deletePreset', 'renamePreset', 'exportPreset', 'exportPresets', 'importPresets',
@@ -75,10 +82,15 @@ function onPresetFile(e) {
         :options="[{ value: 'thumbs', label: 'thumbs' }, { value: 'list', label: 'list' }]"
       />
     </div>
+    <input
+      v-if="presets.length > 1"
+      v-model="q" class="pSearch" type="text" placeholder="search" spellcheck="false"
+    />
     <div v-if="!presets.length" class="pEmpty">right-click a unit to register a preset</div>
+    <div v-else-if="!filtered.length" class="pEmpty">no presets match "{{ q }}"</div>
     <div v-else-if="presetView === 'thumbs'" class="pGrid">
       <div
-        v-for="p in presets" :key="p.id" class="pCard"
+        v-for="p in filtered" :key="p.id" class="pCard"
         @click="emit('placePreset', p)"
         @contextmenu.prevent.stop="openPresetMenu(p, $event)"
       >
@@ -108,7 +120,7 @@ function onPresetFile(e) {
     </div>
     <div v-else class="pList">
       <div
-        v-for="p in presets" :key="p.id" class="pRow"
+        v-for="p in filtered" :key="p.id" class="pRow"
         @click="emit('placePreset', p)"
         @contextmenu.prevent.stop="openPresetMenu(p, $event)"
       >
@@ -170,6 +182,12 @@ section h2 {
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
 .viewToggle { margin-bottom: 0; }
+// §205: 검색 입력 — 패턴 브라우저와 동일 문법
+.pSearch {
+  @include text-field;
+  width: 100%; box-sizing: border-box; font-size: var(--fs-xs);
+  padding: 4px 8px; margin-bottom: 10px;
+}
 .pEmpty {
   font-size: var(--fs-xs); color: var(--faint); letter-spacing: var(--ls-base);
   border: 1px dashed var(--line); border-radius: var(--radius);

@@ -1,6 +1,6 @@
 import { reactive, computed, ref, watch, nextTick } from 'vue';
 import { namePrefix } from '../objects/registry.js';
-import { localOriginCorner } from '../geometry/derive.js';
+import { localPointToCanvas } from '../geometry/derive.js';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, LIMITS, UNIT_MAX,
   BRAND_COLORS,
@@ -257,12 +257,18 @@ export function useDocument() {
     }
     return out;
   }
-  // §202·§204: 링크 패치 적용 단일 경로 — W/H는 "로컬(회전 반영) 치수"로 동기화하고,
-  // 멤버는 **자기 로컬 원점(앵커) 코너를 고정**한 채 스케일된다 (§204: 링크는 앵커까지 공유 —
-  // 유닛마다 앵커는 로컬 원점으로 고정이고 orientation·flipX에 따라 캔버스상 다른 코너가 되므로,
-  // 180° 멤버는 정반대 방향으로, 90°는 회전 방향으로 커진다). 코너 판정은 localOriginCorner 단일 소스.
-  // W/H가 아닌 키는 종전대로 그대로 복사. 링크로 W/H가 전파되는 모든 경로는 이 함수를 거칠 것.
+  // §202·§204·§205: 링크 패치 적용 단일 경로 — W/H는 "로컬(회전 반영) 치수"로 동기화하고,
+  // 멤버는 **링크된 로컬 앵커**를 고정한 채 스케일된다. 앵커는 로컬 정규화 좌표(0~1):
+  //  · 핸들 리사이즈 중에는 활성이 잡은 앵커의 로컬 좌표가 공유됨(setLinkResizeAnchor, §205)
+  //    — 같은 오리엔트 멤버는 활성과 똑같이, 180° 멤버는 정반대 방향으로 스케일.
+  //  · 핸들이 없는 편집(패널 W/H 등)은 로컬 원점 (0,0) 고정.
+  // 오리엔트 조합 판정은 localPointToCanvas 단일 소스. W/H 외 키는 그대로 복사.
+  // 링크로 W/H가 전파되는 모든 경로는 이 함수를 거칠 것.
   const localDims = (p) => (p.orientation === 90 || p.orientation === 270 ? [p.H, p.W] : [p.W, p.H]);
+  let linkAnchor = null; // 핸들 리사이즈 중의 공유 로컬 앵커 [u, v] — 드래그 종료 시 null
+  function setLinkResizeAnchor(a) {
+    linkAnchor = a;
+  }
   function applyLinkPatch(member, patch, srcParams) {
     const { W, H, ...rest } = patch;
     Object.assign(member.params, rest); // orientation 패치가 있으면 먼저 반영 (아래 매핑 기준)
@@ -270,9 +276,10 @@ export function useDocument() {
     const [lw, lh] = localDims(srcParams); // 소스의 로컬 치수 (패치 반영된 현재값)
     const odd = member.params.orientation === 90 || member.params.orientation === 270;
     const [nw, nh] = odd ? [lh, lw] : [lw, lh];
-    const corner = localOriginCorner(member.params);
-    if (corner === 'tr' || corner === 'br') member.x += member.params.W - nw; // 우측 코너 고정 → 좌로 확장
-    if (corner === 'bl' || corner === 'br') member.y += member.params.H - nh; // 하단 코너 고정 → 위로 확장
+    const [au, av] = linkAnchor ?? [0, 0];
+    const [ax, ay] = localPointToCanvas(member.params, au, av);
+    member.x += (member.params.W - nw) * ax; // 앵커점의 캔버스 위치 고정
+    member.y += (member.params.H - nh) * ay;
     member.params.W = nw;
     member.params.H = nh;
   }
@@ -567,6 +574,64 @@ export function useDocument() {
   function createUnitFrom(params, x = 0, y = 0, name = null) {
     const p = createParams({ ...params });
     return pushUnit(p, Math.round(x - p.W / 2), Math.round(y - p.H / 2), null, 'unit', name);
+  }
+
+  // ── 패턴 프리셋 (§205) — 프레임 + 소유 유닛 전체(파라미터·상대배치·그룹·링크)를 캡처/재생성 ──
+  function capturePattern(frameId) {
+    const f = doc.units.find((u) => u.id === frameId && u.type === 'frame');
+    if (!f) return null;
+    const owned = frameOwnedUnits([frameId]);
+    const gids = new Set();
+    const lids = new Set();
+    for (const u of owned) {
+      u.groups.forEach((g) => gids.add(g));
+      if (u.linkId) lids.add(u.linkId);
+    }
+    return {
+      frame: { ...f.params },
+      units: owned.map((u) => ({
+        name: u.name, dx: u.x - f.x, dy: u.y - f.y,
+        params: { ...u.params }, groups: [...u.groups], linkId: u.linkId,
+      })),
+      groupNames: Object.fromEntries([...gids].filter((g) => doc.groupNames[g] != null).map((g) => [g, doc.groupNames[g]])),
+      linkScopes: Object.fromEntries([...lids].map((l) => [l, { ...(doc.linkScopes[l] ?? {}) }])),
+    };
+  }
+  // 패턴 배치: (cx, cy) 중심으로 프레임+유닛 통째 재생성 — 그룹/링크는 새 id로 재구성 (§205)
+  function placePattern(pat, cx, cy) {
+    const fp = createFrameParams({ ...pat.frame });
+    const fx = Math.round(cx - fp.W / 2);
+    const fy = Math.round(cy - fp.H / 2);
+    doc.units.push({ id: nextId++, type: 'frame', name: pat.name || 'Frame', x: fx, y: fy, groups: [], linkId: null, params: fp });
+    const frame = doc.units[doc.units.length - 1];
+    const gidMap = new Map();
+    const lidMap = new Map();
+    for (const u of pat.units ?? []) {
+      const groups = (u.groups ?? []).map((g) => {
+        if (!gidMap.has(g)) {
+          gidMap.set(g, nextGroup++);
+          doc.groupNames[gidMap.get(g)] = pat.groupNames?.[g] ?? `Group-${gidMap.get(g)}`;
+        }
+        return gidMap.get(g);
+      });
+      let linkId = null;
+      if (u.linkId != null) {
+        if (!lidMap.has(u.linkId)) {
+          lidMap.set(u.linkId, nextLink++);
+          doc.linkScopes[lidMap.get(u.linkId)] = { ...linkScopeDefault(), ...(pat.linkScopes?.[u.linkId] ?? {}) };
+        }
+        linkId = lidMap.get(u.linkId);
+      }
+      doc.units.push({
+        id: nextId++, type: 'unit', name: u.name ?? 'Default Unit',
+        x: fx + u.dx, y: fy + u.dy, groups, linkId, params: createParams({ ...u.params }),
+      });
+    }
+    cleanupLinks();
+    pruneMeta();
+    setSelection([frame.id]);
+    doc.activeId = frame.id;
+    return frame;
   }
 
   function renameActive(name) {
@@ -1246,6 +1311,7 @@ export function useDocument() {
     selectOnly, toggleSelect, setSelection, deselect,
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
+    setLinkResizeAnchor, capturePattern, placePattern,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
