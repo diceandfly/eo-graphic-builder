@@ -1361,16 +1361,24 @@ onBeforeUnmount(() => {
           </g>
         </g>
         <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
-             클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로) -->
-        <text
+             클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
+             §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
+        <g
           v-for="f in mode === 'select' ? doc.units.filter((x) => x.type === 'frame') : []"
           :key="'fl' + f.id"
-          class="frameLabel"
+          class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
-          :x="f.x" :y="f.y - pxs(6)" :font-size="pxs(11)"
+          :transform="`translate(${f.x} ${f.y})`"
           @pointerdown.stop="onUnitDown(f, $event)"
           @contextmenu.prevent.stop
-        >{{ f.name }}</text>
+        >
+          <rect
+            class="labelPad"
+            :x="-pxs(6)" :y="-pxs(22)"
+            :width="pxs(f.name.length * 6.8 + 20)" :height="pxs(24)"
+          />
+          <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ f.name }}</text>
+        </g>
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
         <rect
           v-if="activeFrameRect"
@@ -1567,12 +1575,16 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-// §201: 프레임 이름 라벨 — 화면 고정 크기(pxs), 호버/선택 시 강조
-.frameLabel {
-  fill: var(--faint); font-family: inherit; cursor: default;
-  user-select: none; -webkit-user-select: none;
-  &:hover { fill: var(--text); }
-  &.sel { fill: var(--accent); }
+// §201·§204: 프레임 이름 라벨 — 화면 고정 크기(pxs), 투명 패드로 호버 영역 확장
+.frameLabelG {
+  cursor: default;
+  .labelPad { fill: transparent; }
+  .frameLabel {
+    fill: var(--faint); font-family: inherit;
+    user-select: none; -webkit-user-select: none;
+  }
+  &:hover .frameLabel { fill: var(--text); }
+  &.sel .frameLabel { fill: var(--accent); }
 }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치

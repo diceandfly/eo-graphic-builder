@@ -1,5 +1,6 @@
 import { reactive, computed, ref, watch, nextTick } from 'vue';
 import { namePrefix } from '../objects/registry.js';
+import { localOriginCorner } from '../geometry/derive.js';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, LIMITS, UNIT_MAX,
   BRAND_COLORS,
@@ -256,9 +257,10 @@ export function useDocument() {
     }
     return out;
   }
-  // §202: 링크 패치 적용 단일 경로 — W/H는 "로컬(회전 반영) 치수"로 동기화하고 멤버는
-  // 항상 자기 중심 앵커를 유지한다. orientation이 다른 멤버가 소스의 캔버스 W/H를 그대로
-  // 받아 논리 축이 어긋나고 앵커가 제각각으로 보이던 문제의 해결 (orientation은 개별 운용).
+  // §202·§204: 링크 패치 적용 단일 경로 — W/H는 "로컬(회전 반영) 치수"로 동기화하고,
+  // 멤버는 **자기 로컬 원점(앵커) 코너를 고정**한 채 스케일된다 (§204: 링크는 앵커까지 공유 —
+  // 유닛마다 앵커는 로컬 원점으로 고정이고 orientation·flipX에 따라 캔버스상 다른 코너가 되므로,
+  // 180° 멤버는 정반대 방향으로, 90°는 회전 방향으로 커진다). 코너 판정은 localOriginCorner 단일 소스.
   // W/H가 아닌 키는 종전대로 그대로 복사. 링크로 W/H가 전파되는 모든 경로는 이 함수를 거칠 것.
   const localDims = (p) => (p.orientation === 90 || p.orientation === 270 ? [p.H, p.W] : [p.W, p.H]);
   function applyLinkPatch(member, patch, srcParams) {
@@ -268,8 +270,9 @@ export function useDocument() {
     const [lw, lh] = localDims(srcParams); // 소스의 로컬 치수 (패치 반영된 현재값)
     const odd = member.params.orientation === 90 || member.params.orientation === 270;
     const [nw, nh] = odd ? [lh, lw] : [lw, lh];
-    member.x += (member.params.W - nw) / 2; // 중심 앵커 고정
-    member.y += (member.params.H - nh) / 2;
+    const corner = localOriginCorner(member.params);
+    if (corner === 'tr' || corner === 'br') member.x += member.params.W - nw; // 우측 코너 고정 → 좌로 확장
+    if (corner === 'bl' || corner === 'br') member.y += member.params.H - nh; // 하단 코너 고정 → 위로 확장
     member.params.W = nw;
     member.params.H = nh;
   }
@@ -527,7 +530,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, type: it.type, name: it.type === 'unit' && it.name ? it.name : nextName(it.type), // §202: 유닛은 원본 이름 유지
+        id, type: it.type, name: it.name ?? nextName(it.type), // §202·§204: 원본 이름 유지 (유닛·프레임 공통)
         x: Math.round(x + it.dx), y: Math.round(y + it.dy),
         groups, linkId: it.linkId, params: { ...it.params },
       });
@@ -546,15 +549,15 @@ export function useDocument() {
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
-  // 복제류 공용: 유닛은 원본 이름 유지, 프레임은 새 번호
-  const copyName = (u) => (u.type === 'unit' ? u.name : nextName(u.type));
+  // 복제류 공용 (§204: 프레임도 넘버링 폐지 — 원본 이름 그대로. 넘버링은 애니메이션 기능에서 재활용 예정)
+  const copyName = (u) => u.name;
   // 프레임 생성 (그리기 툴 F) — fill 기본값은 현재 컬러(없으면 createFrameParams 기본)
   // grid: 그리드 파라미터 오버라이드 { margin, gutterX, gutterY } (퀵프레임 설정, §116)
   function createFrame(x, y, W = 300, H = 200, fill = null, grid = null) {
     const params = createFrameParams({ ...(fill ? { fill } : {}), ...(grid || {}) });
     params.W = clamp(Math.round(W), LIMITS.unitMin, UNIT_MAX);
     params.H = clamp(Math.round(H), LIMITS.unitMin, UNIT_MAX);
-    return pushUnit(params, Math.round(x), Math.round(y), null, 'frame');
+    return pushUnit(params, Math.round(x), Math.round(y), null, 'frame', 'Frame'); // §204: 넘버링 폐지
   }
   function createUnit(x = 0, y = 0) {
     const params = createParams();
@@ -592,7 +595,7 @@ export function useDocument() {
   }
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type, u.type === 'unit' ? u.name : null);
+    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type, u.name);
   }
   // 복수 유닛 동시 복제 — 상대 위치 그대로, 그룹 구조는 사본끼리 새 gid로 재구성, 링크 승계
   function duplicateUnits(units) {

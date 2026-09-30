@@ -447,36 +447,55 @@ function centerIn(u, f) {
   });
 }
 
-// 15. 링크 × 회전 (§202): 개별 회전은 링크 유지, 사이즈 동기는 로컬 치수 + 멤버 중심 앵커
+// 15. 링크 × 오리엔트 (§202·§204): 개별 회전은 링크 유지, 사이즈 동기 = 로컬 치수,
+//     앵커 = 각 멤버의 로컬 원점 코너 고정 (180°는 정반대 방향으로 스케일)
 {
   const api = fresh();
-  const u1 = api.doc.units[0]; // 960×800
+  const u1 = api.doc.units[0]; // 960×800, 0°
   const u2 = api.createUnit(3000, 1500);
-  api.setSelection([u1.id, u2.id]);
+  const u3 = api.createUnit(1500, 3000);
+  api.setSelection([u1.id, u2.id, u3.id]);
   api.toggleLinkSelected(); // 기본 스코프: size on / orientation off
   const lid = u1.linkId;
   api.doc.activeId = u2.id;
   api.doc.selectedIds = [u2.id];
-  api.rotate(1); // u2만 개별 회전 (orientation 스코프 off) — W/H 스왑
+  api.rotate(1); // u2 = 90°
+  api.doc.activeId = u3.id;
+  api.doc.selectedIds = [u3.id];
+  api.rotate(1);
+  api.rotate(1); // u3 = 180°
   await sleep(10);
   ok('링크 회전: 개별 회전은 링크를 깨지 않음 (로컬 치수 불변)', () => {
     assert.equal(u2.linkId, lid);
-    assert.equal(u2.params.orientation, 90);
+    assert.equal(u3.linkId, lid);
     assert.deepEqual([u2.params.W, u2.params.H], [800, 960]);
+    assert.deepEqual([u3.params.W, u3.params.H], [960, 800]);
   });
-  const cx = u2.x + u2.params.W / 2;
-  const cy = u2.y + u2.params.H / 2;
+  const p2 = { x: u2.x, y: u2.y };
+  const p3 = { x: u3.x, y: u3.y };
   api.doc.activeId = u1.id;
   api.doc.selectedIds = [u1.id];
   await sleep(10); // 활성 전환 안정화 (미러 워처의 id 비교)
   u1.params.W = 1200; // 활성 편집 → 링크 동기
   await sleep(10);
-  ok('링크 사이즈: 회전 멤버는 로컬 치수로 매핑 (캔버스 W/H 스왑 반영)', () => {
+  ok('링크 사이즈: 로컬 치수 매핑 (90° 멤버는 캔버스 H로)', () => {
     assert.deepEqual([u2.params.W, u2.params.H], [800, 1200]);
+    assert.deepEqual([u3.params.W, u3.params.H], [1200, 800]);
   });
-  ok('링크 사이즈: 멤버 앵커 = 자기 중심 고정', () => {
-    assert.equal(u2.x + u2.params.W / 2, cx);
-    assert.equal(u2.y + u2.params.H / 2, cy);
+  ok('링크 앵커: 로컬 원점 코너 고정 — 90°(우상단) 제자리, 180°(우하단)는 정반대로 확장', () => {
+    assert.equal(u2.x, p2.x);
+    assert.equal(u2.y, p2.y);
+    assert.equal(u3.x, p3.x - 240); // 우하단 코너 고정 → 왼쪽으로 +240 확장
+    assert.equal(u3.y, p3.y);
+  });
+  // 회전+반전 통합 판정 (localOriginCorner): 180°+flip = 좌하단 앵커 → 가로 확장이 오른쪽으로
+  u3.params.flipX = true;
+  const x3 = u3.x;
+  u1.params.W = 1500;
+  await sleep(10);
+  ok('링크 앵커: 회전·반전 통합 판정 (180°+flip = 좌하단 고정)', () => {
+    assert.deepEqual([u3.params.W, u3.params.H], [1500, 800]);
+    assert.equal(u3.x, x3);
   });
 }
 
@@ -495,8 +514,10 @@ function centerIn(u, f) {
     assert.equal(p.name, 'My Preset');
   });
   const f = api.createFrame(0, 0, 300, 200);
-  ok('이름: 프레임은 Frame-N 유지', () => {
-    assert.match(f.name, /^Frame-\d+$/);
+  const f2 = api.duplicateFrom(f);
+  ok('이름: 프레임도 넘버링 폐지 — 생성·복제 모두 "Frame" (§204)', () => {
+    assert.equal(f.name, 'Frame');
+    assert.equal(f2.name, 'Frame');
   });
 }
 

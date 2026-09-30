@@ -30,6 +30,15 @@ export function deriveUnit(p) {
   return { localW, localH, D, columns, unit };
 }
 
+// §204: 회전(orientation)·반전(flipX) 통합 판정 단일 소스 — 유닛의 "로컬 원점(앵커) 코너"가
+// 캔버스에서 어느 코너에 놓이는지. 두 오리엔트가 개별 저장되어 중첩 판정이 흩어지던 혼선 방지:
+// 오리엔트 조합을 따지는 로직은 반드시 이 헬퍼를 쓸 것.
+// 회전(시계): 0→좌상 90→우상 180→우하 270→좌하, flipX = 캔버스 좌우 미러(좌↔우).
+export function localOriginCorner(p) {
+  const base = { 0: 'tl', 90: 'tr', 180: 'br', 270: 'bl' }[p.orientation] ?? 'tl';
+  return p.flipX ? { tl: 'tr', tr: 'tl', br: 'bl', bl: 'br' }[base] : base;
+}
+
 // 로컬 좌표 → 캔버스 배치 transform (0/90/180/270, 시계방향)
 export function orientationTransform(o, localW, localH) {
   if (o === 90) return `rotate(90) translate(0 ${f(-localH)})`;
