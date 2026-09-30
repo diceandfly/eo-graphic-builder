@@ -90,12 +90,12 @@ EO Graphic Builder is a parametric graphic tool for building brand assets from a
 
 | Position | Name | Role |
 |---|---|---|
-| Left | **Main panel** | Changes with your selection — nothing selected: [preset list](#14-unit-presets) / unit selected: [shape controls](#6-unit-parameters-main-panel) / frame selected: [frame settings](#9-frames) |
+| Left | **Main panel** | Settings for what you selected — unit: [shape controls](#6-unit-parameters-main-panel) / frame: [frame settings](#9-frames). Deselecting keeps the last object's settings up |
 | Top left | **File bar** | {icon:manual}[Help](#13-view-options-corner-bar) · {icon:save}[Save](#save-and-open-as-a-file-file-bar) · {icon:open}[Open](#save-and-open-as-a-file-file-bar) · {icon:resetArrow}[Reset](#reset-file-bar) |
 | Top right | **Corner bar (view)** | [Background grid · selection box · grid display · zoom level](#13-view-options-corner-bar) |
 | Bottom left | **Align bar** | [Align · distribute](#11-align-and-arrange) |
 | Bottom center | **Color bar + toolbar** | [7 brand colors + custom](#7-color) / [select · frame · eyedropper · blend · arrange tools](#8-toolbar) |
-| Bottom right | **Manager bar** | [Pattern presets](#16-pattern-presets) · Animation manager (coming soon) |
+| Bottom right | **Preset bar** | [Unit presets](#14-unit-presets) · [Pattern presets](#16-pattern-presets) · Animation manager (coming soon) |
 
 **{icon:mouseL}Left-click = run, {icon:mouseR}right-click = options** is the rule for every button. Numbers next to sliders can also be typed in directly.
 
@@ -282,7 +282,7 @@ Dragging an object gets automatic help:
 Save unit shapes you use often and bring them back anytime.
 
 - {icon:presetAdd}**Register**: click a unit, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register unit preset
-- **Use**: with nothing selected, the preset list appears in the left panel. Click one to create it at the center of the view (thumbnail/list views, and a search box on top for long lists)
+- **Use**: press the unit presets button (EO symbol) in the bottom-right preset bar to open the list panel. Click one to create it at the center of the view (search box on top · click a name to rename · drag the panel's top-left grip to resize)
 - {icon:trash}**Delete**: click the × at a thumbnail's top right twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your preset collection as a file
 - Register and delete can be undone with ⌘Z
@@ -314,7 +314,7 @@ Your work keeps saving to the browser without you doing anything. Reload and the
 Save a frame together with the unit layout inside it, and bring the whole thing back anytime — the frame-level counterpart of [unit presets](#14-unit-presets).
 
 - {icon:patternAdd}**Register**: select a frame, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register pattern preset — the frame's settings and its units (layout, [groups and links](#10-groups-and-links) included) are saved under the frame's name
-- {icon:layers}**Use**: press the pattern manager button in the bottom-right manager bar to open the list panel. Click a pattern to create it whole at the center of the view (search box on top · click a name to rename · drag the panel corner to resize)
+- {icon:layers}**Use**: press the pattern presets button in the bottom-right preset bar to open the list panel. Click a pattern to create it whole at the center of the view (search box on top · click a name to rename · drag the panel's top-left grip to resize)
 - {icon:trash}**Delete**: click a card's × twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file
 - Register and delete can be undone with ⌘Z

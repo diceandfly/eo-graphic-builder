@@ -7,16 +7,16 @@ import { ICONS } from '../../ui/icons.js';
 // 정렬 = 블록 2개 이상 활성, 등간격 = 블록 3개 이상 활성 (§114)
 defineProps({ active: Boolean, distActive: Boolean });
 defineEmits(['align']);
-// 2행 4열: [좌·중·우·가로등간격] / [상·중·하·세로등간격]
+// 2행 4열 (§207: 행 순서 교체): [상·중·하·세로등간격] / [좌·중·우·가로등간격]
 const BTNS = [
-  { key: 'left', tip: 'Align left edges', paths: ICONS.alignLeft },
-  { key: 'hcenter', tip: 'Align horizontal centers', paths: ICONS.alignHCenter },
-  { key: 'right', tip: 'Align right edges', paths: ICONS.alignRight },
-  { key: 'disth', tip: 'Distribute horizontally', paths: ICONS.distributeH, dist: true },
   { key: 'top', tip: 'Align top edges', paths: ICONS.alignTop },
   { key: 'vcenter', tip: 'Align vertical centers', paths: ICONS.alignVCenter },
   { key: 'bottom', tip: 'Align bottom edges', paths: ICONS.alignBottom },
   { key: 'distv', tip: 'Distribute vertically', paths: ICONS.distributeV, dist: true },
+  { key: 'left', tip: 'Align left edges', paths: ICONS.alignLeft },
+  { key: 'hcenter', tip: 'Align horizontal centers', paths: ICONS.alignHCenter },
+  { key: 'right', tip: 'Align right edges', paths: ICONS.alignRight },
+  { key: 'disth', tip: 'Distribute horizontally', paths: ICONS.distributeH, dist: true },
 ];
 </script>
 

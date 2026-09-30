@@ -4,7 +4,6 @@ import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
-import PresetBrowser from './panel/PresetBrowser.vue';
 import LinkSection from './panel/LinkSection.vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { isLinkScoped, typeOf } from '../objects/registry.js';
@@ -25,12 +24,10 @@ const props = defineProps({
   selected: { type: Array, default: () => [] }, // 선택된 유닛들
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
-  presets: { type: Array, default: () => [] }, // 유닛 프리셋 목록
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
-  'renameGroup', 'linkScopeToggle', 'placePreset', 'deletePreset', 'renamePreset', 'exportPreset',
-  'exportPresets', 'importPresets', 'unlinkOne',
+  'renameGroup', 'linkScopeToggle', 'unlinkOne',
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -510,17 +507,11 @@ function setStrokeColor(c) {
     />
     </template>
 
-    <!-- 선택 없음: 프리셋 브라우저 -->
-    <PresetBrowser
-      v-else
-      :presets="presets"
-      @place-preset="(pr) => emit('placePreset', pr)"
-      @delete-preset="(id) => emit('deletePreset', id)"
-      @rename-preset="(id, name) => emit('renamePreset', id, name)"
-      @export-preset="(pr) => emit('exportPreset', pr)"
-      @export-presets="emit('exportPresets')"
-      @import-presets="(f) => emit('importPresets', f)"
-    />
+    <!-- §207: 문서가 비어 활성 유닛이 없을 때만 — 프리셋 브라우저는 우하단 프리셋 바로 이관 -->
+    <div v-else class="noSel">
+      <p>Nothing to edit yet</p>
+      <p class="hint">Place a unit from Unit presets (bottom right) or draw a frame (F)</p>
+    </div>
   </div>
 </template>
 
@@ -646,5 +637,10 @@ section > :last-child { margin-bottom: 0; }
 .hexInput {
   @include text-field;
   width: 68px; padding: 3px 6px; text-align: right;
+}
+// §207: 빈 문서 상태 안내 (프리셋 브라우저는 우하단으로 이관)
+.noSel {
+  p { margin: 0 0 8px; font-size: var(--fs-sm); color: var(--text); }
+  .hint { font-size: var(--fs-xs); color: var(--faint); line-height: 1.6; }
 }
 </style>

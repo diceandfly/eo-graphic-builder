@@ -12,10 +12,10 @@ import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
-import PatternBrowser from '../panel/PatternBrowser.vue';
+import PresetGridBrowser from '../panel/PresetGridBrowser.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
-import { frameGridLines } from '../../geometry/frameGrid.js';
+import { frameGridLines, frameAttrs } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
 import { canvasPointToLocal } from '../../geometry/derive.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
@@ -30,6 +30,7 @@ const props = defineProps({
   viewport: Object, // useViewport() 반환값
   actions: Object,  // useDocument() 액션 (select/deselect/rotate/flipActive/duplicateFrom/setSize)
   patterns: { type: Array, default: () => [] }, // §205: 패턴 프리셋 목록 (usePatterns)
+  presets: { type: Array, default: () => [] },  // §207: 유닛 프리셋 목록 (usePresets — 메인 패널에서 이관)
 });
 
 const { vp, panBy, zoomAt, resetAt } = props.viewport;
@@ -179,17 +180,50 @@ const activeFrameRect = computed(() => {
   return { x: f.x, y: f.y, w: f.params.W, h: f.params.H };
 });
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
-// §205: 패턴 매니저 플로팅 패널 (우하단 매니저 바 layers 버튼 토글)
-const showPatterns = ref(false);
-function onPlacePattern(p) {
+// §205·§207: 프리셋 플로팅 패널 (우하단 프리셋 바 토글) — 'units' | 'patterns' | null (상호 배타)
+const presetPanel = ref(null);
+function togglePresetPanel(name) {
+  presetPanel.value = presetPanel.value === name ? null : name;
+}
+// §207: 패널 크기 — 좌상단 그립 드래그로 조절 (우하단 앵커 고정이라 좌상 방향이 자연), 로컬 영속
+const floatW = ref(Number(localStorage.getItem('eo.presetFloatW')) || 580);
+const floatH = ref(Number(localStorage.getItem('eo.presetFloatH')) || 620);
+function onGripDown(e) {
+  e.preventDefault();
+  const sx = e.clientX, sy = e.clientY, w0 = floatW.value, h0 = floatH.value;
+  const mv = (ev) => {
+    floatW.value = Math.min(Math.max(w0 + (sx - ev.clientX), 300), window.innerWidth - 120);
+    floatH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), window.innerHeight - 140);
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', mv);
+    localStorage.setItem('eo.presetFloatW', String(Math.round(floatW.value)));
+    localStorage.setItem('eo.presetFloatH', String(Math.round(floatH.value)));
+  };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up, { once: true });
+}
+function panelCenterWorld() {
   const r = el.value.getBoundingClientRect();
-  const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
+  return props.viewport.toWorld(r.width / 2, r.height / 2);
+}
+function onPlacePattern(p) {
+  const [cx, cy] = panelCenterWorld();
   props.actions.placePattern(p, cx, cy);
   toast(`Placed "${p.name}"`);
 }
 async function onImportPatterns(file) {
   const n = await props.actions.patternImportJson(file);
   toast(n ? `Imported ${n} pattern${n > 1 ? 's' : ''}` : 'No patterns found in that file');
+}
+// §207: 유닛 프리셋 — 메인 패널에서 프리셋 바 플로팅 패널로 이관
+function onPlacePreset(p) {
+  const [cx, cy] = panelCenterWorld();
+  props.actions.createUnitFrom(p.params, cx, cy, p.name);
+}
+async function onImportPresets(file) {
+  const n = await props.actions.presetImportJson(file);
+  toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
 }
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
@@ -341,7 +375,7 @@ const canRegisterPreset = computed(
 function onRegisterPreset() {
   if (!canRegisterPreset.value) return;
   const p = props.actions.registerPreset(ctxMenu.value.u);
-  toast(`Registered "${p.name}" — browse presets when nothing is selected`);
+  toast(`Registered "${p.name}" — open Unit presets (bottom right)`);
   closeCtx();
 }
 // §205: 패턴 프리셋 등록 — 단일 프레임 선택 시에만 (유닛 프리셋의 단일 유닛 규칙과 대칭)
@@ -354,7 +388,7 @@ const canRegisterPattern = computed(
 function onRegisterPattern() {
   if (!canRegisterPattern.value) return;
   const p = props.actions.registerPattern(ctxMenu.value.u);
-  if (p) toast(`Registered "${p.name}" — open the pattern manager (bottom right)`);
+  if (p) toast(`Registered "${p.name}" — open Pattern presets (bottom right)`);
   closeCtx();
 }
 // 직전 행동 반복 (⇧D §74) — 반복 가능한 조작이 실행될 때마다 등록
@@ -1555,17 +1589,59 @@ onBeforeUnmount(() => {
     <ManualOverlay v-if="showManual" @close="showManual = false" />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
-    <ManagerBar :patterns-open="showPatterns" @toggle-patterns="showPatterns = !showPatterns" />
-    <!-- §205: 패턴 매니저 플로팅 패널 — 매니저 바 위, 우측 정렬 -->
-    <div v-if="showPatterns" class="patternPanel" @pointerdown.stop @wheel.stop @contextmenu.stop>
-      <PatternBrowser
-        :patterns="patterns"
-        @place-pattern="onPlacePattern"
-        @delete-pattern="(id) => props.actions.patternRemove(id)"
-        @rename-pattern="(id, name) => props.actions.patternRename(id, name)"
-        @export-patterns="props.actions.patternExportJson"
-        @import-patterns="onImportPatterns"
-      />
+    <ManagerBar :panel="presetPanel" @toggle-panel="togglePresetPanel" />
+    <!-- §205·§207: 프리셋 플로팅 패널 — 프리셋 바 위, 우측 정렬. 좌상단 그립으로 크기 조절 -->
+    <div
+      v-if="presetPanel"
+      class="presetFloat"
+      :style="{ width: floatW + 'px', height: floatH + 'px' }"
+      @pointerdown.stop @wheel.stop @contextmenu.stop
+    >
+      <div class="floatGrip" title="drag to resize" @pointerdown.stop="onGripDown">
+        <svg viewBox="0 0 10 10"><path d="M8 1 1 8M9 5 5 9" /></svg>
+      </div>
+      <PresetGridBrowser
+        v-if="presetPanel === 'patterns'"
+        title="Pattern Presets"
+        :items="patterns"
+        empty-text="right-click a frame to register a pattern"
+        :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
+        @place="onPlacePattern"
+        @remove="(id) => props.actions.patternRemove(id)"
+        @rename="(id, name) => props.actions.patternRename(id, name)"
+        @export-json="props.actions.patternExportJson"
+        @import-json="onImportPatterns"
+      >
+        <template #thumb="{ item }">
+          <rect
+            :width="item.frame.W" :height="item.frame.H"
+            :fill="frameAttrs(item.frame).fill" :stroke="frameAttrs(item.frame).stroke"
+            :stroke-width="frameAttrs(item.frame).strokeW"
+          />
+          <g v-for="(u, i) in item.units" :key="i" :transform="`translate(${u.dx} ${u.dy})`">
+            <UnitGraphic :params="u.params" :seam-width="0.75" />
+          </g>
+        </template>
+      </PresetGridBrowser>
+      <PresetGridBrowser
+        v-else
+        title="Unit Presets"
+        :items="presets"
+        empty-text="right-click a unit to register a preset"
+        protected-id="default"
+        show-export-svg
+        :view-box-of="(p) => `0 0 ${p.params.W} ${p.params.H}`"
+        @place="onPlacePreset"
+        @remove="(id) => props.actions.presetRemove(id)"
+        @rename="(id, name) => props.actions.presetRename(id, name)"
+        @export-json="props.actions.presetExportJson"
+        @import-json="onImportPresets"
+        @export-svg="(p) => props.actions.presetExportSvg(p)"
+      >
+        <template #thumb="{ item }">
+          <UnitGraphic :params="item.params" :seam-width="0.75" />
+        </template>
+      </PresetGridBrowser>
     </div>
     <ZoomBadge
       :scale="vp.scale"
@@ -1641,19 +1717,24 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-// §205·§206: 패턴 매니저 플로팅 패널 — 매니저 바(우하단) 위, 메인 패널과 동일 카드 스케일.
-// 기본 크기 = 4열 × 3행대, 좌하단 그립으로 크기 조절(우하단 앵커 고정이라 왼쪽/위로 늘어남)
-.patternPanel {
+// §205·§206·§207: 프리셋 플로팅 패널 — 프리셋 바(우하단) 위, 메인 패널과 동일 카드 스케일.
+// 기본 4열 × 3행대. 크기 조절은 좌상단 그립(onGripDown) — 우하단 앵커 고정이라 좌상 방향이 자연.
+.presetFloat {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
   z-index: 15;
-  width: 580px; height: 620px;
   max-width: calc(100% - 2 * var(--sp-6));
   max-height: calc(100% - 2 * var(--sp-6) - 52px);
-  min-width: 300px; min-height: 280px;
-  resize: both; overflow: auto; box-sizing: border-box;
+  box-sizing: border-box; overflow: hidden;
   padding: 13px var(--panel-pad) 18px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+  :deep(.secHead) { padding-left: 10px; } /* 좌상단 리사이즈 그립과 타이틀 간섭 방지 */
+}
+.floatGrip {
+  position: absolute; top: 0; left: 0; width: 18px; height: 18px;
+  cursor: nwse-resize; display: flex; align-items: flex-start; justify-content: flex-start;
+  padding: 4px; box-sizing: border-box;
+  svg { width: 10px; height: 10px; fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: square; }
+  &:hover svg { stroke: var(--accent); }
 }
 // §201·§204: 프레임 이름 라벨 — 화면 고정 크기(pxs), 투명 패드로 호버 영역 확장
 .frameLabelG {

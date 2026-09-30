@@ -21,7 +21,8 @@ const { doc, active, gutterMax } = docApi;
 const stageRef = ref(null);
 const selectedUnits = computed(() => doc.units.filter((u) => doc.selectedIds.includes(u.id)));
 // 패널 표시 대상: 선택이 없으면 null → 패널이 새 유닛/프리셋 브라우저로 전환
-const panelUnit = computed(() => (doc.selectedIds.length ? active.value : null));
+// §207: 선택이 없어도 마지막 활성 오브젝트의 파라미터를 유지 표시 (프리셋 브라우저는 우하단으로 이관)
+const panelUnit = computed(() => active.value);
 
 // 선택이 정확히 하나의 최외곽 그룹 전체일 때 → 패널에 그룹 이름 표시/편집
 const selectedGroup = computed(() => {
@@ -61,12 +62,7 @@ function onLinkScopeToggle(cat) {
   doc.linkScopes[lid][cat] = !doc.linkScopes[lid][cat];
 }
 
-// 프리셋 배치: 스테이지 중앙에 생성
-function placePreset(preset) {
-  const [wx, wy] = stageRef.value.centerWorld();
-  docApi.createUnitFrom(preset.params, wx, wy, preset.name); // §202: 유닛 이름 = 프리셋 이름
-}
-// 프리셋 삭제 — Default Unit은 영구 보존, 안내만
+// 프리셋 삭제 — Default Unit은 영구 보존, 안내만 (배치·목록 UI는 §207에서 스테이지 프리셋 바로 이관)
 function deletePreset(id) {
   if (id === 'default') {
     stageRef.value?.toast('Default Unit is permanent — it cannot be deleted');
@@ -240,6 +236,12 @@ const stageActions = {
   patternRename: patternsApi.rename,
   patternExportJson: patternsApi.exportJson,
   patternImportJson: patternsApi.importJson,
+  // §207: 유닛 프리셋도 스테이지 프리셋 바에서 관리
+  presetRemove: deletePreset,
+  presetRename: presetsApi.rename,
+  presetExportJson: presetsApi.exportJson,
+  presetImportJson: presetsApi.importJson,
+  presetExportSvg: exportPreset,
 };
 </script>
 
@@ -252,7 +254,6 @@ const stageActions = {
         :selected="selectedUnits"
         :group="selectedGroup"
         :link-scope="linkScope"
-        :presets="presetList"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
@@ -260,18 +261,12 @@ const stageActions = {
         @rename="docApi.renameActive"
         @rename-group="(gid, name) => docApi.renameGroup(gid, name)"
         @link-scope-toggle="onLinkScopeToggle"
-        @place-preset="placePreset"
-        @delete-preset="deletePreset"
-        @rename-preset="presetsApi.rename"
-        @export-preset="exportPreset"
-        @export-presets="presetsApi.exportJson"
-        @import-presets="importPresets"
         @link="onLink"
         @unlink-one="onUnlinkOne"
         @fill="docApi.setFill"
       />
     </aside>
-    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" />
+    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" :presets="presetList" />
   </div>
 </template>
 
