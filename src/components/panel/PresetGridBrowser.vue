@@ -20,6 +20,7 @@ const props = defineProps({
   showExportSvg: Boolean,
   viewBoxOf: { type: Function, required: true }, // item → svg viewBox 문자열
   thumbAspect: { type: String, default: '1 / 1' }, // §208: 패턴은 16 / 9
+  colsKey: { type: String, default: 'eo.presetCols' }, // §211: 열 세팅 저장 키 — 패널별 분리
 });
 const emit = defineEmits([
   'place', 'placeAt', 'remove', 'rename', 'duplicate', 'reorder', 'moveToFolder',
@@ -28,9 +29,9 @@ const emit = defineEmits([
 
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
-// §208·§209: 열 수 토글 (2/3/4/6) — 두 프리셋 패널이 공유, 로컬 영속
-const cols = ref(['2', '3', '4', '6'].includes(localStorage.getItem('eo.presetCols')) ? localStorage.getItem('eo.presetCols') : '4');
-watch(cols, (v) => localStorage.setItem('eo.presetCols', v));
+// §208~§211: 열 수 토글 (2/3/4/6) — 패널별 개별 저장 (colsKey)
+const cols = ref(['2', '3', '4', '6'].includes(localStorage.getItem(props.colsKey)) ? localStorage.getItem(props.colsKey) : '4');
+watch(cols, (v) => localStorage.setItem(props.colsKey, v));
 
 // ── 폴더 내비게이션 + 검색 (§210) ──
 const currentFolder = ref(null); // 폴더 id | null(루트)
@@ -183,18 +184,20 @@ function onFile(e) {
         :options="[{ value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '6', label: '6' }]"
       />
     </div>
-    <!-- §210: [상위로] [검색] [선택을 루트로] [새 폴더] -->
+    <!-- §210·§211: [검색] … [back·move out(상황부)] [+ folder] — 기호 버튼 대신 단어 라벨 -->
     <div class="toolRow">
-      <button
-        class="tBtn" :disabled="currentFolder == null && !searching" title="back to all presets"
-        @click="goUp"
-      >‹</button>
       <input v-model="q" class="pSearch" type="text" placeholder="search all" spellcheck="false" />
+      <span class="toolSpace" />
       <button
-        class="tBtn" :disabled="!movableUp" title="move selection out of its folder"
+        v-if="currentFolder != null || searching"
+        class="tBtn" title="back to all presets" @click="goUp"
+      >← back</button>
+      <button
+        v-if="movableUp"
+        class="tBtn" title="move selection out of its folder"
         @click="emit('moveToFolder', selected, null)"
-      >⤒</button>
-      <button class="tBtn wide" title="new folder" @click="emit('addFolder')">+ folder</button>
+      >move out</button>
+      <button class="tBtn" title="new folder" @click="emit('addFolder')">+ folder</button>
     </div>
     <div v-if="currentFolderName && !searching" class="crumb">▸ {{ currentFolderName }}</div>
     <div class="gridArea" @pointerdown.self="selected = []">
@@ -305,18 +308,17 @@ function onFile(e) {
 }
 .colToggle { margin-bottom: 0; }
 .toolRow { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
+.toolSpace { flex: 1; }
 .pSearch {
   @include text-field;
-  flex: 1; min-width: 0; box-sizing: border-box; font-size: var(--fs-xs);
+  width: 190px; box-sizing: border-box; font-size: var(--fs-xs);
   padding: 4px 8px;
 }
 .tBtn {
   @include bordered-control;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 4px 9px;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 4px 10px;
   white-space: nowrap;
-  &.wide { font-size: var(--fs-2xs); }
-  &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-  &:disabled { opacity: 0.35; cursor: default; }
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 .crumb { font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); margin: -4px 0 8px; }
 .gridArea {
@@ -331,7 +333,8 @@ function onFile(e) {
 .pGrid { display: grid; gap: 10px; }
 .pCard {
   position: relative; cursor: pointer;
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 0;
+  overflow: hidden; /* §211: 썸네일이 카드 모서리를 그대로 공유 (패딩 0) */
   user-select: none; -webkit-user-select: none;
   &:hover { border-color: var(--accent); }
   /* §210: 선택 상태 — 캔버스 선택과 동일한 액센트 문법 */
@@ -344,7 +347,7 @@ function onFile(e) {
     position: relative;
     display: flex; align-items: center; justify-content: center;
     aspect-ratio: v-bind(thumbAspect);
-    background: var(--hover-bg); border-radius: var(--radius);
+    background: var(--hover-bg);
     svg { width: 38%; height: 38%; fill: none; stroke: var(--faint); stroke-width: 1.6; stroke-linejoin: miter; }
   }
   .fCount {
@@ -354,10 +357,10 @@ function onFile(e) {
   &:hover .folderBody svg { stroke: var(--accent); }
   &.dropTarget .folderBody svg { stroke: var(--accent); }
 }
-// 썸네일 — contain 중앙 배치 (SVG preserveAspectRatio meet 기본값), 비율은 호스트 지정 (§208)
+// 썸네일 — contain 중앙 배치, 카드 꽉 채움 (§211: 패딩 0 — 라운딩은 카드 overflow가 클립)
 .pThumb {
   display: block; width: 100%; aspect-ratio: v-bind(thumbAspect);
-  background: var(--stage-bg); border-radius: var(--radius);
+  background: var(--stage-bg);
   pointer-events: none; /* 드래그 히트는 카드가 담당 */
 }
 .fBadge {
@@ -367,14 +370,15 @@ function onFile(e) {
   padding: 1px 5px;
 }
 .pName {
-  font-size: var(--fs-xs); color: var(--text); margin-top: 6px;
+  font-size: var(--fs-xs); color: var(--text);
+  padding: 5px 7px 6px; /* §211: 카드 패딩 0에 상응하는 최소 보정값 */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .pCard.sel .pName { color: var(--accent); }
 .pNameInput {
   @include text-field;
-  border-color: var(--accent); padding: 1px 5px; margin-top: 4px; width: 100%;
-  box-sizing: border-box; font-size: var(--fs-xs);
+  border-color: var(--accent); padding: 1px 5px; margin: 4px 5px 5px;
+  width: calc(100% - 10px); box-sizing: border-box; font-size: var(--fs-xs);
 }
 .dragGhost {
   position: fixed; z-index: 40; pointer-events: none;

@@ -1677,7 +1677,7 @@ onBeforeUnmount(() => {
     <div
       v-if="presetPanel"
       class="presetFloat"
-      @pointerdown.stop @wheel.stop @contextmenu.stop
+      @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
     >
       <PresetGridBrowser
         v-if="presetPanel === 'patterns'"
@@ -1687,6 +1687,7 @@ onBeforeUnmount(() => {
         empty-text="right-click a frame to register a pattern"
         thumb-aspect="16 / 9"
         :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
+        cols-key="eo.presetCols.patterns"
         @place="onPlacePattern"
         @place-at="onPlacePatternAt"
         @remove="(ids) => ids.forEach((id) => props.actions.patternRemove(id))"
@@ -1720,6 +1721,7 @@ onBeforeUnmount(() => {
         protected-id="default"
         show-export-svg
         :view-box-of="(p) => `0 0 ${p.params.W} ${p.params.H}`"
+        cols-key="eo.presetCols.units"
         @place="onPlacePreset"
         @place-at="onPlacePresetAt"
         @remove="(ids) => ids.forEach((id) => props.actions.presetRemove(id))"
