@@ -6,6 +6,7 @@ import { saveFileAs } from '../utils/saveFile.js';
 // 리스트 1번은 항상 기본 유닛 프리셋(Default) — 삭제·이름변경 불가, 저장소 미포함(런타임 생성).
 // (배치 단위 프리셋 = Phase 2 템플릿과 별개 계층)
 const KEY = 'eo.presets';
+const FKEY = 'eo.presets.folders'; // §210: 1단계 폴더
 const DEFAULT_PRESET = Object.freeze({ id: 'default', name: 'Default Unit', params: createParams() });
 
 // §209: id 유니크 보장 — Date.now()만으로는 같은 밀리초 연속 등록(빠른 클릭·테스트)에서 충돌
@@ -15,10 +16,18 @@ export function usePresets() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch { saved = []; }
   const stored = reactive(Array.isArray(saved) ? saved.filter((p) => p.id !== 'default') : []);
+  // §210: 폴더 (1단계 깊이 — 루트 + 폴더 1층). 항목의 folder = 폴더 id | null(루트)
+  let savedF;
+  try { savedF = JSON.parse(localStorage.getItem(FKEY) || '[]') || []; } catch { savedF = []; }
+  const folders = reactive(Array.isArray(savedF) ? savedF : []);
 
   watch(
     () => JSON.stringify(stored),
     (s) => localStorage.setItem(KEY, s)
+  );
+  watch(
+    () => JSON.stringify(folders),
+    (s) => localStorage.setItem(FKEY, s)
   );
 
   const presets = computed(() => [DEFAULT_PRESET, ...stored]);
@@ -31,18 +40,21 @@ export function usePresets() {
     while (names.has(`${base} (${i})`)) i += 1;
     return `${base} (${i})`;
   }
-  function register(params, baseName) {
+  function register(params, baseName, folder = null) {
     const base = (baseName || '').trim() || `Preset-${stored.length + 1}`;
-    const preset = { id: newId(), name: uniqueName(base), params: { ...params } };
+    const preset = { id: newId(), name: uniqueName(base), params: { ...params }, folder };
     stored.push(preset);
     return preset;
   }
-  // 히스토리 편입용 직렬화/복원 (§103) — Default 제외 저장분만
+  // 히스토리 편입용 직렬화/복원 (§103·§210: 폴더 포함 — 구 스냅샷(배열)도 수용)
   function serialize() {
-    return JSON.parse(JSON.stringify(stored));
+    return JSON.parse(JSON.stringify({ items: stored, folders }));
   }
-  function restore(list) {
-    stored.splice(0, stored.length, ...(Array.isArray(list) ? list : []));
+  function restore(v) {
+    const items = Array.isArray(v) ? v : v?.items ?? [];
+    const fs = Array.isArray(v) ? [] : v?.folders ?? [];
+    stored.splice(0, stored.length, ...items);
+    folders.splice(0, folders.length, ...fs);
   }
   function remove(id) {
     if (id === 'default') return;
@@ -57,6 +69,50 @@ export function usePresets() {
     const [item] = stored.splice(fi, 1);
     const ti = toId === 'default' ? 0 : stored.findIndex((p) => String(p.id) === String(toId));
     stored.splice(ti === -1 ? stored.length : ti, 0, item);
+  }
+  // ── §210: 폴더 관리 (1단계) ──
+  function folderName(base) {
+    const names = new Set(folders.map((f) => f.name));
+    if (!names.has(base)) return base;
+    let i = 2;
+    while (names.has(`${base} (${i})`)) i += 1;
+    return `${base} (${i})`;
+  }
+  function addFolder(name = 'Folder') {
+    const f = { id: newId(), name: folderName(name) };
+    folders.push(f);
+    return f;
+  }
+  function renameFolder(id, name) {
+    const t = String(name).trim();
+    const f = folders.find((x) => String(x.id) === String(id));
+    if (f && t && t !== f.name) f.name = folderName(t);
+  }
+  function removeFolder(id) {
+    const i = folders.findIndex((f) => String(f.id) === String(id));
+    if (i === -1) return;
+    for (const p of stored) if (String(p.folder ?? '') === String(id)) p.folder = null; // 내용물은 루트로
+    folders.splice(i, 1);
+  }
+  // 선택 항목들을 폴더(null = 루트)로 이동 — Default는 루트 고정
+  function moveToFolder(ids, folderId) {
+    const set = new Set(ids.map(String));
+    for (const p of stored) if (set.has(String(p.id))) p.folder = folderId ?? null;
+  }
+  // §210: 선택 복제 — 같은 폴더에 사본 (uniqueName이 " (2)" 접미 담당)
+  function duplicate(ids) {
+    const out = [];
+    for (const id of ids) {
+      const src = id === 'default' ? DEFAULT_PRESET : stored.find((x) => String(x.id) === String(id));
+      if (!src) continue;
+      const copy = {
+        id: newId(), name: uniqueName(src.name), params: { ...src.params },
+        folder: id === 'default' ? null : src.folder ?? null,
+      };
+      stored.push(copy);
+      out.push(copy);
+    }
+    return out;
   }
   // §209: 캔버스에서 카드로 드래그 = 프리셋 덮어쓰기 (이름 유지, Default 보호)
   function updateParams(id, params) {
@@ -102,5 +158,9 @@ export function usePresets() {
     return n;
   }
 
-  return { presets, register, remove, rename, reorder, updateParams, exportJson, importJson, serialize, restore };
+  return {
+    presets, folders, register, remove, rename, reorder, updateParams,
+    addFolder, renameFolder, removeFolder, moveToFolder, duplicate,
+    exportJson, importJson, serialize, restore,
+  };
 }

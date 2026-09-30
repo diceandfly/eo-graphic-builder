@@ -6,7 +6,8 @@ import { ICONS } from '../../ui/icons.js';
 // 대시보드 우하단 — 프리셋 바 (§203 위치 스왑 · §207 재구성).
 // [EO 심볼 = 유닛 프리셋] [layers = 패턴 프리셋] [플레이 = 애니메이션 매니저(예정)]
 // EO 심볼 아이콘 원본: src/assets/EO symbol_S_W.svg (§106)
-defineProps({ panel: String }); // 'units' | 'patterns' | null
+// tipsOff (§210): 프리셋 패널이 열려 있을 때 툴팁 억제 — 패널 모서리로 삐져나오는 네임카드 방지
+defineProps({ panel: String, tipsOff: Boolean }); // panel: 'units' | 'patterns' | null
 const emit = defineEmits(['togglePanel']);
 </script>
 
@@ -15,7 +16,7 @@ const emit = defineEmits(['togglePanel']);
     <FloatingBar>
       <IconButton
         :active="panel === 'units'" tip-align="right"
-        :tip="panel === 'units' ? 'Close unit presets' : 'Unit presets'"
+        :tip="tipsOff ? '' : 'Unit presets (U)'"
         @click="emit('togglePanel', 'units')"
       >
         <svg class="eoSym" viewBox="0 0 4.07 4.11">
@@ -24,10 +25,10 @@ const emit = defineEmits(['togglePanel']);
       </IconButton>
       <IconButton
         :paths="ICONS.layers" :active="panel === 'patterns'" tip-align="right"
-        :tip="panel === 'patterns' ? 'Close pattern presets' : 'Pattern presets'"
+        :tip="tipsOff ? '' : 'Pattern presets (P)'"
         @click="emit('togglePanel', 'patterns')"
       />
-      <IconButton :paths="ICONS.animation" tip="Animation manager — coming soon" tip-align="right" />
+      <IconButton :paths="ICONS.animation" :tip="tipsOff ? '' : 'Animation manager — coming soon'" tip-align="right" />
     </FloatingBar>
   </div>
 </template>

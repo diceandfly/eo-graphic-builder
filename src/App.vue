@@ -247,6 +247,17 @@ const stageActions = {
   presetUpdate: presetsApi.updateParams,
   patternReorder: patternsApi.reorder,
   patternUpdate: patternsApi.update,
+  // §210: 폴더 · 복제
+  presetDuplicate: presetsApi.duplicate,
+  presetAddFolder: presetsApi.addFolder,
+  presetRenameFolder: presetsApi.renameFolder,
+  presetRemoveFolder: presetsApi.removeFolder,
+  presetMoveToFolder: presetsApi.moveToFolder,
+  patternDuplicate: patternsApi.duplicate,
+  patternAddFolder: patternsApi.addFolder,
+  patternRenameFolder: patternsApi.renameFolder,
+  patternRemoveFolder: patternsApi.removeFolder,
+  patternMoveToFolder: patternsApi.moveToFolder,
 };
 </script>
 
@@ -271,7 +282,7 @@ const stageActions = {
         @fill="docApi.setFill"
       />
     </aside>
-    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" :presets="presetList" />
+    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" :presets="presetList" :pattern-folders="patternsApi.folders" :preset-folders="presetsApi.folders" />
   </div>
 </template>
 

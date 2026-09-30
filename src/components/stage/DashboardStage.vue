@@ -31,6 +31,8 @@ const props = defineProps({
   actions: Object,  // useDocument() 액션 (select/deselect/rotate/flipActive/duplicateFrom/setSize)
   patterns: { type: Array, default: () => [] }, // §205: 패턴 프리셋 목록 (usePatterns)
   presets: { type: Array, default: () => [] },  // §207: 유닛 프리셋 목록 (usePresets — 메인 패널에서 이관)
+  patternFolders: { type: Array, default: () => [] }, // §210: 프리셋 폴더 (1단계)
+  presetFolders: { type: Array, default: () => [] },
 });
 
 const { vp, panBy, zoomAt, resetAt } = props.viewport;
@@ -180,6 +182,28 @@ const activeFrameRect = computed(() => {
   return { x: f.x, y: f.y, w: f.params.W, h: f.params.H };
 });
 const framePreview = ref(null); // 프레임 드래그 생성 미리보기 (월드 좌표)
+// §210: 프레임 라벨 목록 — 선택 프레임이 맨 위, 그리고 **겹치는 라벨은 위 것만 표시**
+// (같은 자리에 쌓인 프레임들의 라벨이 후광 밖으로 삐져나와 지저분하던 잔여 문제 해결)
+const frameLabels = computed(() => {
+  if (mode.value !== 'select') return [];
+  const fs = [...props.doc.units.filter((x) => x.type === 'frame')]
+    .sort((a, b) => (props.doc.selectedIds.includes(a.id) ? 1 : 0) - (props.doc.selectedIds.includes(b.id) ? 1 : 0));
+  const out = [];
+  for (let i = 0; i < fs.length; i++) {
+    const a = fs[i];
+    const aw = a.name.length * 6.8 + 20; // 라벨 히트 패드와 동일한 화면 px 근사
+    let hidden = false;
+    for (let j = i + 1; j < fs.length; j++) {
+      const b = fs[j];
+      const bw = b.name.length * 6.8 + 20;
+      const dxs = (a.x - b.x) * vp.scale;
+      const dys = (a.y - b.y) * vp.scale;
+      if (dxs < bw && dxs > -aw && Math.abs(dys) < 22) { hidden = true; break; }
+    }
+    if (!hidden) out.push(a);
+  }
+  return out;
+});
 // §208: 프레임 이름 라벨 더블클릭 = 뷰포트 인라인 이름변경 (HTML input을 라벨 화면 위치에 오버레이)
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 const frameNameEdit = ref(null); // { id, draft }
@@ -230,24 +254,19 @@ async function onImportPresets(file) {
   const n = await props.actions.presetImportJson(file);
   toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
 }
-// §209: 패널의 "+ register selection" — 현재 선택을 바로 등록 (우클릭 메뉴와 동일 조건)
-const soloSelected = computed(() =>
-  props.doc.selectedIds.length === 1
-    ? props.doc.units.find((u) => u.id === props.doc.selectedIds[0]) ?? null
-    : null
-);
-const canRegUnitHere = computed(() => !!soloSelected.value && isPresetable(soloSelected.value));
-const canRegPatternHere = computed(() => soloSelected.value?.type === 'frame');
-function registerFromSelection() {
-  const u = soloSelected.value;
-  if (!u) return;
-  if (presetPanel.value === 'units' && isPresetable(u)) {
-    const p = props.actions.registerPreset(u);
-    toast(`Registered "${p.name}"`);
-  } else if (presetPanel.value === 'patterns' && u.type === 'frame') {
-    const p = props.actions.registerPattern(u);
-    if (p) toast(`Registered "${p.name}"`);
-  }
+// §210: 카드 → 캔버스 드랍 배치 (뷰포트 client 좌표 → 월드 변환)
+function dropClientToWorld(cx, cy) {
+  const r = el.value.getBoundingClientRect();
+  return props.viewport.toWorld(cx - r.left, cy - r.top);
+}
+function onPlacePresetAt(item, cx, cy) {
+  const [wx, wy] = dropClientToWorld(cx, cy);
+  props.actions.createUnitFrom(item.params, wx, wy, item.name);
+}
+function onPlacePatternAt(item, cx, cy) {
+  const [wx, wy] = dropClientToWorld(cx, cy);
+  props.actions.placePattern(item, wx, wy);
+  toast(`Placed "${item.name}"`);
 }
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
@@ -694,6 +713,9 @@ function onKeyDown(e) {
     mode.value = 'select';
     return;
   }
+  // §210: 프리셋 패널 단축키 — U = 유닛, P = 패턴 (재입력 = 닫기)
+  if (!mod && !e.shiftKey && e.code === 'KeyU') togglePresetPanel('units');
+  if (!mod && !e.shiftKey && e.code === 'KeyP') togglePresetPanel('patterns');
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
   if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
@@ -1506,10 +1528,7 @@ onBeforeUnmount(() => {
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
         <g
-          v-for="f in mode === 'select'
-            ? [...doc.units.filter((x) => x.type === 'frame')]
-              .sort((a, b) => (doc.selectedIds.includes(a.id) ? 1 : 0) - (doc.selectedIds.includes(b.id) ? 1 : 0))
-            : []"
+          v-for="f in frameLabels"
           :key="'fl' + f.id"
           class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
@@ -1652,7 +1671,8 @@ onBeforeUnmount(() => {
     <ManualOverlay v-if="showManual" @close="showManual = false" />
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
-    <ManagerBar :panel="presetPanel" @toggle-panel="togglePresetPanel" />
+    <!-- §210: 패널이 열려 있을 땐 툴팁 억제 — 네임카드가 패널 모서리로 삐져나오는 것 방지 -->
+    <ManagerBar :panel="presetPanel" :tips-off="!!presetPanel" @toggle-panel="togglePresetPanel" />
     <!-- §205·§207: 프리셋 플로팅 패널 — 프리셋 바 위, 우측 정렬. 좌상단 그립으로 크기 조절 -->
     <div
       v-if="presetPanel"
@@ -1663,18 +1683,22 @@ onBeforeUnmount(() => {
         v-if="presetPanel === 'patterns'"
         title="Pattern Presets"
         :items="patterns"
+        :folders="patternFolders"
         empty-text="right-click a frame to register a pattern"
         thumb-aspect="16 / 9"
         :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
-        :can-register="canRegPatternHere"
-        register-tip="register the selected frame as a pattern"
         @place="onPlacePattern"
-        @remove="(id) => props.actions.patternRemove(id)"
+        @place-at="onPlacePatternAt"
+        @remove="(ids) => ids.forEach((id) => props.actions.patternRemove(id))"
         @rename="(id, name) => props.actions.patternRename(id, name)"
+        @duplicate="(ids) => props.actions.patternDuplicate(ids)"
+        @reorder="(ids, to) => ids.forEach((id) => props.actions.patternReorder(id, to))"
+        @move-to-folder="(ids, fid) => props.actions.patternMoveToFolder(ids, fid)"
+        @add-folder="props.actions.patternAddFolder()"
+        @rename-folder="(id, name) => props.actions.patternRenameFolder(id, name)"
+        @remove-folder="(id) => props.actions.patternRemoveFolder(id)"
         @export-json="props.actions.patternExportJson"
         @import-json="onImportPatterns"
-        @register-current="registerFromSelection"
-        @reorder="(a, b) => props.actions.patternReorder(a, b)"
       >
         <template #thumb="{ item }">
           <rect
@@ -1691,20 +1715,24 @@ onBeforeUnmount(() => {
         v-else
         title="Unit Presets"
         :items="presets"
+        :folders="presetFolders"
         empty-text="right-click a unit to register a preset"
         protected-id="default"
         show-export-svg
         :view-box-of="(p) => `0 0 ${p.params.W} ${p.params.H}`"
-        :can-register="canRegUnitHere"
-        register-tip="register the selected unit as a preset"
         @place="onPlacePreset"
-        @remove="(id) => props.actions.presetRemove(id)"
+        @place-at="onPlacePresetAt"
+        @remove="(ids) => ids.forEach((id) => props.actions.presetRemove(id))"
         @rename="(id, name) => props.actions.presetRename(id, name)"
+        @duplicate="(ids) => props.actions.presetDuplicate(ids)"
+        @reorder="(ids, to) => ids.forEach((id) => props.actions.presetReorder(id, to))"
+        @move-to-folder="(ids, fid) => props.actions.presetMoveToFolder(ids, fid)"
+        @add-folder="props.actions.presetAddFolder()"
+        @rename-folder="(id, name) => props.actions.presetRenameFolder(id, name)"
+        @remove-folder="(id) => props.actions.presetRemoveFolder(id)"
         @export-json="props.actions.presetExportJson"
         @import-json="onImportPresets"
         @export-svg="(p) => props.actions.presetExportSvg(p)"
-        @register-current="registerFromSelection"
-        @reorder="(a, b) => props.actions.presetReorder(a, b)"
       >
         <template #thumb="{ item }">
           <UnitGraphic :params="item.params" :seam-width="0.75" />
