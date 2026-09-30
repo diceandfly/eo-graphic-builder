@@ -1,5 +1,6 @@
 import { reactive, watch } from 'vue';
 import { saveFileAs } from '../utils/saveFile.js';
+import { migrateBrandHex } from '../geometry/brandColors.js';
 
 // 패턴 프리셋 스토어 (§205) — 프레임 1개 + 소유 유닛 전체(파라미터·상대배치·그룹·링크)를
 // 한 벌로 등록/삭제/이름변경. localStorage 영속. 캡처/재생성 로직은 useDocument
@@ -14,6 +15,16 @@ export function usePatterns() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch { saved = []; }
   const stored = reactive(Array.isArray(saved) ? saved : []);
+  // §213: 리뉴얼 이전 브랜드 hex 자동 치환 (프레임 fill/stroke + 유닛 fill)
+  const migratePattern = (p) => {
+    if (p.frame) {
+      if (p.frame.fill) p.frame.fill = migrateBrandHex(p.frame.fill);
+      if (p.frame.stroke) p.frame.stroke = migrateBrandHex(p.frame.stroke);
+    }
+    for (const u of p.units ?? []) if (u.params?.fill) u.params.fill = migrateBrandHex(u.params.fill);
+    return p;
+  };
+  stored.forEach(migratePattern);
   // §210: 폴더 (1단계 깊이) — 항목의 folder = 폴더 id | null(루트)
   let savedF;
   try { savedF = JSON.parse(localStorage.getItem(FKEY) || '[]') || []; } catch { savedF = []; }
@@ -137,11 +148,11 @@ export function usePatterns() {
     let n = 0;
     for (const p of list) {
       if (p && p.frame && Number.isFinite(p.frame.W) && Array.isArray(p.units)) {
-        stored.push({
+        stored.push(migratePattern({
           ...JSON.parse(JSON.stringify(p)),
           id: newId(),
           name: uniqueName(String(p.name || 'Pattern').trim() || 'Pattern'),
-        });
+        }));
         n += 1;
       }
     }

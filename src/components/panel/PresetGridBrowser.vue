@@ -189,12 +189,12 @@ function onFile(e) {
       <input v-model="q" class="pSearch" type="text" placeholder="search all" spellcheck="false" />
       <span class="toolSpace" />
       <button
-        v-if="currentFolder != null || searching"
-        class="tBtn" title="back to all presets" @click="goUp"
+        class="tBtn" :disabled="currentFolder == null && !searching"
+        title="back to all presets" @click="goUp"
       >← back</button>
       <button
-        v-if="movableUp"
-        class="tBtn" title="move selection out of its folder"
+        class="tBtn" :disabled="!movableUp"
+        title="move selection out of its folder"
         @click="emit('moveToFolder', selected, null)"
       >move out</button>
       <button class="tBtn" title="new folder" @click="emit('addFolder')">+ folder</button>
@@ -302,8 +302,9 @@ function onFile(e) {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   margin-bottom: 12px;
   h2 {
-    font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
-    color: var(--accent); font-weight: var(--fw-semibold); margin: 0; white-space: nowrap;
+    /* §213: 창 타이틀 — 문장형·13px·semibold·주 텍스트색 (위계는 크기·웨이트·밝기) */
+    font-size: var(--fs-md); letter-spacing: 0;
+    color: var(--text); font-weight: var(--fw-semibold); margin: 0; white-space: nowrap;
   }
 }
 .colToggle { margin-bottom: 0; }
@@ -318,7 +319,8 @@ function onFile(e) {
   @include bordered-control;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 4px 10px;
   white-space: nowrap;
-  &:hover { border-color: var(--accent); color: var(--accent); }
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  &:disabled { opacity: 0.35; cursor: default; } /* §213: 상황부 숨김 → 상시 표시 + 비활성 */
 }
 .crumb { font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); margin: -4px 0 8px; }
 .gridArea {

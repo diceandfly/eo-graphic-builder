@@ -1681,7 +1681,7 @@ onBeforeUnmount(() => {
     >
       <PresetGridBrowser
         v-if="presetPanel === 'patterns'"
-        title="Pattern Presets"
+        title="Pattern presets"
         :items="patterns"
         :folders="patternFolders"
         empty-text="right-click a frame to register a pattern"
@@ -1714,7 +1714,7 @@ onBeforeUnmount(() => {
       </PresetGridBrowser>
       <PresetGridBrowser
         v-else
-        title="Unit Presets"
+        title="Unit presets"
         :items="presets"
         :folders="presetFolders"
         empty-text="right-click a unit to register a preset"
@@ -1837,7 +1837,7 @@ onBeforeUnmount(() => {
   max-width: calc(100% - 2 * var(--sp-6));
   max-height: calc(100% - 2 * var(--sp-6) - 52px);
   box-sizing: border-box; overflow: hidden;
-  padding: 13px var(--panel-pad) 18px;
+  padding: var(--window-pad-y) var(--panel-pad) 14px; // §213
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
 }
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체

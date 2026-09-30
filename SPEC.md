@@ -1683,3 +1683,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **자간 토큰 축소**: ls-base 0.03→0.01em · ls-wide 0.08→0.04em · ls-caps 0.16→0.06em (대문자 최소 가독 자간만).
 - **회색 3단계 위계 신설**: --dim(#a2a2a2) 추가 — text(주 텍스트·값) > dim(라벨층) > faint(보조·노트·placeholder). 라벨층(NumberField/Slider/Toggle .label, ControlPanel rowLabel·ratioHead·dpiWrap, 팝업 rowLabel·menuTitle)을 faint→dim으로 승격.
 - 섹션 타이틀(SIZE/GRID/… 액센트)·크기 단계(fs-*)·웨이트는 유지 — 위계는 색(액센트) > 크기·웨이트 > 회색도 순으로 정리.
+
+## 213. 2026-10-01 — 레거시 브랜드색 자동 치환·창 패딩 리듬·타이포 위계 2차
+
+1. **"팔레트 미반영" 인식의 진짜 원인과 해결** — §200 팔레트는 정확히 반영되어 있었고, 진하게 보인 색은 리뉴얼 이전에 칠해진 오브젝트의 구 hex 저장분. `LEGACY_HEX` 매핑(brandColors.js) + **로드 시 자동 치환**: 문서(migrateUnit fill/stroke)·유닛 프리셋·패턴(프레임 fill/stroke+유닛 fill)·JSON 임포트 전 경로. 잔재 2곳 수정: 체크박스 data-URI 색(#F9EE48→#F9EE3A)·--accent-alpha rgb(72→58).
+2. **창 패딩 리듬** — 질문("패딩 토큰 관리?")에 대한 상태: 레이아웃 층위(sp-*·panel-pad)만 토큰, 컴포넌트 미세 패딩은 고유값(기존 정책). 이번에 **창 공통 패딩 토큰화·축소**: --panel-pad 15→12(+ --window-pad-y 12 신설 — 메인 패널·프리셋창 공유), 팝업 10/12→9/11 — 내부 gap(10)·외부 갭(14)과 같은 급의 리듬.
+3. **타이포 위계 2차** — 서브타이틀 잔여 문제(자간 넓음·all caps) 해결: **창 타이틀 = 문장형("Unit presets")·13px(fs-md)·semibold·--text·자간 0**, 팝업 타이틀(menuTitle)도 문장형 11px semibold --text로 통일. 위계 확정: 창 타이틀(13 semibold text) > 팝업 타이틀(11 semibold text) > 본문·값(11–12 text) > 라벨(11 dim 소형캡) > 섹션 캡스(11 accent — 브랜드 문법 유지) > 보조·노트(10 faint).
+4. **back/move out 버튼 상시 표시 복원** — §211의 상황부 숨김이 "버튼이 사라지는 오류"로 인식됨(정상 동작이었음) → 상시 표시 + 비활성(35%)으로 변경.

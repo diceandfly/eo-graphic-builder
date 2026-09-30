@@ -1,6 +1,7 @@
 import { reactive, computed, watch } from 'vue';
 import { createParams } from './useDocument.js';
 import { saveFileAs } from '../utils/saveFile.js';
+import { migrateBrandHex } from '../geometry/brandColors.js';
 
 // 유닛 프리셋 스토어 — 파라미터 1벌 단위 등록/삭제/이름변경. localStorage 영속.
 // 리스트 1번은 항상 기본 유닛 프리셋(Default) — 삭제·이름변경 불가, 저장소 미포함(런타임 생성).
@@ -16,6 +17,7 @@ export function usePresets() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch { saved = []; }
   const stored = reactive(Array.isArray(saved) ? saved.filter((p) => p.id !== 'default') : []);
+  for (const p of stored) if (p.params?.fill) p.params.fill = migrateBrandHex(p.params.fill); // §213
   // §210: 폴더 (1단계 깊이 — 루트 + 폴더 1층). 항목의 folder = 폴더 id | null(루트)
   let savedF;
   try { savedF = JSON.parse(localStorage.getItem(FKEY) || '[]') || []; } catch { savedF = []; }
@@ -150,7 +152,7 @@ export function usePresets() {
         stored.push({
           id: newId(),
           name: uniqueName(String(p.name || 'Preset').trim() || 'Preset'),
-          params: { ...p.params },
+          params: { ...p.params, fill: migrateBrandHex(p.params.fill) }, // §213
         });
         n += 1;
       }

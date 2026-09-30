@@ -28,7 +28,7 @@
 
   /* 액센트 — UI 선택/활성 (도형 기본색과 통일: EO NEON) */
   --accent: var(--eo-neon);
-  --accent-alpha: rgba(249, 238, 72, 0.06); /* 마퀴 채움 등 */
+  --accent-alpha: rgba(249, 238, 58, 0.06); /* 마퀴 채움 등 (§213: Builder Neon rgb) */
 
   /* 시맨틱 — 상태/오버레이 (guide·danger는 추후 브랜드 값으로 교체 예정) */
   --danger: #ff5c5c;

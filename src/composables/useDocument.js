@@ -1,6 +1,7 @@
 import { reactive, computed, ref, watch, nextTick } from 'vue';
 import { namePrefix } from '../objects/registry.js';
 import { localPointToCanvas } from '../geometry/derive.js';
+import { migrateBrandHex } from '../geometry/brandColors.js';
 import {
   A_MIN, A_MAX, B_MIN, B_MAX, AB_SUM_MAX, GUTTER_MAX, LIMITS, UNIT_MAX,
   BRAND_COLORS,
@@ -71,6 +72,11 @@ export function createFrameParams(overrides = {}) {
 }
 
 function migrateUnit(u) {
+  // §213: 리뉴얼 이전 브랜드 hex 자동 치환
+  if (u.params) {
+    if (u.params.fill) u.params.fill = migrateBrandHex(u.params.fill);
+    if (u.params.stroke) u.params.stroke = migrateBrandHex(u.params.stroke);
+  }
   if (!u.type) u.type = 'unit';
   // §92: rect → frame 재정의 (기존 문서 자동 마이그레이션, 이름도 Rect-N → Frame-N)
   if (u.type === 'rect') {
