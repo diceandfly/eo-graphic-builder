@@ -23,7 +23,7 @@ const props = defineProps({
   frameQuickCfg: Object, // 프레임 더블클릭 즉시 생성 설정 { w, h, margin, gutter } (§85·§92·§116)
   frameMode: Boolean, // 프레임 조작 모드 (선택툴 우클릭 스왑, §92)
 }); // mode: 'select' | 'eyedrop' | 'frame'
-const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'frameQuick']);
+const emit = defineEmits(['update:mode', 'fill', 'blend', 'arrange', 'update:customColor', 'frameQuick', 'toggleFrameMode']);
 const isCustomFill = computed(() => !!props.fill && !BRAND_COLORS.includes(props.fill));
 // 최근 컬러 — 공유 스토어 직결 (§110·§111)
 const { recentColors, removeRecentColor } = useRecentColors();
@@ -105,13 +105,15 @@ function onPick(c) {
 
     <!-- 도구 바 -->
     <FloatingBar>
-      <!-- 선택툴 (§203): 아이콘 = 현재 우선 대상 표시 — 유닛 우선 = V 화살표, 줌 경계 미만
-           자동 프레임 우선 = 꽉 찬 화살표. 수동 전환 없음 (경계는 % 배지 우클릭에서 설정) -->
+      <!-- 선택툴 (§203·§206): 아이콘 = 현재 우선 대상 표시 — 유닛 우선 = V 화살표, 프레임 우선 =
+           꽉 찬 화살표. 기본은 줌 경계 자동(% 배지 우클릭에서 설정), 우클릭 = 일시 수동 전환
+           (줌 변경·도구 전환 시 자동 기준 복귀) -->
       <IconButton
         :paths="frameMode ? null : ICONS.select"
-        :tip="frameMode ? 'Select — frame first (zoomed out)' : 'Select (V)'"
+        :tip="frameMode ? 'Select — frame first (right-click: units)' : 'Select (V) — right-click: frames'"
         :active="mode === 'select'"
         @click="emit('update:mode', 'select')"
+        @contextmenu.prevent="emit('toggleFrameMode')"
       >
         <svg v-if="frameMode" class="fillArrow" viewBox="0 0 24 24">
           <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />

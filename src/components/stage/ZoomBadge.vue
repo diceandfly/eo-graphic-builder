@@ -205,7 +205,7 @@ function resetGridDefaults() {
             />
           </label>
           <!-- §203: 선택 도구의 프레임 우선 전환 경계 (줌 % 미만 = 프레임 우선, 0 = 끔) -->
-          <label class="sect menuRow">
+          <label class="menuRow">
             <span class="rowLabel">Frame first below</span>
             <StepField v-model="view.framePickZoom" :min="0" :max="200" :step="5" />
           </label>

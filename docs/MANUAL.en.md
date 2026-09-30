@@ -180,7 +180,7 @@ Select a unit to shape it in the left panel. Click the name at the top of the pa
 
 | Tool | {icon:mouseL}Left-click / key | {icon:mouseR}Right-click |
 |---|---|---|
-| {icon:select}**Select** | [Select mode](#5-select-move-transform) (V) — units and frames. Zoomed out it switches to [frame-first](#9-frames) automatically and the icon becomes a filled arrow | — |
+| {icon:select}**Select** | [Select mode](#5-select-move-transform) (V) — units and frames. Zoomed out it switches to [frame-first](#9-frames) automatically and the icon becomes a filled arrow | Temporarily flip unit↔frame priority (reverts to the automatic rule when you zoom or switch tools) |
 | {icon:frame}**Frame** | Draw a [frame](#9-frames) (F) — made at the size you drag. **Double-click** the button to create one instantly at a preset size | Quick frame options: [social banner presets](#9-frames) · size · margin · gutter · color |
 | {icon:eyedrop}**Eyedropper** | Eyedropper (I) | Choose what to pick up: color / size / grid / shape & style / orientation |
 | {icon:blend}**Blend** | Run blend (B) | Direction · repeat count · gap · scale change |
@@ -213,6 +213,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - **Frames can be selected and moved in V (normal select) too** — where a unit overlaps, the unit wins; click an empty area or the **name label at the top left** to grab the frame
 - **Zoom out below a certain level and the select tool goes frame-first automatically** — the toolbar icon becomes a filled arrow, and clicking or dragging over units grabs the frame. Handy for picking and moving frames from a distance
 - The switching level is set under **Frame first below** in the [% badge {icon:mouseR}right-click menu](#13-view-options-corner-bar) (0 = off)
+- Need the opposite of what the current zoom gives you? **{icon:mouseR}Right-click** the {icon:select}select tool — it flips temporarily, and reverts to the automatic rule when you zoom or switch tools
 
 ### How do contents follow?
 - A unit whose center is inside a frame counts as its content (topmost frame wins when frames overlap)
@@ -313,7 +314,7 @@ Your work keeps saving to the browser without you doing anything. Reload and the
 Save a frame together with the unit layout inside it, and bring the whole thing back anytime — the frame-level counterpart of [unit presets](#14-unit-presets).
 
 - {icon:patternAdd}**Register**: select a frame, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register pattern preset — the frame's settings and its units (layout, [groups and links](#10-groups-and-links) included) are saved under the frame's name
-- {icon:layers}**Use**: press the pattern manager button in the bottom-right manager bar to open the list panel. Click a pattern to create it whole at the center of the view (thumbnail/list views, search box on top, click a name to rename)
+- {icon:layers}**Use**: press the pattern manager button in the bottom-right manager bar to open the list panel. Click a pattern to create it whole at the center of the view (search box on top · click a name to rename · drag the panel corner to resize)
 - {icon:trash}**Delete**: click a card's × twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file
 - Register and delete can be undone with ⌘Z

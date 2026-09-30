@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { LIMITS, UNIT_MAX, STAGE_GRID, BRAND_COLORS } from '../../geometry/constants.js';
 import UnitGraphic from './UnitGraphic.vue';
 import SelectionOverlay from './SelectionOverlay.vue';
@@ -136,9 +136,21 @@ const mode = ref('select'); // 'select' | 'eyedrop' | 'frame'
 // on: 프레임만 선택·조작(이동 시 내용물 동반), 유닛 패스스루 / off: 유닛 조작, 프레임 패스스루
 // §203: 프레임 우선 모드는 줌 배율 자동 — 경계(framePickZoom %) 미만으로 축소되면
 // 선택 도구가 프레임 우선(구 A 모드 문법: 유닛 패스스루)으로 전환되고 툴바 아이콘도 바뀐다.
-// 수동 전환(A 키·셀렉트 우클릭)은 §203에서 제거 — A 키는 추후 애니메이션 기능이 가져감.
-// 경계는 % 배지 우클릭 팝업에서 설정 (0 = 자동 전환 끔).
-const frameMode = computed(() => vp.scale < (view.framePickZoom || 0) / 100);
+// A 키는 추후 애니메이션 기능이 가져감. 경계는 % 배지 우클릭 팝업에서 설정 (0 = 자동 전환 끔).
+// §206: 셀렉트 우클릭 = 일시 수동 전환 — 줌이 바뀌거나 다른 도구를 고르면 자동 기준으로 복귀.
+const manualPick = ref(null); // 'frame' | 'unit' | null
+const frameMode = computed(() =>
+  manualPick.value ? manualPick.value === 'frame' : vp.scale < (view.framePickZoom || 0) / 100
+);
+let pickGuard = false; // 토글 자체가 mode를 select로 바꾸며 아래 워처에 지워지는 것 방지
+function toggleFrameModeManual() {
+  pickGuard = true;
+  mode.value = 'select';
+  manualPick.value = frameMode.value ? 'unit' : 'frame';
+  nextTick(() => { pickGuard = false; });
+}
+watch(() => vp.scale, () => { manualPick.value = null; });
+watch(mode, () => { if (!pickGuard) manualPick.value = null; });
 // 소유권 판정 (§92) — 어레인지와 공유하는 문서 로직이라 useDocument로 이동, 여기선 위임
 const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
 // 스포이드 타깃 필터 (§137): 선택과 같은 타입만 포인터 히트 —
@@ -1528,6 +1540,7 @@ onBeforeUnmount(() => {
       @blend="onBlend"
       @arrange="onArrange"
       @frame-quick="onFrameQuick"
+      @toggle-frame-mode="toggleFrameModeManual"
       @update:custom-color="(c) => (customColor = c)"
     />
     <FileBar
@@ -1628,12 +1641,16 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-// §205: 패턴 매니저 플로팅 패널 — 매니저 바(우하단) 위, 메인 패널과 동일 카드 문법
+// §205·§206: 패턴 매니저 플로팅 패널 — 매니저 바(우하단) 위, 메인 패널과 동일 카드 스케일.
+// 기본 크기 = 4열 × 3행대, 좌하단 그립으로 크기 조절(우하단 앵커 고정이라 왼쪽/위로 늘어남)
 .patternPanel {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
   z-index: 15;
-  width: 250px; max-height: calc(100% - 2 * var(--sp-6) - 52px);
-  overflow-y: auto; box-sizing: border-box;
+  width: 580px; height: 620px;
+  max-width: calc(100% - 2 * var(--sp-6));
+  max-height: calc(100% - 2 * var(--sp-6) - 52px);
+  min-width: 300px; min-height: 280px;
+  resize: both; overflow: auto; box-sizing: border-box;
   padding: 13px var(--panel-pad) 18px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
@@ -1643,7 +1660,9 @@ onBeforeUnmount(() => {
   cursor: default;
   .labelPad { fill: transparent; }
   .frameLabel {
-    fill: var(--faint); font-family: inherit;
+    /* §206: --faint는 스테이지 위에서 거의 안 보여 한 단계 밝게 (호버 --text·선택 --accent와 위계 유지) */
+    fill: color-mix(in srgb, var(--text) 45%, var(--faint));
+    font-family: inherit;
     user-select: none; -webkit-user-select: none;
   }
   &:hover .frameLabel { fill: var(--text); }

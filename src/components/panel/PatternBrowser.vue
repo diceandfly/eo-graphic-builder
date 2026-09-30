@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import Toggle from '../controls/Toggle.vue';
 import UnitGraphic from '../stage/UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 
-// 패턴 브라우저 (§205) — 패턴 매니저(우하단) 플로팅 패널 본문.
-// PresetBrowser와 동일 문법: 썸네일 2열/리스트 토글, 검색, 인라인 이름변경,
-// × 2클릭 삭제, 우클릭 메뉴(Rename/Delete), JSON 입출력.
+// 패턴 브라우저 (§205·§206) — 패턴 매니저(우하단) 플로팅 패널 본문.
+// PresetBrowser와 카드 문법 공유(카드 스케일 = 메인 패널과 동일), 썸네일 전용(리스트 토글 없음),
+// 열 수는 패널 폭에 맞춰 자동(기본 4열). 검색, 인라인 이름변경, × 2클릭 삭제,
+// 우클릭 메뉴(Rename/Delete), JSON 입출력.
 const props = defineProps({
   patterns: { type: Array, default: () => [] },
 });
@@ -15,9 +15,6 @@ const emit = defineEmits([
 ]);
 
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
-
-const patternView = ref(localStorage.getItem('eo.patternView') || 'thumbs');
-watch(patternView, (v) => localStorage.setItem('eo.patternView', v));
 
 // 이름 검색 (유닛 프리셋 브라우저와 동일 디자인)
 const q = ref('');
@@ -73,10 +70,6 @@ function onFile(e) {
   <section>
     <div class="secHead">
       <h2>Pattern Presets</h2>
-      <Toggle
-        class="viewToggle" v-model="patternView"
-        :options="[{ value: 'thumbs', label: 'thumbs' }, { value: 'list', label: 'list' }]"
-      />
     </div>
     <input
       v-if="patterns.length > 1"
@@ -84,7 +77,7 @@ function onFile(e) {
     />
     <div v-if="!patterns.length" class="pEmpty">right-click a frame to register a pattern</div>
     <div v-else-if="!filtered.length" class="pEmpty">no patterns match "{{ q }}"</div>
-    <div v-else-if="patternView === 'thumbs'" class="pGrid">
+    <div v-else class="pGrid">
       <div
         v-for="p in filtered" :key="p.id" class="pCard"
         @click="emit('placePattern', p)"
@@ -109,38 +102,6 @@ function onFile(e) {
           @blur="editing = null"
         />
         <div v-else class="pName" title="click to rename" @click.stop="startRename(p)">{{ p.name }}</div>
-        <button
-          class="pDel" :class="{ armed: armedDel === p.id }"
-          :title="armedDel === p.id ? 'click again to delete' : 'delete pattern'"
-          @click.stop="onDelClick(p)"
-        >×</button>
-      </div>
-    </div>
-    <div v-else class="pList">
-      <div
-        v-for="p in filtered" :key="p.id" class="pRow"
-        @click="emit('placePattern', p)"
-        @contextmenu.prevent.stop="openMenu(p, $event)"
-      >
-        <svg class="pMini" :viewBox="`0 0 ${p.frame.W} ${p.frame.H}`">
-          <rect
-            :width="p.frame.W" :height="p.frame.H"
-            :fill="frameAttrs(p.frame).fill" :stroke="frameAttrs(p.frame).stroke"
-            :stroke-width="frameAttrs(p.frame).strokeW"
-          />
-          <g v-for="(u, i) in p.units" :key="i" :transform="`translate(${u.dx} ${u.dy})`">
-            <UnitGraphic :params="u.params" :seam-width="0.75" />
-          </g>
-        </svg>
-        <input
-          v-if="editing?.id === p.id"
-          v-focus class="pNameInput" v-model="editing.draft"
-          @click.stop @pointerdown.stop
-          @keydown.enter="commitName"
-          @keydown.esc="editing = null"
-          @blur="editing = null"
-        />
-        <span v-else class="pName" title="click to rename" @click.stop="startRename(p)">{{ p.name }}</span>
         <button
           class="pDel" :class="{ armed: armedDel === p.id }"
           :title="armedDel === p.id ? 'click again to delete' : 'delete pattern'"
@@ -176,7 +137,6 @@ section h2 {
   margin: 0 0 14px;
 }
 .secHead { display: flex; justify-content: space-between; align-items: baseline; }
-.viewToggle { margin-bottom: 0; }
 .pSearch {
   @include text-field;
   width: 100%; box-sizing: border-box; font-size: var(--fs-xs);
@@ -187,38 +147,29 @@ section h2 {
   border: 1px dashed var(--line); border-radius: var(--radius);
   padding: 16px 12px; text-align: center;
 }
-.pGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+// §206: 열 수 = 패널 폭 자동 (카드 최소폭 120px ≈ 메인 패널 2열 카드와 동일 스케일 → 기본 폭에서 4열)
+.pGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .pCard {
   position: relative; cursor: pointer;
   border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
   &:hover { border-color: var(--accent); }
   &:hover .pDel { opacity: 1; }
 }
-// 패턴 썸네일은 프레임 비율 유지 (유닛 프리셋의 정사각과 달리 가로형이 일반적)
+// §206: 정사각 썸네일 — 유닛 프리셋 카드와 동일 문법 (프레임은 contain 중앙 배치)
 .pThumb {
-  display: block; width: 100%; aspect-ratio: 16 / 10;
+  display: block; width: 100%; aspect-ratio: 1 / 1;
   background: var(--stage-bg); border-radius: var(--radius);
 }
-.pList { display: flex; flex-direction: column; gap: 6px; }
-.pRow {
-  position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer;
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 8px;
-  &:hover { border-color: var(--accent); }
-  &:hover .pDel { opacity: 1; }
-}
-.pMini { width: 34px; height: 26px; flex-shrink: 0; background: var(--bg); border-radius: var(--radius); }
 .pName {
   font-size: var(--fs-xs); color: var(--text); margin-top: 6px; cursor: text;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .pName:hover { color: var(--accent); }
-.pRow .pName { margin-top: 0; }
 .pNameInput {
   @include text-field;
   border-color: var(--accent); padding: 1px 5px; margin-top: 4px; width: 100%;
   font-size: var(--fs-xs);
 }
-.pRow .pNameInput { margin-top: 0; flex: 1; min-width: 0; }
 .pDel {
   position: absolute; top: 3px; right: 3px; opacity: 0;
   border: none; background: var(--panel); color: var(--faint);
