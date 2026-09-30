@@ -6,6 +6,7 @@ import StepField from '../controls/StepField.vue';
 import ColorPicker from '../controls/ColorPicker.vue';
 import ColorField from '../controls/ColorField.vue';
 import { BRAND_COLORS, BRAND_COLOR_NAMES } from '../../geometry/constants.js';
+import { FRAME_PRESETS } from '../../geometry/framePresets.js';
 import { ICONS } from '../../ui/icons.js';
 import { useRecentColors } from '../../composables/useRecentColors.js';
 import { blurActive } from '../../utils/dom.js';
@@ -129,23 +130,33 @@ function onPick(c) {
         />
         <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu qf" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Quick frame</div>
-          <div class="menuRow">
-            <span class="rowLabel">width</span>
-            <StepField v-model="frameQuickCfg.w" :min="50" :max="8000" :step="10" />
+          <!-- §201: SNS 배너 프리셋 토글 — 선택 시 규격 + 안전영역 그리드로 생성 (재클릭 = 해제) -->
+          <div v-for="pp in FRAME_PRESETS" :key="pp.id" class="menuRow">
+            <button
+              class="presetTg" :class="{ on: frameQuickCfg.preset === pp.id }"
+              @click="frameQuickCfg.preset = frameQuickCfg.preset === pp.id ? null : pp.id"
+            >{{ pp.label }}</button>
+            <span class="presetDim">{{ pp.w }}×{{ pp.h }}</span>
           </div>
-          <div class="menuRow">
-            <span class="rowLabel">height</span>
-            <StepField v-model="frameQuickCfg.h" :min="50" :max="8000" :step="10" />
-          </div>
-          <!-- 그리드 초기값 — gutter는 X/Y 공유 1값, 개별 조정은 메인 패널 (§116) -->
-          <div class="menuRow">
-            <span class="rowLabel">margin</span>
-            <StepField v-model="frameQuickCfg.margin" :min="0" :max="200" :step="1" />
-          </div>
-          <div class="menuRow">
-            <span class="rowLabel">gutter</span>
-            <StepField v-model="frameQuickCfg.gutter" :min="0" :max="100" :step="1" />
-          </div>
+          <template v-if="!frameQuickCfg.preset">
+            <div class="menuRow">
+              <span class="rowLabel">width</span>
+              <StepField v-model="frameQuickCfg.w" :min="50" :max="8000" :step="10" />
+            </div>
+            <div class="menuRow">
+              <span class="rowLabel">height</span>
+              <StepField v-model="frameQuickCfg.h" :min="50" :max="8000" :step="10" />
+            </div>
+            <!-- 그리드 초기값 — gutter는 X/Y 공유 1값, 개별 조정은 메인 패널 (§116) -->
+            <div class="menuRow">
+              <span class="rowLabel">margin</span>
+              <StepField v-model="frameQuickCfg.margin" :min="0" :max="200" :step="1" />
+            </div>
+            <div class="menuRow">
+              <span class="rowLabel">gutter</span>
+              <StepField v-model="frameQuickCfg.gutter" :min="0" :max="100" :step="1" />
+            </div>
+          </template>
           <!-- §153: 퀵프레임 fill — 최근 컬러(공유 스토어) 픽커, 빈 hex = 현재 컬러 따름 -->
           <div class="menuRow">
             <span class="rowLabel">color</span>
@@ -296,6 +307,14 @@ function onPick(c) {
   .rowLabel { width: auto; }
   .menuNote { white-space: normal; }
 }
+// §201: SNS 프리셋 토글 — segMini 버튼과 동일 문법(활성 인셋 아웃라인), 우측에 규격 표기
+.presetTg {
+  border: 1px solid var(--line); border-radius: var(--radius); background: none;
+  padding: 2px 9px; font-size: var(--fs-xs); color: var(--faint);
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+  &.on { @include active-outline-inset; }
+}
+.presetDim { font-size: var(--fs-2xs); color: var(--faint); margin-left: var(--sp-3); }
 .rowLabel { color: var(--faint); width: 62px; }
 .menuNote { font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; }
 .numIn {

@@ -15,6 +15,7 @@ import ManagerBar from './ManagerBar.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
+import { framePresetById } from '../../geometry/framePresets.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
 import { useRecentColors } from '../../composables/useRecentColors.js';
 import { registerPopup, unregisterPopup } from '../../utils/popupBus.js';
@@ -149,7 +150,19 @@ function hitPointerEvents(u) {
     return eyedropType.value && u.type !== eyedropType.value ? 'none' : 'auto';
   }
   if (mode.value !== 'select') return 'auto';
-  return frameMode.value === (u.type === 'frame') ? 'auto' : 'none';
+  // §201: V(일반 선택)에서도 프레임 직접 조작 (피그마식) — 유닛이 z 상위라 유닛 우선,
+  // 프레임 몸체(빈 영역) 클릭 = 프레임. A(프레임 모드)는 유닛 패스스루 필터로 유지.
+  if (u.type === 'frame') return 'auto';
+  return frameMode.value ? 'none' : 'auto';
+}
+// §201: 포인트의 최상위 프레임 (배열 뒤 = z 위)
+function topFrameAt(wx, wy) {
+  let hit = null;
+  for (const o of props.doc.units) {
+    if (o.type !== 'frame') continue;
+    if (wx >= o.x && wx <= o.x + o.params.W && wy >= o.y && wy <= o.y + o.params.H) hit = o;
+  }
+  return hit;
 }
 // 활성 프레임 아웃라인 (§134·§135): 오프셋 없이 프레임 경계에 밀착
 const activeFrameRect = computed(() => {
@@ -229,7 +242,7 @@ if (Array.isArray(prefs.recentColors)) recentColors.value = prefs.recentColors;
 // 프레임 더블클릭 즉시 생성 크기 (프레임 툴 우클릭 메뉴에서 편집 — §85·§92)
 // margin·gutter는 통합 1값(gutter = X/Y 공유, §116 결정 — 세밀 조정은 메인 패널)
 // fill(§153): null = 현재 컬러 따름, hex = 고정 색
-const frameQuickCfg = reactive({ w: 1920, h: 1080, margin: 20, gutter: 20, fill: null, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) });
+const frameQuickCfg = reactive({ w: 1920, h: 1080, margin: 20, gutter: 20, fill: null, preset: null, ...(prefs.rectQuick || {}), ...(prefs.frameQuick || {}) }); // §201: preset = SNS 배너 프리셋 id (null = 커스텀)
 // 프로젝트 JSON 저장/열기 범위 3분류 (§88) — 카메라는 토글 없이 항상 저장·복원.
 // work = 캔버스 데이터 / tools = 도구 커스터마이즈 / viewport = 그리드·렌더 옵션
 const pickScope = (src) => ({
@@ -411,12 +424,18 @@ function onArrange() {
 }
 
 // 프레임 즉시 생성 (툴 버튼 더블클릭): frameQuickCfg 크기, 스테이지 중앙 (§85)
+// §201: SNS 배너 프리셋 선택 시 규격 + 안전영역 경계 그리드(컴프레션)로 생성
 function onFrameQuick() {
   const r = el.value.getBoundingClientRect();
   const [cx, cy] = props.viewport.toWorld(r.width / 2, r.height / 2);
-  const { w, h, margin, gutter, fill } = frameQuickCfg;
-  props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, fill || currentColor.value || null,
-    { margin, gutterX: gutter, gutterY: gutter });
+  const preset = framePresetById(frameQuickCfg.preset);
+  const fill = frameQuickCfg.fill || currentColor.value || null;
+  if (preset) {
+    props.actions.createFrame(cx - preset.w / 2, cy - preset.h / 2, preset.w, preset.h, fill, { ...preset.grid });
+  } else {
+    const { w, h, margin, gutter } = frameQuickCfg;
+    props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, fill, { margin, gutterX: gutter, gutterY: gutter });
+  }
   mode.value = 'select';
 }
 
@@ -558,26 +577,24 @@ function onKeyDown(e) {
     return;
   }
   // 방향키: 선택 유닛 view.nudge px 이동, Shift = 10배
+  // §201: 선택에 프레임이 있으면 모드와 무관하게 소유 유닛 동반 이동 (§92 확장)
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-  if (ARROWS[e.key] && props.doc.selectedIds.length && frameMode.value) {
-    // 프레임 모드 방향키: 프레임 + 소유 유닛 동반 이동 (§92)
-    e.preventDefault();
-    const [ax, ay] = ARROWS[e.key];
-    const k = (e.shiftKey ? 10 : 1) * view.nudge;
-    const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
-    const carried = frameOwnedUnits(sel.filter((x) => x.type === 'frame').map((x) => x.id));
-    props.actions.withGeomOp(() => {
-      for (const x of [...sel, ...carried]) { x.x += ax * k; x.y += ay * k; }
-    });
-    return;
-  }
   if (ARROWS[e.key] && props.doc.selectedIds.length) {
     e.preventDefault();
-    const step = e.shiftKey ? view.nudge * 10 : view.nudge;
     const [ax, ay] = ARROWS[e.key];
-    props.actions.nudgeSelected(ax * step, ay * step);
-    setLast(`nudge ${ax * step || ''}${ax ? 'px x' : ''}${ay * step || ''}${ay ? 'px y' : ''}`.trim(),
-      () => props.actions.nudgeSelected(ax * step, ay * step));
+    const step = (e.shiftKey ? 10 : 1) * view.nudge;
+    const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+    const carried = frameOwnedUnits(sel.filter((x) => x.type === 'frame').map((x) => x.id))
+      .filter((o) => !sel.includes(o));
+    if (carried.length) {
+      props.actions.withGeomOp(() => {
+        for (const x of [...sel, ...carried]) { x.x += ax * step; x.y += ay * step; }
+      });
+    } else {
+      props.actions.nudgeSelected(ax * step, ay * step);
+      setLast(`nudge ${ax * step || ''}${ax ? 'px x' : ''}${ay * step || ''}${ay ? 'px y' : ''}`.trim(),
+        () => props.actions.nudgeSelected(ax * step, ay * step));
+    }
     return;
   }
   // §98 (일러 문법): V = 항상 유닛 셀렉트, A = 항상 프레임 셀렉트 (재입력 무동작 — 해제는 V)
@@ -644,6 +661,16 @@ function onUnitDown(u, e) {
     mode.value = 'select';
     return;
   }
+  // §201: 줌아웃에서 극소(화면 8px 미만) 유닛은 아래 프레임에 히트를 양보 — 빽빽한 프레임을
+  // 빠르게 잡는 경로 (⌘딥셀렉트는 유닛 의도가 명확하므로 제외, 프레임이 없으면 유닛 유지)
+  if (!frameMode.value && u.type !== 'frame' && !(e.metaKey || e.ctrlKey)) {
+    const px = Math.max(u.params.W, u.params.H) * vp.scale;
+    if (px < SNAP_TINY_SCREEN) {
+      const [wx, wy] = props.viewport.toWorld(...local(e));
+      const f = topFrameAt(wx, wy);
+      if (f) u = f;
+    }
+  }
   // ⇧⌘+클릭 = 딥 셀렉트 멀티 토글 (그룹 계층 무시하고 개별 유닛을 선택에 추가/제거)
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
     props.actions.toggleSelect(u.id);
@@ -674,11 +701,9 @@ function onUnitDown(u, e) {
     // Alt+드래그 복제 대상: 멀티선택 안이면 선택 전체, 그룹 멤버면 그룹 전체(미선택이어도), 아니면 단일
     const inMulti = props.doc.selectedIds.includes(u.id) && props.doc.selectedIds.length > 1;
     let srcIds = inMulti ? [...props.doc.selectedIds] : [...members];
-    // 프레임 모드 복제 = 내용물 포함 (§92 확정 사양)
-    if (frameMode.value) {
-      const frameIds = srcIds.filter((id) => props.doc.units.find((x) => x.id === id)?.type === 'frame');
-      for (const o of frameOwnedUnits(frameIds)) if (!srcIds.includes(o.id)) srcIds.push(o.id);
-    }
+    // 프레임 복제 = 내용물 포함 (§92 확정 사양, §201: V 모드에서도 동일)
+    const frameIds = srcIds.filter((id) => props.doc.units.find((x) => x.id === id)?.type === 'frame');
+    for (const o of frameOwnedUnits(frameIds)) if (!srcIds.includes(o.id)) srcIds.push(o.id);
     targets =
       srcIds.length > 1
         ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
@@ -697,8 +722,8 @@ function onUnitDown(u, e) {
     props.doc.activeId = u.id;
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
-  // 프레임 모드 이동 = 소유 유닛 동반 (§92) — 복제 드래그는 위에서 이미 사본에 포함됨
-  if (frameMode.value && !e.altKey) {
+  // 프레임 이동 = 소유 유닛 동반 (§92, §201: V 모드에서도) — 복제 드래그는 위에서 이미 사본에 포함됨
+  if (!e.altKey) {
     const frameIds = targets.filter((t) => t.type === 'frame').map((t) => t.id);
     for (const o of frameOwnedUnits(frameIds)) if (!targets.includes(o)) targets.push(o);
   }
@@ -720,17 +745,20 @@ function onGroupAction(key) {
   if (key === 'flip') props.actions.flipSelected('h');
   else if (key === 'flipv') props.actions.flipSelected('v');
   else if (key === 'dup') {
-    if (frameMode.value) dupFramesWithContents();
+    // §201: 선택에 프레임이 있으면 모드와 무관하게 내용물 포함 복제
+    const hasFrame = props.doc.units.some((u) => props.doc.selectedIds.includes(u.id) && u.type === 'frame');
+    if (hasFrame) dupFramesWithContents();
     else props.actions.duplicateSelectedOffset();
   }
   else if (key === 'del') props.actions.deleteSelected();
 }
 
-// 프레임 복제 (오버레이 dup 버튼, 프레임 모드): 내용물 포함 + 40px 오프셋 (§92)
+// 프레임 복제 (오버레이 dup 버튼): 내용물 포함 + 40px 오프셋 (§92, §201: 혼합 선택도 전체 복제)
 function dupFramesWithContents() {
-  const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id) && u.type === 'frame');
-  if (!sel.length) return;
-  const owned = frameOwnedUnits(sel.map((f) => f.id));
+  const sel = props.doc.units.filter((u) => props.doc.selectedIds.includes(u.id));
+  const frames = sel.filter((u) => u.type === 'frame');
+  if (!frames.length) return;
+  const owned = frameOwnedUnits(frames.map((f) => f.id)).filter((o) => !sel.includes(o));
   const copies = props.actions.duplicateUnits([...sel, ...owned]);
   props.actions.withGeomOp(() => {
     for (const c of copies) { c.x += 40; c.y += 40; }
@@ -1356,6 +1384,17 @@ onBeforeUnmount(() => {
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
+             클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로) -->
+        <text
+          v-for="f in mode === 'select' ? doc.units.filter((x) => x.type === 'frame') : []"
+          :key="'fl' + f.id"
+          class="frameLabel"
+          :class="{ sel: doc.selectedIds.includes(f.id) }"
+          :x="f.x" :y="f.y - pxs(6)" :font-size="pxs(11)"
+          @pointerdown.stop="onUnitDown(f, $event)"
+          @contextmenu.prevent.stop
+        >{{ f.name }}</text>
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
         <rect
           v-if="activeFrameRect"
@@ -1553,6 +1592,13 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
+// §201: 프레임 이름 라벨 — 화면 고정 크기(pxs), 호버/선택 시 강조
+.frameLabel {
+  fill: var(--faint); font-family: inherit; cursor: default;
+  user-select: none; -webkit-user-select: none;
+  &:hover { fill: var(--text); }
+  &.sel { fill: var(--accent); }
+}
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
   position: absolute; top: 14px;

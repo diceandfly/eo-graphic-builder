@@ -1542,3 +1542,22 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **브랜드 컬러 리뉴얼** — 팔레트 단일 출처 `geometry/brandColors.js` 신설: name·hex·rgb·cmyk·pantone(·note). Builder Neon(#F9EE3A) · Bay Green(#66B88A) · Day Blue(#6EC6D2) · Air White(#FCFBF5) · Medium Gray(#8E8E8E) · Solid Gray(#333333) · Space Black(#000000). constants.js의 BRAND_TOKENS/COLORS/NAMES는 파생으로 전환, 내부 CSS 변수명(--eo-neon 등)은 참조 안정성 위해 구명 유지. colors.css 폴백·기본값(#3b3b3b→#333333, #EFEAE1→#FCFBF5 등)·Toolbar Space Black 칩 보정 키·MANUAL·CLAUDE.md 갱신.
 5. **출력 연계** — 작업파일 저장 JSON에 `colors` 섹션(팔레트 전체, CMYK·PANTONE 포함) 동봉: 인쇄 워크플로 참조 + 파일에서 컬러 파트 즉시 식별. (주의: 유닛 fill은 여전히 hex 직접 저장 — colors 섹션 수정만으로 기존 유닛 색이 바뀌진 않음. 기존 저장본의 구 브랜드 hex 자동 재매핑은 미구현 — 원하면 별도 라운드.)
 6. 테스트: doc 35케이스(undo 보존·redo 미오염·서브셋 분리 3종 추가).
+
+## 201. 2026-10-01 — 도움말 EN/KR·V 프레임 조작·SNS 프레임 프리셋·매니저 개명·컬러 순서
+
+1. **도움말 이중 언어** — `docs/MANUAL.en.md` 신설(전체 영문 번역, 기능 내용은 KR과 동일 유지). ManualOverlay에 EN/KR 세그먼트 토글(닫기 버튼 왼쪽, segMini 문법), **디폴트 EN**, 선택은 `localStorage('eo.manualLang')`에만 저장(프로젝트 JSON 미포함). 앵커는 언어별 자체 슬러그(스크립트 검사: KR 85·EN 84링크 무결), 3열 표 식별 헤더에 영문(Position/Tool/Button) 추가, 영문판 전용 컬럼 폭 보정(.doc.en). ⚠ 기능 수정 시 두 MD를 함께 갱신할 것.
+2. **V(일반 선택)에서 프레임 조작** — 피그마식 (사용자 합의 + 오픈 이슈 2건은 아래 결정):
+   - hitPointerEvents: select 모드에서 프레임 상시 히트 — 유닛이 z 상위라 **유닛 우선, 프레임 몸체(빈 영역) 클릭 = 프레임**. 마퀴는 빈 스테이지 시작만(프레임 위 마퀴 불가 — 피그마 트레이드오프).
+   - **드래그 의미 결정**: 누른 대상을 끈다 — 유닛을 누르면 유닛/기존 선택, 프레임 몸체를 누르면 프레임(+내용물 동반). "선택된 것 우선 이동" 같은 상태 의존 규칙은 배제(예측 가능성).
+   - **프레임 이름 라벨**(피그마식): 프레임 좌상단 바깥, 화면 고정 11px(pxs), 클릭/드래그 = 유닛이 덮여 있어도 프레임 우선 선택·이동. 호버 강조·선택 시 액센트.
+   - **극소 유닛 양보**: 화면 표시 크기 8px 미만(SNAP_TINY_SCREEN §126과 동일 기준) 유닛 클릭은 아래 프레임으로 — 줌아웃 프레임 픽 스무스화. ⌘딥셀렉트는 제외, 아래 프레임 없으면 유닛 유지.
+   - 동반 규칙 모드 통일: 이동 드래그·Alt복제·방향키·오버레이 dup 모두 "선택에 프레임이 있으면 내용물 동반"(종전 frameMode 한정 → 상시). dupFramesWithContents는 혼합 선택 전체 복제로 확장.
+   - A 모드는 유지(프레임만 잡는 필터) — 추후 애니메이션 기능이 A 키를 가져갈 때 재배치.
+3. **SNS 배너 프리셋** — `geometry/framePresets.js` 단일 출처, 퀵 프레임 팝업에 4종 토글(재클릭 해제=custom, 선택 시 w/h/margin/gutter 행 숨김). 더블클릭 생성 시 규격+안전영역 경계 그리드(컴프레션 sym, 수치 노드 검산 오차 0):
+   - YouTube 2560×1440 — 세로선 x507/2053(모바일 안전 1546), 가로선 y508.5/931.5(데스크탑 423 밴드). compX +2.3055 · compY −0.2274.
+   - X 1500×500 — 가로선 y100/400(중앙 60% 안전 밴드, 2026 가이드). compY +2.25.
+   - LinkedIn 프로필 1584×396 — x144/1440(안전폭 1296 — 가이드 1350을 comp 상한 9:1 때문에 보수 적용), y88/308(안전높이 220). compX +9 · compY +1.6875.
+   - LinkedIn 회사 1128×191 — x169.2/958.8(중앙 70% 안전폭, 모바일 좌우 10~15% 크롭 가이드). compX +4.125, rows 1.
+4. **매니저 바 개명** — layers 아이콘 = Pattern manager, EO 심볼 = Animation manager (아이콘 유지, 둘 다 coming soon).
+5. **컬러 순서 교체** — 스와치·단축키 2↔3: Builder Neon(1) · Day Blue(2) · Bay Green(3) · … (BRAND_PALETTE 배열 순서 = 스와치 순서라 팔레트에서 스왑).
+6. 검증: 브라우저에서 프리셋 생성(패널 값·경계선), V 프레임 클릭/드래그 동반 이동, 컨텍스트 메뉴 삭제, 도움말 EN 디폴트·KR 전환·복귀, 콘솔 클린. (자동화 유의: 팝업 5초 자동 닫힘 때문에 도구 호출 간격이 벌어지면 실클릭이 빈 캔버스에 떨어짐 — 한 배치로 묶을 것.)

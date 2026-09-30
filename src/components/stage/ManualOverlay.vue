@@ -1,12 +1,21 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { marked } from 'marked';
 import { ICONS } from '../../ui/icons.js';
-import manualMd from '../../../docs/MANUAL.md?raw';
+import manualKo from '../../../docs/MANUAL.md?raw';
+import manualEn from '../../../docs/MANUAL.en.md?raw';
 
-// 도움말 오버레이 (§157) — docs/MANUAL.md를 빌드에 번들(?raw)해 렌더.
-// MD 수정 → 로컬은 HMR 즉시, 배포본은 푸시 시 자동 배포로 반영. 콘텐츠 원본은 MD 파일 하나뿐.
+// 도움말 오버레이 (§157) — docs/MANUAL.md(KR)·MANUAL.en.md(EN)를 빌드에 번들(?raw)해 렌더.
+// MD 수정 → 로컬은 HMR 즉시, 배포본은 푸시 시 자동 배포로 반영. 콘텐츠 원본은 MD 파일뿐.
+// §201: EN/KR 토글 — 디폴트 EN, 선택은 localStorage에만 저장 (프로젝트 JSON 미포함)
 const emit = defineEmits(['close']);
+const LANG_KEY = 'eo.manualLang';
+const lang = ref('en');
+try { if (localStorage.getItem(LANG_KEY) === 'ko') lang.value = 'ko'; } catch { /* 스토리지 불가 환경 무시 */ }
+function setLang(l) {
+  lang.value = l;
+  try { localStorage.setItem(LANG_KEY, l); } catch { /* 스토리지 불가 환경 무시 */ }
+}
 
 // GitHub 슬러거와 동일 규칙 — MANUAL.md 목차 앵커(#1-화면-구성 등)와 일치해야 함
 function slug(text) {
@@ -47,7 +56,7 @@ const html = computed(() => {
     return `<h${depth} id="${slug(text)}">${marked.parseInline(text)}</h${depth}>`;
   };
   return marked
-    .parse(manualMd, { renderer, gfm: true })
+    .parse(lang.value === 'ko' ? manualKo : manualEn, { renderer, gfm: true })
     .replace(/\{icon:([a-zA-Z]+)\}/g, (_, n) => iconSvg(n));
 });
 
@@ -63,17 +72,29 @@ function onKey(e) {
   if (e.key === 'Escape') emit('close');
 }
 const docEl = ref(null);
-onMounted(async () => {
-  window.addEventListener('keydown', onKey);
-  // §162·§164: 2열 표(단축키·조작 안내류)는 전부 첫 컬럼 160px 고정으로 통일 — 설명 컬럼이 나머지를 차지
-  // §167: 3열 표는 표별 컬럼 배분 (첫 헤더로 식별) — 이름/도구/버튼 열은 줄바꿈 없이 내용 폭 확보
-  await nextTick();
-  const TABLE_CLASS = { '위치': 't-layout', '도구': 't-tools', '버튼': 't-view' };
+// §162·§164: 2열 표(단축키·조작 안내류)는 전부 첫 컬럼 160px 고정으로 통일 — 설명 컬럼이 나머지를 차지
+// §167: 3열 표는 표별 컬럼 배분 (첫 헤더로 식별) — 이름/도구/버튼 열은 줄바꿈 없이 내용 폭 확보
+// §201: 영문 헤더도 같은 표로 매핑 (언어 전환 시 v-html 재생성 → 재분류)
+const TABLE_CLASS = {
+  '위치': 't-layout', '도구': 't-tools', '버튼': 't-view',
+  'Position': 't-layout', 'Tool': 't-tools', 'Button': 't-view',
+};
+function classifyTables() {
   for (const t of docEl.value?.querySelectorAll('table') ?? []) {
     const ths = t.querySelectorAll('thead th, tr:first-child th');
     if (ths.length === 2) t.classList.add('kbdTable');
     else if (TABLE_CLASS[ths[0]?.textContent.trim()]) t.classList.add(TABLE_CLASS[ths[0].textContent.trim()]);
   }
+}
+onMounted(async () => {
+  window.addEventListener('keydown', onKey);
+  await nextTick();
+  classifyTables();
+});
+watch(lang, async () => {
+  await nextTick();
+  classifyTables();
+  docEl.value?.scrollTo({ top: 0 });
 });
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 // §158: 전면 입력 락 — 오버레이 위의 포인터/휠이 스테이지 핸들러(팬·줌·선택)로 버블되지 않게.
@@ -91,10 +112,15 @@ function onDimDown(e) {
     @wheel.stop @contextmenu.stop.prevent
   >
     <div class="manualPanel">
+      <!-- §201: 언어 토글 — 닫기 버튼 왼쪽, 세그먼트 버튼 문법(segMini)과 통일 -->
+      <div class="langSeg">
+        <button :class="{ on: lang === 'en' }" @click="setLang('en')">EN</button>
+        <button :class="{ on: lang === 'ko' }" @click="setLang('ko')">KR</button>
+      </div>
       <button class="closeBtn" title="close (Esc)" @click="emit('close')">
         <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
       </button>
-      <div ref="docEl" class="doc" @click="onClick" v-html="html" />
+      <div ref="docEl" class="doc" :class="lang" @click="onClick" v-html="html" />
     </div>
   </div>
 </template>
@@ -113,6 +139,20 @@ function onDimDown(e) {
   height: calc(100% - 2 * var(--sp-6));
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   display: flex; flex-direction: column; overflow: hidden;
+}
+// §201: EN/KR 토글 — 닫기 버튼 왼쪽, 툴바 segMini와 동일 문법 (닫기 버튼과 같은 높이)
+.langSeg {
+  position: absolute; top: 10px; right: 44px; z-index: 1;
+  display: flex; height: 26px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel);
+  button {
+    border: none; background: none; padding: 0 9px;
+    font-size: var(--fs-2xs); letter-spacing: var(--ls-caps);
+    color: var(--faint); font-family: inherit; cursor: pointer;
+    &:not(:last-child) { border-right: 1px solid var(--line); }
+    &.on { @include active-outline-inset; }
+  }
 }
 .closeBtn {
   position: absolute; top: 10px; right: 10px; z-index: 1;
@@ -178,5 +218,8 @@ function onDimDown(e) {
   /* 보기 옵션 (§175·§177): 좌클릭 194(+2글자) · 우클릭 206(-2글자) · 버튼 = 나머지(무줄바꿈 유지) */
   :deep(table.t-view th:nth-child(2)) { width: 194px; }
   :deep(table.t-view th:nth-child(3)) { width: 206px; }
+  /* §201: 영문판 컬럼 보정 — 무줄바꿈 열이 영문에서 더 길어지는 표만 */
+  &.en :deep(table.t-layout th:nth-child(1)) { width: 106px; }
+  &.en :deep(table.t-layout th:nth-child(2)) { width: 142px; }
 }
 </style>
