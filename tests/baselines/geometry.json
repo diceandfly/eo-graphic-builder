@@ -1,122 +1,122 @@
 {
   "default": {
-    "hash": "7cd12b1dc8dad727",
-    "bytes": 2545
+    "hash": "44675499416b9bcc",
+    "bytes": 3117
   },
   "cols-min": {
-    "hash": "bf51701b24ef8726",
-    "bytes": 817
+    "hash": "44104e6dc7ff9374",
+    "bytes": 1005
   },
   "cols-max": {
-    "hash": "95715d85ffb4b0b5",
-    "bytes": 4849
+    "hash": "3654516e8625841b",
+    "bytes": 5421
   },
   "rate-1": {
-    "hash": "7a9f1455df6208b7",
-    "bytes": 2537
+    "hash": "10cc0be36ed63306",
+    "bytes": 3297
   },
   "rate-max": {
-    "hash": "1003f3a9cca3718b",
-    "bytes": 2545
+    "hash": "b8a6790b483902fe",
+    "bytes": 2989
   },
   "dir-StoL": {
-    "hash": "dba5c35060274674",
-    "bytes": 2482
+    "hash": "505f3555f9c09c09",
+    "bytes": 3040
   },
   "gutter-0": {
-    "hash": "6ac27e03b5df55b6",
-    "bytes": 2545
+    "hash": "4ffe3fa884e87b1c",
+    "bytes": 3117
   },
   "gutter-prop": {
-    "hash": "2d7fdf7bf98bb292",
-    "bytes": 2545
+    "hash": "cd6666e9cc5cfbed",
+    "bytes": 3117
   },
   "gutter-prop-min": {
-    "hash": "7d0740e3dcb33367",
-    "bytes": 4849
+    "hash": "4cf2ac63f7c5bd35",
+    "bytes": 5421
   },
   "shaft-min": {
-    "hash": "3adf42a7cc64150c",
-    "bytes": 2544
+    "hash": "16a42c46261013f6",
+    "bytes": 3116
   },
   "shaft-max": {
-    "hash": "ea30b3548bb61b97",
-    "bytes": 2520
+    "hash": "d3d1ed855e403a05",
+    "bytes": 3098
   },
   "a-min": {
-    "hash": "a92e76ccf71defb4",
-    "bytes": 2544
+    "hash": "9dc0442bc5adb73f",
+    "bytes": 3116
   },
   "a-max": {
-    "hash": "5c87132d4ff8bcb8",
-    "bytes": 2545
+    "hash": "f2f8782963fc28b3",
+    "bytes": 3117
   },
   "b-max": {
-    "hash": "8beba46521ec82b0",
-    "bytes": 2546
+    "hash": "4171b98aa886c91e",
+    "bytes": 3122
   },
   "ab-couple": {
-    "hash": "77b37f99abcce04b",
-    "bytes": 2547
+    "hash": "6cea88e513f76cf5",
+    "bytes": 3123
   },
   "threads-one": {
-    "hash": "ebdb94b4cdccf8fa",
-    "bytes": 1373
+    "hash": "ecc86be42e7de250",
+    "bytes": 1659
   },
   "threadDir-RtoL": {
-    "hash": "58af66ecfc10a317",
-    "bytes": 2545
+    "hash": "83ce6d5c7d971667",
+    "bytes": 3117
   },
   "flipX": {
-    "hash": "7a4f7145e4acd0e8",
-    "bytes": 2482
+    "hash": "b0418b62a483829c",
+    "bytes": 3040
   },
   "flipX-StoL": {
-    "hash": "58af66ecfc10a317",
-    "bytes": 2545
+    "hash": "83ce6d5c7d971667",
+    "bytes": 3117
   },
   "orient-90": {
-    "hash": "ac690888564653b5",
-    "bytes": 2597
+    "hash": "332b945e83cc41d0",
+    "bytes": 3169
   },
   "orient-180": {
-    "hash": "0a4b266b0e41b823",
-    "bytes": 2605
+    "hash": "1971135054a2c939",
+    "bytes": 3177
   },
   "orient-270": {
-    "hash": "098f9076b29c360e",
-    "bytes": 2598
+    "hash": "ff0b14325ffdf139",
+    "bytes": 3170
   },
   "tiny-1px": {
-    "hash": "87696750c4a977f4",
+    "hash": "d90e07a514c6e8bd",
     "bytes": 2249
   },
   "tiny-10px": {
-    "hash": "953ae0b9eda60204",
+    "hash": "e9c4f1628f1cd557",
     "bytes": 2300
   },
   "tiny-wide": {
-    "hash": "fb804a5633a3f42b",
-    "bytes": 2465
+    "hash": "3becd53b81d8836d",
+    "bytes": 3047
   },
   "tiny-tall": {
-    "hash": "cba1f0938e7706ed",
+    "hash": "3f82de5ccfb34e7d",
     "bytes": 2427
   },
   "huge": {
-    "hash": "8d88115a2285f4ea",
-    "bytes": 2717
+    "hash": "1e8420fce6884c91",
+    "bytes": 3575
   },
   "combo-compress-one": {
-    "hash": "74ef9502c055394d",
-    "bytes": 1936
+    "hash": "bc8e246a30ec0cbb",
+    "bytes": 2158
   },
   "combo-flip-rot": {
-    "hash": "e18be01152d8c6ce",
-    "bytes": 2543
+    "hash": "6cc693aea9c94fe6",
+    "bytes": 3165
   },
   "combo-prop-extreme": {
-    "hash": "113e4bdb6d5e5b9f",
-    "bytes": 2543
+    "hash": "88f1a48d03edd632",
+    "bytes": 2923
   }
 }

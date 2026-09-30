@@ -375,4 +375,76 @@ function centerIn(u, f) {
   });
 }
 
+// 13. 히스토리 × 링크 (§200): undo 복원을 미러 워처가 재브로드캐스트하지 않는다
+// (발산 상태의 링크 멤버가 활성 유닛 값으로 덮어써지고 redo 스택이 오염되던 버그)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  const u2 = api.createUnit(3000, 1500);
+  api.setSelection([u1.id, u2.id]);
+  api.toggleLinkSelected();
+  api.doc.activeId = u1.id;
+  api.doc.selectedIds = [u1.id];
+  await sleep(450); // 링크 스냅샷 안정화
+  u2.params.W = 500; // 레거시 발산 상태 재현 (비활성 직접 수정 — 워처 미개입)
+  await sleep(450);
+  u1.params.W = 2000; // 활성 편집 → 미러가 u2에도 전파 (수렴)
+  await sleep(450);
+  assert.equal(u2.params.W, 2000);
+  const U = (id) => api.doc.units.find((u) => u.id === id); // undo가 유닛 객체를 교체하므로 id로 재조회
+  api.undo(); // 발산 상태(u1 960 / u2 500)로 복원되어야 함
+  await sleep(400); // 버그 재현 조건: 복원 후 워처 틱 + 디바운스 경과
+  ok('히스토리: undo가 링크 멤버의 개별 복원값을 보존', () => {
+    assert.equal(U(u1.id).params.W, 960);
+    assert.equal(U(u2.id).params.W, 500); // 버그 시 u1 값(960)으로 덮어써짐
+  });
+  api.redo();
+  ok('히스토리: undo 후 redo 스택 미오염', () => {
+    assert.equal(U(u1.id).params.W, 2000);
+    assert.equal(U(u2.id).params.W, 2000);
+  });
+}
+
+// 14. 링크 자동 분리 (§200): 지오메트리 조작이 링크 일부에만 발산을 만들면 서브셋을 새 링크로
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  const u2 = api.createUnit(3000, 1500);
+  const u3 = api.createUnit(1500, 3000);
+  api.setSelection([u1.id, u2.id, u3.id]);
+  api.toggleLinkSelected();
+  const lid0 = u1.linkId;
+  assert.ok(lid0 != null && u3.linkId === lid0);
+  // 3멤버 중 2개만 통합 스케일 → 발산 → 2개는 새 링크, 남은 1개는 자동 해체
+  api.setSelection([u1.id, u2.id]);
+  api.setSize({ W: 5000 });
+  ok('링크 분리: 서브셋 스케일 = 서브셋끼리 새 링크', () => {
+    assert.ok(u1.linkId != null && u1.linkId === u2.linkId && u1.linkId !== lid0);
+    assert.equal(u3.linkId, null); // 잔여 1멤버 자동 소멸
+  });
+  // 2멤버 링크에서 1개만 발산 → 양쪽 모두 링크 해제 (1멤버 링크는 존재 불가)
+  const u4 = api.createUnit(6000, 1000);
+  const u5 = api.createUnit(6000, 2500);
+  api.setSelection([u4.id, u5.id]);
+  api.toggleLinkSelected();
+  const u6 = api.createUnit(8000, 1000); // 링크 밖 동반 선택용
+  api.setSelection([u4.id, u6.id]);
+  api.setSize({ W: 7000 });
+  ok('링크 분리: 1개만 발산하면 전체 해제', () => {
+    assert.equal(u4.linkId, null);
+    assert.equal(u5.linkId, null);
+  });
+  // 링크 전체를 함께 조작하면 분리되지 않음
+  const u7 = api.createUnit(10000, 1000);
+  const u8 = api.createUnit(10000, 2500);
+  api.setSelection([u7.id, u8.id]);
+  api.toggleLinkSelected();
+  const lid7 = u7.linkId;
+  api.setSize({ W: 4000 }); // 전 멤버 선택 상태의 통합 스케일
+  ok('링크 분리: 전체 조작은 링크 유지', () => {
+    assert.equal(u7.linkId, lid7);
+    assert.equal(u8.linkId, lid7);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

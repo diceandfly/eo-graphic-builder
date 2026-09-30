@@ -74,7 +74,7 @@ function onPick(c) {
         :active="fill === c"
         :tip="`${BRAND_COLOR_NAMES[i]} (${i + 1})`"
         @click="emit('fill', c)"
-      ><span class="chip" :class="{ boost: BRAND_COLOR_NAMES[i] === 'SPACE BLACK' }" :style="{ background: c }" /></IconButton>
+      ><span class="chip" :class="{ boost: BRAND_COLOR_NAMES[i] === 'Space Black' }" :style="{ background: c }" /></IconButton>
       <!-- 커스텀 컬러 스와치: 칩 = 현재 커스텀 컬러, 좌클릭/C = 적용, 우클릭 = 픽커 (§125) -->
       <div class="toolWrap">
         <IconButton
@@ -150,7 +150,7 @@ function onPick(c) {
           <div class="menuRow">
             <span class="rowLabel">color</span>
             <ColorField
-              v-model="frameQuickCfg.fill" :fallback="fill || '#3b3b3b'"
+              v-model="frameQuickCfg.fill" :fallback="fill || '#333333'"
               :recents="recentColors"
               @remove-recent="removeRecentColor"
             />

@@ -27,7 +27,7 @@ export function createParams(overrides = {}) {
     threads: 'both',   // 'both' | 'one'
     threadDir: 'LtoR', // 'LtoR' | 'RtoL'
     flipX: false, // 표시 계수: 좌우 미러 (내부 rate/direction은 불변 — 플립만 다른 유닛은 mixed로 취급 안 됨)
-    fill: BRAND_COLORS[0], // EO NEON
+    fill: BRAND_COLORS[0], // Builder Neon
     showGuides: true,
     ...overrides,
   };
@@ -45,10 +45,10 @@ export function createFrameParams(overrides = {}) {
     W: 300,
     H: 200,
     orientation: 0, // 회전(W/H 스왑) 공유 경로 호환용
-    fill: '#3b3b3b',
+    fill: '#333333', // Solid Gray (§200 리뉴얼)
     fillOn: true,   // §110: fill/stroke 독립 토글 (배타 drawMode 폐기)
     strokeOn: false,
-    stroke: '#EFEAE1', // HALO WHITE — 다크 캔버스에서 보이는 기본값
+    stroke: '#FCFBF5', // Air White — 다크 캔버스에서 보이는 기본값
     strokeW: 5, // 외곽선 두께 (px 고정 — cm 표기 모드와 무관)
     unitMode: 'px', // 패널 표기 단위 'px' | 'cm' — 내부 저장은 항상 px, dpi 기준 환산 표시
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
@@ -305,13 +305,63 @@ export function useDocument() {
   let mirrorGuard = false;
   // 지오메트리 조작 가드 — 유닛별로 "다른" 값을 의도적으로 쓰는 조작(통합 스케일·회전·플립) 중에는
   // 멀티선택 브로드캐스트가 끼어들어 활성 유닛 값으로 덮어쓰지 않도록 한 틱 동안 억제.
-  let geomOp = false;
+  let geomOp = false;   // 미러 워처 억제 플래그 (틱이 끝날 때 해제)
+  let geomDepth = 0;    // 동기 중첩 카운터 — 분리 감지는 최상위 호출만 (geomOp은 틱 단위라 부적합)
   function withGeomOp(fn) {
+    if (geomDepth > 0) { fn(); return; } // 중첩 호출: 분리 감지는 최상위가 담당
+    geomDepth += 1;
     geomOp = true;
+    // §200: 링크 서브셋 발산 감지용 조작 전 스냅샷 (링크 멤버만 — 통상 소수)
+    const before = new Map();
+    for (const u of doc.units) if (u.linkId) before.set(u.id, { lid: u.linkId, json: JSON.stringify(u.params) });
     try {
       fn();
     } finally {
+      geomDepth -= 1;
       nextTick(() => { geomOp = false; }); // pre-flush 워처가 먼저 돌고 난 뒤 해제
+    }
+    splitDivergedLinks(before);
+  }
+  // §200: 지오메트리 조작이 링크의 "일부"에만 동기화 대상 키를 바꿨다면, 그 서브셋을
+  // 새 링크그룹으로 분리한다 (서브셋 칩 조작 = 분리 규칙 §129의 확장). 발산 상태를 방치하면
+  // 이후 패널 편집 한 번에 전 멤버가 갑자기 동기화되는 충돌이 생기기 때문.
+  function splitDivergedLinks(before) {
+    const changed = new Map(); // lid → Set(변경 유닛 id)
+    for (const u of doc.units) {
+      const b = before.get(u.id);
+      if (!b || u.linkId !== b.lid) continue; // 조작 중 링크 소속이 바뀐 유닛은 제외
+      if (JSON.stringify(u.params) === b.json) continue;
+      // 변경 키 중 링크 동기화 대상(무범주 키 or 스코프가 켜진 범주)이 있어야 발산
+      const prev = JSON.parse(b.json);
+      const scope = doc.linkScopes[b.lid];
+      let synced = false;
+      for (const k in u.params) {
+        if (u.params[k] === prev[k]) continue;
+        const cat = KEY_CAT[k];
+        if (!cat || !scope || scope[cat] !== false) { synced = true; break; }
+      }
+      if (!synced) continue;
+      if (!changed.has(b.lid)) changed.set(b.lid, new Set());
+      changed.get(b.lid).add(u.id);
+    }
+    let split = 0;
+    for (const [lid, ids] of changed) {
+      const members = linkMemberIds(lid);
+      if (!ids.size || ids.size >= members.length) continue; // 전 멤버 변경 = 동기 유지, 분리 불필요
+      const subset = members.filter((id) => ids.has(id));
+      if (subset.length >= 2) {
+        const nl = nextLink++;
+        doc.linkScopes[nl] = { ...(doc.linkScopes[lid] ?? linkScopeDefault()) };
+        for (const u of doc.units) if (subset.includes(u.id)) u.linkId = nl;
+      } else {
+        for (const u of doc.units) if (subset.includes(u.id)) u.linkId = null;
+      }
+      split += subset.length;
+    }
+    if (split) {
+      cleanupLinks();
+      pruneMeta();
+      notify(`Link split — ${split} edited unit${split > 1 ? 's' : ''} re-linked separately`);
     }
   }
   watch(
@@ -393,16 +443,23 @@ export function useDocument() {
     pushState(histSnap());
   }
   function applyState(snap) {
-    const { u, g, l, x } = JSON.parse(snap);
-    if (extraHist && x !== undefined) extraHist.set(x);
-    doc.units.splice(0, doc.units.length, ...u);
-    doc.groupNames = g ?? {};
-    doc.linkScopes = l ?? {};
-    doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((x) => x.id === id));
-    if (!doc.units.find((x) => x.id === doc.activeId)) {
-      doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
+    // §200: 복원은 편집이 아님 — 미러 워처가 복원분을 재브로드캐스트해 링크 멤버를
+    // 활성 유닛 값으로 덮어쓰고 스택을 오염시키던 버그 차단 (분리 감지 없이 가드만)
+    geomOp = true;
+    try {
+      const { u, g, l, x } = JSON.parse(snap);
+      if (extraHist && x !== undefined) extraHist.set(x);
+      doc.units.splice(0, doc.units.length, ...u);
+      doc.groupNames = g ?? {};
+      doc.linkScopes = l ?? {};
+      doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((x) => x.id === id));
+      if (!doc.units.find((x) => x.id === doc.activeId)) {
+        doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
+      }
+      recalcCounters(); // undo/redo 시 이름·id 카운터도 스냅샷 기준으로 복원
+    } finally {
+      nextTick(() => { geomOp = false; });
     }
-    recalcCounters(); // undo/redo 시 이름·id 카운터도 스냅샷 기준으로 복원
   }
   function undo() {
     flushHistory();

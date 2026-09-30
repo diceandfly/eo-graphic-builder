@@ -20,7 +20,7 @@ export const G_MAX = 0.5;        // proportional 거터 비율 상한
 export const G_STEP = 0.005;     // proportional 거터 슬라이더 step
 export const GUTTER_MAX = 50;    // gutterPx 슬라이더 상한 (px) — min(GUTTER_MAX, W/cols)
 export const THREAD_MIN_PX = 1; // thread 최소 폭 하한 — 문서 px 절대값 (§108: "1px 미만 라인 보정"이 목적이라 유닛 크기 무관 절대 기준으로 전환, 비율 방식 폐기)
-export const THREAD_OVERLAP = 1; // thread를 shaft 쪽으로 1px 파묻어 AA 유격 제거
+// (THREAD_OVERLAP은 §200에서 폐기 — 스레드가 샤프트 중앙까지 파고들어 오버랩 불필요)
 export const UNIT_MIN = 20;      // 유닛 W/H 내부 가드 하한 기본값 (px, §109: 2→20 상향). 런타임 조정은 LIMITS.unitMin
 export const UNIT_MAX = 8000;    // 유닛 W/H 내부 가드 상한 (px)
 // 런타임 조정 가능한 지오메트리 하한 (§87) — 기본값 = 위 상수, 줌% 우클릭 메뉴에서 편집.
@@ -38,30 +38,14 @@ export const STAGE_GRID_MIN = 20;   // 격자 하한 — 과소 간격의 렌더
 export const STAGE_GRID_MAX = 1000;
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 8;
-// 브랜드 스와치 (도형 fill) — styles/tokens/colors.css의 네임드 토큰과 값 동기 유지
-// EO NEON · WORLD GREEN · HORIZON BLUE · HALO WHITE · VOID GREY
-// ── 브랜드 컬러 단일 출처 (§68 부채 정리) ──
-// 여기가 유일한 정의처: main.js가 부팅 시 CSS 1층 토큰(--eo-neon 등)으로 주입한다.
-// colors.css의 1층 값은 첫 페인트용 폴백일 뿐 — 색 변경은 반드시 여기서.
-export const BRAND_TOKENS = {
-  'eo-neon': '#F9EE48',
-  'world-green': '#55BB73',
-  'horizon-blue': '#6ECBD6',
-  'space-black': '#0B0B0B',
-  'steel-grey': '#8E8E8E', // §125: 구 VOID GREY에서 개명
-  'void-grey': '#3B3B3B',  // §125: 신규 (7번 스와치)
-  'halo-white': '#EFEAE1',
-};
-// 스와치 구성 (표시 순서 — §146 확정: Y G B W SG VG SB, 커스텀 C가 마지막)
-const SWATCHES = [
-  ['EO NEON', 'eo-neon'],
-  ['WORLD GREEN', 'world-green'],
-  ['HORIZON BLUE', 'horizon-blue'],
-  ['HALO WHITE', 'halo-white'],
-  ['STEEL GREY', 'steel-grey'],
-  ['VOID GREY', 'void-grey'],
-  ['SPACE BLACK', 'space-black'],
-];
-export const BRAND_COLORS = SWATCHES.map(([, k]) => BRAND_TOKENS[k]);
+// ── 브랜드 스와치 (도형 fill) — §200: 팔레트 단일 출처는 geometry/brandColors.js ──
+// 여기서는 팔레트를 파생 형태(토큰 맵·스와치 배열)로만 노출한다.
+// main.js가 부팅 시 CSS 1층 토큰(--eo-neon 등)으로 주입 — colors.css의 1층 값은
+// 첫 페인트용 폴백일 뿐. 색 변경은 반드시 brandColors.js에서.
+import { BRAND_PALETTE } from './brandColors.js';
+export { BRAND_PALETTE };
+export const BRAND_TOKENS = Object.fromEntries(BRAND_PALETTE.map((c) => [c.token, c.hex]));
+// 스와치 표시 순서 = 팔레트 배열 순서 (§146: Y G B W MG SG SB, 커스텀 C가 마지막)
+export const BRAND_COLORS = BRAND_PALETTE.map((c) => c.hex);
 // BRAND_COLORS와 인덱스 1:1 — 스와치 툴팁·단축키(1~6) 안내용
-export const BRAND_COLOR_NAMES = SWATCHES.map(([n]) => n);
+export const BRAND_COLOR_NAMES = BRAND_PALETTE.map((c) => c.name);

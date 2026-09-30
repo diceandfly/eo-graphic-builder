@@ -4,7 +4,7 @@ import { ref, watch } from 'vue';
 // 커스텀 컬러 픽커 — SV 패드 + 휴 바 + hex 입력. 전부 DOM/토큰 스타일 (네이티브 창 없음).
 // grayscale (§134): SV/휴 대신 밝기 바 하나 — 워크스페이스 색(캔버스/격자)처럼 무채색 한정 필드용.
 const props = defineProps({
-  modelValue: { type: String, default: '#F9EE48' },
+  modelValue: { type: String, default: '#F9EE3A' },
   grayscale: Boolean,
 });
 const emit = defineEmits(['update:modelValue']);

@@ -4,6 +4,7 @@ import { useDocument } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { deriveUnit } from './geometry/derive.js';
+import { BRAND_PALETTE } from './geometry/brandColors.js';
 import { downloadSvg, downloadCompositeSvg, buildSelectionSvg } from './export/exportSvg.js';
 import { copyTextToClipboard, copySvgAsPng } from './utils/clipboard.js';
 import { saveFileAs } from './utils/saveFile.js';
@@ -140,6 +141,8 @@ const readJson = (key, fallback) => {
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 function saveProject(scope = {}) {
   const data = { version: 3, camera: { ...viewport.vp } };
+  // §200: 브랜드 팔레트 동봉 — 출력(인쇄) 워크플로용 CMYK/PANTONE 참조 + 파일에서 컬러 파트 즉시 식별
+  data.colors = BRAND_PALETTE;
   if (scope.work !== false) {
     data.units = doc.units;
     data.groupNames = doc.groupNames;

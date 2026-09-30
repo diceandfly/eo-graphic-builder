@@ -222,7 +222,7 @@ const arrangeCfg = reactive({ gapX: 40, gapY: 40, columns: 0, ...migrateArrange(
 // 현재 컬러 — 선택 없을 때 스와치로 지정, 그리기 툴 기본값
 const currentColor = ref(prefs.currentColor || null);
 // 커스텀 컬러 (7번 스와치) — 우클릭 픽커로 편집
-const customColor = ref(prefs.customColor || '#3b3b3b');
+const customColor = ref(prefs.customColor || '#333333'); // Solid Gray (§200)
 // 최근 사용 컬러 — 공유 스토어(§110: 패널 stroke 팝업과 공용). 영속은 아래 prefs 워처.
 const { recentColors, commitRecentColor } = useRecentColors();
 if (Array.isArray(prefs.recentColors)) recentColors.value = prefs.recentColors;

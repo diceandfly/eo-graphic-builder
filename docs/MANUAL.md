@@ -205,7 +205,7 @@ EO Graphic Builder는 나사축 단면 모티프를 통해 브랜드 에셋을 �
 
 ## 7. 컬러
 
-- **컬러 바**: 브랜드 7색 — EO NEON(1) · WORLD GREEN(2) · HORIZON BLUE(3) · HALO WHITE(4) · STEEL GREY(5) · VOID GREY(6) · SPACE BLACK(7). 숫자 키로도 바로 적용됩니다
+- **컬러 바**: 브랜드 7색 — Builder Neon(1) · Bay Green(2) · Day Blue(3) · Air White(4) · Medium Gray(5) · Solid Gray(6) · Space Black(7). 숫자 키로도 바로 적용됩니다
 - **커스텀 컬러(C)**: 클릭하면 적용, **{icon:mouseR}우클릭**하면 원하는 색을 고르는 픽커가 열립니다
 - 선택한 오브젝트가 있으면 그 오브젝트의 색이 바뀌고, 없으면 "다음에 만들 오브젝트의 색"으로 기억됩니다
 - **최근 사용한 색**: 직접 고른 색은 자동으로 최대 6개까지 기억되어, 커스텀 픽커·[프레임 테두리 픽커](#9-프레임)·[퀵 프레임 픽커](#8-도구-바) 어디서든 다시 쓸 수 있습니다. 지우려면 색 칩을 {icon:mouseR}우클릭하세요

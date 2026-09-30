@@ -1,17 +1,18 @@
 /* ─── 컬러 토큰 ───────────────────────────────────────
    구조: 브랜드 네임드 토큰(1층) → 시맨틱 토큰(2층)이 참조.
-   ⚠ 1층의 단일 출처는 src/geometry/constants.js BRAND_TOKENS —
+   ⚠ 1층의 단일 출처는 src/geometry/brandColors.js BRAND_PALETTE —
    main.js가 부팅 시 여기 값을 덮어쓴다. 아래 정적 값은 첫 페인트용 폴백.
-   브랜드 색 변경은 constants.js에서만 할 것 (§68). */
+   브랜드 색 변경은 brandColors.js에서만 할 것 (§68·§200).
+   변수명은 구명 유지(참조 안정성) — 표시명은 §200 리뉴얼 네이밍. */
 :root {
-  /* ── 1층: 브랜드 네임드 컬러 (폴백 — 단일 출처는 constants.js) */
-  --eo-neon: #f9ee48;
-  --world-green: #55bb73;
-  --horizon-blue: #6ecbd6;
-  --space-black: #0b0b0b;
-  --steel-grey: #8e8e8e; /* §125: 구 void-grey 개명 */
-  --void-grey: #3b3b3b;  /* §125: 신규 7번 스와치 */
-  --halo-white: #efeae1;
+  /* ── 1층: 브랜드 네임드 컬러 (폴백 — 단일 출처는 brandColors.js) */
+  --eo-neon: #f9ee3a;      /* Builder Neon */
+  --world-green: #66b88a;  /* Bay Green */
+  --horizon-blue: #6ec6d2; /* Day Blue */
+  --space-black: #000000;  /* Space Black */
+  --steel-grey: #8e8e8e;   /* Medium Gray (§125: 구 void-grey 개명) */
+  --void-grey: #333333;    /* Solid Gray (§125: 신규 7번 스와치) */
+  --halo-white: #fcfbf5;   /* Air White */
 
   /* ── 2층: 시맨틱 — 표면 */
   --bg: var(--space-black);   /* 앱/스테이지 배경 */
