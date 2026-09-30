@@ -44,7 +44,8 @@ const fpsHot = computed(() => fps.value != null && fps.value < 30);
 
 <style scoped lang="scss">
 .resmon {
-  position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + var(--bar-h, 42px) + 10px);
+  /* §203: 보기 그룹(우상단)의 부속 — 바 바로 아래에 표시 */
+  position: absolute; right: var(--sp-6); top: calc(var(--sp-6) + var(--bar-h, 42px) + 10px);
   /* §141: 3항목을 코너 바 폭(160px)에 등분 고정 — 자릿수 변동에도 전체 텍스트 밀림 없음 */
   width: 160px;
   display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none;

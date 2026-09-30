@@ -38,8 +38,7 @@ Click a description to jump to the details.
 ### Tools & Modes
 | Key | Action |
 |---|---|
-| V | {icon:select}[Normal select mode (units + frames)](#5-select-move-transform) |
-| A | [Frame-only select mode](#9-frames) |
+| V | {icon:select}[Select mode (units + frames)](#5-select-move-transform) — zoomed out it goes [frame-first](#9-frames) automatically |
 | F | {icon:frame}[Draw a frame](#9-frames) |
 | I | {icon:eyedrop}[Eyedropper](#8-toolbar) |
 | B | {icon:blend}[Run blend](#8-toolbar) |
@@ -92,10 +91,10 @@ EO Graphic Builder is a parametric graphic tool for building brand assets from a
 |---|---|---|
 | Left | **Main panel** | Changes with your selection — nothing selected: [preset list](#14-unit-presets) / unit selected: [shape controls](#6-unit-parameters-main-panel) / frame selected: [frame settings](#9-frames) |
 | Top left | **File bar** | {icon:manual}[Help](#13-view-options-corner-bar) · {icon:save}[Save](#save-and-open-as-a-file-file-bar) · {icon:open}[Open](#save-and-open-as-a-file-file-bar) · {icon:resetArrow}[Reset](#reset-file-bar) |
-| Top right | **Manager bar** | Pattern manager · Animation manager (coming soon) |
+| Top right | **Corner bar (view)** | [Background grid · selection box · grid display · zoom level](#13-view-options-corner-bar) |
 | Bottom left | **Align bar** | [Align · distribute](#11-align-and-arrange) |
 | Bottom center | **Color bar + toolbar** | [7 brand colors + custom](#7-color) / [select · frame · eyedropper · blend · arrange tools](#8-toolbar) |
-| Bottom right | **Corner bar (view)** | [Background grid · selection box · grid display · zoom level](#13-view-options-corner-bar) |
+| Bottom right | **Manager bar** | Pattern manager · Animation manager (coming soon) |
 
 **{icon:mouseL}Left-click = run, {icon:mouseR}right-click = options** is the rule for every button. Numbers next to sliders can also be typed in directly.
 
@@ -107,7 +106,7 @@ EO Graphic Builder is a parametric graphic tool for building brand assets from a
 |---|---|
 | Pan | **Hold Space and drag**, or two-finger scroll on a trackpad |
 | Zoom | **⌘(Ctrl)+scroll** or trackpad pinch |
-| Back to 100% | Click the **% number** at the bottom right |
+| Back to 100% | Click the **% number** at the top right |
 | Change background color/grid | {icon:mouseR}Right-click the grid button in the [corner bar](#13-view-options-corner-bar) (black-and-white tones) |
 
 ---
@@ -180,7 +179,7 @@ Select a unit to shape it in the left panel. Click the name at the top of the pa
 
 | Tool | {icon:mouseL}Left-click / key | {icon:mouseR}Right-click |
 |---|---|---|
-| {icon:select}**Select** | [Normal select mode](#5-select-move-transform) (V) — units and frames | Switch to [frame-only mode](#9-frames) (A) |
+| {icon:select}**Select** | [Select mode](#5-select-move-transform) (V) — units and frames. Zoomed out it switches to [frame-first](#9-frames) automatically and the icon becomes a filled arrow | — |
 | {icon:frame}**Frame** | Draw a [frame](#9-frames) (F) — made at the size you drag. **Double-click** the button to create one instantly at a preset size | Quick frame options: [social banner presets](#9-frames) · size · margin · gutter · color |
 | {icon:eyedrop}**Eyedropper** | Eyedropper (I) | Choose what to pick up: color / size / grid / shape & style / orientation |
 | {icon:blend}**Blend** | Run blend (B) | Direction · repeat count · gap · scale change |
@@ -211,8 +210,8 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 
 ### Selecting Frames
 - **Frames can be selected and moved in V (normal select) too** — where a unit overlaps, the unit wins; click an empty area or the **name label at the top left** to grab the frame
-- When you zoom out far enough that a frame looks small, clicking anywhere inside it grabs the frame — so you can pick frames from a distance
-- {icon:select}**A (frame-only mode)**: press **A** or {icon:mouseR}right-click the select tool. Only frames get clicked, units are passed through — use it to drag a frame by a spot covered in units. **V** returns to normal
+- **Zoom out below a certain level and the select tool goes frame-first automatically** — the toolbar icon becomes a filled arrow, and clicking or dragging over units grabs the frame. Handy for picking and moving frames from a distance
+- The switching level is set under **Frame first below** in the [% badge {icon:mouseR}right-click menu](#13-view-options-corner-bar) (0 = off)
 
 ### How do contents follow?
 - A unit whose center is inside a frame counts as its content (topmost frame wins when frames overlap)
@@ -269,7 +268,7 @@ Dragging an object gets automatic help:
 | {icon:canvasGrid}Background grid | Show/hide the grid | Background & grid colors (b/w) · grid size · snap to grid · reset |
 | {icon:boxSelect}Selection box | Show/hide selection marks | Nudge distance · group outlines · link icon display |
 | {icon:unitGrid}Unit/frame grids | Show/hide both grids at once (G) | Unit minimum size · thread minimum thickness · grid color · unit/frame grids individually |
-| % badge | Back to 100% | Seam compensation on/off |
+| % badge | Back to 100% | Seam compensation · [frame-first switching level](#9-frames) |
 
 - **Unit min / Thread min** — floors that keep units from getting smaller, and [threads (teeth)](#6-unit-parameters-main-panel) from being drawn thinner, than these values
 - **Resource monitor** — {icon:mouseR}right-click the {icon:manual}help button to toggle. Shows object count, memory, and responsiveness

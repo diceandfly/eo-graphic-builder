@@ -131,12 +131,11 @@ const selBounds = computed(() => {
 const mode = ref('select'); // 'select' | 'eyedrop' | 'frame'
 // ── 프레임 조작 모드 (§92) — 선택툴 우클릭으로 커서 스왑 ──
 // on: 프레임만 선택·조작(이동 시 내용물 동반), 유닛 패스스루 / off: 유닛 조작, 프레임 패스스루
-const frameMode = ref(false);
-function toggleFrameMode() {
-  frameMode.value = !frameMode.value;
-  props.actions.deselect(); // 모드 전환 시 혼합 선택 방지
-  toast(frameMode.value ? 'Frame select (A) — V returns to units' : 'Unit select (V)');
-}
+// §203: 프레임 우선 모드는 줌 배율 자동 — 경계(framePickZoom %) 미만으로 축소되면
+// 선택 도구가 프레임 우선(구 A 모드 문법: 유닛 패스스루)으로 전환되고 툴바 아이콘도 바뀐다.
+// 수동 전환(A 키·셀렉트 우클릭)은 §203에서 제거 — A 키는 추후 애니메이션 기능이 가져감.
+// 경계는 % 배지 우클릭 팝업에서 설정 (0 = 자동 전환 끔).
+const frameMode = computed(() => vp.scale < (view.framePickZoom || 0) / 100);
 // 소유권 판정 (§92) — 어레인지와 공유하는 문서 로직이라 useDocument로 이동, 여기선 위임
 const frameOwnedUnits = (frameIds) => props.actions.frameOwnedUnits(frameIds);
 // 스포이드 타깃 필터 (§137): 선택과 같은 타입만 포인터 히트 —
@@ -155,18 +154,8 @@ function hitPointerEvents(u) {
   if (u.type === 'frame') return 'auto';
   return frameMode.value ? 'none' : 'auto';
 }
-// §202: 오버뷰 프레임픽 임계 — 프레임의 화면 최대 변이 이보다 작으면 내부 클릭 = 프레임.
-// 1920px 프레임 기준 줌 ~15% 이하가 오버뷰로 판정되는 크기.
-const FRAME_PICK_SCREEN = 280;
-// §201: 포인트의 최상위 프레임 (배열 뒤 = z 위)
-function topFrameAt(wx, wy) {
-  let hit = null;
-  for (const o of props.doc.units) {
-    if (o.type !== 'frame') continue;
-    if (wx >= o.x && wx <= o.x + o.params.W && wy >= o.y && wy <= o.y + o.params.H) hit = o;
-  }
-  return hit;
-}
+// (§202의 프레임 화면 크기 임계·topFrameAt은 §203에서 폐기 — 줌 경계 자동 모드가
+//  유닛 패스스루로 같은 효과를 냄. 클릭 지점 프레임 탐색이 다시 필요하면 git 이력 참조)
 // 활성 프레임 아웃라인 (§134·§135): 오프셋 없이 프레임 경계에 밀착
 const activeFrameRect = computed(() => {
   const fid = props.actions.activeFrameId.value;
@@ -210,6 +199,7 @@ const view = reactive({
   nudge: 5, showLinks: true, showGroups: true, guideColor: null,
   stageGridColor: null, stageBgColor: null,
   seamOn: true, seamCutoff: 40, // seam 스트로크 보정: 줌 < cutoff% 에서만 (§86)
+  framePickZoom: 20, // §203: 이 줌(%) 미만 = 프레임 우선 선택 (0 = 끔)
   resMon: false, // 리소스 모니터 표시 (§86)
   ...(prefs.view || {}),
 });
@@ -600,16 +590,9 @@ function onKeyDown(e) {
     }
     return;
   }
-  // §98 (일러 문법): V = 항상 유닛 셀렉트, A = 항상 프레임 셀렉트 (재입력 무동작 — 해제는 V)
+  // V = 선택 도구 복귀 (§203: 프레임 우선 모드는 줌 자동 — A 키 수동 전환 제거, 추후 애니메이션용)
   if (!mod && !e.shiftKey && e.code === 'KeyV') {
     mode.value = 'select';
-    if (frameMode.value) toggleFrameMode();
-    return;
-  }
-  if (!mod && !e.shiftKey && e.code === 'KeyA') {
-    e.preventDefault();
-    mode.value = 'select';
-    if (!frameMode.value) toggleFrameMode();
     return;
   }
   if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
@@ -663,15 +646,6 @@ function onUnitDown(u, e) {
     props.actions.absorbFrom(u, { ...eyedropScope });
     mode.value = 'select';
     return;
-  }
-  // §201·§202: 줌아웃 프레임픽 — 클릭 지점의 프레임이 화면에 작게(오버뷰 스케일로) 보이면
-  // 유닛 대신 프레임을 잡는다. 기준을 유닛 크기(8px)에서 "프레임의 화면 표시 크기"로 교체:
-  // 유닛 기준은 최소 줌에서도 기본 유닛(960px)이 48px라 발동하지 않아 무의미했음.
-  // (⌘딥셀렉트는 유닛 의도가 명확하므로 제외, 프레임이 없으면 유닛 유지)
-  if (!frameMode.value && u.type !== 'frame' && !(e.metaKey || e.ctrlKey)) {
-    const [wx, wy] = props.viewport.toWorld(...local(e));
-    const f = topFrameAt(wx, wy);
-    if (f && Math.max(f.params.W, f.params.H) * vp.scale < FRAME_PICK_SCREEN) u = f;
   }
   // ⇧⌘+클릭 = 딥 셀렉트 멀티 토글 (그룹 계층 무시하고 개별 유닛을 선택에 추가/제거)
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {
@@ -1509,7 +1483,6 @@ onBeforeUnmount(() => {
       @blend="onBlend"
       @arrange="onArrange"
       @frame-quick="onFrameQuick"
-      @toggle-frame-mode="toggleFrameMode"
       @update:custom-color="(c) => (customColor = c)"
     />
     <FileBar

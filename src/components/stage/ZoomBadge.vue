@@ -71,7 +71,7 @@ function resetGridDefaults() {
     <FloatingBar>
       <div class="optWrap">
         <IconButton
-          :paths="ICONS.canvasGrid" :active="stageGrid" tip-align="right"
+          :paths="ICONS.canvasGrid" :active="stageGrid" tip-side="bottom" tip-align="right"
           :tip="openMenu === 'grid' ? '' : stageGrid ? 'Hide Canvas Grid' : 'Show Canvas Grid'"
           @click="$emit('toggleStageGrid')"
           @contextmenu="onContext('grid', $event)"
@@ -109,7 +109,7 @@ function resetGridDefaults() {
       </div>
       <div class="optWrap">
         <IconButton
-          :paths="ICONS.boxSelect" :active="bbox" tip-align="right"
+          :paths="ICONS.boxSelect" :active="bbox" tip-side="bottom" tip-align="right"
           :tip="openMenu === 'bbox' ? '' : bbox ? 'Hide Bounding Box' : 'Show Bounding Box'"
           @click="$emit('toggleBbox')"
           @contextmenu="onContext('bbox', $event)"
@@ -138,7 +138,7 @@ function resetGridDefaults() {
       </div>
       <div class="optWrap">
         <IconButton
-          :paths="ICONS.unitGrid" :active="guides" tip-align="right"
+          :paths="ICONS.unitGrid" :active="guides" tip-side="bottom" tip-align="right"
           :tip="openMenu === 'unit' ? '' : guides ? 'Hide unit/frame grid (G)' : 'Show unit/frame grid (G)'"
           @click="$emit('toggleGuides')"
           @contextmenu="onContext('unit', $event)"
@@ -177,7 +177,7 @@ function resetGridDefaults() {
       </div>
       <div class="optWrap">
         <IconButton
-          class="zoom" tip-align="right"
+          class="zoom" tip-side="bottom" tip-align="right"
           :tip="openMenu === 'zoom' ? '' : 'Reset zoom (100%)'"
           @click="$emit('reset')"
           @contextmenu="onContext('zoom', $event)"
@@ -204,6 +204,11 @@ function resetGridDefaults() {
               @update:model-value="setSeamCutoff"
             />
           </label>
+          <!-- §203: 선택 도구의 프레임 우선 전환 경계 (줌 % 미만 = 프레임 우선, 0 = 끔) -->
+          <label class="sect menuRow">
+            <span class="rowLabel">Frame first below</span>
+            <StepField v-model="view.framePickZoom" :min="0" :max="200" :step="5" />
+          </label>
         </div>
       </div>
     </FloatingBar>
@@ -211,13 +216,13 @@ function resetGridDefaults() {
 </template>
 
 <style scoped lang="scss">
-.corner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); }
+.corner { position: absolute; right: var(--sp-6); top: var(--sp-6); } /* §203: 보기 그룹 = 우상단 (고급기능과 스왑) */
 .zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
 .optWrap { position: relative; }
-// §202: 팝업 공통 문법은 popup-menu 믹스인 — 여기선 앵커(코너 바 위, 우측 정렬)만
+// §202: 팝업 공통 문법은 popup-menu 믹스인 — §203: 상단 바라 메뉴는 아래로 드롭, 우측 정렬
 .menu {
   @include popup-menu;
-  position: absolute; bottom: calc(100% + 14px); right: 0;
+  position: absolute; top: calc(100% + 14px); right: 0;
 }
 .miniBtn {
   @include bordered-control;
