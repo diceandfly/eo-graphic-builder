@@ -103,7 +103,7 @@ function bump(d) {
 <style scoped lang="scss">
 .row { margin-bottom: 10px; } /* §138: 패널 행 리듬 10px 통일 */
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
+.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--dim); } /* §212 */
 .auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }
 .prefix {
   margin-left: auto; margin-right: 6px;

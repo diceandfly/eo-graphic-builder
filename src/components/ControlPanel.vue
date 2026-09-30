@@ -528,7 +528,7 @@ function setStrokeColor(c) {
 .unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
 .ratioHead {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 6px;
+  color: var(--dim); margin-bottom: 6px; /* §212 */
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
@@ -572,7 +572,7 @@ section > :last-child { margin-bottom: 0; }
 }
 .dpiWrap {
   display: flex; align-items: center; gap: 5px; margin-left: 4px;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint);
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--dim); /* §212 */
 }
 // NumberField 입력과 동일 규격 (W/H 행과 가로 정렬, §76)
 .dpiInput {
@@ -628,7 +628,7 @@ section > :last-child { margin-bottom: 0; }
 }
 .rowLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase;
-  color: var(--faint); flex: 1;
+  color: var(--dim); flex: 1; /* §212: 라벨층 = dim */
 }
 .colorPrev {
   width: 14px; height: 14px; flex-shrink: 0;

@@ -23,7 +23,7 @@ defineEmits(['update:modelValue']);
 
 <style scoped lang="scss">
 .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; } /* §138 */
-.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
+.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--dim); } /* §212 */
 .seg { display: flex; border: 1px solid var(--line);   border-radius: var(--radius);
 }
 .seg button {

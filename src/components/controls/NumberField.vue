@@ -52,7 +52,7 @@ function onKey(e) {
 
 <style scoped lang="scss">
 .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--faint); }
+.label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); text-transform: uppercase; color: var(--dim); } /* §212: 라벨층 = dim */
 input {
   @include text-field;
   width: 58px; padding: 3px 8px; text-align: right;

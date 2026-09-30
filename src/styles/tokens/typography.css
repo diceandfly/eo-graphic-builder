@@ -16,13 +16,13 @@
   --fs-sm: 12px;
   --fs-md: 13px;
 
-  /* ── 자간 (5종 → 3종 흡수 확정: 0.04→base, 0.06→wide) ──
+  /* ── 자간 (§212 재설계: 자간을 벌려 위계를 올리던 방식 폐기 — 위계는 크기·웨이트·회색도가 담당)
      base: 라벨·칩·토글·값 등 일반 UI 텍스트
      wide: 브랜드 타이틀·ghost 버튼 등 강조 소자
-     caps: 섹션 타이틀 (SIZE/GRID/…) */
-  --ls-base: 0.03em;
-  --ls-wide: 0.08em;
-  --ls-caps: 0.16em;
+     caps: 섹션 타이틀 (SIZE/GRID/…) — 대문자 최소 가독 자간만 유지 */
+  --ls-base: 0.01em;
+  --ls-wide: 0.04em;
+  --ls-caps: 0.06em;
 
   /* ── 굵기 ── */
   --fw-regular: 400;

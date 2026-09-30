@@ -286,7 +286,7 @@ Save unit shapes you use often and bring them back anytime.
 - {icon:presetAdd}**Register**: click a unit, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register unit preset
 - **Use**: open the panel with the unit presets button (**U**) in the bottom-right preset bar, then **drag a card onto the canvas** to create it right where you drop it (double-click = center of the view)
 - **Organize**: click a card to select it, **⇧click** for multi-select · drag onto another card to reorder, **drag onto a folder card to move it inside** · double-click a name to rename · 2/3/4/6-column toggle at the top right
-- **Folders**: `+ folder` creates one, click a folder to open it, `‹` goes back to everything, `⤒` moves the selection out of its folder. Search covers every folder and shows a folder badge on results
+- **Folders**: `+ folder` creates one, click a folder to open it, `← back` returns to everything, `move out` moves the selection out of its folder (both buttons appear only when relevant). Search covers every folder and shows a folder badge on results
 - {icon:mouseR}**Right-click menu**: acts on the whole selection at once — Duplicate · Rename · Delete
 - {icon:trash}**Delete**: click the × at a thumbnail's top right twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your preset collection as a file

@@ -21,8 +21,9 @@
 
   /* 라인·텍스트 — 그레이 7종 (추후 통폐합 검토 예정) */
   --line: #262626;
-  --text: #ececec;
-  --faint: #7c7c7c;
+  --text: #ececec;   /* 주 텍스트·값 */
+  --dim: #a2a2a2;    /* §212: 라벨층 — 자간 대신 회색도로 위계 (text > dim > faint) */
+  --faint: #7c7c7c;  /* 보조 설명·노트·placeholder */
   --disabled: #4a4a4a;
 
   /* 액센트 — UI 선택/활성 (도형 기본색과 통일: EO NEON) */
