@@ -283,9 +283,10 @@ Dragging an object gets automatic help:
 Save unit shapes you use often and bring them back anytime.
 
 - {icon:presetAdd}**Register**: click a unit, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register unit preset
-- **Use**: press the unit presets button (EO symbol) in the bottom-right preset bar to open the list panel. Click one to create it at the center of the view (search box · click a name to rename · 3/4/6-column toggle at the top right)
+- **Use**: press the unit presets button (EO symbol) in the bottom-right preset bar to open the list panel. Click one to create it at the center of the view (search box · **+ register selection** to register the current selection · click a name to rename · 2/3/4/6-column toggle at the top right · drag cards to reorder)
 - {icon:trash}**Delete**: click the × at a thumbnail's top right twice within 3 seconds (mistake-proofing)
 - **Share**: the EXPORT/IMPORT JSON buttons move your preset collection as a file
+- **Update**: drag a unit from the canvas onto a preset card to overwrite that preset with its current shape
 - Register and delete can be undone with ⌘Z
 
 ---
@@ -315,7 +316,8 @@ Your work keeps saving to the browser without you doing anything. Reload and the
 Save a frame together with the unit layout inside it, and bring the whole thing back anytime — the frame-level counterpart of [unit presets](#14-unit-presets).
 
 - {icon:patternAdd}**Register**: select a frame, then [{icon:mouseR}right-click menu](#5-select-move-transform) → Register pattern preset — the frame's settings and its units (layout, [groups and links](#10-groups-and-links) included) are saved under the frame's name
-- {icon:layers}**Use**: press the pattern presets button in the bottom-right preset bar to open the list panel. Click a pattern to create it whole at the center of the view (search box · click a name to rename · 3/4/6-column toggle at the top right)
+- {icon:layers}**Use**: press the pattern presets button in the bottom-right preset bar to open the list panel. Click a pattern to create it whole at the center of the view (search box · **+ register selection** to register the current selection · click a name to rename · 2/3/4/6-column toggle at the top right · drag cards to reorder)
 - {icon:trash}**Delete**: click a card's × twice within 3 seconds (mistake-proofing)
+- **Update**: drag a frame from the canvas onto a pattern card to overwrite that pattern with the frame's current state
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file
 - Register and delete can be undone with ⌘Z

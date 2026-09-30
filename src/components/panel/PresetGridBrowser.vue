@@ -14,13 +14,31 @@ const props = defineProps({
   showExportSvg: Boolean,
   viewBoxOf: { type: Function, required: true }, // item → svg viewBox 문자열
   thumbAspect: { type: String, default: '1 / 1' }, // §208: 패턴은 16 / 9
+  canRegister: Boolean,       // §209: 현재 선택을 바로 등록할 수 있는 상태인지 (호스트 판정)
+  registerTip: { type: String, default: 'register current selection' },
 });
-const emit = defineEmits(['place', 'remove', 'rename', 'exportJson', 'importJson', 'exportSvg']);
+const emit = defineEmits(['place', 'remove', 'rename', 'exportJson', 'importJson', 'exportSvg', 'registerCurrent', 'reorder']);
+
+// §209: 카드 드래그 정렬 (HTML5 DnD — 패널 내부 한정)
+const dragId = ref(null);
+const overId = ref(null);
+function onDragStart(p) {
+  dragId.value = p.id;
+}
+function onDropCard(p) {
+  if (dragId.value != null && String(dragId.value) !== String(p.id)) emit('reorder', dragId.value, p.id);
+  dragId.value = null;
+  overId.value = null;
+}
+function onDragEnd() {
+  dragId.value = null;
+  overId.value = null;
+}
 
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 
-// §208: 열 수 토글 (3/4/6) — 두 프리셋 패널이 공유, 로컬 영속
-const cols = ref(['3', '4', '6'].includes(localStorage.getItem('eo.presetCols')) ? localStorage.getItem('eo.presetCols') : '4');
+// §208·§209: 열 수 토글 (2/3/4/6) — 두 프리셋 패널이 공유, 로컬 영속
+const cols = ref(['2', '3', '4', '6'].includes(localStorage.getItem('eo.presetCols')) ? localStorage.getItem('eo.presetCols') : '4');
 watch(cols, (v) => localStorage.setItem('eo.presetCols', v));
 
 // 이름 검색 — 타이틀 행 우측 (§207)
@@ -80,16 +98,31 @@ function onFile(e) {
       <h2>{{ title }}</h2>
       <Toggle
         class="colToggle" v-model="cols"
-        :options="[{ value: '3', label: '3' }, { value: '4', label: '4' }, { value: '6', label: '6' }]"
+        :options="[{ value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '6', label: '6' }]"
       />
     </div>
-    <input v-model="q" class="pSearch" type="text" placeholder="search" spellcheck="false" />
+    <!-- §209: 검색 축소 + 현재 선택 바로 등록 버튼 -->
+    <div class="searchRow">
+      <input v-model="q" class="pSearch" type="text" placeholder="search" spellcheck="false" />
+      <button
+        class="regBtn" :disabled="!canRegister" :title="registerTip"
+        @click="emit('registerCurrent')"
+      >+ register selection</button>
+    </div>
     <div class="gridArea">
       <div v-if="!items.length" class="pEmpty">{{ emptyText }}</div>
       <div v-else-if="!filtered.length" class="pEmpty">no matches for "{{ q }}"</div>
       <div v-else class="pGrid" :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }">
         <div
           v-for="p in filtered" :key="p.id" class="pCard"
+          :class="{ dropTarget: overId != null && String(overId) === String(p.id) && String(dragId) !== String(p.id) }"
+          :data-pid="p.id"
+          draggable="true"
+          @dragstart="onDragStart(p)"
+          @dragover.prevent="overId = p.id"
+          @dragleave="overId === p.id && (overId = null)"
+          @drop.prevent="onDropCard(p)"
+          @dragend="onDragEnd"
           @click="emit('place', p)"
           @contextmenu.prevent.stop="openMenu(p, $event)"
         >
@@ -153,10 +186,19 @@ function onFile(e) {
   }
 }
 .colToggle { margin-bottom: 0; }
+.searchRow { display: flex; gap: 6px; margin-bottom: 10px; }
 .pSearch {
   @include text-field;
-  width: 100%; box-sizing: border-box; font-size: var(--fs-xs);
-  padding: 4px 8px; margin-bottom: 10px;
+  flex: 1; min-width: 0; box-sizing: border-box; font-size: var(--fs-xs);
+  padding: 4px 8px;
+}
+// §209: 현재 선택 바로 등록 — 유닛 패널 = 단일 유닛, 패턴 패널 = 단일 프레임일 때 활성
+.regBtn {
+  @include bordered-control;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 4px 10px;
+  white-space: nowrap;
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  &:disabled { opacity: 0.4; cursor: default; }
 }
 .gridArea {
   flex: 1; min-height: 0; overflow-y: auto;
@@ -174,6 +216,8 @@ function onFile(e) {
   border: 1px solid var(--line); border-radius: var(--radius); padding: 6px;
   &:hover { border-color: var(--accent); }
   &:hover .pDel { opacity: 1; }
+  /* §209: 드래그 정렬 대상 표시 — 삽입 위치(앞) */
+  &.dropTarget { border-color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
 }
 // 썸네일 — contain 중앙 배치 (SVG preserveAspectRatio meet 기본값), 비율은 호스트 지정 (§208)
 .pThumb {

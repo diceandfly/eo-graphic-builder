@@ -242,6 +242,11 @@ const stageActions = {
   presetExportJson: presetsApi.exportJson,
   presetImportJson: presetsApi.importJson,
   presetExportSvg: exportPreset,
+  // §209: 드래그 정렬 · 캔버스 드롭 덮어쓰기
+  presetReorder: presetsApi.reorder,
+  presetUpdate: presetsApi.updateParams,
+  patternReorder: patternsApi.reorder,
+  patternUpdate: patternsApi.update,
 };
 </script>
 

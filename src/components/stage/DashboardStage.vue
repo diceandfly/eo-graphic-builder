@@ -230,6 +230,25 @@ async function onImportPresets(file) {
   const n = await props.actions.presetImportJson(file);
   toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
 }
+// §209: 패널의 "+ register selection" — 현재 선택을 바로 등록 (우클릭 메뉴와 동일 조건)
+const soloSelected = computed(() =>
+  props.doc.selectedIds.length === 1
+    ? props.doc.units.find((u) => u.id === props.doc.selectedIds[0]) ?? null
+    : null
+);
+const canRegUnitHere = computed(() => !!soloSelected.value && isPresetable(soloSelected.value));
+const canRegPatternHere = computed(() => soloSelected.value?.type === 'frame');
+function registerFromSelection() {
+  const u = soloSelected.value;
+  if (!u) return;
+  if (presetPanel.value === 'units' && isPresetable(u)) {
+    const p = props.actions.registerPreset(u);
+    toast(`Registered "${p.name}"`);
+  } else if (presetPanel.value === 'patterns' && u.type === 'frame') {
+    const p = props.actions.registerPattern(u);
+    if (p) toast(`Registered "${p.name}"`);
+  }
+}
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
@@ -1248,7 +1267,42 @@ function findGapSnap(axis, D, others, SNAP) {
   return best;
 }
 
+// §209: 이동 드래그를 프리셋 카드 위에서 놓으면 그 프리셋을 현재 오브젝트로 덮어쓴다.
+// 처리 시 오브젝트는 원위치로 복귀 (이동이 아니라 업데이트 제스처). 복제 드래그(alt)는 제외.
+function dropOnPresetCard(e) {
+  if (!presetPanel.value || drag.kind !== 'move' || drag.altDup) return false;
+  const card = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.pCard');
+  if (!card) return false;
+  const pid = card.dataset.pid;
+  for (const t of drag.targets) { t.u.x = t.x0; t.u.y = t.y0; } // 원위치 복귀
+  const frames = drag.targets.filter((t) => t.u.type === 'frame');
+  const units = drag.targets.filter((t) => t.u.type === 'unit');
+  if (presetPanel.value === 'units') {
+    if (units.length === 1 && !frames.length) {
+      const r = props.actions.presetUpdate(pid, units[0].u.params);
+      toast(r ? `Updated preset "${r.name}"` : 'Default Unit cannot be overwritten');
+    } else {
+      toast('Drop a single unit to update a preset');
+    }
+  } else if (frames.length === 1) {
+    // 프레임 드래그는 내용물이 동반되므로 frames 1개면 패턴 갱신 대상
+    const r = props.actions.patternUpdate(pid, props.actions.capturePattern(frames[0].u.id));
+    toast(r ? `Updated pattern "${r.name}"` : 'Could not update that pattern');
+  } else {
+    toast('Drop a single frame to update a pattern');
+  }
+  return true;
+}
+
 function onUp(e) {
+  if (drag && dropOnPresetCard(e)) {
+    drag = null;
+    keyCandidate = null;
+    smartGuides.value = [];
+    gapGuides.value = [];
+    window.removeEventListener('pointermove', onMove);
+    return;
+  }
   if (drag) {
     if (drag.kind === 'move' && keyCandidate != null) {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
@@ -1376,7 +1430,7 @@ onBeforeUnmount(() => {
     :style="{
       ...(view.guideColor ? { '--unit-guide': view.guideColor } : {}),
       ...(view.stageGridColor ? { '--stage-grid': view.stageGridColor } : {}),
-      ...(view.stageBgColor ? { background: view.stageBgColor } : {}),
+      ...(view.stageBgColor ? { background: view.stageBgColor, '--label-halo': view.stageBgColor } : {}),
     }"
     @wheel="onWheel"
     @pointerdown="onStageDown"
@@ -1452,7 +1506,10 @@ onBeforeUnmount(() => {
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
         <g
-          v-for="f in mode === 'select' ? doc.units.filter((x) => x.type === 'frame') : []"
+          v-for="f in mode === 'select'
+            ? [...doc.units.filter((x) => x.type === 'frame')]
+              .sort((a, b) => (doc.selectedIds.includes(a.id) ? 1 : 0) - (doc.selectedIds.includes(b.id) ? 1 : 0))
+            : []"
           :key="'fl' + f.id"
           class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
@@ -1609,11 +1666,15 @@ onBeforeUnmount(() => {
         empty-text="right-click a frame to register a pattern"
         thumb-aspect="16 / 9"
         :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
+        :can-register="canRegPatternHere"
+        register-tip="register the selected frame as a pattern"
         @place="onPlacePattern"
         @remove="(id) => props.actions.patternRemove(id)"
         @rename="(id, name) => props.actions.patternRename(id, name)"
         @export-json="props.actions.patternExportJson"
         @import-json="onImportPatterns"
+        @register-current="registerFromSelection"
+        @reorder="(a, b) => props.actions.patternReorder(a, b)"
       >
         <template #thumb="{ item }">
           <rect
@@ -1634,12 +1695,16 @@ onBeforeUnmount(() => {
         protected-id="default"
         show-export-svg
         :view-box-of="(p) => `0 0 ${p.params.W} ${p.params.H}`"
+        :can-register="canRegUnitHere"
+        register-tip="register the selected unit as a preset"
         @place="onPlacePreset"
         @remove="(id) => props.actions.presetRemove(id)"
         @rename="(id, name) => props.actions.presetRename(id, name)"
         @export-json="props.actions.presetExportJson"
         @import-json="onImportPresets"
         @export-svg="(p) => props.actions.presetExportSvg(p)"
+        @register-current="registerFromSelection"
+        @reorder="(a, b) => props.actions.presetReorder(a, b)"
       >
         <template #thumb="{ item }">
           <UnitGraphic :params="item.params" :seam-width="0.75" />
@@ -1761,6 +1826,12 @@ onBeforeUnmount(() => {
     fill: color-mix(in srgb, var(--text) 45%, var(--faint));
     font-family: inherit;
     user-select: none; -webkit-user-select: none;
+    /* §209: 겹친 프레임의 라벨이 서로 얽혀 읽히지 않던 문제 — 배경색 후광으로 맨 위 라벨만 또렷하게
+       (선택된 프레임 라벨은 렌더 순서상 항상 맨 위) */
+    paint-order: stroke;
+    stroke: var(--label-halo, var(--stage-bg));
+    stroke-width: 0.25em;
+    stroke-linejoin: round;
   }
   &:hover .frameLabel { fill: var(--text); }
   &.sel .frameLabel { fill: var(--accent); }

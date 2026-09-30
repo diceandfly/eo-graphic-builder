@@ -8,6 +8,9 @@ import { saveFileAs } from '../utils/saveFile.js';
 const KEY = 'eo.presets';
 const DEFAULT_PRESET = Object.freeze({ id: 'default', name: 'Default Unit', params: createParams() });
 
+// §209: id 유니크 보장 — Date.now()만으로는 같은 밀리초 연속 등록(빠른 클릭·테스트)에서 충돌
+const newId = () => Date.now() + Math.random();
+
 export function usePresets() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch { saved = []; }
@@ -30,7 +33,7 @@ export function usePresets() {
   }
   function register(params, baseName) {
     const base = (baseName || '').trim() || `Preset-${stored.length + 1}`;
-    const preset = { id: Date.now(), name: uniqueName(base), params: { ...params } };
+    const preset = { id: newId(), name: uniqueName(base), params: { ...params } };
     stored.push(preset);
     return preset;
   }
@@ -45,6 +48,23 @@ export function usePresets() {
     if (id === 'default') return;
     const i = stored.findIndex((p) => p.id === id);
     if (i !== -1) stored.splice(i, 1);
+  }
+  // §209: 드래그 정렬 — from을 to 앞에 삽입 (Default는 항상 맨 앞 고정이라 대상 밖)
+  function reorder(fromId, toId) {
+    if (fromId === 'default' || String(fromId) === String(toId)) return;
+    const fi = stored.findIndex((p) => String(p.id) === String(fromId));
+    if (fi === -1) return;
+    const [item] = stored.splice(fi, 1);
+    const ti = toId === 'default' ? 0 : stored.findIndex((p) => String(p.id) === String(toId));
+    stored.splice(ti === -1 ? stored.length : ti, 0, item);
+  }
+  // §209: 캔버스에서 카드로 드래그 = 프리셋 덮어쓰기 (이름 유지, Default 보호)
+  function updateParams(id, params) {
+    if (id === 'default') return null;
+    const p = stored.find((x) => String(x.id) === String(id));
+    if (!p) return null;
+    p.params = { ...params };
+    return p;
   }
   function rename(id, name) {
     if (id === 'default') return;
@@ -72,7 +92,7 @@ export function usePresets() {
     for (const p of list) {
       if (p && p.params && Number.isFinite(p.params.W)) {
         stored.push({
-          id: Date.now() + n,
+          id: newId(),
           name: uniqueName(String(p.name || 'Preset').trim() || 'Preset'),
           params: { ...p.params },
         });
@@ -82,5 +102,5 @@ export function usePresets() {
     return n;
   }
 
-  return { presets, register, remove, rename, exportJson, importJson, serialize, restore };
+  return { presets, register, remove, rename, reorder, updateParams, exportJson, importJson, serialize, restore };
 }

@@ -6,6 +6,9 @@ import { saveFileAs } from '../utils/saveFile.js';
 // (capturePattern/placePattern) — 여기는 목록·이름·입출력만 담당한다 (usePresets와 대칭).
 const KEY = 'eo.patterns';
 
+// §209: id 유니크 보장 — Date.now()만으로는 같은 밀리초 연속 등록(빠른 클릭·테스트)에서 충돌
+const newId = () => Date.now() + Math.random();
+
 export function usePatterns() {
   let saved;
   try { saved = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch { saved = []; }
@@ -28,7 +31,7 @@ export function usePatterns() {
   function register(data, baseName) {
     if (!data) return null;
     const base = (baseName || '').trim() || 'Pattern';
-    const pattern = { id: Date.now(), name: uniqueName(base), ...data };
+    const pattern = { id: newId(), name: uniqueName(base), ...data };
     stored.push(pattern);
     return pattern;
   }
@@ -42,6 +45,22 @@ export function usePatterns() {
   function remove(id) {
     const i = stored.findIndex((p) => p.id === id);
     if (i !== -1) stored.splice(i, 1);
+  }
+  // §209: 드래그 정렬 — from을 to 앞에 삽입
+  function reorder(fromId, toId) {
+    if (String(fromId) === String(toId)) return;
+    const fi = stored.findIndex((p) => String(p.id) === String(fromId));
+    if (fi === -1) return;
+    const [item] = stored.splice(fi, 1);
+    const ti = stored.findIndex((p) => String(p.id) === String(toId));
+    stored.splice(ti === -1 ? stored.length : ti, 0, item);
+  }
+  // §209: 캔버스에서 카드로 프레임 드래그 = 패턴 덮어쓰기 (이름·id 유지)
+  function update(id, data) {
+    const p = stored.find((x) => String(x.id) === String(id));
+    if (!p || !data) return null;
+    Object.assign(p, JSON.parse(JSON.stringify(data)));
+    return p;
   }
   function rename(id, name) {
     const t = String(name).trim();
@@ -69,7 +88,7 @@ export function usePatterns() {
       if (p && p.frame && Number.isFinite(p.frame.W) && Array.isArray(p.units)) {
         stored.push({
           ...JSON.parse(JSON.stringify(p)),
-          id: Date.now() + n,
+          id: newId(),
           name: uniqueName(String(p.name || 'Pattern').trim() || 'Pattern'),
         });
         n += 1;
@@ -78,5 +97,5 @@ export function usePatterns() {
     return n;
   }
 
-  return { patterns: stored, register, remove, rename, exportJson, importJson, serialize, restore };
+  return { patterns: stored, register, remove, rename, reorder, update, exportJson, importJson, serialize, restore };
 }
