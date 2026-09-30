@@ -155,6 +155,9 @@ function hitPointerEvents(u) {
   if (u.type === 'frame') return 'auto';
   return frameMode.value ? 'none' : 'auto';
 }
+// §202: 오버뷰 프레임픽 임계 — 프레임의 화면 최대 변이 이보다 작으면 내부 클릭 = 프레임.
+// 1920px 프레임 기준 줌 ~15% 이하가 오버뷰로 판정되는 크기.
+const FRAME_PICK_SCREEN = 280;
 // §201: 포인트의 최상위 프레임 (배열 뒤 = z 위)
 function topFrameAt(wx, wy) {
   let hit = null;
@@ -661,15 +664,14 @@ function onUnitDown(u, e) {
     mode.value = 'select';
     return;
   }
-  // §201: 줌아웃에서 극소(화면 8px 미만) 유닛은 아래 프레임에 히트를 양보 — 빽빽한 프레임을
-  // 빠르게 잡는 경로 (⌘딥셀렉트는 유닛 의도가 명확하므로 제외, 프레임이 없으면 유닛 유지)
+  // §201·§202: 줌아웃 프레임픽 — 클릭 지점의 프레임이 화면에 작게(오버뷰 스케일로) 보이면
+  // 유닛 대신 프레임을 잡는다. 기준을 유닛 크기(8px)에서 "프레임의 화면 표시 크기"로 교체:
+  // 유닛 기준은 최소 줌에서도 기본 유닛(960px)이 48px라 발동하지 않아 무의미했음.
+  // (⌘딥셀렉트는 유닛 의도가 명확하므로 제외, 프레임이 없으면 유닛 유지)
   if (!frameMode.value && u.type !== 'frame' && !(e.metaKey || e.ctrlKey)) {
-    const px = Math.max(u.params.W, u.params.H) * vp.scale;
-    if (px < SNAP_TINY_SCREEN) {
-      const [wx, wy] = props.viewport.toWorld(...local(e));
-      const f = topFrameAt(wx, wy);
-      if (f) u = f;
-    }
+    const [wx, wy] = props.viewport.toWorld(...local(e));
+    const f = topFrameAt(wx, wy);
+    if (f && Math.max(f.params.W, f.params.H) * vp.scale < FRAME_PICK_SCREEN) u = f;
   }
   // ⇧⌘+클릭 = 딥 셀렉트 멀티 토글 (그룹 계층 무시하고 개별 유닛을 선택에 추가/제거)
   if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey) {

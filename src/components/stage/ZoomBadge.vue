@@ -86,15 +86,15 @@ function resetGridDefaults() {
           <div class="menuTitle">Canvas grid setting</div>
           <!-- §134: 워크스페이스 색은 무채색 한정 픽커 -->
           <div class="menuRow">
-            <span class="rowGrow">Canvas color</span>
+            <span class="rowLabel">Canvas color</span>
             <ColorField v-model="view.stageBgColor" fallback="var(--stage-bg)" grayscale />
           </div>
           <div class="menuRow">
-            <span class="rowGrow">Grid color</span>
+            <span class="rowLabel">Grid color</span>
             <ColorField v-model="view.stageGridColor" fallback="var(--stage-grid)" grayscale />
           </div>
           <label class="menuRow">
-            <span class="rowGrow">Grid size</span>
+            <span class="rowLabel">Grid size</span>
             <StepField
               :model-value="gridCfg.size" :min="STAGE_GRID_MIN" :max="STAGE_GRID_MAX" :step="10"
               @update:model-value="setGridSize"
@@ -123,7 +123,7 @@ function resetGridDefaults() {
         >
           <div class="menuTitle">Bounding box setting</div>
           <label class="menuRow">
-            <span class="rowGrow">Arrow nudge</span>
+            <span class="rowLabel">Arrow nudge</span>
             <StepField :model-value="view.nudge" :min="1" :max="500" :step="1" @update:model-value="setNudge" />
           </label>
           <label class="menuRow">
@@ -152,15 +152,15 @@ function resetGridDefaults() {
         >
           <div class="menuTitle">Unit setting</div>
           <label v-if="limits" class="menuRow">
-            <span class="rowGrow">Unit min</span>
+            <span class="rowLabel">Unit min</span>
             <StepField v-model="limits.unitMin" :min="1" :max="200" :step="5" />
           </label>
           <label v-if="limits" class="menuRow">
-            <span class="rowGrow">Thread min</span>
+            <span class="rowLabel">Thread min</span>
             <StepField v-model="limits.threadMinPx" :min="0" :max="50" :step="0.5" />
           </label>
           <div class="menuRow">
-            <span class="rowGrow">Unit/frame grid color</span>
+            <span class="rowLabel">Unit/frame grid color</span>
             <ColorField v-model="view.guideColor" fallback="var(--guide)" />
           </div>
           <!-- §132: 개별 표시 토글 — 코너 아이콘 좌클릭은 둘 다 켜고 끄는 마스터 -->
@@ -198,7 +198,7 @@ function resetGridDefaults() {
             <span>Auto seam stroke</span>
           </label>
           <label class="menuRow">
-            <span class="rowGrow">Off above zoom</span>
+            <span class="rowLabel">Off above zoom</span>
             <StepField
               :model-value="view.seamCutoff" :min="10" :max="400" :step="5"
               @update:model-value="setSeamCutoff"
@@ -214,22 +214,11 @@ function resetGridDefaults() {
 .corner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); }
 .zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
 .optWrap { position: relative; }
+// §202: 팝업 공통 문법은 popup-menu 믹스인 — 여기선 앵커(코너 바 위, 우측 정렬)만
 .menu {
+  @include popup-menu;
   position: absolute; bottom: calc(100% + 14px); right: 0;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 10px 12px;
-  display: flex; flex-direction: column; gap: var(--sp-3);
 }
-.menuTitle {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 2px; white-space: nowrap;
-}
-.menuRow {
-  display: flex; align-items: center; gap: var(--sp-3);
-  font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
-}
-.rowGrow { flex: 1; }
-.sect { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
 .miniBtn {
   @include bordered-control;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;

@@ -447,4 +447,57 @@ function centerIn(u, f) {
   });
 }
 
+// 15. 링크 × 회전 (§202): 개별 회전은 링크 유지, 사이즈 동기는 로컬 치수 + 멤버 중심 앵커
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 960×800
+  const u2 = api.createUnit(3000, 1500);
+  api.setSelection([u1.id, u2.id]);
+  api.toggleLinkSelected(); // 기본 스코프: size on / orientation off
+  const lid = u1.linkId;
+  api.doc.activeId = u2.id;
+  api.doc.selectedIds = [u2.id];
+  api.rotate(1); // u2만 개별 회전 (orientation 스코프 off) — W/H 스왑
+  await sleep(10);
+  ok('링크 회전: 개별 회전은 링크를 깨지 않음 (로컬 치수 불변)', () => {
+    assert.equal(u2.linkId, lid);
+    assert.equal(u2.params.orientation, 90);
+    assert.deepEqual([u2.params.W, u2.params.H], [800, 960]);
+  });
+  const cx = u2.x + u2.params.W / 2;
+  const cy = u2.y + u2.params.H / 2;
+  api.doc.activeId = u1.id;
+  api.doc.selectedIds = [u1.id];
+  await sleep(10); // 활성 전환 안정화 (미러 워처의 id 비교)
+  u1.params.W = 1200; // 활성 편집 → 링크 동기
+  await sleep(10);
+  ok('링크 사이즈: 회전 멤버는 로컬 치수로 매핑 (캔버스 W/H 스왑 반영)', () => {
+    assert.deepEqual([u2.params.W, u2.params.H], [800, 1200]);
+  });
+  ok('링크 사이즈: 멤버 앵커 = 자기 중심 고정', () => {
+    assert.equal(u2.x + u2.params.W / 2, cx);
+    assert.equal(u2.y + u2.params.H / 2, cy);
+  });
+}
+
+// 16. 유닛 이름 (§202): 프리셋 이름 승계 + 복제·붙여넣기도 동일 이름
+{
+  const api = fresh();
+  const u = api.createUnitFrom({ W: 500, H: 400 }, 0, 0, 'My Preset');
+  assert.equal(u.name, 'My Preset');
+  const d = api.duplicateFrom(u);
+  api.setSelection([u.id]);
+  api.copyActive();
+  api.pasteAt(5000, 5000); // 붙여넣기 후 사본이 선택됨
+  const p = api.doc.units.find((x) => api.doc.selectedIds.includes(x.id));
+  ok('이름: 프리셋 이름 생성·복제·붙여넣기 승계', () => {
+    assert.equal(d.name, 'My Preset');
+    assert.equal(p.name, 'My Preset');
+  });
+  const f = api.createFrame(0, 0, 300, 200);
+  ok('이름: 프레임은 Frame-N 유지', () => {
+    assert.match(f.name, /^Frame-\d+$/);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

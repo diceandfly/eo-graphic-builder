@@ -226,7 +226,7 @@ export function useDocument() {
       if (u.id === source.id) continue;
       if (u.type !== source.type) continue; // 타입이 다른 오브젝트에는 흡수 불가
       if (direct.has(u.id)) Object.assign(u.params, patch);
-      else if (viaLink.has(u.id)) Object.assign(u.params, filterByLinkScope(patch, viaLink.get(u.id)));
+      else if (viaLink.has(u.id)) applyLinkPatch(u, filterByLinkScope(patch, viaLink.get(u.id)), source.params);
     }
   }
   // ── 링크 확산 공용 헬퍼 (§68 부채 정리) ──
@@ -255,6 +255,23 @@ export function useDocument() {
       if (!cat || scope[cat] !== false) out[k] = patch[k];
     }
     return out;
+  }
+  // §202: 링크 패치 적용 단일 경로 — W/H는 "로컬(회전 반영) 치수"로 동기화하고 멤버는
+  // 항상 자기 중심 앵커를 유지한다. orientation이 다른 멤버가 소스의 캔버스 W/H를 그대로
+  // 받아 논리 축이 어긋나고 앵커가 제각각으로 보이던 문제의 해결 (orientation은 개별 운용).
+  // W/H가 아닌 키는 종전대로 그대로 복사. 링크로 W/H가 전파되는 모든 경로는 이 함수를 거칠 것.
+  const localDims = (p) => (p.orientation === 90 || p.orientation === 270 ? [p.H, p.W] : [p.W, p.H]);
+  function applyLinkPatch(member, patch, srcParams) {
+    const { W, H, ...rest } = patch;
+    Object.assign(member.params, rest); // orientation 패치가 있으면 먼저 반영 (아래 매핑 기준)
+    if (W === undefined && H === undefined) return;
+    const [lw, lh] = localDims(srcParams); // 소스의 로컬 치수 (패치 반영된 현재값)
+    const odd = member.params.orientation === 90 || member.params.orientation === 270;
+    const [nw, nh] = odd ? [lh, lw] : [lw, lh];
+    member.x += (member.params.W - nw) / 2; // 중심 앵커 고정
+    member.y += (member.params.H - nh) / 2;
+    member.params.W = nw;
+    member.params.H = nh;
   }
 
   const active = computed(() => doc.units.find((u) => u.id === doc.activeId) ?? null);
@@ -337,6 +354,12 @@ export function useDocument() {
       let synced = false;
       for (const k in u.params) {
         if (u.params[k] === prev[k]) continue;
+        // §202: W/H는 로컬 치수로 비교 — 개별 회전의 W/H 스왑은 발산이 아님 (링크 동기화도 로컬 치수 기준)
+        if (k === 'W' || k === 'H') {
+          const [pw, ph] = localDims(prev);
+          const [cw, ch] = localDims(u.params);
+          if (pw === cw && ph === ch) continue;
+        }
         const cat = KEY_CAT[k];
         if (!cat || !scope || scope[cat] !== false) { synced = true; break; }
       }
@@ -399,7 +422,7 @@ export function useDocument() {
       mirrorGuard = true;
       for (const u of doc.units) {
         if (selT.has(u.id)) Object.assign(u.params, patch);
-        else if (linkT.has(u.id) && Object.keys(linkPatch).length) Object.assign(u.params, linkPatch);
+        else if (linkT.has(u.id) && Object.keys(linkPatch).length) applyLinkPatch(u, linkPatch, me.params);
       }
       mirrorGuard = false;
       // 멀티선택 편집이 여러 유닛에 퍼졌음을 1회성 토스트로 안내
@@ -486,7 +509,7 @@ export function useDocument() {
     const cx = (bb.minX + bb.maxX) / 2;
     const cy = (bb.minY + bb.maxY) / 2;
     clipboard = src.map((u) => ({
-      type: u.type, params: { ...u.params }, linkId: u.linkId,
+      type: u.type, name: u.name, params: { ...u.params }, linkId: u.linkId,
       groups: [...u.groups], dx: u.x - cx, dy: u.y - cy,
     }));
   }
@@ -504,7 +527,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, type: it.type, name: nextName(it.type),
+        id, type: it.type, name: it.type === 'unit' && it.name ? it.name : nextName(it.type), // §202: 유닛은 원본 이름 유지
         x: Math.round(x + it.dx), y: Math.round(y + it.dy),
         groups, linkId: it.linkId, params: { ...it.params },
       });
@@ -515,12 +538,16 @@ export function useDocument() {
     pruneMeta();
   }
 
-  function pushUnit(params, x, y, linkId = null, type = 'unit') {
+  // §202: 유닛 이름은 프리셋 이름을 그대로 쓴다 (Unit-N 넘버링 폐지 — 프레임은 Frame-N 유지).
+  // 넘버링 카운터(nextUnitVer)는 애니메이션 기능에서 쓸 수 있어 보존.
+  function pushUnit(params, x, y, linkId = null, type = 'unit', name = null) {
     const id = nextId++;
-    doc.units.push({ id, type, name: nextName(type), x, y, groups: [], linkId, params });
+    doc.units.push({ id, type, name: name ?? nextName(type), x, y, groups: [], linkId, params });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
+  // 복제류 공용: 유닛은 원본 이름 유지, 프레임은 새 번호
+  const copyName = (u) => (u.type === 'unit' ? u.name : nextName(u.type));
   // 프레임 생성 (그리기 툴 F) — fill 기본값은 현재 컬러(없으면 createFrameParams 기본)
   // grid: 그리드 파라미터 오버라이드 { margin, gutterX, gutterY } (퀵프레임 설정, §116)
   function createFrame(x, y, W = 300, H = 200, fill = null, grid = null) {
@@ -531,12 +558,12 @@ export function useDocument() {
   }
   function createUnit(x = 0, y = 0) {
     const params = createParams();
-    return pushUnit(params, Math.round(x - params.W / 2), Math.round(y - params.H / 2));
+    return pushUnit(params, Math.round(x - params.W / 2), Math.round(y - params.H / 2), null, 'unit', 'Default Unit');
   }
-  // 프리셋 파라미터로 유닛 생성 (구버전 프리셋은 createParams 기본값으로 보충)
-  function createUnitFrom(params, x = 0, y = 0) {
+  // 프리셋 파라미터로 유닛 생성 (구버전 프리셋은 createParams 기본값으로 보충) — 이름 = 프리셋 이름 (§202)
+  function createUnitFrom(params, x = 0, y = 0, name = null) {
     const p = createParams({ ...params });
-    return pushUnit(p, Math.round(x - p.W / 2), Math.round(y - p.H / 2));
+    return pushUnit(p, Math.round(x - p.W / 2), Math.round(y - p.H / 2), null, 'unit', name);
   }
 
   function renameActive(name) {
@@ -565,7 +592,7 @@ export function useDocument() {
   }
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type);
+    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type, u.type === 'unit' ? u.name : null);
   }
   // 복수 유닛 동시 복제 — 상대 위치 그대로, 그룹 구조는 사본끼리 새 gid로 재구성, 링크 승계
   function duplicateUnits(units) {
@@ -581,7 +608,7 @@ export function useDocument() {
         return gidMap.get(g);
       });
       doc.units.push({
-        id, type: u.type, name: nextName(u.type), x: u.x, y: u.y,
+        id, type: u.type, name: copyName(u), x: u.x, y: u.y,
         groups, linkId: u.linkId, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
@@ -781,7 +808,7 @@ export function useDocument() {
       }
       for (const u of sel) {
         u.linkId = lid;
-        if (u !== src) Object.assign(u.params, patch);
+        if (u !== src) applyLinkPatch(u, patch, src.params); // §202: W/H 로컬 치수·중심 앵커 규칙 공유
       }
       cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
       pruneMeta();
@@ -915,7 +942,7 @@ export function useDocument() {
       const y = axis === 'v' ? Math.round(cursor + gap) : u.y;
       const id = nextId++;
       doc.units.push({
-        id, type: u.type, name: nextName(u.type),
+        id, type: u.type, name: copyName(u),
         x, y, groups: [], linkId: null, params: p,
       });
       const nu = doc.units[doc.units.length - 1];
@@ -961,7 +988,7 @@ export function useDocument() {
         }
         const id = nextId++;
         doc.units.push({
-          id, type: u.type, name: nextName(u.type),
+          id, type: u.type, name: copyName(u),
           x, y, groups: [gid], linkId: null, params: p,
         });
         const nu = doc.units[doc.units.length - 1];
@@ -1201,7 +1228,7 @@ export function useDocument() {
     nextGroup = 1;
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
-      id: nextId++, type: 'unit', name: nextName('unit'), x: 0, y: 0,
+      id: nextId++, type: 'unit', name: 'Default Unit', x: 0, y: 0, // §202: 유닛 넘버링 폐지
       groups: [], linkId: null, params: createParams(),
     });
     doc.activeId = doc.units[0].id;

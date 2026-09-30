@@ -133,19 +133,9 @@ function onFile(e) {
 // 패널이 스테이지 위 오버레이가 되면서(§85) 파일바는 패널 오른쪽 옆에 배치
 .fileCorner { position: absolute; left: calc(var(--panel-w) + 2 * var(--sp-6)); top: var(--sp-6); }
 .optWrap { position: relative; }
-// 상단 바라 메뉴는 아래로 드롭 (코너 바와 동일 문법)
+// §202: 팝업 공통 문법은 popup-menu 믹스인 — 상단 바라 메뉴는 아래로 드롭 (앵커만 지정)
 .menu {
+  @include popup-menu;
   position: absolute; top: calc(100% + 14px); left: 0;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 10px 12px;
-  display: flex; flex-direction: column; gap: var(--sp-3);
-}
-.menuTitle {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 2px; white-space: nowrap;
-}
-.menuRow {
-  display: flex; align-items: center; gap: var(--sp-3);
-  font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
 }
 </style>

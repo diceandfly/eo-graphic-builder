@@ -62,7 +62,7 @@ function onLinkScopeToggle(cat) {
 // 프리셋 배치: 스테이지 중앙에 생성
 function placePreset(preset) {
   const [wx, wy] = stageRef.value.centerWorld();
-  docApi.createUnitFrom(preset.params, wx, wy);
+  docApi.createUnitFrom(preset.params, wx, wy, preset.name); // §202: 유닛 이름 = 프리셋 이름
 }
 // 프리셋 삭제 — Default Unit은 영구 보존, 안내만
 function deletePreset(id) {

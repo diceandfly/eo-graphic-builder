@@ -42,7 +42,8 @@ const ROT_ZONES = [
 <template>
   <g :transform="`translate(${unit.x} ${unit.y})`" class="sel">
     <rect class="box" :width="W" :height="H" />
-    <text class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
+    <!-- §202: 프레임은 상시 이름 라벨(스테이지)이 선택 색으로 역할을 이어받음 — 중복 표기 제거 -->
+    <text v-if="unit.type !== 'frame'" class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
     <!-- 액션 버튼: 우측변 상단 (공용 OverlayActions) — §59 컨텍스트 메뉴로 이동, 숨김 -->
     <OverlayActions v-if="SHOW_ACTIONS" :scale="scale" :transform="`translate(${W + px(12)} 0)`" @action="onAction" />
 

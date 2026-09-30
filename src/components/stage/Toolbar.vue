@@ -130,16 +130,21 @@ function onPick(c) {
         />
         <div v-if="openPopup === 'frame' && frameQuickCfg" class="menu qf" @pointerdown.stop="resetIdle" @pointermove="resetIdle" @change="resetIdle">
           <div class="menuTitle">Quick frame</div>
-          <!-- §201: SNS 배너 프리셋 토글 — 선택 시 규격 + 안전영역 그리드로 생성 (재클릭 = 해제) -->
+          <!-- §201·§202: 프리셋 라디오 — Custom = 직접 입력, 나머지는 SNS 규격 + 안전영역 그리드 -->
+          <div class="menuRow">
+            <button
+              class="presetTg" :class="{ on: !frameQuickCfg.preset }"
+              @click="frameQuickCfg.preset = null"
+            >Custom</button>
+          </div>
           <div v-for="pp in FRAME_PRESETS" :key="pp.id" class="menuRow">
             <button
               class="presetTg" :class="{ on: frameQuickCfg.preset === pp.id }"
-              @click="frameQuickCfg.preset = frameQuickCfg.preset === pp.id ? null : pp.id"
+              @click="frameQuickCfg.preset = pp.id"
             >{{ pp.label }}</button>
-            <span class="presetDim">{{ pp.w }}×{{ pp.h }}</span>
           </div>
           <template v-if="!frameQuickCfg.preset">
-            <div class="menuRow">
+            <div class="sect menuRow">
               <span class="rowLabel">width</span>
               <StepField v-model="frameQuickCfg.w" :min="50" :max="8000" :step="10" />
             </div>
@@ -286,48 +291,18 @@ function onPick(c) {
   &:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 }
 .toolWrap { position: relative; }
+// §202: 팝업 공통 문법은 popup-menu 믹스인 — 여기선 앵커(하단 바 위, 버튼 중앙)만
 .menu {
+  @include popup-menu;
   position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 10px 12px;
-  display: flex; flex-direction: column; gap: var(--sp-3);
 }
-.menuTitle {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide); text-transform: uppercase;
-  color: var(--faint); margin-bottom: 2px; white-space: nowrap;
-}
-.menuRow {
-  display: flex; align-items: center; gap: var(--sp-3);
-  font-size: var(--fs-xs); color: var(--text); cursor: pointer; white-space: nowrap;
-}
-// §198: 퀵프레임 메뉴 — 컬러 행(라벨+칩+hex)이 폭 기준, 모든 컨트롤을 우측 정렬로 통일.
-// 라벨 고정폭 해제(space-between이 정렬 담당)로 전체 폭도 축소
-.menu.qf {
-  .menuRow { justify-content: space-between; }
-  .rowLabel { width: auto; }
-  .menuNote { white-space: normal; }
-}
-// §201: SNS 프리셋 토글 — segMini 버튼과 동일 문법(활성 인셋 아웃라인), 우측에 규격 표기
+// 퀵프레임 메뉴 — 안내문만 줄바꿈 허용 (§198)
+.menu.qf .menuNote { white-space: normal; }
+// §201·§202: SNS 프리셋 토글 — segMini 버튼과 동일 문법 (활성 인셋 아웃라인)
 .presetTg {
   border: 1px solid var(--line); border-radius: var(--radius); background: none;
   padding: 2px 9px; font-size: var(--fs-xs); color: var(--faint);
   font-family: inherit; cursor: pointer; white-space: nowrap;
   &.on { @include active-outline-inset; }
-}
-.presetDim { font-size: var(--fs-2xs); color: var(--faint); margin-left: var(--sp-3); }
-.rowLabel { color: var(--faint); width: 62px; }
-.menuNote { font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; }
-.numIn {
-  @include text-field;
-  width: 52px; padding: 2px 6px; text-align: right;
-}
-.segMini {
-  display: flex; border: 1px solid var(--line); border-radius: var(--radius);
-  button {
-    border: none; background: none; padding: 2px 9px;
-    font-size: var(--fs-xs); color: var(--faint); font-family: inherit; cursor: pointer;
-    &:not(:last-child) { border-right: 1px solid var(--line); }
-    &.on { @include active-outline-inset; }
-  }
 }
 </style>

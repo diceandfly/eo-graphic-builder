@@ -207,11 +207,11 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 ### {icon:frame}Social Banner Presets
 - **{icon:mouseR}Right-click** the {icon:frame}frame button and turn on a preset (YouTube · X · LinkedIn profile/company); **double-clicking** the button then creates a frame at that spec
 - Preset frames come with **safe-area boundaries pre-drawn as grid lines** — e.g. the desktop display band and the mobile safe area of a YouTube banner (2560×1440). Keep important content inside the inner cells
-- Click the active preset again to turn it off and go back to your custom size
+- Press **Custom** to go back to your own size and margin inputs
 
 ### Selecting Frames
 - **Frames can be selected and moved in V (normal select) too** — where a unit overlaps, the unit wins; click an empty area or the **name label at the top left** to grab the frame
-- When you zoom far out, clicks on very tiny units go to the frame instead — so you can grab frames from a distance
+- When you zoom out far enough that a frame looks small, clicking anywhere inside it grabs the frame — so you can pick frames from a distance
 - {icon:select}**A (frame-only mode)**: press **A** or {icon:mouseR}right-click the select tool. Only frames get clicked, units are passed through — use it to drag a frame by a spot covered in units. **V** returns to normal
 
 ### How do contents follow?

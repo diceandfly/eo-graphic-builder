@@ -51,3 +51,64 @@
   &:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
   &::placeholder { color: var(--faint); }
 }
+
+/// §202: 우클릭 팝업 공통 문법 — 보기(코너 바)·도구(툴바)·데이터(파일 바) 팝업이 공유.
+/// 사용처는 위치(앵커)만 지정: .menu { @include popup-menu; position…; }
+/// 위계: menuTitle(팝업명) → menuRow(행 — 필드 행은 rowLabel 좌/컨트롤 우, 체크 행은 체크+텍스트)
+///       → sect(구획 경계) → menuNote(보조 설명). 새 팝업은 반드시 이 문법으로.
+@mixin popup-menu {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+
+  .menuTitle {
+    font-size: var(--fs-2xs);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 2px;
+    white-space: nowrap;
+  }
+  .menuRow {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-size: var(--fs-xs);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    // 필드 행(rowLabel 보유) = 라벨 좌 · 컨트롤 우측 정렬 통일
+    &:has(> .rowLabel) { justify-content: space-between; }
+  }
+  .rowLabel { color: var(--faint); }
+  .menuNote {
+    font-size: var(--fs-2xs);
+    color: var(--faint);
+    white-space: nowrap;
+  }
+  .sect {
+    margin-top: 6px;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+  .segMini {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    button {
+      border: none;
+      background: none;
+      padding: 2px 9px;
+      font-size: var(--fs-xs);
+      color: var(--faint);
+      font-family: inherit;
+      cursor: pointer;
+      &:not(:last-child) { border-right: 1px solid var(--line); }
+      &.on { @include active-outline-inset; }
+    }
+  }
+}
