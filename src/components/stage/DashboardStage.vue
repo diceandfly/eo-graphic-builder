@@ -14,6 +14,7 @@ import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
 import PresetGridBrowser from '../panel/PresetGridBrowser.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
+import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines, frameAttrs } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -73,7 +74,8 @@ const groupOutlines = computed(() => {
 const visibleLinkIds = computed(() => {
   const set = new Set();
   for (const u of props.doc.units) {
-    if (u.linkId && props.doc.selectedIds.includes(u.id)) set.add(u.linkId);
+    const lid = primaryLid(u); // §220: 범주형 links의 대표 lid
+    if (lid != null && props.doc.selectedIds.includes(u.id)) set.add(lid);
   }
   return set;
 });
@@ -1527,7 +1529,7 @@ onBeforeUnmount(() => {
         </template>
         <!-- 링크 배지 (선택 관련 링크만, 뷰 옵션으로 숨김 가능) -->
         <g
-          v-for="u in view.showLinks ? doc.units.filter((x) => x.linkId && visibleLinkIds.has(x.linkId)) : []"
+          v-for="u in view.showLinks ? doc.units.filter((x) => primaryLid(x) != null && visibleLinkIds.has(primaryLid(x))) : []"
           :key="'lk' + u.id"
           class="linkBadge"
           :transform="`translate(${u.x + u.params.W} ${u.y})`"
@@ -1536,7 +1538,7 @@ onBeforeUnmount(() => {
           <text
             v-if="showLinkNums"
             :x="-pxs(17)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end"
-          >{{ linkIndex[u.linkId] }}</text>
+          >{{ linkIndex[primaryLid(u)] }}</text>
           <g :transform="`translate(${-pxs(13)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>

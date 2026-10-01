@@ -7,6 +7,7 @@ import ChipRow from './controls/ChipRow.vue';
 import LinkSection from './panel/LinkSection.vue';
 import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { isLinkScoped, typeOf } from '../objects/registry.js';
+import { primaryLid } from '../composables/useDocument.js';
 import ColorField from './controls/ColorField.vue';
 import { ICONS } from '../ui/icons.js';
 import { useRecentColors } from '../composables/useRecentColors.js';
@@ -35,12 +36,12 @@ const mixed = (...keys) =>
   props.selected.length > 1 &&
   props.selected.some((u) => keys.some((k) => u.params[k] !== props.unit.params[k]));
 
-// 링크 멤버 1개만 선택 — "이 유닛만 해제" 버튼 표시 (§73)
-const singleLinked = computed(() => props.selected.length === 1 && props.selected[0].linkId != null);
+// 링크 멤버 1개만 선택 — "이 유닛만 해제" 버튼 표시 (§73) — §220: 범주형 links의 대표 lid 기준
+const singleLinked = computed(() => props.selected.length === 1 && primaryLid(props.selected[0]) != null);
 // 선택 전체가 이미 하나의 링크인지
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
-  const lids = [...new Set(props.selected.map((u) => u.linkId))];
+  const lids = [...new Set(props.selected.map((u) => primaryLid(u)))];
   return lids.length === 1 && lids[0] != null;
 });
 

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useDocument } from './composables/useDocument.js';
+import { useDocument, LINK_CATS, primaryLid } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { usePatterns } from './composables/usePatterns.js';
@@ -39,14 +39,20 @@ const selectedGroup = computed(() => {
 // 선택이 공유하는 단일 링크그룹 (전체/서브셋 무관) — 패널 칩은 이 그룹의 스코프를 표시 (§129)
 const sharedLinkId = computed(() => {
   if (selectedUnits.value.length < 2) return null;
-  const lids = [...new Set(selectedUnits.value.map((u) => u.linkId))];
+  const lids = [...new Set(selectedUnits.value.map((u) => primaryLid(u)))];
   return lids.length === 1 && lids[0] != null ? lids[0] : null;
 });
 const isLinkSubset = computed(
   () => sharedLinkId.value != null
     && docApi.linkMemberIds(sharedLinkId.value).length !== selectedUnits.value.length
 );
-const linkScope = computed(() => (sharedLinkId.value ? doc.linkScopes[sharedLinkId.value] ?? null : null));
+// §220: 스코프 표시 = 범주별 멤버십에서 도출 (멤버 1명 기준 — 그룹 내 전 멤버 동일 구성이 현행 문법)
+const linkScope = computed(() => {
+  const lid = sharedLinkId.value;
+  if (!lid) return null;
+  const m = selectedUnits.value.find((u) => primaryLid(u) === lid);
+  return m ? Object.fromEntries(LINK_CATS.map((c) => [c, m.links[c] != null])) : null;
+});
 function onLinkScopeToggle(cat) {
   const lid = sharedLinkId.value;
   if (!lid) return;
@@ -56,10 +62,10 @@ function onLinkScopeToggle(cat) {
     if (r) stageRef.value?.toast(`Split ${r.count} units into a new link group`);
     return;
   }
-  if (!doc.linkScopes[lid]) {
-    doc.linkScopes[lid] = { size: true, orientation: true, grid: true, shape: true, color: true };
-  }
-  doc.linkScopes[lid][cat] = !doc.linkScopes[lid][cat];
+  // §220: 전체 선택 칩 토글 = 그룹 전 멤버의 해당 범주 멤버십 on/off
+  const members = doc.units.filter((u) => LINK_CATS.some((c) => u.links[c] === lid));
+  const on = members.some((u) => u.links[cat] === lid);
+  for (const u of members) u.links[cat] = on ? null : lid;
 }
 
 // 프리셋 삭제 — Default Unit은 영구 보존, 안내만 (배치·목록 UI는 §207에서 스테이지 프리셋 바로 이관)
@@ -142,9 +148,9 @@ function saveProject(scope = {}) {
   // §200: 브랜드 팔레트 동봉 — 출력(인쇄) 워크플로용 CMYK/PANTONE 참조 + 파일에서 컬러 파트 즉시 식별
   data.colors = BRAND_PALETTE;
   if (scope.work !== false) {
-    data.units = doc.units;
+    data.units = doc.units; // §220: 유닛이 범주형 links를 내장 (linkScopes 섹션 폐기)
     data.groupNames = doc.groupNames;
-    data.linkScopes = doc.linkScopes;
+    data.animEdges = doc.animEdges;
   }
   const prefsData = readJson('eo.prefs', {});
   if (scope.tools) {
@@ -162,7 +168,7 @@ async function openProject(file, scope = {}) {
   try {
     const data = JSON.parse(await file.text());
     if (scope.work !== false && Array.isArray(data.units)) {
-      docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes });
+      docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes, animEdges: data.animEdges });
     }
     // 카메라: 항상 마지막 저장 위치로 (v3 camera, v1·2 viewport 하위 호환)
     const cam = data.camera ?? data.viewport;
@@ -218,12 +224,17 @@ function onUnlinkOne() {
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 // 프리셋·패턴 등록/삭제/이름변경도 ⌘Z 히스토리에 편입 (§103·§205)
+// §220: 직렬화는 computed로 캐시 — 스토어가 안 바뀐 히스토리 틱에는 재직렬화 없이 캐시 문자열 공유
+const extraSnap = computed(() =>
+  JSON.stringify({ presets: presetsApi.serialize(), patterns: patternsApi.serialize() })
+);
 docApi.registerHistoryExtra(
-  () => ({ presets: presetsApi.serialize(), patterns: patternsApi.serialize() }),
+  () => extraSnap.value,
   (v) => {
-    if (Array.isArray(v)) { presetsApi.restore(v); return; } // 구 스냅샷(프리셋 배열) 호환
-    presetsApi.restore(v?.presets ?? []);
-    patternsApi.restore(v?.patterns ?? []);
+    const x = typeof v === 'string' ? JSON.parse(v) : v; // 구 스냅샷(객체) 호환
+    if (Array.isArray(x)) { presetsApi.restore(x); return; } // 더 구버전(프리셋 배열) 호환
+    presetsApi.restore(x?.presets ?? []);
+    patternsApi.restore(x?.patterns ?? []);
   }
 );
 

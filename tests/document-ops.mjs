@@ -10,7 +10,7 @@ globalThis.localStorage = {
   removeItem: () => {},
 };
 
-const { useDocument } = await import('../src/composables/useDocument.js');
+const { useDocument, primaryLid, LINK_CATS } = await import('../src/composables/useDocument.js');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let passed = 0;
@@ -240,39 +240,39 @@ function centerIn(u, f) {
   const u4 = api.createUnit(9000, 0);
   api.setSelection([u1.id, u2.id, u3.id, u4.id]);
   api.toggleLinkSelected({ color: false });
-  const lid0 = u1.linkId;
+  const lid0 = primaryLid(u1);
   ok('링크: 4유닛 링크 생성', () => {
     assert.ok(lid0 != null);
-    assert.ok([u2, u3, u4].every((u) => u.linkId === lid0));
+    assert.ok([u2, u3, u4].every((u) => primaryLid(u) === lid0));
   });
   // 서브셋 분리: u3·u4 선택 + 칩(color) 조작 → 새 그룹, 스코프 = 원본 복사 + color 토글
   api.setSelection([u3.id, u4.id]);
   const r = api.splitLinkSelected('color');
   ok('링크: 서브셋 칩 조작 = 새 링크그룹 분리', () => {
     assert.equal(r.count, 2);
-    assert.ok(u3.linkId === u4.linkId && u3.linkId !== lid0);
-    assert.equal(u1.linkId, lid0);
-    assert.equal(api.doc.linkScopes[u3.linkId].color, true);  // 원본 false → 토글 on
-    assert.equal(api.doc.linkScopes[lid0].color, false);      // 원본 불변
+    assert.ok(primaryLid(u3) === primaryLid(u4) && primaryLid(u3) !== lid0);
+    assert.equal(primaryLid(u1), lid0);
+    assert.equal(u3.links.color, primaryLid(u3));  // 원본 off → 토글 on (§220: 범주 멤버십)
+    assert.equal(u1.links.color, null);            // 원본 불변 (color off)
   });
   // 서브셋 언링크: 그룹(u1·u2)에서 u2만... 은 single 경로 — 여기선 3멤버 그룹에서 2개 언링크 시 잔여 1개 자동 소멸 확인
   const u5 = api.createUnit(12000, 0);
   api.setSelection([u1.id, u2.id, u5.id]);
   api.toggleLinkSelected(); // u1·u2(기존 lid0)+u5 → 혼합이라 새 그룹 생성 경로
-  const lidB = u1.linkId;
+  const lidB = primaryLid(u1);
   api.setSelection([u1.id, u2.id]);
   api.toggleLinkSelected(); // 서브셋 언링크 (§129)
   ok('링크: 서브셋 언링크 + 잔여 1멤버 그룹 자동 소멸', () => {
-    assert.equal(u1.linkId, null);
-    assert.equal(u2.linkId, null);
-    assert.equal(u5.linkId, null); // 홀로 남은 u5 — cleanupLinks로 소멸
-    assert.equal(api.doc.linkScopes[lidB], undefined); // 스코프 메타도 정리
+    assert.equal(primaryLid(u1), null);
+    assert.equal(primaryLid(u2), null);
+    assert.equal(primaryLid(u5), null); // 홀로 남은 u5 — cleanupLinks로 소멸
+    assert.ok(api.doc.units.every((u) => LINK_CATS.every((c) => u.links[c] !== lidB))); // lidB 멤버십 전무 (§220)
   });
   // 삭제로 1멤버가 남는 경우도 소멸
   api.setSelection([u3.id]);
   api.deleteSelected();
   ok('링크: 삭제로 1멤버 남으면 그룹 소멸', () => {
-    assert.equal(u4.linkId, null);
+    assert.equal(primaryLid(u4), null);
   });
 }
 
@@ -319,7 +319,7 @@ function centerIn(u, f) {
   const origGid = api.outermost(u1);
   api.setSelection([u2.id, u3.id]);
   api.toggleLinkSelected();
-  const lid = u2.linkId;
+  const lid = primaryLid(u2);
   // 3개 전체 복사 → 붙여넣기
   api.setSelection([u1.id, u2.id, u3.id]);
   api.copyActive();
@@ -339,8 +339,8 @@ function centerIn(u, f) {
     const g = api.outermost(pasted[0]);
     assert.ok(g != null && g !== origGid);
     assert.equal(api.outermost(pasted[1]), g);
-    assert.equal(pasted[1].linkId, lid); // §129 현행: 사본은 원본 링크그룹 합류
-    assert.equal(pasted[2].linkId, lid);
+    assert.equal(primaryLid(pasted[1]), lid); // §129 현행: 사본은 원본 링크그룹 합류
+    assert.equal(primaryLid(pasted[2]), lid);
   });
   // 단일 선택 복사 = 종전 동작 (대상점 = 유닛 중심)
   api.setSelection([u1.id]);
@@ -413,14 +413,14 @@ function centerIn(u, f) {
   const u3 = api.createUnit(1500, 3000);
   api.setSelection([u1.id, u2.id, u3.id]);
   api.toggleLinkSelected();
-  const lid0 = u1.linkId;
-  assert.ok(lid0 != null && u3.linkId === lid0);
+  const lid0 = primaryLid(u1);
+  assert.ok(lid0 != null && primaryLid(u3) === lid0);
   // 3멤버 중 2개만 통합 스케일 → 발산 → 2개는 새 링크, 남은 1개는 자동 해체
   api.setSelection([u1.id, u2.id]);
   api.setSize({ W: 5000 });
   ok('링크 분리: 서브셋 스케일 = 서브셋끼리 새 링크', () => {
-    assert.ok(u1.linkId != null && u1.linkId === u2.linkId && u1.linkId !== lid0);
-    assert.equal(u3.linkId, null); // 잔여 1멤버 자동 소멸
+    assert.ok(primaryLid(u1) != null && primaryLid(u1) === primaryLid(u2) && primaryLid(u1) !== lid0);
+    assert.equal(primaryLid(u3), null); // 잔여 1멤버 자동 소멸
   });
   // 2멤버 링크에서 1개만 발산 → 양쪽 모두 링크 해제 (1멤버 링크는 존재 불가)
   const u4 = api.createUnit(6000, 1000);
@@ -431,19 +431,19 @@ function centerIn(u, f) {
   api.setSelection([u4.id, u6.id]);
   api.setSize({ W: 7000 });
   ok('링크 분리: 1개만 발산하면 전체 해제', () => {
-    assert.equal(u4.linkId, null);
-    assert.equal(u5.linkId, null);
+    assert.equal(primaryLid(u4), null);
+    assert.equal(primaryLid(u5), null);
   });
   // 링크 전체를 함께 조작하면 분리되지 않음
   const u7 = api.createUnit(10000, 1000);
   const u8 = api.createUnit(10000, 2500);
   api.setSelection([u7.id, u8.id]);
   api.toggleLinkSelected();
-  const lid7 = u7.linkId;
+  const lid7 = primaryLid(u7);
   api.setSize({ W: 4000 }); // 전 멤버 선택 상태의 통합 스케일
   ok('링크 분리: 전체 조작은 링크 유지', () => {
-    assert.equal(u7.linkId, lid7);
-    assert.equal(u8.linkId, lid7);
+    assert.equal(primaryLid(u7), lid7);
+    assert.equal(primaryLid(u8), lid7);
   });
 }
 
@@ -456,7 +456,7 @@ function centerIn(u, f) {
   const u3 = api.createUnit(1500, 3000);
   api.setSelection([u1.id, u2.id, u3.id]);
   api.toggleLinkSelected(); // 기본 스코프: size on / orientation off
-  const lid = u1.linkId;
+  const lid = primaryLid(u1);
   api.doc.activeId = u2.id;
   api.doc.selectedIds = [u2.id];
   api.rotate(1); // u2 = 90°
@@ -466,8 +466,8 @@ function centerIn(u, f) {
   api.rotate(1); // u3 = 180°
   await sleep(10);
   ok('링크 회전: 개별 회전은 링크를 깨지 않음 (로컬 치수 불변)', () => {
-    assert.equal(u2.linkId, lid);
-    assert.equal(u3.linkId, lid);
+    assert.equal(primaryLid(u2), lid);
+    assert.equal(primaryLid(u3), lid);
     assert.deepEqual([u2.params.W, u2.params.H], [800, 960]);
     assert.deepEqual([u3.params.W, u3.params.H], [960, 800]);
   });
@@ -562,15 +562,14 @@ function centerIn(u, f) {
   api.setSelection([u1.id, u2.id]);
   api.toggleLinkSelected();
   api.groupSelected();
-  const lid0 = u1.linkId;
+  const lid0 = primaryLid(u1);
   const gid0 = u1.groups[0];
   const count0 = api.doc.units.length;
   const pat = api.capturePattern(f.id);
   ok('패턴 캡처: 프레임+소유 유닛·그룹·링크 수집', () => {
     assert.equal(pat.units.length, 2);
     assert.equal(pat.frame.W, 2000);
-    assert.ok(pat.linkScopes[lid0]);
-    assert.ok(pat.units.every((u) => u.linkId === lid0));
+    assert.ok(pat.units.every((u) => primaryLid(u) === lid0)); // §220: 유닛 내장 links
   });
   const nf = api.placePattern({ ...pat, name: 'P1' }, 9000, 9000);
   const placed = api.doc.units.slice(count0 + 1); // 새 프레임 뒤의 유닛들
@@ -581,7 +580,7 @@ function centerIn(u, f) {
     assert.equal(placed.length, 2);
     assert.equal(placed[0].x - nf.x, u1.x - f.x); // 상대 오프셋 보존
     assert.equal(placed[0].y - nf.y, u1.y - f.y);
-    assert.ok(placed[0].linkId && placed[0].linkId === placed[1].linkId && placed[0].linkId !== lid0);
+    assert.ok(primaryLid(placed[0]) != null && primaryLid(placed[0]) === primaryLid(placed[1]) && primaryLid(placed[0]) !== lid0);
     assert.ok(placed[0].groups[0] && placed[0].groups[0] === placed[1].groups[0] && placed[0].groups[0] !== gid0);
   });
 }

@@ -31,9 +31,27 @@ export function createParams(overrides = {}) {
     flipX: false, // 표시 계수: 좌우 미러 (내부 rate/direction은 불변 — 플립만 다른 유닛은 mixed로 취급 안 됨)
     fill: BRAND_COLORS[0], // Builder Neon
     showGuides: true,
+    // §220: 애니메이션 예약 필드 (렌더 레벨 — derive 미사용, UI는 Phase B+)
+    rotation: 0,   // 연속 회전각(deg) — 90° 이산 orientation과 별개
+    opacity: 100,  // 투명도 %
+    anchorU: 0,    // 회전·스케일 앵커 (로컬 정규화 좌표, 기본 로컬 원점)
+    anchorV: 0,
     ...overrides,
   };
 }
+
+// ── §220: 범주형 다중 링크 스키마 ─────────────────────────────
+// unit.links = { size, orientation, grid, shape, color } — 범주별 링크그룹 id(없으면 null).
+// 구 스키마(unit.linkId 단일 + doc.linkScopes[lid] 플래그)를 대체: "스코프 off" = 그 범주 null.
+// unit.pair = 애니메이션 페어 id (동기화 없음 — 보간 대응 관계 전용, Phase B+).
+export const LINK_CATS = ['size', 'orientation', 'grid', 'shape', 'color'];
+export const emptyLinks = () => ({ size: null, orientation: null, grid: null, shape: null, color: null });
+// 대표 링크그룹 id — 배지 표시·그룹 소속 판정용 (현행 UI는 유닛당 한 그룹이 전 범주를 공유)
+export const primaryLid = (u) => {
+  if (!u?.links) return null;
+  for (const c of LINK_CATS) if (u.links[c] != null) return u.links[c];
+  return null;
+};
 
 // 문서 모델: 스테이지 위 유닛 버전들 + 멀티선택 상태.
 // - activeId: 패널이 편집하는 유닛 (선택 해제 후에도 유지, 유닛 0개면 null)
@@ -67,11 +85,16 @@ export function createFrameParams(overrides = {}) {
     compX: 0,
     compY: 0,
     compLock: false, // §132: rows-cols 값(+모드) 동기화 잠금
+    // §220: 애니메이션 예약 필드 (유닛과 동일 — 파라미터 셰이프 통일)
+    rotation: 0,
+    opacity: 100,
+    anchorU: 0,
+    anchorV: 0,
     ...overrides,
   };
 }
 
-function migrateUnit(u) {
+function migrateUnit(u, legacyScopes = {}) {
   // §213: 리뉴얼 이전 브랜드 hex 자동 치환
   if (u.params) {
     if (u.params.fill) u.params.fill = migrateBrandHex(u.params.fill);
@@ -101,8 +124,24 @@ function migrateUnit(u) {
   }
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
-  if (u.linkId === undefined) u.linkId = null;
+  // §220: linkId 단일 + linkScopes 플래그 → 범주형 links로 이관
+  // (구 런타임에서 스코프 메타 부재 = 전 범주 동기였으므로, 매핑 없으면 전 범주 on)
+  if (!u.links) {
+    u.links = emptyLinks();
+    if (u.linkId != null) {
+      const sc = legacyScopes[u.linkId] ?? null;
+      for (const c of LINK_CATS) if (!sc || sc[c] !== false) u.links[c] = u.linkId;
+    }
+  }
+  delete u.linkId;
+  if (u.pair === undefined) u.pair = null; // §220: 애니메이션 페어 예약
   if (u.params && u.params.flipX === undefined) u.params.flipX = false;
+  if (u.params) {
+    // §220: 애니메이션 예약 필드 보충
+    if (u.params.rotation === undefined) u.params.rotation = 0;
+    if (u.params.opacity === undefined) u.params.opacity = 100;
+    if (u.params.anchorU === undefined) { u.params.anchorU = 0; u.params.anchorV = 0; }
+  }
   return u;
 }
 
@@ -111,28 +150,31 @@ export function useDocument() {
   let savedUnits;
   let savedMeta = null;
   let savedGroupNames = {};
-  let savedLinkScopes = {};
+  let savedLinkScopes = {}; // §220: 구 스키마 이관용 (런타임 상태 아님)
+  let savedAnimEdges = [];
   try {
     const raw = JSON.parse(localStorage.getItem(DOC_KEY) || 'null');
     savedUnits = raw?.units ?? null;
     savedGroupNames = raw?.groupNames ?? {};
     savedLinkScopes = raw?.linkScopes ?? {};
+    savedAnimEdges = raw?.animEdges ?? [];
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
-  const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map(migrateUnit);
+  const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map((u) => migrateUnit(u, savedLinkScopes));
 
   let nextId = 2;
   let nextUnitVer = 2; // 유닛/프레임 넘버링 분리 (§64)
   let nextFrameVer = 1;
   let nextGroup = 1;
   let nextLink = 1;
+  let nextPair = 1; // §220: 애니메이션 페어 id 카운터 (예약)
   const doc = reactive({
     units: initialUnits,
     activeId: initialUnits.length ? initialUnits[initialUnits.length - 1].id : null,
     selectedIds: [],
     keyId: null, // 정렬 기준(키 오브젝트) — 멀티선택 중 재클릭으로 지정
     groupNames: savedGroupNames, // gid → 이름 (Group-N)
-    linkScopes: savedLinkScopes, // linkId → { size, orientation, grid, shape, color } 동기화 범주
+    animEdges: savedAnimEdges, // §220: 키프레임 연결 [{ from, to, duration, curve, ... }] — Phase B+
   });
   recalcCounters();
   function recalcCounters() {
@@ -144,40 +186,41 @@ export function useDocument() {
     nextUnitVer = maxVer(doc.units.filter((u) => u.type !== 'frame'));
     nextFrameVer = maxVer(doc.units.filter((u) => u.type === 'frame'));
     nextGroup = doc.units.reduce((m, u) => Math.max(m, ...u.groups, 0), 0) + 1;
-    nextLink = doc.units.reduce((m, u) => Math.max(m, u.linkId || 0), 0) + 1;
+    nextLink = doc.units.reduce((m, u) => Math.max(m, ...LINK_CATS.map((c) => u.links[c] || 0)), 0) + 1;
+    nextPair = doc.units.reduce((m, u) => Math.max(m, u.pair || 0), 0) + 1;
   }
   // 타입별 다음 이름 (접두어는 오브젝트 레지스트리에서)
   const nextName = (type) =>
     `${namePrefix(type)}-${type === 'frame' ? nextFrameVer++ : nextUnitVer++}`;
 
-  // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 링크 스코프
+  // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 애니메이션 엣지 (§220: version 2 — linkScopes 폐기)
   let saveTimer = null;
   watch(
-    () => JSON.stringify({ u: doc.units, g: doc.groupNames, l: doc.linkScopes }),
+    () => JSON.stringify({ u: doc.units, g: doc.groupNames, a: doc.animEdges }),
     (snap) => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        const { u, g, l } = JSON.parse(snap);
+        const { u, g, a } = JSON.parse(snap);
         localStorage.setItem(DOC_KEY, JSON.stringify({
-          version: 1, savedAt: Date.now(), units: u, groupNames: g, linkScopes: l,
+          version: 2, savedAt: Date.now(), units: u, groupNames: g, animEdges: a,
         }));
       }, 500);
     }
   );
 
-  // 존재하지 않는 gid/linkId의 메타 정리
+  // 존재하지 않는 gid 메타·사라진 프레임의 애니 엣지 정리
   function pruneMeta() {
     const gids = new Set(doc.units.flatMap((u) => u.groups));
     for (const k of Object.keys(doc.groupNames)) if (!gids.has(Number(k))) delete doc.groupNames[k];
-    const lids = new Set(doc.units.map((u) => u.linkId).filter(Boolean));
-    for (const k of Object.keys(doc.linkScopes)) if (!lids.has(Number(k))) delete doc.linkScopes[k];
+    const fids = new Set(doc.units.filter((u) => u.type === 'frame').map((u) => u.id));
+    doc.animEdges = doc.animEdges.filter((e) => fids.has(e.from) && fids.has(e.to));
   }
 
-  // JSON 프로젝트 로드 (파일 열기)
+  // JSON 프로젝트 로드 (파일 열기) — meta.linkScopes는 구 포맷 이관용
   function loadProject(units, meta = {}) {
-    doc.units.splice(0, doc.units.length, ...units.map(migrateUnit));
+    doc.units.splice(0, doc.units.length, ...units.map((u) => migrateUnit(u, meta.linkScopes ?? {})));
     doc.groupNames = meta.groupNames ?? {};
-    doc.linkScopes = meta.linkScopes ?? {};
+    doc.animEdges = meta.animEdges ?? [];
     doc.selectedIds = [];
     doc.activeId = units.length ? units[units.length - 1].id : null;
     recalcCounters();
@@ -221,19 +264,19 @@ export function useDocument() {
     if (!keys.length) return;
     const patch = {};
     for (const k of keys) if (k in source.params) patch[k] = source.params[k];
-    // 직접 대상(선택)은 전체 패치, 링크로만 딸려오는 멤버는 링크 스코프 필터 적용
+    // 직접 대상(선택)은 전체 패치, 링크로만 딸려오는 멤버는 범주별 멤버십 필터 적용 (§220)
     const direct = new Set(doc.selectedIds);
-    const viaLink = new Map(); // id → linkId
+    const viaLink = new Map(); // memberId → 직접 선택된 링크 동료 유닛
     for (const u of doc.units) {
-      if (direct.has(u.id) && u.linkId) {
-        for (const lid of linkMemberIds(u.linkId)) if (!direct.has(lid)) viaLink.set(lid, u.linkId);
+      if (direct.has(u.id) && primaryLid(u) != null) {
+        for (const mid of linkMemberIds(primaryLid(u))) if (!direct.has(mid)) viaLink.set(mid, u);
       }
     }
     for (const u of doc.units) {
       if (u.id === source.id) continue;
       if (u.type !== source.type) continue; // 타입이 다른 오브젝트에는 흡수 불가
       if (direct.has(u.id)) Object.assign(u.params, patch);
-      else if (viaLink.has(u.id)) applyLinkPatch(u, filterByLinkScope(patch, viaLink.get(u.id)), source.params);
+      else if (viaLink.has(u.id)) applyLinkPatch(u, filterByLinkScope(patch, viaLink.get(u.id), u), source.params);
     }
   }
   // ── 링크 확산 공용 헬퍼 (§68 부채 정리) ──
@@ -242,24 +285,21 @@ export function useDocument() {
   //  2) 직접 확산 — 반드시 expandLinkByScope / filterByLinkScope 를 거칠 것.
   //     현재 사용처: setFill('color') · rotate('orientation') · absorbFrom(filterByLinkScope)
   // 새 기능이 링크로 퍼져야 한다면 이 두 헬퍼 외의 경로를 만들지 말 것.
-  // cat 범주가 켜진 링크의 멤버 id들로 집합을 확장
+  // cat 범주를 공유하는 링크 멤버 id들로 집합을 확장 (§220: 범주별 멤버십 기준)
   function expandLinkByScope(ids, cat) {
     const out = new Set(ids);
-    for (const u of doc.units) {
-      if (out.has(u.id) && u.linkId && doc.linkScopes[u.linkId]?.[cat] !== false) {
-        for (const lid of linkMemberIds(u.linkId)) out.add(lid);
-      }
-    }
+    const lids = new Set();
+    for (const u of doc.units) if (out.has(u.id) && u.links[cat] != null) lids.add(u.links[cat]);
+    for (const u of doc.units) if (u.links[cat] != null && lids.has(u.links[cat])) out.add(u.id);
     return out;
   }
-  // 링크 스코프가 꺼진 범주의 키를 patch에서 제거
-  function filterByLinkScope(patch, lid) {
-    const scope = doc.linkScopes[lid];
-    if (!scope) return patch;
+  // 소스-멤버가 그 범주를 공유하지 않는 키를 patch에서 제거 (§220)
+  // 무범주 키(프레임 파라미터 등)는 항상 동기 — 종전 규칙 유지.
+  function filterByLinkScope(patch, src, member) {
     const out = {};
     for (const k in patch) {
       const cat = KEY_CAT[k];
-      if (!cat || scope[cat] !== false) out[k] = patch[k];
+      if (!cat || (src.links[cat] != null && src.links[cat] === member.links[cat])) out[k] = patch[k];
     }
     return out;
   }
@@ -346,7 +386,10 @@ export function useDocument() {
     geomOp = true;
     // §200: 링크 서브셋 발산 감지용 조작 전 스냅샷 (링크 멤버만 — 통상 소수)
     const before = new Map();
-    for (const u of doc.units) if (u.linkId) before.set(u.id, { lid: u.linkId, json: JSON.stringify(u.params) });
+    for (const u of doc.units) {
+      const lid = primaryLid(u);
+      if (lid != null) before.set(u.id, { lid, links: { ...u.links }, json: JSON.stringify(u.params) });
+    }
     try {
       fn();
     } finally {
@@ -362,11 +405,10 @@ export function useDocument() {
     const changed = new Map(); // lid → Set(변경 유닛 id)
     for (const u of doc.units) {
       const b = before.get(u.id);
-      if (!b || u.linkId !== b.lid) continue; // 조작 중 링크 소속이 바뀐 유닛은 제외
+      if (!b || primaryLid(u) !== b.lid) continue; // 조작 중 링크 소속이 바뀐 유닛은 제외
       if (JSON.stringify(u.params) === b.json) continue;
-      // 변경 키 중 링크 동기화 대상(무범주 키 or 스코프가 켜진 범주)이 있어야 발산
+      // 변경 키 중 링크 동기화 대상(무범주 키 or 멤버십이 있는 범주)이 있어야 발산 (§220)
       const prev = JSON.parse(b.json);
-      const scope = doc.linkScopes[b.lid];
       let synced = false;
       for (const k in u.params) {
         if (u.params[k] === prev[k]) continue;
@@ -377,7 +419,7 @@ export function useDocument() {
           if (pw === cw && ph === ch) continue;
         }
         const cat = KEY_CAT[k];
-        if (!cat || !scope || scope[cat] !== false) { synced = true; break; }
+        if (!cat || b.links[cat] != null) { synced = true; break; }
       }
       if (!synced) continue;
       if (!changed.has(b.lid)) changed.set(b.lid, new Set());
@@ -388,12 +430,11 @@ export function useDocument() {
       const members = linkMemberIds(lid);
       if (!ids.size || ids.size >= members.length) continue; // 전 멤버 변경 = 동기 유지, 분리 불필요
       const subset = members.filter((id) => ids.has(id));
-      if (subset.length >= 2) {
-        const nl = nextLink++;
-        doc.linkScopes[nl] = { ...(doc.linkScopes[lid] ?? linkScopeDefault()) };
-        for (const u of doc.units) if (subset.includes(u.id)) u.linkId = nl;
-      } else {
-        for (const u of doc.units) if (subset.includes(u.id)) u.linkId = null;
+      // §220: 서브셋을 새 링크그룹으로 — 범주 멤버십 구성은 그대로 승계 (lid만 치환)
+      const nl = subset.length >= 2 ? nextLink++ : null;
+      for (const u of doc.units) {
+        if (!subset.includes(u.id)) continue;
+        for (const c of LINK_CATS) if (u.links[c] === lid) u.links[c] = nl;
       }
       split += subset.length;
     }
@@ -415,7 +456,8 @@ export function useDocument() {
       }
       const linkT = new Set();
       const me = doc.units.find((u) => u.id === id);
-      if (me?.linkId) for (const lid of linkMemberIds(me.linkId)) linkT.add(lid);
+      const myLid = me ? primaryLid(me) : null;
+      if (myLid != null) for (const lid of linkMemberIds(myLid)) linkT.add(lid);
       selT.delete(id);
       linkT.delete(id);
       for (const t of selT) linkT.delete(t); // 선택에 포함된 유닛은 전체 패치 우선
@@ -425,20 +467,14 @@ export function useDocument() {
       const patch = {};
       for (const k in cur) if (cur[k] !== prev[k]) patch[k] = cur[k];
       if (!Object.keys(patch).length) return;
-      // 링크 스코프: 꺼진 범주의 키는 링크 멤버에 전파하지 않음
-      let linkPatch = patch;
-      const scope = me?.linkId ? doc.linkScopes[me.linkId] : null;
-      if (scope) {
-        linkPatch = {};
-        for (const k in patch) {
-          const cat = KEY_CAT[k];
-          if (!cat || scope[cat] !== false) linkPatch[k] = patch[k];
-        }
-      }
       mirrorGuard = true;
       for (const u of doc.units) {
         if (selT.has(u.id)) Object.assign(u.params, patch);
-        else if (linkT.has(u.id) && Object.keys(linkPatch).length) applyLinkPatch(u, linkPatch, me.params);
+        else if (linkT.has(u.id)) {
+          // §220: 범주별 멤버십 필터 — 멤버가 그 범주를 공유할 때만 해당 키 전파
+          const lp = filterByLinkScope(patch, me, u);
+          if (Object.keys(lp).length) applyLinkPatch(u, lp, me.params);
+        }
       }
       mirrorGuard = false;
       // 멀티선택 편집이 여러 유닛에 퍼졌음을 1회성 토스트로 안내
@@ -453,7 +489,7 @@ export function useDocument() {
   // §103: registerHistoryExtra로 외부 상태(프리셋 라이브러리)도 같은 스택에 편입 가능
   let extraHist = null; // { get: () => serializable, set: (v) => void }
   const histSnap = () => JSON.stringify({
-    u: doc.units, g: doc.groupNames, l: doc.linkScopes,
+    u: doc.units, g: doc.groupNames, a: doc.animEdges,
     ...(extraHist ? { x: extraHist.get() } : {}),
   });
   const stack = [histSnap()];
@@ -486,11 +522,11 @@ export function useDocument() {
     // 활성 유닛 값으로 덮어쓰고 스택을 오염시키던 버그 차단 (분리 감지 없이 가드만)
     geomOp = true;
     try {
-      const { u, g, l, x } = JSON.parse(snap);
+      const { u, g, a, x } = JSON.parse(snap);
       if (extraHist && x !== undefined) extraHist.set(x);
       doc.units.splice(0, doc.units.length, ...u);
       doc.groupNames = g ?? {};
-      doc.linkScopes = l ?? {};
+      doc.animEdges = a ?? [];
       doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((x) => x.id === id));
       if (!doc.units.find((x) => x.id === doc.activeId)) {
         doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
@@ -525,7 +561,7 @@ export function useDocument() {
     const cx = (bb.minX + bb.maxX) / 2;
     const cy = (bb.minY + bb.maxY) / 2;
     clipboard = src.map((u) => ({
-      type: u.type, name: u.name, params: { ...u.params }, linkId: u.linkId,
+      type: u.type, name: u.name, params: { ...u.params }, links: { ...u.links },
       groups: [...u.groups], dx: u.x - cx, dy: u.y - cy,
     }));
   }
@@ -545,7 +581,7 @@ export function useDocument() {
       doc.units.push({
         id, type: it.type, name: it.name ?? nextName(it.type), // §202·§204: 원본 이름 유지 (유닛·프레임 공통)
         x: Math.round(x + it.dx), y: Math.round(y + it.dy),
-        groups, linkId: it.linkId, params: { ...it.params },
+        groups, links: { ...it.links }, pair: null, params: { ...it.params },
       });
       ids.push(id);
     }
@@ -556,9 +592,12 @@ export function useDocument() {
 
   // §202: 유닛 이름은 프리셋 이름을 그대로 쓴다 (Unit-N 넘버링 폐지 — 프레임은 Frame-N 유지).
   // 넘버링 카운터(nextUnitVer)는 애니메이션 기능에서 쓸 수 있어 보존.
-  function pushUnit(params, x, y, linkId = null, type = 'unit', name = null) {
+  function pushUnit(params, x, y, links = null, type = 'unit', name = null) {
     const id = nextId++;
-    doc.units.push({ id, type, name: name ?? nextName(type), x, y, groups: [], linkId, params });
+    doc.units.push({
+      id, type, name: name ?? nextName(type), x, y, groups: [],
+      links: links ? { ...links } : emptyLinks(), pair: null, params,
+    });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
   }
@@ -588,19 +627,14 @@ export function useDocument() {
     if (!f) return null;
     const owned = frameOwnedUnits([frameId]);
     const gids = new Set();
-    const lids = new Set();
-    for (const u of owned) {
-      u.groups.forEach((g) => gids.add(g));
-      if (u.linkId) lids.add(u.linkId);
-    }
+    for (const u of owned) u.groups.forEach((g) => gids.add(g));
     return {
       frame: { ...f.params },
       units: owned.map((u) => ({
         name: u.name, dx: u.x - f.x, dy: u.y - f.y,
-        params: { ...u.params }, groups: [...u.groups], linkId: u.linkId,
+        params: { ...u.params }, groups: [...u.groups], links: { ...u.links }, // §220: 범주형 링크
       })),
       groupNames: Object.fromEntries([...gids].filter((g) => doc.groupNames[g] != null).map((g) => [g, doc.groupNames[g]])),
-      linkScopes: Object.fromEntries([...lids].map((l) => [l, { ...(doc.linkScopes[l] ?? {}) }])),
     };
   }
   // 패턴 배치: (cx, cy) 중심으로 프레임+유닛 통째 재생성 — 그룹/링크는 새 id로 재구성 (§205)
@@ -608,10 +642,15 @@ export function useDocument() {
     const fp = createFrameParams({ ...pat.frame });
     const fx = Math.round(cx - fp.W / 2);
     const fy = Math.round(cy - fp.H / 2);
-    doc.units.push({ id: nextId++, type: 'frame', name: pat.name || 'Frame', x: fx, y: fy, groups: [], linkId: null, params: fp });
+    doc.units.push({ id: nextId++, type: 'frame', name: pat.name || 'Frame', x: fx, y: fy, groups: [], links: emptyLinks(), pair: null, params: fp });
     const frame = doc.units[doc.units.length - 1];
     const gidMap = new Map();
     const lidMap = new Map();
+    const mapLid = (l) => {
+      if (l == null) return null;
+      if (!lidMap.has(l)) lidMap.set(l, nextLink++);
+      return lidMap.get(l);
+    };
     for (const u of pat.units ?? []) {
       const groups = (u.groups ?? []).map((g) => {
         if (!gidMap.has(g)) {
@@ -620,17 +659,20 @@ export function useDocument() {
         }
         return gidMap.get(g);
       });
-      let linkId = null;
-      if (u.linkId != null) {
-        if (!lidMap.has(u.linkId)) {
-          lidMap.set(u.linkId, nextLink++);
-          doc.linkScopes[lidMap.get(u.linkId)] = { ...linkScopeDefault(), ...(pat.linkScopes?.[u.linkId] ?? {}) };
+      // §220: 구 패턴(linkId+linkScopes) → 범주형 links 이관 후 새 lid로 재구성
+      let srcLinks = u.links;
+      if (!srcLinks) {
+        srcLinks = emptyLinks();
+        if (u.linkId != null) {
+          const sc = { ...linkScopeDefault(), ...(pat.linkScopes?.[u.linkId] ?? {}) };
+          for (const c of LINK_CATS) if (sc[c] !== false) srcLinks[c] = u.linkId;
         }
-        linkId = lidMap.get(u.linkId);
       }
+      const links = emptyLinks();
+      for (const c of LINK_CATS) links[c] = mapLid(srcLinks[c]);
       doc.units.push({
         id: nextId++, type: 'unit', name: u.name ?? 'Default Unit',
-        x: fx + u.dx, y: fy + u.dy, groups, linkId, params: createParams({ ...u.params }),
+        x: fx + u.dx, y: fy + u.dy, groups, links, pair: null, params: createParams({ ...u.params }),
       });
     }
     cleanupLinks();
@@ -662,11 +704,11 @@ export function useDocument() {
   function duplicateActive() {
     const src = active.value;
     if (!src) return;
-    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y, src.linkId, src.type);
+    return pushUnit({ ...src.params }, src.x + src.params.W + 80, src.y, src.links, src.type);
   }
   // Alt+드래그 복제: 같은 위치에 사본 생성 (파라미터는 전부 원시값 — 얕은 복사로 완전 독립)
   function duplicateFrom(u) {
-    return pushUnit({ ...u.params }, u.x, u.y, u.linkId, u.type, u.name);
+    return pushUnit({ ...u.params }, u.x, u.y, u.links, u.type, u.name);
   }
   // 복수 유닛 동시 복제 — 상대 위치 그대로, 그룹 구조는 사본끼리 새 gid로 재구성, 링크 승계
   function duplicateUnits(units) {
@@ -683,7 +725,7 @@ export function useDocument() {
       });
       doc.units.push({
         id, type: u.type, name: copyName(u), x: u.x, y: u.y,
-        groups, linkId: u.linkId, params: { ...u.params },
+        groups, links: { ...u.links }, pair: null, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
     }
@@ -850,28 +892,27 @@ export function useDocument() {
     pruneMeta();
   }
 
-  // ---- 링크 (파라미터 상시 동기화) ----
+  // ---- 링크 (파라미터 상시 동기화) — §220: 범주형 멤버십 ----
   function linkMemberIds(lid) {
-    return doc.units.filter((u) => u.linkId === lid).map((u) => u.id);
+    return doc.units.filter((u) => LINK_CATS.some((c) => u.links[c] === lid)).map((u) => u.id);
   }
   // 선택 전체가 이미 같은 링크면 해제, 아니면 새 링크로 통합.
-  // scope: 링크 생성 시 초기 동기화 범주 (패널 드래프트 — 없으면 전체 on)
+  // scope: 링크 생성 시 초기 동기화 범주 (패널 드래프트 — 없으면 기본값)
   function toggleLinkSelected(scope = null) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (sel.length < 2) return null;
     if (new Set(sel.map((u) => u.type)).size > 1) return { action: 'mixed' }; // 타입 혼합 링크 불가
-    const lids = [...new Set(sel.map((u) => u.linkId))];
+    const lids = [...new Set(sel.map((u) => primaryLid(u)))];
     // §129: 전체든 서브셋이든 단일 링크그룹 소속 선택이면 = 언링크 (서브셋은 선택분만 이탈,
     // 남은 멤버가 1개면 cleanupLinks가 그룹 자동 소멸). 버튼 라벨(unlink parameters)과 일치.
     if (lids.length === 1 && lids[0] != null) {
-      for (const u of sel) u.linkId = null;
+      for (const u of sel) u.links = emptyLinks();
       cleanupLinks();
       pruneMeta();
       return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
       const sc = scope ? { ...linkScopeDefault(), ...scope } : linkScopeDefault();
-      doc.linkScopes[lid] = sc;
       // 링크 생성 시 활성 유닛(선택에 없으면 첫 유닛) 기준으로 파라미터 즉시 통일.
       // 단, 스코프가 꺼진 범주(orientation 등)는 각 유닛의 값을 유지 (§58 드래프트 반영)
       const src = sel.find((u) => u.id === doc.activeId) ?? sel[0];
@@ -881,7 +922,8 @@ export function useDocument() {
         if (!cat || sc[cat] !== false) patch[k] = src.params[k];
       }
       for (const u of sel) {
-        u.linkId = lid;
+        u.links = emptyLinks();
+        for (const c of LINK_CATS) if (sc[c] !== false) u.links[c] = lid;
         if (u !== src) applyLinkPatch(u, patch, src.params); // §202: W/H 로컬 치수·중심 앵커 규칙 공유
       }
       cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
@@ -894,15 +936,18 @@ export function useDocument() {
   function splitLinkSelected(cat = null) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (sel.length < 2) return null;
-    const lids = [...new Set(sel.map((u) => u.linkId))];
+    const lids = [...new Set(sel.map((u) => primaryLid(u)))];
     if (lids.length !== 1 || lids[0] == null) return null;
     if (linkMemberIds(lids[0]).length === sel.length) return null; // 전체 선택은 일반 토글 경로
-    const base = doc.linkScopes[lids[0]] ?? { size: true, orientation: true, grid: true, shape: true, color: true };
-    const sc = { ...base };
-    if (cat) sc[cat] = sc[cat] === false; // on(!==false) ↔ off 토글
+    // §220: 현 범주 멤버십에서 스코프 도출 + cat 토글 → 선택분을 새 lid로
+    const sc = {};
+    for (const c of LINK_CATS) sc[c] = sel[0].links[c] != null;
+    if (cat) sc[cat] = !sc[cat];
     const lid = nextLink++;
-    doc.linkScopes[lid] = sc;
-    for (const u of sel) u.linkId = lid;
+    for (const u of sel) {
+      u.links = emptyLinks();
+      for (const c of LINK_CATS) if (sc[c]) u.links[c] = lid;
+    }
     cleanupLinks();
     pruneMeta();
     return { count: sel.length, lid };
@@ -910,16 +955,25 @@ export function useDocument() {
   // 단일 유닛을 자기 링크에서 제거 (나머지 멤버는 유지, 1개만 남으면 자동 해체)
   function unlinkUnit(id) {
     const u = doc.units.find((x) => x.id === id);
-    if (!u || !u.linkId) return null;
-    u.linkId = null;
+    if (!u || primaryLid(u) == null) return null;
+    u.links = emptyLinks();
     cleanupLinks();
     pruneMeta();
     return { name: u.name };
   }
   function cleanupLinks() {
+    // §220: lid별 멤버 수(유닛당 1회) — 2 미만이면 그 lid의 범주 멤버십 전부 해제
     const counts = {};
-    for (const u of doc.units) if (u.linkId) counts[u.linkId] = (counts[u.linkId] || 0) + 1;
-    for (const u of doc.units) if (u.linkId && counts[u.linkId] < 2) u.linkId = null;
+    for (const u of doc.units) {
+      const seen = new Set();
+      for (const c of LINK_CATS) {
+        const l = u.links[c];
+        if (l != null && !seen.has(l)) { seen.add(l); counts[l] = (counts[l] || 0) + 1; }
+      }
+    }
+    for (const u of doc.units) {
+      for (const c of LINK_CATS) if (u.links[c] != null && counts[u.links[c]] < 2) u.links[c] = null;
+    }
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   // 회전은 링크 멤버 각각에 자기 중심 기준으로 직접 적용
@@ -1017,7 +1071,7 @@ export function useDocument() {
       const id = nextId++;
       doc.units.push({
         id, type: u.type, name: copyName(u),
-        x, y, groups: [], linkId: null, params: p,
+        x, y, groups: [], links: emptyLinks(), pair: null, params: p,
       });
       const nu = doc.units[doc.units.length - 1];
       normalize(nu.params);
@@ -1063,7 +1117,7 @@ export function useDocument() {
         const id = nextId++;
         doc.units.push({
           id, type: u.type, name: copyName(u),
-          x, y, groups: [gid], linkId: null, params: p,
+          x, y, groups: [gid], links: emptyLinks(), pair: null, params: p,
         });
         const nu = doc.units[doc.units.length - 1];
         normalize(nu.params);
@@ -1303,13 +1357,14 @@ export function useDocument() {
     nextLink = 1;
     doc.units.splice(0, doc.units.length, {
       id: nextId++, type: 'unit', name: 'Default Unit', x: 0, y: 0, // §202: 유닛 넘버링 폐지
-      groups: [], linkId: null, params: createParams(),
+      groups: [], links: emptyLinks(), pair: null, params: createParams(),
     });
     doc.activeId = doc.units[0].id;
     doc.selectedIds = [doc.units[0].id];
     doc.keyId = null;
     doc.groupNames = {};
-    doc.linkScopes = {};
+    doc.animEdges = [];
+    nextPair = 1;
   }
 
   return {
