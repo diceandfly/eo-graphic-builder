@@ -12,6 +12,7 @@ const props = defineProps({
   scale: { type: Number, required: true },
   clientToWorld: { type: Function, required: true }, // (cx, cy) => [wx, wy]
   selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
+  dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
 });
 const emit = defineEmits(['connect', 'disconnect', 'edgeClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
@@ -80,9 +81,10 @@ function onNodeDown(f, e) {
   <g class="animOverlay">
     <!-- 연결 와이어 + 중앙 페어 아이콘 (엣지 파라미터 컨트롤 자리 — Phase C) -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
-      <path class="wire" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }" :d="w.d" />
-      <!-- §224: 와이어 중앙 컨트롤 — 클릭 = 엣지 파라미터 팝업 (duration·곡선, §220 "프레임-컨트롤-프레임") -->
+      <path class="wire" :class="{ sel: !dimmed && selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e), dim: dimmed }" :d="w.d" />
+      <!-- §224: 와이어 중앙 컨트롤 — 클릭 = 엣지 파라미터 팝업 (§225: 애니 모드에서만) -->
       <g
+        v-if="!dimmed"
         class="pairBadge" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }"
         :transform="`translate(${w.mx} ${w.my})`"
         @pointerdown.stop.prevent="(ev) => emit('edgeClick', w.e, ev.clientX, ev.clientY)"
@@ -95,8 +97,8 @@ function onNodeDown(f, e) {
     </g>
     <!-- 드래그 중 임시 와이어 -->
     <path v-if="drag" class="wire temp" :d="wirePath(drag.x1, drag.y1, drag.x, drag.y)" />
-    <!-- 프레임 노드: 좌(입력)·우(출력) — 연결된 노드는 액센트 필 -->
-    <g v-for="f in frames" :key="'an' + f.id">
+    <!-- 프레임 노드: 좌(입력)·우(출력) — 연결된 노드는 액센트 필 (§225: 애니 모드에서만) -->
+    <g v-for="f in dimmed ? [] : frames" :key="'an' + f.id">
       <circle
         class="node left" :class="{ on: connectedL.has(f.id), target: !!drag && drag.fromId !== f.id }"
         :cx="f.x" :cy="f.y + f.params.H / 2" :r="pxs(6)"
@@ -117,6 +119,8 @@ function onNodeDown(f, e) {
 }
 .wire.sel { stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
 .wire.temp { stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
+// §225: 애니 모드 밖 — 연결 존재만 알리는 비활성 표시 (회색 점선)
+.wire.dim { stroke: var(--faint); stroke-dasharray: 4 4; opacity: 0.6; pointer-events: none; }
 .node {
   // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트
   fill: var(--panel); stroke: color-mix(in srgb, var(--text) 60%, var(--faint));

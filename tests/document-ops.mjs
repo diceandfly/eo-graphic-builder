@@ -617,7 +617,7 @@ function centerIn(u, f) {
   ok('애니 엣지: 연결 생성 (ease in-out · 1s 기본) + 자기 연결 무효', () => {
     assert.equal(api.doc.animEdges.length, 1);
     assert.equal(e1.duration, 1000);
-    assert.deepEqual(e1.curve, [0.42, 0, 0.58, 1]);
+    assert.deepEqual(e1.curve, [0.65, 0, 0.35, 1]); // §225 기본 곡선
     assert.equal(api.connectAnim(f.id, f.id), null);
   });
   const r2 = api.duplicatePairedFrame(nf.id, 5000, 0);
@@ -656,6 +656,30 @@ function centerIn(u, f) {
   ok('애니 엣지: 언두에 연결 포함', () => {
     assert.equal(n1, 1);
     assert.equal(api.doc.animEdges.length, 0);
+  });
+}
+
+
+// 19. §225 애니 소속(home): 키프레임이 겹쳌도 소속·페어 매칭 유지
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  const r = api.duplicatePairedFrame(f.id, 30, 30); // 거의 겹치게 복제
+  ok('애니 소속: home 확정 — 겹친 키프레임에서도 각자 1유닛', () => {
+    const a = api.animOwnedUnits(f.id);
+    const b = api.animOwnedUnits(r.frame.id);
+    assert.equal(a.length, 1);
+    assert.equal(b.length, 1);
+    assert.equal(a[0].id, u1.id);
+    assert.notEqual(b[0].id, u1.id);
+    assert.equal(a[0].pair, b[0].pair);
+  });
+  api.setSelection([r.frame.id]);
+  api.deleteSelected();
+  ok('애니 소속: 프레임 삭제 시 home 해제', () => {
+    assert.ok(api.doc.units.every((u) => u.home == null || u.home === f.id));
   });
 }
 

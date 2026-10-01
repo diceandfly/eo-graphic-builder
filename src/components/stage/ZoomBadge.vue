@@ -16,9 +16,52 @@ const props = defineProps({
   gridCfg: Object, // { size, snap } — reactive 스토어 (깊은 변경으로 직접 편집)
   view: Object,    // { nudge, showLinks, guideColor } — 뷰 옵션 reactive 스토어
   limits: Object,  // { unitMin, threadMinPx } — 지오메트리 하한 (문서 px 절대값, §108)
+  units: { type: Array, default: () => [] },           // §225: 미니맵용 오브젝트
+  vpos: Object,                                        // §225: 뷰포트 {x, y, scale}
+  stageSize: { type: Object, default: () => ({ w: 0, h: 0 }) },
 });
-defineEmits(['reset', 'toggleGuides', 'toggleUnitGrid', 'toggleFrameGrid', 'toggleStageGrid', 'toggleBbox']);
+const emit = defineEmits(['reset', 'toggleGuides', 'toggleUnitGrid', 'toggleFrameGrid', 'toggleStageGrid', 'toggleBbox', 'fitAll', 'jumpTo']);
 const pct = computed(() => Math.round(props.scale * 100));
+
+// ── §225: 미니맵 — 전체 오브젝트 + 현재 뷰포트 영역(직사각형). 클릭 = 그 지점으로 시점 이동 ──
+const MM_W = 168;
+const MM_H = 100;
+const minimap = computed(() => {
+  if (!props.vpos || !props.units.length) return null;
+  const vs = props.vpos.scale;
+  const view = {
+    x: -props.vpos.x / vs, y: -props.vpos.y / vs,
+    w: props.stageSize.w / vs, h: props.stageSize.h / vs,
+  };
+  let minX = view.x; let minY = view.y; let maxX = view.x + view.w; let maxY = view.y + view.h;
+  for (const u of props.units) {
+    minX = Math.min(minX, u.x); minY = Math.min(minY, u.y);
+    maxX = Math.max(maxX, u.x + u.params.W); maxY = Math.max(maxY, u.y + u.params.H);
+  }
+  const padX = (maxX - minX) * 0.05;
+  const padY = (maxY - minY) * 0.05;
+  minX -= padX; maxX += padX; minY -= padY; maxY += padY;
+  const s = Math.min(MM_W / (maxX - minX), MM_H / (maxY - minY));
+  const ox = (MM_W - (maxX - minX) * s) / 2;
+  const oy = (MM_H - (maxY - minY) * s) / 2;
+  const m = (x, y) => [ox + (x - minX) * s, oy + (y - minY) * s];
+  return {
+    items: props.units.map((u) => {
+      const [x, y] = m(u.x, u.y);
+      return { id: u.id, x, y, w: Math.max(1, u.params.W * s), h: Math.max(1, u.params.H * s), frame: u.type === 'frame' };
+    }),
+    view: (() => { const [x, y] = m(view.x, view.y); return { x, y, w: view.w * s, h: view.h * s }; })(),
+    toWorld: (mx, my) => [minX + (mx - ox) / s, minY + (my - oy) / s],
+  };
+});
+function onMinimapDown(e) {
+  const mm = minimap.value;
+  if (!mm) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const [wx, wy] = mm.toWorld(e.clientX - r.left, e.clientY - r.top);
+  emit('jumpTo', wx, wy);
+  resetIdle();
+}
 
 // 옵션 메뉴 — 한 번에 하나만, 5초 무조작 시 자동 닫힘
 const openMenu = ref(null); // 'grid' | 'bbox' | 'unit' | null
@@ -199,6 +242,19 @@ function resetGridDefaults() {
             <span class="rowLabel">Frame first below</span>
             <StepField v-model="view.framePickZoom" :min="0" :max="200" :step="5" />
           </label>
+          <!-- §225: 미니맵 — 뷰포트(직사각형) 위치 파악 + 클릭 = 그 지점으로 시점 이동 -->
+          <div v-if="minimap" class="sect">
+            <svg class="minimap" :width="168" :height="100" @pointerdown.stop="onMinimapDown">
+              <rect class="mmBg" x="0" y="0" width="168" height="100" />
+              <rect
+                v-for="it in minimap.items" :key="it.id"
+                class="mmObj" :class="{ frame: it.frame }"
+                :x="it.x" :y="it.y" :width="it.w" :height="it.h"
+              />
+              <rect class="mmView" :x="minimap.view.x" :y="minimap.view.y" :width="minimap.view.w" :height="minimap.view.h" />
+            </svg>
+            <button class="miniBtn fitBtn" @click="emit('fitAll'); resetIdle()">Fit all objects</button>
+          </div>
         </div>
       </div>
     </FloatingBar>
@@ -220,4 +276,14 @@ function resetGridDefaults() {
   align-self: flex-start;
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
+// §225: 미니맵 — 전체 오브젝트 분포 + 현재 뷰포트(액센트 직사각형)
+.minimap {
+  display: block; border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer; margin-bottom: 8px;
+}
+.mmBg { fill: var(--stage-bg); opacity: 0.5; }
+.mmObj { fill: var(--dim); opacity: 0.8; }
+.mmObj.frame { fill: none; stroke: var(--faint); stroke-width: 1; }
+.mmView { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
+.fitBtn { width: 100%; justify-content: center; text-transform: capitalize; }
 </style>

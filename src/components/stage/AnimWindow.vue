@@ -17,6 +17,30 @@ const props = defineProps({
 });
 
 const FPS = 30; // §220: 30fps 기본 (시뮬 전용 — 성능 가드)
+
+// §225: 창 크기 조절 — 좌상단 코너 그립 (우하단 앵커라 좌·위로 늘어남), 로컬 영속
+const winSize = ref((() => {
+  try { const s = JSON.parse(localStorage.getItem('eo.animWinSize') || 'null'); if (s?.w && s?.ph) return s; } catch { /* 기본값 */ }
+  return { w: 300, ph: 210 };
+})());
+function onSizeGripDown(e) {
+  e.preventDefault();
+  const sx = e.clientX;
+  const sy = e.clientY;
+  const { w: w0, ph: p0 } = winSize.value;
+  const mv = (ev) => {
+    winSize.value = {
+      w: Math.min(640, Math.max(240, w0 + (sx - ev.clientX))),
+      ph: Math.min(560, Math.max(120, p0 + (sy - ev.clientY))),
+    };
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', mv);
+    localStorage.setItem('eo.animWinSize', JSON.stringify(winSize.value));
+  };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up, { once: true });
+}
 const playing = ref(false);
 const loopMode = ref('loop'); // 'once' | 'loop' | 'pingpong'
 const p = ref(0);             // raw 진행률 0..1
@@ -73,11 +97,12 @@ const timeLabel = computed(() => {
 </script>
 
 <template>
-  <div class="animWin" @pointerdown.stop @wheel.stop @contextmenu.stop.prevent>
+  <div class="animWin" :style="{ width: winSize.w + 'px' }" @pointerdown.stop @wheel.stop @contextmenu.stop.prevent>
+    <div class="sizeGrip" title="Drag to resize" @pointerdown.stop="onSizeGripDown" />
     <h2 class="title">Animation</h2>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
-      <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ aspectRatio: `${pose.W} / ${pose.H}` }">
+      <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: winSize.ph + 'px' }">
         <rect :width="pose.W" :height="pose.H" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
         <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
           <UnitGraphic :params="it.params" :seam-width="0.75" />
@@ -113,10 +138,10 @@ const timeLabel = computed(() => {
 <style scoped lang="scss">
 .animWin {
   position: absolute;
-  left: calc(var(--panel-w) + 2 * var(--sp-6));
-  bottom: calc(var(--sp-6) + 42px + var(--sp-6)); // 정렬 바 위 — 프리셋창과 동일 리듬 (§217)
+  /* §225: 애니메이션 버튼(프리셋 바) 바로 위 — 우하단 앵커 (사용자 확정) */
+  right: var(--sp-6);
+  bottom: calc(var(--sp-6) + 42px + var(--sp-6));
   z-index: 9;
-  width: 300px;
   box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
@@ -131,6 +156,12 @@ const timeLabel = computed(() => {
   width: 100%; display: block;
   background: var(--stage-bg);
   border: 1px solid var(--line); border-radius: var(--radius);
+}
+// §225: 좌상단 코너 크기 조절 그립
+.sizeGrip {
+  position: absolute; top: 0; left: 0; width: 12px; height: 12px;
+  cursor: nwse-resize;
+  &:hover { box-shadow: inset 2px 2px 0 var(--accent); }
 }
 .scrub {
   width: 100%; margin: 0; accent-color: var(--accent);

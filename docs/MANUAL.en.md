@@ -280,6 +280,8 @@ Dragging an object gets automatic help:
 
 ---
 
+The **zoom % badge's {icon:mouseR}right-click menu** includes a **minimap** — your current view appears as a yellow rectangle over all objects, and clicking jumps the view there. **Fit all objects** brings everything back into view (for when you lose your work off-screen).
+
 ## 14. Unit Presets
 
 Save unit shapes you use often and bring them back anytime.
@@ -337,4 +339,5 @@ Design motion using frames as keyframes. Toggle with **A** or the {icon:animatio
 - **Connect**: every frame shows round nodes on its left and right. **Drag the start frame's right node onto the end frame's left node** to connect them with a curved wire (default ease in-out · 1s). Each node holds one connection; dragging a connected node elsewhere moves it, and **dropping on empty space disconnects**
 - **Timing**: click the {icon:animation}control at the middle of a wire to set that connection's **Duration (ms) and one of 9 speed-curve presets** (default ease in-out · 1s)
 - **Simulation**: the Animation window offers play/pause, a time scrubber and **once/loop/pingpong** modes (30fps). Units outside the frame are clipped, so moving across the edge reads as entering/leaving the screen. Unpaired units fade in/out, and integer values like Cols step one at a time
+- Connections stay visible as **grey dashed wires** even outside animation mode (editing only happens inside it). The Animation window can be resized from its top-left corner
 - **Constraints**: paired objects cannot be deleted while in animation mode (protecting the correspondence), and selecting a frame shows no resize handles

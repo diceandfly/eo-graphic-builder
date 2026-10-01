@@ -135,6 +135,7 @@ function migrateUnit(u, legacyScopes = {}) {
   }
   delete u.linkId;
   if (u.pair === undefined) u.pair = null; // §220: 애니메이션 페어 예약
+  if (u.home === undefined) u.home = null; // §225: 키프레임 소속 (페어 복제 시 확정 — 겹친 키프레임에서도 소속 유지)
   if (u.params && u.params.flipX === undefined) u.params.flipX = false;
   if (u.params) {
     // §220: 애니메이션 예약 필드 보충
@@ -214,6 +215,7 @@ export function useDocument() {
     for (const k of Object.keys(doc.groupNames)) if (!gids.has(Number(k))) delete doc.groupNames[k];
     const fids = new Set(doc.units.filter((u) => u.type === 'frame').map((u) => u.id));
     doc.animEdges = doc.animEdges.filter((e) => fids.has(e.from) && fids.has(e.to));
+    for (const u of doc.units) if (u.home != null && !fids.has(u.home)) u.home = null; // §225
   }
 
   // JSON 프로젝트 로드 (파일 열기) — meta.linkScopes는 구 포맷 이관용
@@ -581,7 +583,7 @@ export function useDocument() {
       doc.units.push({
         id, type: it.type, name: it.name ?? nextName(it.type), // §202·§204: 원본 이름 유지 (유닛·프레임 공통)
         x: Math.round(x + it.dx), y: Math.round(y + it.dy),
-        groups, links: { ...it.links }, pair: null, params: { ...it.params },
+        groups, links: { ...it.links }, pair: null, home: null, params: { ...it.params },
       });
       ids.push(id);
     }
@@ -596,7 +598,7 @@ export function useDocument() {
     const id = nextId++;
     doc.units.push({
       id, type, name: name ?? nextName(type), x, y, groups: [],
-      links: links ? { ...links } : emptyLinks(), pair: null, params,
+      links: links ? { ...links } : emptyLinks(), pair: null, home: null, params,
     });
     selectOnly(id);
     return doc.units[doc.units.length - 1];
@@ -642,7 +644,7 @@ export function useDocument() {
     const fp = createFrameParams({ ...pat.frame });
     const fx = Math.round(cx - fp.W / 2);
     const fy = Math.round(cy - fp.H / 2);
-    doc.units.push({ id: nextId++, type: 'frame', name: pat.name || 'Frame', x: fx, y: fy, groups: [], links: emptyLinks(), pair: null, params: fp });
+    doc.units.push({ id: nextId++, type: 'frame', name: pat.name || 'Frame', x: fx, y: fy, groups: [], links: emptyLinks(), pair: null, home: null, params: fp });
     const frame = doc.units[doc.units.length - 1];
     const gidMap = new Map();
     const lidMap = new Map();
@@ -672,7 +674,7 @@ export function useDocument() {
       for (const c of LINK_CATS) links[c] = mapLid(srcLinks[c]);
       doc.units.push({
         id: nextId++, type: 'unit', name: u.name ?? 'Default Unit',
-        x: fx + u.dx, y: fy + u.dy, groups, links, pair: null, params: createParams({ ...u.params }),
+        x: fx + u.dx, y: fy + u.dy, groups, links, pair: null, home: null, params: createParams({ ...u.params }),
       });
     }
     cleanupLinks();
@@ -691,7 +693,10 @@ export function useDocument() {
     if (!f) return null;
     const owned = frameOwnedUnits([frameId]);
     if (f.pair == null) f.pair = nextPair++;
-    for (const u of owned) if (u.pair == null) u.pair = nextPair++;
+    for (const u of owned) {
+      if (u.pair == null) u.pair = nextPair++;
+      if (u.home == null) u.home = f.id; // §225: 원본 소속 확정
+    }
     const gidMap = new Map();
     const lidMap = new Map();
     const mapG = (g) => {
@@ -708,7 +713,7 @@ export function useDocument() {
     };
     const nf = {
       id: nextId++, type: 'frame', name: f.name, x: f.x + dx, y: f.y + dy,
-      groups: [], links: emptyLinks(), pair: f.pair, params: { ...f.params },
+      groups: [], links: emptyLinks(), pair: f.pair, home: null, params: { ...f.params },
     };
     doc.units.push(nf);
     const copies = [doc.units[doc.units.length - 1]];
@@ -717,13 +722,21 @@ export function useDocument() {
       for (const c of LINK_CATS) links[c] = mapL(u.links[c]);
       doc.units.push({
         id: nextId++, type: u.type, name: u.name, x: u.x + dx, y: u.y + dy,
-        groups: u.groups.map(mapG), links, pair: u.pair, params: { ...u.params },
+        groups: u.groups.map(mapG), links, pair: u.pair, home: nf.id, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
     }
     setSelection(copies.map((c) => c.id));
     doc.activeId = copies[0].id;
     return { frame: copies[0], copies };
+  }
+  // §225: 키프레임 소유 유닛 — home(페어 복제 시 확정) 우선, 없으면 기하 소유 폴백.
+  // 키프레임끼리 겹쳐 있어도 소속이 흔들리지 않는다 (§220: "소속 = 페어 멤버십").
+  function animOwnedUnits(frameId) {
+    const byHome = doc.units.filter((u) => u.home === frameId && u.type !== 'frame');
+    // home이 없는 유닛(페어 복제 이전 생성분)만 기하 소유로 보충 — 타 키프레임 소속은 절대 끼지 않음
+    const fallback = frameOwnedUnits([frameId]).filter((u) => u.home == null);
+    return [...byHome, ...fallback];
   }
   // 키프레임 연결 — 우(from)→좌(to)만, 노드당 1연결(재연결 = 기존 이설, §220 사용자 확정).
   // A→B→A 사이클 = 루프 재생으로 해석(허용), 자기 연결만 차단.
@@ -732,7 +745,7 @@ export function useDocument() {
     const isFrame = (id) => doc.units.some((u) => u.id === id && u.type === 'frame');
     if (!isFrame(fromId) || !isFrame(toId)) return null;
     doc.animEdges = doc.animEdges.filter((e) => e.from !== fromId && e.to !== toId);
-    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.42, 0, 0.58, 1] }; // ease in-out 기본
+    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.65, 0, 0.35, 1] }; // §225: 기본 = 곡선 벨(ease in-out)
     doc.animEdges.push(edge);
     return edge;
   }
@@ -786,7 +799,7 @@ export function useDocument() {
       });
       doc.units.push({
         id, type: u.type, name: copyName(u), x: u.x, y: u.y,
-        groups, links: { ...u.links }, pair: null, params: { ...u.params },
+        groups, links: { ...u.links }, pair: null, home: null, params: { ...u.params },
       });
       copies.push(doc.units[doc.units.length - 1]);
     }
@@ -1434,7 +1447,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
-    duplicatePairedFrame, connectAnim, disconnectAnim,
+    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

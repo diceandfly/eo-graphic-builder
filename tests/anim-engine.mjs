@@ -28,6 +28,12 @@ ok('베지어: ease in-out 대칭·단조', () => {
   assert.ok(bezierEase(c, 0.15) < 0.15); // in 구간은 느리게
   assert.ok(bezierEase(c, 0.85) > 0.85); // out 구간은 앞서감
 });
+ok('파라미터 보간: 문자열 숫자도 lerp (§225 — 패널 편집값 "500" 등)', () => {
+  const mid = lerpParams({ W: 100, flipX: false, fill: '#333333' }, { W: '500', flipX: true, fill: '#F9EE3A' }, 0.5);
+  assert.equal(mid.W, 300);              // '500' 강제 변환 lerp
+  assert.equal(mid.flipX, true);         // 불리언은 50% 컷 (수치 변환 금지)
+  assert.equal(mid.fill, '#F9EE3A');     // 색상 문자열도 컷
+});
 ok('파라미터 보간: 연속 lerp · cols 다단계 스텝 · 비수치 50% 컷', () => {
   const a = { W: 100, H: 200, cols: 12, gutterMode: 'fixed', flipX: false };
   const b = { W: 300, H: 200, cols: 9, gutterMode: 'prop', flipX: false };

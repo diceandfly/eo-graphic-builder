@@ -15,7 +15,7 @@ import ManagerBar from './ManagerBar.vue';
 import PresetFloatWindow from './PresetFloatWindow.vue';
 import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
-import { CURVE_PRESETS } from '../../geometry/anim.js';
+import { CURVE_PRESETS, bezierEase } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
@@ -241,6 +241,8 @@ const frameNameEditPos = computed(() => {
 const presetPanel = ref(null);
 function togglePresetPanel(name) {
   presetPanel.value = presetPanel.value === name ? null : name;
+  // §225: 툴바는 중앙 정렬이라 내용 폭이 변하면 좌변이 움직임 — 열 때마다 재측정
+  if (presetPanel.value) nextTick(measurePresetW);
 }
 // §223: 애니메이션 모드 (Phase B) — 프레임 노드/와이어 오버레이, A 키·프리셋 바 버튼 토글
 const animMode = ref(false);
@@ -272,14 +274,30 @@ watch(animEdgePopup, (open, was) => {
   if (open && !was) setTimeout(() => window.addEventListener('pointerdown', onEdgePopupOutside, true), 0);
   else if (!open) window.removeEventListener('pointerdown', onEdgePopupOutside, true);
 });
-// 곡선 프리셋 미니 아이콘 패스 (20×20 값 그래프)
-const curveIcon = (c) => `M2 18 C ${2 + 16 * c[0]} ${18 - 16 * c[1]}, ${2 + 16 * c[2]} ${18 - 16 * c[3]}, 18 2`;
+// §225: 곡선 프리셋 아이콘 = **스피드그래프**(속도 = 값 곡선의 미분) — 사용자 시안 글리프와 동일 문법.
+// 등속(linear) = ⊓, in-out = 종 모양, in = 상승 램프, out = 하강 램프. 베이스라인에서 시작/끝.
+const curveIcon = (c) => {
+  const n = 16;
+  const vs = [];
+  let vmax = 0;
+  for (let i = 0; i <= n; i++) {
+    const x = i / n;
+    const a = bezierEase(c, Math.max(0, x - 0.02));
+    const b = bezierEase(c, Math.min(1, x + 0.02));
+    const v = (b - a) / (Math.min(1, x + 0.02) - Math.max(0, x - 0.02));
+    vs.push(v);
+    vmax = Math.max(vmax, v);
+  }
+  const pts = vs.map((v, i) => `${(2 + (16 * i) / n).toFixed(1)} ${(17 - (v / vmax) * 13).toFixed(1)}`);
+  return `M2 18 L ${pts.join(' L ')} L18 18`;
+};
 const sameCurve = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 // 애니메이션 창 데이터 — 선택 엣지의 양 키프레임 + 소유 유닛 (reactive)
 const animFrom = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id === selEdge.value.from) : null));
 const animTo = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id === selEdge.value.to) : null));
-const animFromUnits = computed(() => (animFrom.value ? frameOwnedUnits([animFrom.value.id]) : []));
-const animToUnits = computed(() => (animTo.value ? frameOwnedUnits([animTo.value.id]) : []));
+// §225: 소속 = home(페어 복제 시 확정) — 키프레임이 겹쳐 있어도 페어 매칭이 무너지지 않음
+const animFromUnits = computed(() => (animFrom.value ? props.actions.animOwnedUnits(animFrom.value.id) : []));
+const animToUnits = computed(() => (animTo.value ? props.actions.animOwnedUnits(animTo.value.id) : []));
 // §223: 애니 모드에서 페어 오브젝트 삭제 = 경고 후 차단 (대응 관계 보호 — §220 사용자 확정)
 function guardedDelete() {
   if (animMode.value) {
@@ -291,14 +309,37 @@ function guardedDelete() {
   }
   props.actions.deleteSelected();
 }
-// §224: 프리셋창 왼쪽 끝 = 작업 툴바(toolbarWrap) 왼쪽 라인 정렬 — 폭을 실측으로 산출 (리사이즈 추적)
+// §224·§225: 프리셋창 왼쪽 끝 = **도구 툴바**(툴바 그룹의 마지막 바) 왼쪽 라인 정렬 — 폭 실측 (리사이즈 추적)
 const presetW = ref(580);
+const stageSize = ref({ w: 0, h: 0 }); // §225: 미니맵/핏 계산용 스테이지 크기
 function measurePresetW() {
-  const tb = el.value?.querySelector('.toolbarWrap');
   const sr = el.value?.getBoundingClientRect();
-  if (!tb || !sr) return;
+  if (!sr) return;
+  stageSize.value = { w: sr.width, h: sr.height };
+  const tb = el.value?.querySelector('.toolbarWrap .fbar:last-of-type'); // 컬러 바가 아닌 도구 바
+  if (!tb) return;
   const left = tb.getBoundingClientRect().left - sr.left;
-  presetW.value = Math.max(460, Math.round(sr.width - 12 - left)); // 12 = --sp-6 (우측 여백)
+  presetW.value = Math.max(240, Math.round(sr.width - 12 - left)); // 12 = --sp-6 (하한 240 = 2열 가용 최소)
+}
+// §225: 시점 복귀 — 전체 오브젝트가 보이게 핏 (미니맵 옆 버튼)
+function fitAllView() {
+  const us = props.doc.units;
+  if (!us.length) return;
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  for (const u of us) {
+    minX = Math.min(minX, u.x); minY = Math.min(minY, u.y);
+    maxX = Math.max(maxX, u.x + u.params.W); maxY = Math.max(maxY, u.y + u.params.H);
+  }
+  const { w, h } = stageSize.value;
+  const s = Math.min(8, Math.max(0.05, Math.min(w / ((maxX - minX) * 1.12), h / ((maxY - minY) * 1.12))));
+  vp.scale = s;
+  vp.x = w / 2 - ((minX + maxX) / 2) * s;
+  vp.y = h / 2 - ((minY + maxY) / 2) * s;
+}
+// §225: 미니맵 클릭 — 그 월드 지점을 화면 중앙으로 (줌 유지)
+function jumpToWorld(wx, wy) {
+  vp.x = stageSize.value.w / 2 - wx * vp.scale;
+  vp.y = stageSize.value.h / 2 - wy * vp.scale;
 }
 // §221: 프리셋 창 내부 로직은 PresetFloatWindow로 분리 — 스테이지는 좌표 변환만 공급
 function panelCenterWorld() {
@@ -1583,12 +1624,13 @@ onBeforeUnmount(() => {
         </g>
         <!-- §223: 애니메이션 오버레이 — 프레임 노드 + 키프레임 와이어 (Phase B) -->
         <AnimOverlay
-          v-if="animMode"
+          v-if="animMode || doc.animEdges.length"
           :units="doc.units"
           :edges="doc.animEdges"
           :scale="vp.scale"
           :client-to-world="dropClientToWorld"
           :selected-edge="selEdge"
+          :dimmed="!animMode"
           @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
@@ -1764,6 +1806,8 @@ onBeforeUnmount(() => {
             class="durInput" type="number" min="100" max="60000" step="100"
             :value="selEdge.duration"
             @change="(e) => { selEdge.duration = Math.max(100, Math.min(60000, Number(e.target.value) || 1000)); }"
+            @keydown.enter.stop.prevent="(e) => { selEdge.duration = Math.max(100, Math.min(60000, Number(e.target.value) || 1000)); e.target.blur(); }"
+            @keydown.stop
           /> ms
         </span>
       </label>
@@ -1803,7 +1847,12 @@ onBeforeUnmount(() => {
       :grid-cfg="gridCfg"
       :limits="limitsCfg"
       :view="view"
+      :units="doc.units"
+      :vpos="vp"
+      :stage-size="stageSize"
       @reset="resetZoom"
+      @fit-all="fitAllView"
+      @jump-to="jumpToWorld"
       @toggle-guides="toggleAllGrids"
       @toggle-unit-grid="showGuides = !showGuides"
       @toggle-frame-grid="showFrameGrid = !showFrameGrid"

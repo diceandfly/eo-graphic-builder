@@ -172,7 +172,12 @@ async function openProject(file, scope = {}) {
     }
     // 카메라: 항상 마지막 저장 위치로 (v3 camera, v1·2 viewport 하위 호환)
     const cam = data.camera ?? data.viewport;
-    if (cam) Object.assign(viewport.vp, cam);
+    // §225: 파일의 카메라 값도 유한값만 반영 (비정상 값의 NaN 전염 차단)
+    if (cam) {
+      for (const k of ['x', 'y', 'scale']) {
+        if (Number.isFinite(cam[k]) && (k !== 'scale' || cam[k] > 0)) viewport.vp[k] = cam[k];
+      }
+    }
     // 설정 병합: v3 tools/viewSettings, v2 workspace.prefs 하위 호환
     const legacy = data.workspace?.prefs;
     const toolsSrc = data.tools ?? (legacy ? pick(legacy, TOOLS_KEYS) : null);

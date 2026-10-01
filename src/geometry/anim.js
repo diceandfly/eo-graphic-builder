@@ -25,30 +25,36 @@ export function bezierEase(curve, x) {
   return cy((lo + hi) / 2);
 }
 
-// 곡선 프리셋 — 자주 쓰는 스피드그래프 9종 (§219 시안 수 기준). default = ease in-out
+// 곡선 프리셋 — §225: 사용자 시안(스피드그래프 글리프 9종)과 **같은 순서·같은 모양**:
+// ⊓등속 · 삼각 벨 · 곡선 벨(기본) · 와이드 벨 · 라운드 플래토 · 상승 램프 · 하강 램프 · 급상승 램프 · 후반 피크
 export const CURVE_PRESETS = [
   { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1] },
-  { key: 'ease', label: 'Ease', curve: [0.25, 0.1, 0.25, 1] },
-  { key: 'in-out', label: 'In-out', curve: [0.42, 0, 0.58, 1] },
+  { key: 'in-out-2', label: 'In-out quad', curve: [0.45, 0, 0.55, 1] },
   { key: 'in-out-3', label: 'In-out cubic', curve: [0.65, 0, 0.35, 1] },
-  { key: 'in-out-5', label: 'In-out quint', curve: [0.83, 0, 0.17, 1] },
+  { key: 'in-out-sine', label: 'In-out sine', curve: [0.37, 0, 0.63, 1] },
+  { key: 'soft-linear', label: 'Soft linear', curve: [0.1, 0, 0.9, 1] },
   { key: 'in', label: 'In', curve: [0.32, 0, 0.67, 0] },
   { key: 'out', label: 'Out', curve: [0.33, 1, 0.68, 1] },
   { key: 'in-5', label: 'In quint', curve: [0.64, 0, 0.78, 0] },
-  { key: 'out-5', label: 'Out quint', curve: [0.22, 1, 0.36, 1] },
+  { key: 'late-peak', label: 'Late peak', curve: [0.7, 0, 0.85, 1] },
 ];
+export const DEFAULT_CURVE = [0.65, 0, 0.35, 1]; // 연결 기본값 = 곡선 벨 (ease in-out)
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
-// 파라미터 보간 — cols 다단계 스텝, 수치 lerp, 그 외 50% 컷
+// 파라미터 보간 — cols 다단계 스텝, 수치 lerp, 그 외 50% 컷.
+// §225: 패널 편집을 거친 값이 문자열 숫자("500")로 저장될 수 있어 **수치 강제 변환** —
+// 문자열이면 전부 50% 컷으로 빠져 "한 프레임에 싹 바뀌는" 버그가 났던 원인.
 export function lerpParams(a, b, t) {
   const out = { ...a };
   for (const k in b) {
     const av = a[k];
     const bv = b[k];
     if (av === bv) { out[k] = av; continue; }
-    if (typeof av === 'number' && typeof bv === 'number') {
-      out[k] = k === 'cols' || k === 'rows' ? Math.round(lerp(av, bv, t)) : lerp(av, bv, t);
+    const an = typeof av === 'boolean' ? NaN : Number(av);
+    const bn = typeof bv === 'boolean' ? NaN : Number(bv);
+    if (Number.isFinite(an) && Number.isFinite(bn)) {
+      out[k] = k === 'cols' || k === 'rows' ? Math.round(lerp(an, bn, t)) : lerp(an, bn, t);
     } else {
       out[k] = t < 0.5 ? av : bv;
     }
