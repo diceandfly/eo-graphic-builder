@@ -771,6 +771,32 @@ export function useDocument() {
     const fallback = frameOwnedUnits([frameId]).filter((u) => u.home == null);
     return [...byHome, ...fallback];
   }
+  // §228: 구 문서 페어 소속 복구 — home이 없는 페어 유닛(§225 이전 생성분)을 두 키프레임에
+  // 중심 거리 기준으로 배정 (듀오가 한쪽에 몰리면 먼 쪽을 반대편으로). 연결/선택 시 호출 — 멱등.
+  function repairAnimHomes(fromId, toId) {
+    const f = doc.units.find((u) => u.id === fromId);
+    const g = doc.units.find((u) => u.id === toId);
+    if (!f || !g) return;
+    const groups = new Map();
+    for (const u of doc.units) {
+      if (u.type !== 'frame' && u.pair != null && u.home == null) {
+        if (!groups.has(u.pair)) groups.set(u.pair, []);
+        groups.get(u.pair).push(u);
+      }
+    }
+    const cdist = (u, fr) => Math.hypot(
+      u.x + u.params.W / 2 - (fr.x + fr.params.W / 2),
+      u.y + u.params.H / 2 - (fr.y + fr.params.H / 2)
+    );
+    for (const [, us] of groups) {
+      for (const u of us) u.home = cdist(u, f) <= cdist(u, g) ? fromId : toId;
+      if (us.length === 2 && us[0].home === us[1].home) {
+        const anchor = us[0].home === fromId ? f : g;
+        const far = cdist(us[0], anchor) > cdist(us[1], anchor) ? us[0] : us[1];
+        far.home = us[0].home === fromId ? toId : fromId;
+      }
+    }
+  }
   // 키프레임 연결 — 우(from)→좌(to)만, 노드당 1연결(재연결 = 기존 이설, §220 사용자 확정).
   // A→B→A 사이클 = 루프 재생으로 해석(허용), 자기 연결만 차단.
   function connectAnim(fromId, toId) {
@@ -780,6 +806,7 @@ export function useDocument() {
     doc.animEdges = doc.animEdges.filter((e) => e.from !== fromId && e.to !== toId);
     const edge = { from: fromId, to: toId, duration: 1000, curve: [0.33, 0, 0.67, 1] }; // §227: 기본 = Ease 33·33
     doc.animEdges.push(edge);
+    repairAnimHomes(fromId, toId); // §228: 구 문서 소속 복구
     return edge;
   }
   // side: 'right' = 나가는 연결(from) / 'left' = 들어오는 연결(to) 해제 (빈 곳 드롭 = 해제)
@@ -1485,7 +1512,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
-    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode,
+    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

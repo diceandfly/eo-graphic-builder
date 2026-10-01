@@ -52,7 +52,7 @@ function onWinDown(e) {
     window.removeEventListener('pointermove', mv);
     if (moved) localStorage.setItem('eo.animWinPos', JSON.stringify(pos.value));
     // §227: 프리뷰 클릭(무이동) = 재생/정지
-    else if (ev.target.closest('.preview')) (playing.value ? stop() : play());
+    else if (ev.target.closest('.pvWrap')) (playing.value ? stop() : play());
   };
   window.addEventListener('pointermove', mv);
   window.addEventListener('pointerup', up, { once: true });
@@ -143,12 +143,21 @@ const previewH = computed(() => {
     <h2 class="title" title="Drag to move">Animation</h2>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
-      <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
-        <rect :width="pose.W" :height="pose.H" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
-        <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
-          <UnitGraphic :params="it.params" :seam-width="0.75" />
-        </g>
-      </svg>
+      <div class="pvWrap">
+        <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
+          <rect :width="pose.W" :height="pose.H" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
+          <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
+            <UnitGraphic :params="it.params" :seam-width="0.75" />
+          </g>
+        </svg>
+        <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체) -->
+        <div class="pvPlay">
+          <svg viewBox="0 0 24 24">
+            <path v-if="!playing" d="M8 5 L19 12 L8 19 Z" />
+            <g v-else><path d="M8.5 5 V19" /><path d="M15.5 5 V19" /></g>
+          </svg>
+        </div>
+      </div>
       <!-- 스크러버 + 트랜스포트 -->
       <input
         class="scrub" type="range" min="0" max="1000" :value="Math.round(p * 1000)"
@@ -193,12 +202,25 @@ const previewH = computed(() => {
   letter-spacing: 0; margin: 0; text-transform: capitalize;
   cursor: move; user-select: none; -webkit-user-select: none;
 }
+.pvWrap { position: relative; cursor: pointer; } /* §227: 클릭 = 재생/정지 */
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
   border: 1px solid var(--line); border-radius: var(--radius);
-  cursor: pointer; /* §227: 클릭 = 재생/정지 */
 }
+/* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
+.pvPlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.12s; pointer-events: none;
+  svg {
+    width: 34px; height: 34px; padding: 10px;
+    background: rgba(0, 0, 0, 0.55); border-radius: 50%;
+    fill: var(--text); stroke: var(--text); stroke-width: 2.4; stroke-linejoin: miter;
+    path[d^='M8 5 L'] { stroke-width: 0; }
+  }
+}
+.pvWrap:hover .pvPlay { opacity: 1; }
 // §226: 우하단 크기 조절 그립 — 기호 상시 표시, 호버 = 액센트
 .sizeGrip {
   position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px;

@@ -282,6 +282,10 @@ const animTo = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id 
 // §225: 소속 = home(페어 복제 시 확정) — 키프레임이 겹쳐 있어도 페어 매칭이 무너지지 않음
 const animFromUnits = computed(() => (animFrom.value ? props.actions.animOwnedUnits(animFrom.value.id) : []));
 const animToUnits = computed(() => (animTo.value ? props.actions.animOwnedUnits(animTo.value.id) : []));
+// §228: 기존 엣지(구 문서) 선택 시에도 페어 소속 자동 복구 — 멱등이라 엣지 전환마다 1회
+watch(() => selEdge.value && `${selEdge.value.from}-${selEdge.value.to}`, (k) => {
+  if (k && selEdge.value) props.actions.repairAnimHomes(selEdge.value.from, selEdge.value.to);
+}, { immediate: true });
 // §223: 애니 모드에서 페어 오브젝트 삭제 = 경고 후 차단 (대응 관계 보호 — §220 사용자 확정)
 function guardedDelete() {
   if (animMode.value) {
@@ -1977,7 +1981,8 @@ onBeforeUnmount(() => {
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
-.curveGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; } /* §227: 3열 — 아이콘 확대 */
+.edgeMenu { min-width: 236px; } /* §228: 곡선 버튼 5개 폭 */
+.curveGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; } /* §228: 5열 (사용자 확정) */
 .curveBtn {
   @include bordered-control;
   height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center;

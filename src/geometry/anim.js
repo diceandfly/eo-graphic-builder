@@ -32,7 +32,7 @@ export function bezierEase(curve, x) {
 // icon = 시트 글리프 모사 수제 패스 (viewBox 0 0 24 20, 베이스라인 y17 — 샘플링 생성 폐기, §227 사용자 지시).
 export const CURVE_PRESETS = [
   { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1],
-    icon: 'M4 5 H20 M12 5 V17' },
+    icon: 'M4 17 H20 M12 17 V5' }, // §228: ⊥ (상하반전 — 시트 1행)
   { key: 'ease-50', label: 'Ease 50 · 50', curve: [0.5, 0, 0.5, 1],
     icon: 'M5 17 C9 12, 10.5 4, 12 4 C13.5 4, 15 12, 19 17' },
   { key: 'ease-33', label: 'Ease 33 · 33', curve: [0.33, 0, 0.67, 1],
@@ -42,9 +42,9 @@ export const CURVE_PRESETS = [
   { key: 'ease-10', label: 'Ease 10 · 10', curve: [0.1, 0, 0.9, 1],
     icon: 'M5 17 C5 8, 6 4.5, 9 4.5 L15 4.5 C18 4.5, 19 8, 19 17' },
   { key: 'end-spike', label: 'Out 5 → in 100', curve: [1, 0, 0.95, 1],
-    icon: 'M4 16.5 C12 16.2, 16.5 14, 18.5 8 C19 6.5, 19.3 5, 19.5 4' },
+    icon: 'M4 16.5 C12 16.2, 16.5 14, 18.5 8 C19 6.5, 19.3 5, 19.5 4 L19.5 17' }, // §228: 우단 수직 낙하 완성
   { key: 'start-spike', label: 'Out 100 → in 5', curve: [0.05, 0, 0, 1],
-    icon: 'M4.5 4 C4.7 5, 5 6.5, 5.5 8 C7.5 14, 12 16.2, 20 16.5' },
+    icon: 'M4.5 17 L4.5 4 C4.7 5, 5 6.5, 5.5 8 C7.5 14, 12 16.2, 20 16.5' }, // §228: 좌단 수직 상승 + 우하향 (6번 좌우반전)
   { key: 'peak-late', label: 'Out 75 → in 33', curve: [0.75, 0, 0.67, 1],
     icon: 'M4 17 C9 15.5, 13.5 10, 15 5.5 C15.4 4.5, 15.8 4, 16 4 C17 4.5, 18.5 12, 19.5 17' },
   { key: 'peak-early', label: 'Out 33 → in 75', curve: [0.33, 0, 0.25, 1],
@@ -111,13 +111,18 @@ export function samplePose(fromF, fromUnits, toF, toUnits, t) {
     const b = a.pair != null ? byPair.get(a.pair) : null;
     if (b) {
       matchedTo.add(b.id);
-      items.push({
-        key: `p${a.pair}`,
-        params: lerpParams(a.params, b.params, t),
-        dx: lerp(a.x - fromF.x, b.x - toF.x, t),
-        dy: lerp(a.y - fromF.y, b.y - toF.y, t),
-        opacity: lerp(a.params.opacity ?? 100, b.params.opacity ?? 100, t) / 100,
-      });
+      const params = lerpParams(a.params, b.params, t);
+      const dx = lerp(a.x - fromF.x, b.x - toF.x, t);
+      const dy = lerp(a.y - fromF.y, b.y - toF.y, t);
+      const op = lerp(a.params.opacity ?? 100, b.params.opacity ?? 100, t) / 100;
+      // §228: cols(정수 토폴로지)가 다르면 스텝 대신 **디졸브** — 두 밀도 상태를 겹쳐 크로스페이드.
+      // 1칸 차이 = "50% 점프"로 보이던 문제의 해결 (나머지 파라미터는 양쪽 모두에서 계속 lerp).
+      if (a.params.cols !== b.params.cols) {
+        items.push({ key: `p${a.pair}a`, params: { ...params, cols: a.params.cols }, dx, dy, opacity: op * (1 - t) });
+        items.push({ key: `p${a.pair}b`, params: { ...params, cols: b.params.cols }, dx, dy, opacity: op * t });
+      } else {
+        items.push({ key: `p${a.pair}`, params, dx, dy, opacity: op });
+      }
     } else {
       // 시작 키프레임에만 존재 — 페이드 아웃
       items.push({

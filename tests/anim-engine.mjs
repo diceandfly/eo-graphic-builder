@@ -96,4 +96,24 @@ ok('포즈: opacity 파라미터도 lerp (페어)', () => {
   assert.ok(Math.abs(pose.items[0].opacity - 0.5) < 1e-9);
 });
 
+
+ok('콜스 디졸브: cols 차이 페어 = 두 밀도 상태 크로스페이드 (§228 — "50% 점프" 해결)', () => {
+  const fA = { id: 1, params: { W: 1000, H: 800 }, x: 0, y: 0 };
+  const fB = { id: 2, params: { W: 1000, H: 800 }, x: 0, y: 0 };
+  const uA = { id: 10, pair: 7, x: 0, y: 0, params: { W: 200, H: 100, cols: 12, opacity: 100 } };
+  const uB = { id: 20, pair: 7, x: 0, y: 0, params: { W: 400, H: 100, cols: 9, opacity: 100 } };
+  const pose = samplePose(fA, [uA], fB, [uB], 0.25);
+  assert.equal(pose.items.length, 2);
+  const [a, b] = pose.items;
+  assert.equal(a.params.cols, 12);
+  assert.equal(b.params.cols, 9);
+  assert.ok(Math.abs(a.opacity - 0.75) < 1e-9);
+  assert.ok(Math.abs(b.opacity - 0.25) < 1e-9);
+  assert.equal(a.params.W, 250); // 다른 파라미터는 양쪽 모두 계속 lerp
+  assert.equal(b.params.W, 250);
+  // cols 같으면 단일 아이템 유지
+  const same = samplePose(fA, [{ ...uA, params: { ...uA.params, cols: 9 } }], fB, [uB], 0.25);
+  assert.equal(same.items.length, 1);
+});
+
 console.log(`✓ anim engine: ${passed} cases passed`);
