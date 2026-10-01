@@ -214,7 +214,8 @@ const previewH = computed(() => {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s; pointer-events: none;
   svg {
-    width: 34px; height: 34px; padding: 10px;
+    /* §230: 2.5배 확대 (사용자 요청) */
+    width: 85px; height: 85px; padding: 25px;
     background: rgba(0, 0, 0, 0.55); border-radius: 50%;
     fill: var(--text); stroke: var(--text); stroke-width: 2.4; stroke-linejoin: miter;
     path[d^='M8 5 L'] { stroke-width: 0; }
