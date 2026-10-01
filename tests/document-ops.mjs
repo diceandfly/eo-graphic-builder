@@ -717,4 +717,29 @@ function centerIn(u, f) {
   });
 }
 
+
+// 21. §235 페어 해제: 페어·소속·연결 정리 → 삭제 차단 해제
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  const r = api.duplicatePairedFrame(f.id, 5000, 0);
+  api.connectAnim(f.id, r.frame.id);
+  const res = api.unpairFrame(r.frame.id);
+  ok('페어 해제: pair/home/연결 정리', () => {
+    assert.equal(res.units, 1);
+    assert.equal(r.frame.pair, null);
+    assert.ok(api.doc.units.every((u) => u.home !== r.frame.id));
+    assert.equal(api.doc.animEdges.length, 0);
+    assert.ok(f.pair != null); // 파트너는 불변
+  });
+  api.setAnimMode(true);
+  api.setSelection([r.frame.id]);
+  api.deleteSelected(); // 스테이지 guardedDelete는 UI쪽 — 문서 연산은 항상 허용, pair 없으니 UI 가드도 통과
+  ok('페어 해제 후 삭제 가능', () => {
+    assert.ok(!api.doc.units.some((u) => u.id === r.frame.id));
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

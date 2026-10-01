@@ -298,7 +298,7 @@ function guardedDelete() {
   if (animMode.value) {
     const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
     if (sel.some((x) => x.pair != null)) {
-      toast('Paired keyframe object — deletion is blocked in animation mode');
+      toast('Paired keyframe — right-click the frame → Unpair keyframe to release it first');
       return;
     }
   }
@@ -546,6 +546,12 @@ const CTX_ACTIONS = [
 //   { key: 'front', label: 'Bring to front (Q)' },
 //   { key: 'back', label: 'Send to back (W)' },
 // ];
+// §235: 페어 해제 — 페어·소속·연결 정리 후 일반 프레임 복귀 (삭제 차단 해제)
+function onUnpairFrame() {
+  const r = props.actions.unpairFrame(ctxMenu.value.u.id);
+  if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
+  closeCtx();
+}
 function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
   else if (key === 'flip') doFlip('h');
@@ -1878,6 +1884,12 @@ onBeforeUnmount(() => {
         :disabled="!canRegisterPattern"
         @click="onRegisterPattern"
       ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.patternAdd" :key="d" :d="d" /></svg>Register pattern preset</button>
+      <!-- §235: 페어 해제 — 페어 키프레임 프레임에서만 표시 -->
+      <button
+        v-if="ctxMenu.u?.type === 'frame' && ctxMenu.u?.pair != null"
+        class="ctxItem"
+        @click="onUnpairFrame"
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
       <div class="ctxSep" />
       <!-- §152: ⌘C와 동일하게 내부 클립보드도 채움 (라벨 패리티) -->
       <button class="ctxItem" @click="actions.copyActive(); onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>

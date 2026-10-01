@@ -111,8 +111,8 @@ function onNodeDown(f, e) {
         @pointerdown.stop.prevent="(ev) => !dimmed && emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
         <circle :r="pxs(9)" />
-        <!-- §235: 타이밍 컨트롤 = 메뉴(가로 막대 3개) — 모래시계·시계 반려 (사용자 확정) -->
-        <g :transform="`translate(${-pxs(6)} ${-pxs(6)}) scale(${pxs(12) / 24})`">
+        <!-- §235: 타이밍 컨트롤 = 메뉴(가로 막대 3개) — 글리프 확대 (12→14px) -->
+        <g :transform="`translate(${-pxs(7)} ${-pxs(7)}) scale(${pxs(14) / 24})`">
           <path d="M6.5 7.5 H17.5 M6.5 12 H17.5 M6.5 16.5 H17.5" />
         </g>
       </g>

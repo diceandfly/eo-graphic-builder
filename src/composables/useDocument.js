@@ -799,6 +799,23 @@ export function useDocument() {
       }
     }
   }
+  // §235: 페어 해제 — 프레임 우클릭 "Unpair keyframe". 그 프레임과 소유(home) 유닛의 페어·소속을
+  // 걷어내고 물린 연결도 제거 → 일반 프레임으로 복귀 (삭제 차단 해제). 파트너 키프레임은 불변.
+  function unpairFrame(frameId) {
+    const f = doc.units.find((u) => u.id === frameId && u.type === 'frame');
+    if (!f || f.pair == null) return null;
+    f.pair = null;
+    let n = 0;
+    for (const u of doc.units) {
+      if (u.home === frameId) {
+        u.pair = null;
+        u.home = null;
+        n += 1;
+      }
+    }
+    doc.animEdges = doc.animEdges.filter((e) => e.from !== frameId && e.to !== frameId);
+    return { name: f.name, units: n };
+  }
   // 키프레임 연결 — 우(from)→좌(to)만, 노드당 1연결(재연결 = 기존 이설, §220 사용자 확정).
   // A→B→A 사이클 = 루프 재생으로 해석(허용), 자기 연결만 차단.
   function connectAnim(fromId, toId) {
@@ -1514,7 +1531,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
-    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes,
+    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
