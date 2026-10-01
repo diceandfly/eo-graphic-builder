@@ -331,8 +331,10 @@ Save a frame together with the unit layout inside it, and bring the whole thing 
 
 ## 17. Animation Mode
 
-Design motion using frames as keyframes. Toggle with **A** or the {icon:animation}animation button in the preset bar (bottom right). (The simulation player window ships in the next update.)
+Design motion using frames as keyframes. Toggle with **A** or the {icon:animation}animation button in the preset bar (bottom right) — the **Animation window** (simulation player) opens at the bottom left alongside.
 
 - **Make a keyframe copy**: in animation mode, **⌥(Option)+drag** a [frame](#9-frames) to create a "paired copy" — the original becomes the start keyframe and the copy the end keyframe, with every unit inside paired one-to-one. Edit units in the copy to build the end state (pairs do **not** sync values — this is different from [links](#10-groups-and-links))
 - **Connect**: every frame shows round nodes on its left and right. **Drag the start frame's right node onto the end frame's left node** to connect them with a curved wire (default ease in-out · 1s). Each node holds one connection; dragging a connected node elsewhere moves it, and **dropping on empty space disconnects**
+- **Timing**: click the {icon:animation}control at the middle of a wire to set that connection's **Duration (ms) and one of 9 speed-curve presets** (default ease in-out · 1s)
+- **Simulation**: the Animation window offers play/pause, a time scrubber and **once/loop/pingpong** modes (30fps). Units outside the frame are clipped, so moving across the edge reads as entering/leaving the screen. Unpaired units fade in/out, and integer values like Cols step one at a time
 - **Constraints**: paired objects cannot be deleted while in animation mode (protecting the correspondence), and selecting a frame shows no resize handles

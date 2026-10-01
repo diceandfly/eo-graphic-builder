@@ -14,6 +14,8 @@ import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
 import PresetFloatWindow from './PresetFloatWindow.vue';
 import AnimOverlay from './AnimOverlay.vue';
+import AnimWindow from './AnimWindow.vue';
+import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
@@ -245,6 +247,39 @@ const animMode = ref(false);
 function toggleAnimMode() {
   animMode.value = !animMode.value;
 }
+// §224: 엣지 선택(와이어 강조 + 애니메이션 창 연동) + 와이어 중앙 컨트롤 팝업 (duration·곡선)
+const animEdgeSel = ref(null); // 'from-to' 키
+const animEdgePopup = ref(null); // { x, y } — 화면 좌표
+const edgeKey = (e) => `${e.from}-${e.to}`;
+const selEdge = computed(() => {
+  const edges = props.doc.animEdges;
+  if (!edges.length) return null;
+  const byKey = edges.find((e) => edgeKey(e) === animEdgeSel.value);
+  if (byKey) return byKey;
+  // 폴백: 선택 프레임이 물린 엣지 (나가는 쪽 우선) → 첫 엣지
+  const sel = props.doc.selectedIds;
+  return edges.find((e) => sel.includes(e.from)) ?? edges.find((e) => sel.includes(e.to)) ?? edges[0];
+});
+function onEdgeClick(e, cx, cy) {
+  animEdgeSel.value = edgeKey(e);
+  animEdgePopup.value = { x: cx, y: cy };
+}
+function onEdgePopupOutside(e) {
+  if (e.target instanceof Element && e.target.closest('.edgeMenu')) return;
+  animEdgePopup.value = null;
+}
+watch(animEdgePopup, (open, was) => {
+  if (open && !was) setTimeout(() => window.addEventListener('pointerdown', onEdgePopupOutside, true), 0);
+  else if (!open) window.removeEventListener('pointerdown', onEdgePopupOutside, true);
+});
+// 곡선 프리셋 미니 아이콘 패스 (20×20 값 그래프)
+const curveIcon = (c) => `M2 18 C ${2 + 16 * c[0]} ${18 - 16 * c[1]}, ${2 + 16 * c[2]} ${18 - 16 * c[3]}, 18 2`;
+const sameCurve = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+// 애니메이션 창 데이터 — 선택 엣지의 양 키프레임 + 소유 유닛 (reactive)
+const animFrom = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id === selEdge.value.from) : null));
+const animTo = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id === selEdge.value.to) : null));
+const animFromUnits = computed(() => (animFrom.value ? frameOwnedUnits([animFrom.value.id]) : []));
+const animToUnits = computed(() => (animTo.value ? frameOwnedUnits([animTo.value.id]) : []));
 // §223: 애니 모드에서 페어 오브젝트 삭제 = 경고 후 차단 (대응 관계 보호 — §220 사용자 확정)
 function guardedDelete() {
   if (animMode.value) {
@@ -255,6 +290,15 @@ function guardedDelete() {
     }
   }
   props.actions.deleteSelected();
+}
+// §224: 프리셋창 왼쪽 끝 = 작업 툴바(toolbarWrap) 왼쪽 라인 정렬 — 폭을 실측으로 산출 (리사이즈 추적)
+const presetW = ref(580);
+function measurePresetW() {
+  const tb = el.value?.querySelector('.toolbarWrap');
+  const sr = el.value?.getBoundingClientRect();
+  if (!tb || !sr) return;
+  const left = tb.getBoundingClientRect().left - sr.left;
+  presetW.value = Math.max(460, Math.round(sr.width - 12 - left)); // 12 = --sp-6 (우측 여백)
 }
 // §221: 프리셋 창 내부 로직은 PresetFloatWindow로 분리 — 스테이지는 좌표 변환만 공급
 function panelCenterWorld() {
@@ -1431,6 +1475,8 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   window.addEventListener('eo:prefs', applyPrefsFromStorage);
+  measurePresetW(); // §224
+  window.addEventListener('resize', measurePresetW);
   // 초기 뷰: 100% 줌, 첫 유닛 중앙 배치
   if (!props.viewport.restored) centerFirstUnit();
   // 자동저장 복원 안내
@@ -1451,6 +1497,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('keyup', onKeyUp);
   window.removeEventListener('eo:prefs', applyPrefsFromStorage);
   window.removeEventListener('pointermove', onMove);
+  window.removeEventListener('resize', measurePresetW); // §224
 });
 </script>
 
@@ -1541,8 +1588,10 @@ onBeforeUnmount(() => {
           :edges="doc.animEdges"
           :scale="vp.scale"
           :client-to-world="dropClientToWorld"
-          @connect="(f, t) => { props.actions.connectAnim(f, t); toast('Keyframes connected — ease in-out · 1s'); }"
+          :selected-edge="selEdge"
+          @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
+          @edge-click="onEdgeClick"
         />
         <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
@@ -1693,9 +1742,49 @@ onBeforeUnmount(() => {
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
     <!-- §210: 패널이 열려 있을 땐 툴팁 억제 — 네임카드가 패널 모서리로 삐져나오는 것 방지 -->
     <ManagerBar :panel="presetPanel" :tips-off="!!presetPanel" :anim="animMode" @toggle-panel="togglePresetPanel" @toggle-anim="toggleAnimMode" />
+    <!-- §224: 애니메이션 창 (Phase C) — 좌하단, 시뮬레이션 재생 (엣지 타이밍은 와이어 컨트롤) -->
+    <AnimWindow
+      v-if="animMode"
+      :edge="selEdge"
+      :from-frame="animFrom" :to-frame="animTo"
+      :from-units="animFromUnits" :to-units="animToUnits"
+    />
+    <!-- §224: 와이어 중앙 컨트롤 팝업 — 엣지 소속 파라미터 (duration·곡선 프리셋) -->
+    <div
+      v-if="animEdgePopup && selEdge"
+      class="edgeMenu"
+      :style="{ left: animEdgePopup.x + 12 + 'px', top: animEdgePopup.y + 12 + 'px' }"
+      @pointerdown.stop
+    >
+      <div class="menuTitle">Keyframe timing</div>
+      <label class="menuRow">
+        <span class="rowLabel">Duration</span>
+        <span class="durWrap">
+          <input
+            class="durInput" type="number" min="100" max="60000" step="100"
+            :value="selEdge.duration"
+            @change="(e) => { selEdge.duration = Math.max(100, Math.min(60000, Number(e.target.value) || 1000)); }"
+          /> ms
+        </span>
+      </label>
+      <div class="menuRow curves">
+        <span class="rowLabel">Curve</span>
+      </div>
+      <div class="curveGrid">
+        <button
+          v-for="cp in CURVE_PRESETS" :key="cp.key"
+          class="curveBtn" :class="{ on: sameCurve(selEdge.curve, cp.curve) }"
+          :title="cp.label"
+          @click="selEdge.curve = [...cp.curve]"
+        >
+          <svg viewBox="0 0 20 20"><path :d="curveIcon(cp.curve)" /></svg>
+        </button>
+      </div>
+    </div>
     <!-- §205·§207·§221: 프리셋 플로팅 창 — 내부 상호작용은 PresetFloatWindow가 전담 -->
     <PresetFloatWindow
       v-if="presetPanel"
+      :width="presetW"
       :panel="presetPanel"
       :presets="presets" :preset-folders="presetFolders"
       :patterns="patterns" :pattern-folders="patternFolders"
@@ -1842,6 +1931,25 @@ onBeforeUnmount(() => {
   position: absolute; z-index: 10;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 4px; display: flex; flex-direction: column;
+}
+.edgeMenu {
+  @include popup-menu;
+  position: fixed; z-index: 11;
+}
+.durWrap { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); display: inline-flex; align-items: center; gap: 4px; }
+.durInput {
+  @include text-field;
+  text-transform: none;
+  width: 64px; padding: 0 6px; height: 21px; text-align: right;
+  -moz-appearance: textfield; appearance: textfield;
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+}
+.curveGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.curveBtn {
+  @include bordered-control;
+  height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  &.on { border-color: var(--accent); color: var(--accent); }
 }
 .ctxItem {
   border: none; background: none; color: var(--text); cursor: pointer;

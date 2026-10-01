@@ -11,8 +11,10 @@ const props = defineProps({
   edges: { type: Array, required: true },
   scale: { type: Number, required: true },
   clientToWorld: { type: Function, required: true }, // (cx, cy) => [wx, wy]
+  selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
 });
-const emit = defineEmits(['connect', 'disconnect']);
+const emit = defineEmits(['connect', 'disconnect', 'edgeClick']);
+const edgeKey = (e) => `${e.from}-${e.to}`;
 
 const pxs = (n) => n / props.scale;
 const frames = computed(() => props.units.filter((u) => u.type === 'frame'));
@@ -78,8 +80,13 @@ function onNodeDown(f, e) {
   <g class="animOverlay">
     <!-- 연결 와이어 + 중앙 페어 아이콘 (엣지 파라미터 컨트롤 자리 — Phase C) -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
-      <path class="wire" :d="w.d" />
-      <g class="pairBadge" :transform="`translate(${w.mx} ${w.my})`">
+      <path class="wire" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }" :d="w.d" />
+      <!-- §224: 와이어 중앙 컨트롤 — 클릭 = 엣지 파라미터 팝업 (duration·곡선, §220 "프레임-컨트롤-프레임") -->
+      <g
+        class="pairBadge" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }"
+        :transform="`translate(${w.mx} ${w.my})`"
+        @pointerdown.stop.prevent="(ev) => emit('edgeClick', w.e, ev.clientX, ev.clientY)"
+      >
         <circle :r="pxs(9)" />
         <g :transform="`translate(${-pxs(6)} ${-pxs(6)}) scale(${pxs(12) / 24})`">
           <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
@@ -108,6 +115,7 @@ function onNodeDown(f, e) {
   fill: none; stroke: var(--accent); stroke-width: 1.5;
   vector-effect: non-scaling-stroke; opacity: 0.9;
 }
+.wire.sel { stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
 .wire.temp { stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
 .node {
   // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트
@@ -122,6 +130,8 @@ function onNodeDown(f, e) {
 .pairBadge {
   circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
   path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; }
-  pointer-events: none; // Phase C: 엣지 컨트롤 팝업이 여기 앉음
+  cursor: pointer; // §224: 클릭 = 엣지 파라미터 팝업
+  &.sel circle { fill: var(--accent); }
+  &.sel path { stroke: var(--bg); }
 }
 </style>

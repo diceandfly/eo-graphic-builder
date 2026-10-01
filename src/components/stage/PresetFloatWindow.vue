@@ -9,6 +9,7 @@ import { frameAttrs } from '../../geometry/frameGrid.js';
 // 창 내부 상호작용(배치·IO·높이 조절)은 전부 여기서 끝난다. 토스트만 위로 올림.
 const props = defineProps({
   panel: { type: String, required: true }, // 'units' | 'patterns'
+  width: { type: Number, default: 580 }, // §224: 왼쪽 끝 = 작업 툴바 왼쪽 라인 (스테이지가 실측 공급)
   presets: { type: Array, default: () => [] },
   presetFolders: { type: Array, default: () => [] },
   patterns: { type: Array, default: () => [] },
@@ -75,7 +76,7 @@ function onPlacePatternAt(item, cx, cy) {
   <div
     ref="rootEl"
     class="presetFloat"
-    :style="{ height: panelH + 'px' }"
+    :style="{ height: panelH + 'px', width: width + 'px' }"
     @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
   >
     <div class="heightGrip" title="Drag to resize height" @pointerdown.stop="onHeightGripDown" />
@@ -150,7 +151,7 @@ function onPlacePatternAt(item, cx, cy) {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + var(--sp-6)); /* §217: 갭 토큰 통일 */
   /* §214: 캔버스 우클릭 메뉴(z10)·이름 편집(z20)이 창 위로 겹치도록 오더 하향 */
   z-index: 9;
-  width: 580px;
+  /* §224: width는 인라인(스테이지 실측 — 좌변 = 작업 툴바 좌변) */
   max-width: calc(100% - 2 * var(--sp-6));
   /* §215·§217: 최대 높이 = 성능 인디케이터 아래 갭까지 — 하단(12+42+12=66) + 상단(66+13+12=91) = 157 */
   max-height: calc(100% - 157px);
