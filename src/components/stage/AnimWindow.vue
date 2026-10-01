@@ -18,25 +18,48 @@ const props = defineProps({
 
 const FPS = 30; // §220: 30fps 기본 (시뮬 전용 — 성능 가드)
 
-// §225: 창 크기 조절 — 좌상단 코너 그립 (우하단 앵커라 좌·위로 늘어남), 로컬 영속
-const winSize = ref((() => {
-  try { const s = JSON.parse(localStorage.getItem('eo.animWinSize') || 'null'); if (s?.w && s?.ph) return s; } catch { /* 기본값 */ }
-  return { w: 300, ph: 210 };
+// §226: 창 크기 — 우하단 그립(상시 표시)으로 조절. 비율은 임의가 아니라 **보고 있는 프레임 비율 고정**:
+// 폭만 저장하고 프리뷰 높이는 프레임 W:H에서 파생된다.
+const winW = ref((() => {
+  const v = Number(localStorage.getItem('eo.animWinW'));
+  return Number.isFinite(v) && v >= 240 ? Math.min(720, v) : 300;
 })());
-function onSizeGripDown(e) {
+// §226: 타이틀바 드래그로 자유 이동 (null = 기본 앵커 — 애니메이션 버튼 위)
+const pos = ref((() => {
+  try { const p = JSON.parse(localStorage.getItem('eo.animWinPos') || 'null'); if (Number.isFinite(p?.x) && Number.isFinite(p?.y)) return p; } catch { /* 기본 앵커 */ }
+  return null;
+})());
+const rootEl = ref(null);
+function onTitleDown(e) {
   e.preventDefault();
-  const sx = e.clientX;
-  const sy = e.clientY;
-  const { w: w0, ph: p0 } = winSize.value;
+  const host = rootEl.value?.parentElement;
+  const wr = rootEl.value.getBoundingClientRect();
+  const hr = host.getBoundingClientRect();
+  const offX = e.clientX - wr.left;
+  const offY = e.clientY - wr.top;
   const mv = (ev) => {
-    winSize.value = {
-      w: Math.min(640, Math.max(240, w0 + (sx - ev.clientX))),
-      ph: Math.min(560, Math.max(120, p0 + (sy - ev.clientY))),
+    pos.value = {
+      x: Math.min(hr.width - 80, Math.max(8 - wr.width + 80, ev.clientX - hr.left - offX)),
+      y: Math.min(hr.height - 40, Math.max(0, ev.clientY - hr.top - offY)),
     };
   };
   const up = () => {
     window.removeEventListener('pointermove', mv);
-    localStorage.setItem('eo.animWinSize', JSON.stringify(winSize.value));
+    localStorage.setItem('eo.animWinPos', JSON.stringify(pos.value));
+  };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up, { once: true });
+}
+function onSizeGripDown(e) {
+  e.preventDefault();
+  const sx = e.clientX;
+  const w0 = winW.value;
+  const mv = (ev) => {
+    winW.value = Math.min(720, Math.max(240, w0 + (ev.clientX - sx)));
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', mv);
+    localStorage.setItem('eo.animWinW', String(Math.round(winW.value)));
   };
   window.addEventListener('pointermove', mv);
   window.addEventListener('pointerup', up, { once: true });
@@ -94,15 +117,26 @@ const timeLabel = computed(() => {
   const d = props.edge?.duration ?? 0;
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
+// §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
+const previewH = computed(() => {
+  const inner = winW.value - 24; // --panel-pad 좌우
+  const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
+  return Math.round(inner * ratio);
+});
 </script>
 
 <template>
-  <div class="animWin" :style="{ width: winSize.w + 'px' }" @pointerdown.stop @wheel.stop @contextmenu.stop.prevent>
-    <div class="sizeGrip" title="Drag to resize" @pointerdown.stop="onSizeGripDown" />
-    <h2 class="title">Animation</h2>
+  <div
+    ref="rootEl"
+    class="animWin"
+    :class="{ floating: !!pos }"
+    :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
+    @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
+  >
+    <h2 class="title" title="Drag to move" @pointerdown.stop.prevent="onTitleDown">Animation</h2>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
-      <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: winSize.ph + 'px' }">
+      <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
         <rect :width="pose.W" :height="pose.H" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
         <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
           <UnitGraphic :params="it.params" :seam-width="0.75" />
@@ -132,6 +166,10 @@ const timeLabel = computed(() => {
     <div v-else class="empty">
       Opt-drag a frame to make a paired keyframe, then drag its right node onto the copy's left node — the connection plays here
     </div>
+    <!-- §226: 우하단 크기 조절 그립 — 상시 표시, 호버 시 액센트. 프레임 비율 고정 리사이즈 -->
+    <div class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+      <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
+    </div>
   </div>
 </template>
 
@@ -148,20 +186,23 @@ const timeLabel = computed(() => {
   display: flex; flex-direction: column; gap: 10px;
 }
 .title {
-  /* L2 창 타이틀 (§218 전역 사다리) */
+  /* L2 창 타이틀 (§218 전역 사다리) — §226: 드래그 = 창 이동 */
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
   letter-spacing: 0; margin: 0; text-transform: capitalize;
+  cursor: move; user-select: none; -webkit-user-select: none;
 }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
   border: 1px solid var(--line); border-radius: var(--radius);
 }
-// §225: 좌상단 코너 크기 조절 그립
+// §226: 우하단 크기 조절 그립 — 기호 상시 표시, 호버 = 액센트
 .sizeGrip {
-  position: absolute; top: 0; left: 0; width: 12px; height: 12px;
+  position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px;
   cursor: nwse-resize;
-  &:hover { box-shadow: inset 2px 2px 0 var(--accent); }
+  display: flex; align-items: center; justify-content: center;
+  svg { width: 10px; height: 10px; fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: square; }
+  &:hover svg { stroke: var(--accent); }
 }
 .scrub {
   width: 100%; margin: 0; accent-color: var(--accent);

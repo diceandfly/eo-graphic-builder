@@ -42,6 +42,29 @@ export const DEFAULT_CURVE = [0.65, 0, 0.35, 1]; // 연결 기본값 = 곡선 �
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
+// §226: hex 색 보간 — #rgb/#rrggbb → RGB lerp (대표 사용례: fill 키프레임 변화.
+// 문자열이라 50% 컷으로 떨어져 "50%에 뚝 바뀌는" 체감의 주범이었음)
+const hexToRgb = (v) => {
+  if (typeof v !== 'string') return null;
+  const m = v.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return null;
+  const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join('') : m[1];
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+};
+export function lerpHex(a, b, t) {
+  const ra = hexToRgb(a);
+  const rb = hexToRgb(b);
+  if (!ra || !rb) return null;
+  const c = ra.map((v, i) => Math.round(lerp(v, rb[i], t)));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+// §226: 보간 불가 이산키 — 수치여도 중간값이 무의미(orientation 45° 등). 편집 차단(§220 표)의 엔진측 방어.
+const DISCRETE_KEYS = new Set([
+  'orientation', 'flipX', 'threads', 'threadDir', 'gutterMode', 'direction',
+  'compModeX', 'compModeY', 'compOn', 'compLock', 'fillOn', 'strokeOn', 'gridOn', 'unitMode', 'showGuides',
+]);
+
 // 파라미터 보간 — cols 다단계 스텝, 수치 lerp, 그 외 50% 컷.
 // §225: 패널 편집을 거친 값이 문자열 숫자("500")로 저장될 수 있어 **수치 강제 변환** —
 // 문자열이면 전부 50% 컷으로 빠져 "한 프레임에 싹 바뀌는" 버그가 났던 원인.
@@ -51,6 +74,9 @@ export function lerpParams(a, b, t) {
     const av = a[k];
     const bv = b[k];
     if (av === bv) { out[k] = av; continue; }
+    if (DISCRETE_KEYS.has(k)) { out[k] = t < 0.5 ? av : bv; continue; } // §226: 이산키 명시 컷
+    const hex = lerpHex(av, bv, t); // §226: 색은 RGB 보간
+    if (hex) { out[k] = hex; continue; }
     const an = typeof av === 'boolean' ? NaN : Number(av);
     const bn = typeof bv === 'boolean' ? NaN : Number(bv);
     if (Number.isFinite(an) && Number.isFinite(bn)) {

@@ -38,29 +38,45 @@ const minimap = computed(() => {
     minX = Math.min(minX, u.x); minY = Math.min(minY, u.y);
     maxX = Math.max(maxX, u.x + u.params.W); maxY = Math.max(maxY, u.y + u.params.H);
   }
-  const padX = (maxX - minX) * 0.05;
-  const padY = (maxY - minY) * 0.05;
-  minX -= padX; maxX += padX; minY -= padY; maxY += padY;
+  // §226: 범위를 중심 기준 2.4배로 확장 — Fit 상태에서도 뷰포트 사각형이 미니맵의 일부만 차지해
+  // "어디를 보고 있는지"가 읽히고, 주변으로 드래그해 나갈 여지도 생김
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const hw = Math.max((maxX - minX), 10) * 1.2;
+  const hh = Math.max((maxY - minY), 10) * 1.2;
+  minX = cx - hw; maxX = cx + hw; minY = cy - hh; maxY = cy + hh;
   const s = Math.min(MM_W / (maxX - minX), MM_H / (maxY - minY));
   const ox = (MM_W - (maxX - minX) * s) / 2;
   const oy = (MM_H - (maxY - minY) * s) / 2;
   const m = (x, y) => [ox + (x - minX) * s, oy + (y - minY) * s];
   return {
+    // §226: 실제 색 반영 — 프레임은 자기 fill의 면, 유닛은 자기 fill의 면 (회색 추상화 폐기)
     items: props.units.map((u) => {
       const [x, y] = m(u.x, u.y);
-      return { id: u.id, x, y, w: Math.max(1, u.params.W * s), h: Math.max(1, u.params.H * s), frame: u.type === 'frame' };
+      return {
+        id: u.id, x, y, w: Math.max(2, u.params.W * s), h: Math.max(2, u.params.H * s),
+        frame: u.type === 'frame', fill: u.params.fill,
+      };
     }),
     view: (() => { const [x, y] = m(view.x, view.y); return { x, y, w: view.w * s, h: view.h * s }; })(),
     toWorld: (mx, my) => [minX + (mx - ox) / s, minY + (my - oy) / s],
   };
 });
+// §226: 클릭 + 드래그 팬 — 누른 채 움직이면 뷰포트가 연속 이동
 function onMinimapDown(e) {
-  const mm = minimap.value;
-  if (!mm) return;
-  const r = e.currentTarget.getBoundingClientRect();
-  const [wx, wy] = mm.toWorld(e.clientX - r.left, e.clientY - r.top);
-  emit('jumpTo', wx, wy);
-  resetIdle();
+  const svg = e.currentTarget;
+  const move = (ev) => {
+    const mm = minimap.value;
+    if (!mm) return;
+    const r = svg.getBoundingClientRect();
+    const [wx, wy] = mm.toWorld(ev.clientX - r.left, ev.clientY - r.top);
+    emit('jumpTo', wx, wy);
+    resetIdle();
+  };
+  move(e);
+  const up = () => window.removeEventListener('pointermove', move);
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up, { once: true });
 }
 
 // 옵션 메뉴 — 한 번에 하나만, 5초 무조작 시 자동 닫힘
@@ -250,6 +266,7 @@ function resetGridDefaults() {
                 v-for="it in minimap.items" :key="it.id"
                 class="mmObj" :class="{ frame: it.frame }"
                 :x="it.x" :y="it.y" :width="it.w" :height="it.h"
+                :fill="it.fill"
               />
               <rect class="mmView" :x="minimap.view.x" :y="minimap.view.y" :width="minimap.view.w" :height="minimap.view.h" />
             </svg>
@@ -281,9 +298,10 @@ function resetGridDefaults() {
   display: block; border: 1px solid var(--line); border-radius: var(--radius);
   cursor: pointer; margin-bottom: 8px;
 }
-.mmBg { fill: var(--stage-bg); opacity: 0.5; }
-.mmObj { fill: var(--dim); opacity: 0.8; }
-.mmObj.frame { fill: none; stroke: var(--faint); stroke-width: 1; }
-.mmView { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
+.mmBg { fill: var(--stage-bg); opacity: 0.7; }
+/* §226: 실제 fill 색을 그대로 — 어떤 작업물인지 색으로 식별 */
+.mmObj { opacity: 0.95; }
+.mmObj.frame { stroke: var(--faint); stroke-width: 0.75; opacity: 0.85; }
+.mmView { fill: rgba(249, 238, 58, 0.08); stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
 .fitBtn { width: 100%; justify-content: center; text-transform: capitalize; }
 </style>

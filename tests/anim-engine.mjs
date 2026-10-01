@@ -1,6 +1,6 @@
 // §224 애니메이션 보간 엔진 회귀 — geometry/anim.js (순수 모듈, Vue 의존 0)
 import { strict as assert } from 'node:assert';
-import { bezierEase, lerpParams, samplePose, CURVE_PRESETS } from '../src/geometry/anim.js';
+import { bezierEase, lerpParams, lerpHex, samplePose, CURVE_PRESETS } from '../src/geometry/anim.js';
 
 let passed = 0;
 function ok(name, fn) {
@@ -29,10 +29,24 @@ ok('베지어: ease in-out 대칭·단조', () => {
   assert.ok(bezierEase(c, 0.85) > 0.85); // out 구간은 앞서감
 });
 ok('파라미터 보간: 문자열 숫자도 lerp (§225 — 패널 편집값 "500" 등)', () => {
-  const mid = lerpParams({ W: 100, flipX: false, fill: '#333333' }, { W: '500', flipX: true, fill: '#F9EE3A' }, 0.5);
+  const mid = lerpParams({ W: 100, flipX: false }, { W: '500', flipX: true }, 0.5);
   assert.equal(mid.W, 300);              // '500' 강제 변환 lerp
   assert.equal(mid.flipX, true);         // 불리언은 50% 컷 (수치 변환 금지)
-  assert.equal(mid.fill, '#F9EE3A');     // 색상 문자열도 컷
+});
+ok('색 보간: hex RGB lerp (§226 — "50%에 뚝" 주범 해결)', () => {
+  assert.equal(lerpHex('#000000', '#ffffff', 0.5), '#808080');
+  const q = lerpParams({ fill: '#F9EE3A' }, { fill: '#6EC6D2' }, 0.25);
+  assert.notEqual(q.fill, '#F9EE3A');
+  assert.notEqual(q.fill, '#6EC6D2');
+  assert.ok(/^#[0-9a-f]{6}$/.test(q.fill));
+  // 비 hex 문자열은 여전히 컷
+  assert.equal(lerpParams({ gutterMode: 'fixed' }, { gutterMode: 'prop' }, 0.4).gutterMode, 'fixed');
+});
+ok('이산키: orientation 등은 수치여도 50% 컷 (§226)', () => {
+  const m4 = lerpParams({ orientation: 0 }, { orientation: 90 }, 0.4);
+  const m6 = lerpParams({ orientation: 0 }, { orientation: 90 }, 0.6);
+  assert.equal(m4.orientation, 0);
+  assert.equal(m6.orientation, 90);
 });
 ok('파라미터 보간: 연속 lerp · cols 다단계 스텝 · 비수치 50% 컷', () => {
   const a = { W: 100, H: 200, cols: 12, gutterMode: 'fixed', flipX: false };
