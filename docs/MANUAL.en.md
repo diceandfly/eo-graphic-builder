@@ -40,7 +40,7 @@ Click a description to jump to the details.
 ### Tools & Modes
 | Key | Action |
 |---|---|
-| V | {icon:select}[Select mode (units + frames)](#5-select-move-transform) — zoomed out it goes [frame-first](#9-frames) automatically |
+| V | {icon:select}[Select mode (units + frames)](#5-select-move-transform) — **press V again to toggle unit/frame priority**; zoomed out it goes [frame-first](#9-frames) automatically |
 | F | {icon:frame}[Draw a frame](#9-frames) |
 | I | {icon:eyedrop}[Eyedropper](#8-toolbar) |
 | B | {icon:blend}[Run blend](#8-toolbar) |
@@ -338,6 +338,6 @@ Design motion using frames as keyframes. Toggle with **A** or the {icon:animatio
 - **Make a keyframe copy**: in animation mode, **⌥(Option)+drag** a [frame](#9-frames) to create a "paired copy" — the original becomes the start keyframe and the copy the end keyframe, with every unit inside paired one-to-one. Edit units in the copy to build the end state (pairs do **not** sync values — this is different from [links](#10-groups-and-links))
 - **Connect**: every frame shows round nodes on its left and right. **Drag the start frame's right node onto the end frame's left node** to connect them with a curved wire (default ease in-out · 1s). Each node holds one connection; dragging a connected node elsewhere moves it, and **dropping on empty space disconnects**
 - **Timing**: click the {icon:animation}control at the middle of a wire to set that connection's **Duration (ms) and one of 9 speed-curve presets** (default ease in-out · 1s)
-- **Simulation**: the Animation window plays/pauses by **clicking the preview**, with a time scrubber and **once/loop/pingpong** modes (30fps). Units outside the frame are clipped, so moving across the edge reads as entering/leaving the screen. Unpaired units fade in/out, and integer values like Cols **dissolve smoothly** between their two states
+- **Simulation**: the Animation window plays/pauses by **clicking the preview**, with a time scrubber and **pingpong/cycle/once** modes (pingpong by default, 30fps). **Export WebM** saves one cycle as a video — more formats coming. Units outside the frame are clipped, so moving across the edge reads as entering/leaving the screen. Unpaired units fade in/out, and integer values like Cols **dissolve smoothly** between their two states
 - Connections stay visible as **grey dashed wires** even outside animation mode (editing only happens inside it). The Animation window can be **moved by dragging any empty area of it**, and resized with the **bottom-right grip** (locked to the current frame's ratio)
 - **Constraints**: paired objects cannot be deleted while in animation mode (protecting the correspondence), and selecting a frame shows no resize handles

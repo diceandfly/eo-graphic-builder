@@ -102,10 +102,10 @@ function onNodeDown(f, e) {
       class="pairMark" :class="{ dim: dimmed }"
       :transform="`translate(${f.x + f.params.W - pxs(9)} ${f.y - pxs(12)})`"
     >
-      <circle :r="pxs(8)" />
-      <g :transform="`translate(${-pxs(5.5)} ${-pxs(5.5)}) scale(${pxs(11) / 24})`">
-        <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
-      </g>
+      <!-- §233: 글리프 = 겹친 두 링(쌍) — 와이어 컨트롤(재생 삼각형)과 구별 -->
+      <circle class="bg" :r="pxs(8)" />
+      <circle class="ring" :cx="-pxs(2.4)" cy="0" :r="pxs(3.2)" />
+      <circle class="ring" :cx="pxs(2.4)" cy="0" :r="pxs(3.2)" />
     </g>
     <!-- 프레임 노드: 좌(입력)·우(출력) — §228: 비활성 모드에도 같은 스타일·회색으로 표시 (조작은 모드 안에서만) -->
     <g v-for="f in frames" :key="'an' + f.id" :class="{ dimNodes: dimmed }">
@@ -136,13 +136,13 @@ function onNodeDown(f, e) {
   circle { stroke: var(--dim); }
   path { stroke: var(--dim); }
 }
-// §231: 페어 인디케이터 — 와이어 뱃지와 같은 문법의 소형 마크 (프레임 우상단)
+// §231·§233: 페어 인디케이터 — 겹친 두 링(쌍 메타포, 프레임 우상단). 와이어 컨트롤과 글리프 구별.
 .pairMark {
   pointer-events: none;
-  circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: miter; }
-  &.dim circle { stroke: var(--dim); }
-  &.dim path { stroke: var(--dim); }
+  .bg { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .ring { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  &.dim .bg { stroke: var(--dim); }
+  &.dim .ring { stroke: var(--dim); }
 }
 .dimNodes .node {
   pointer-events: none; cursor: default;

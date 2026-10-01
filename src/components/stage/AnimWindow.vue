@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
@@ -72,7 +73,7 @@ function onSizeGripDown(e) {
   window.addEventListener('pointerup', up, { once: true });
 }
 const playing = ref(false);
-const loopMode = ref('loop'); // 'once' | 'loop' | 'pingpong'
+const loopMode = ref('pingpong'); // §233: 기본 = pingpong ('once' | 'loop'(cycle) | 'pingpong')
 const p = ref(0);             // raw 진행률 0..1
 let dir = 1;
 let rafId = 0;
@@ -120,6 +121,70 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
+// ── §233: 익스포트 — v1 WebM (MediaRecorder 실시간 캡처, 포맷 추가 예정 전제의 구성) ──
+// 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터 → captureStream(30) 녹화.
+// 영상 길이 = 엣지 duration (한 사이클), 최대 변 1920px 캡.
+const exporting = ref(false);
+const exportPct = ref(0);
+async function exportWebm() {
+  if (!props.edge || !pose.value || exporting.value) return;
+  stop();
+  exporting.value = true;
+  exportPct.value = 0;
+  try {
+    const W0 = pose.value.W;
+    const H0 = pose.value.H;
+    const sc = Math.min(1, 1920 / Math.max(W0, H0));
+    const cw = Math.max(2, Math.round(W0 * sc));
+    const ch = Math.max(2, Math.round(H0 * sc));
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+    const stream = canvas.captureStream(FPS);
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const done = new Promise((res) => { rec.onstop = res; });
+    const drawAt = async (t) => {
+      p.value = t;
+      await nextTick();
+      const clone = rootEl.value.querySelector('.preview').cloneNode(true);
+      clone.setAttribute('width', W0);
+      clone.setAttribute('height', H0);
+      clone.removeAttribute('style');
+      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' }));
+      await new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, 0, 0, cw, ch); URL.revokeObjectURL(url); res(); };
+        img.onerror = rej;
+        img.src = url;
+      });
+    };
+    await drawAt(0);
+    rec.start();
+    const dur = props.edge.duration;
+    const t0 = performance.now();
+    let now = 0;
+    while (now < dur) {
+      await drawAt(Math.min(1, now / dur));
+      exportPct.value = Math.round((now / dur) * 100);
+      await new Promise((r) => setTimeout(r, 1000 / FPS));
+      now = performance.now() - t0;
+    }
+    await drawAt(1);
+    exportPct.value = 100;
+    await new Promise((r) => setTimeout(r, 150));
+    rec.stop();
+    await done;
+    saveFileAs(new Blob(chunks, { type: 'video/webm' }), `eo-animation_${cw}x${ch}.webm`, 'export');
+  } finally {
+    exporting.value = false;
+    p.value = 0;
+  }
+}
+
 const timeLabel = computed(() => {
   const d = props.edge?.duration ?? 0;
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
@@ -167,13 +232,20 @@ const previewH = computed(() => {
       <div class="row">
         <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
         <span class="time">{{ timeLabel }}</span>
+        <!-- §233: pingpong · cycle · once 순, 기본 pingpong -->
         <div class="segMini loopSeg">
-          <button :class="{ on: loopMode === 'once' }" @click="loopMode = 'once'">once</button>
-          <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">loop</button>
           <button :class="{ on: loopMode === 'pingpong' }" @click="loopMode = 'pingpong'">pingpong</button>
+          <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">cycle</button>
+          <button :class="{ on: loopMode === 'once' }" @click="loopMode = 'once'">once</button>
         </div>
       </div>
-      <div class="menuNote">30fps simulation — edge timing via the wire control</div>
+      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) -->
+      <div class="exRow">
+        <button class="exBtn" :disabled="exporting" @click="exportWebm">
+          {{ exporting ? `Exporting… ${exportPct}%` : 'Export WebM' }}
+        </button>
+      </div>
+      <div class="menuNote">30fps simulation — edge timing via the wire control · more export formats soon</div>
     </template>
     <div v-else class="empty">
       Opt-drag a frame to make a paired keyframe, then drag its right node onto the copy's left node — the connection plays here
@@ -215,8 +287,8 @@ const previewH = computed(() => {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s; pointer-events: none;
   svg {
-    /* §232: 밸런스 재설계 — 솔리드 블랙 원 96px, 아이콘 = 지름의 ~46%(44px) 필 글리프 */
-    width: 96px; height: 96px; padding: 26px;
+    /* §232·§233: 원 90%(96→86px) · 아이콘 115%(44→50px) */
+    width: 86px; height: 86px; padding: 18px;
     background: var(--space-black); border-radius: 50%;
     fill: var(--text);
   }
@@ -248,6 +320,13 @@ const previewH = computed(() => {
     &:not(:last-child) { border-right: 1px solid var(--line); }
     &.on { @include active-outline-inset; }
   }
+}
+.exRow { display: flex; }
+.exBtn {
+  @include bordered-control; // §216 버튼 단일 규격
+  flex: 1; height: 21px; display: inline-flex; align-items: center; justify-content: center;
+  text-transform: capitalize;
+  &:disabled { color: var(--faint); cursor: default; }
 }
 .menuNote {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);

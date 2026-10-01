@@ -779,9 +779,10 @@ function onKeyDown(e) {
     }
     return;
   }
-  // V = 선택 도구 복귀 (§203: 프레임 우선 모드는 줌 자동 — A 키 수동 전환 제거, 추후 애니메이션용)
+  // V = 선택 도구 복귀 · §233: 이미 선택 도구면 V 재입력 = 유닛/프레임 우선 토글 (우클릭과 동일)
   if (!mod && !e.shiftKey && e.code === 'KeyV') {
-    mode.value = 'select';
+    if (mode.value === 'select') toggleFrameModeManual();
+    else mode.value = 'select';
     return;
   }
   // §223: A = 애니메이션 모드 토글 (§203에서 예약해 둔 키)
