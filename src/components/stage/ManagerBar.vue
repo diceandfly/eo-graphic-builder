@@ -7,8 +7,8 @@ import { ICONS } from '../../ui/icons.js';
 // [EO 심볼 = 유닛 프리셋] [layers = 패턴 프리셋] [플레이 = 애니메이션 매니저(예정)]
 // EO 심볼 아이콘 원본: src/assets/EO symbol_S_W.svg (§106)
 // tipsOff (§210): 프리셋 패널이 열려 있을 때 툴팁 억제 — 패널 모서리로 삐져나오는 네임카드 방지
-defineProps({ panel: String, tipsOff: Boolean }); // panel: 'units' | 'patterns' | null
-const emit = defineEmits(['togglePanel']);
+defineProps({ panel: String, tipsOff: Boolean, anim: Boolean }); // panel: 'units' | 'patterns' | null
+const emit = defineEmits(['togglePanel', 'toggleAnim']);
 </script>
 
 <template>
@@ -28,7 +28,12 @@ const emit = defineEmits(['togglePanel']);
         :tip="tipsOff ? '' : 'Pattern presets (P)'"
         @click="emit('togglePanel', 'patterns')"
       />
-      <IconButton :paths="ICONS.animation" :tip="tipsOff ? '' : 'Animation manager — coming soon'" tip-align="right" />
+      <!-- §223: 애니메이션 모드 토글 (A) — 프레임 노드/와이어 오버레이 -->
+      <IconButton
+        :paths="ICONS.animation" :active="anim" tip-align="right"
+        :tip="tipsOff ? '' : 'Animation mode (A)'"
+        @click="emit('toggleAnim')"
+      />
     </FloatingBar>
   </div>
 </template>

@@ -29,6 +29,7 @@ in BOTH files. Anchors use this file's own English heading slugs.
 14. [Unit Presets](#14-unit-presets)
 15. [Save · Open · Export](#15-save-open-export)
 16. [Pattern Presets](#16-pattern-presets)
+17. [Animation Mode](#17-animation-mode)
 
 ---
 
@@ -96,7 +97,7 @@ EO Graphic Builder is a parametric graphic tool for building brand assets from a
 | Top right | **Corner bar (view)** | [Background grid · selection box · grid display · zoom level](#13-view-options-corner-bar) |
 | Bottom left | **Align bar** | [Align · distribute](#11-align-and-arrange) |
 | Bottom center | **Color bar + toolbar** | [7 brand colors + custom](#7-color) / [select · frame · eyedropper · blend · arrange tools](#8-toolbar) |
-| Bottom right | **Preset bar** | [Unit presets](#14-unit-presets) · [Pattern presets](#16-pattern-presets) · Animation manager (coming soon) |
+| Bottom right | **Preset bar** | [Unit presets](#14-unit-presets) · [Pattern presets](#16-pattern-presets) · [Animation Mode](#17-animation-mode) |
 
 **{icon:mouseL}Left-click = run, {icon:mouseR}right-click = options** is the rule for every button. Numbers next to sliders can also be typed in directly.
 
@@ -325,3 +326,13 @@ Save a frame together with the unit layout inside it, and bring the whole thing 
 - **Update**: drag a frame from the canvas onto a pattern card to overwrite that pattern with the frame's current state
 - **Share**: the EXPORT/IMPORT JSON buttons move your pattern collection as a file
 - Register and delete can be undone with ⌘Z
+
+---
+
+## 17. Animation Mode
+
+Design motion using frames as keyframes. Toggle with **A** or the {icon:animation}animation button in the preset bar (bottom right). (The simulation player window ships in the next update.)
+
+- **Make a keyframe copy**: in animation mode, **⌥(Option)+drag** a [frame](#9-frames) to create a "paired copy" — the original becomes the start keyframe and the copy the end keyframe, with every unit inside paired one-to-one. Edit units in the copy to build the end state (pairs do **not** sync values — this is different from [links](#10-groups-and-links))
+- **Connect**: every frame shows round nodes on its left and right. **Drag the start frame's right node onto the end frame's left node** to connect them with a curved wire (default ease in-out · 1s). Each node holds one connection; dragging a connected node elsewhere moves it, and **dropping on empty space disconnects**
+- **Constraints**: paired objects cannot be deleted while in animation mode (protecting the correspondence), and selecting a frame shows no resize handles

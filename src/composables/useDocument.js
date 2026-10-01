@@ -682,6 +682,67 @@ export function useDocument() {
     return frame;
   }
 
+  // ── §223: 애니메이션 페어/엣지 (Phase B) ──────────────────────
+  // 페어(pair) = 키프레임 간 대응 관계(계보 id) — 파라미터 동기화 없음 (§220 사용자 확정).
+  // opt-드래그 복제 시 프레임+소유 유닛을 사본으로 만들고 pair를 공유한다.
+  // 파라미터 링크(lid)·그룹(gid)은 사본끼리 새 id로 재구성 — 키프레임 간 동기화 원천 차단.
+  function duplicatePairedFrame(frameId, dx = 0, dy = 0) {
+    const f = doc.units.find((u) => u.id === frameId && u.type === 'frame');
+    if (!f) return null;
+    const owned = frameOwnedUnits([frameId]);
+    if (f.pair == null) f.pair = nextPair++;
+    for (const u of owned) if (u.pair == null) u.pair = nextPair++;
+    const gidMap = new Map();
+    const lidMap = new Map();
+    const mapG = (g) => {
+      if (!gidMap.has(g)) {
+        gidMap.set(g, nextGroup++);
+        doc.groupNames[gidMap.get(g)] = doc.groupNames[g] ?? `Group-${gidMap.get(g)}`;
+      }
+      return gidMap.get(g);
+    };
+    const mapL = (l) => {
+      if (l == null) return null;
+      if (!lidMap.has(l)) lidMap.set(l, nextLink++);
+      return lidMap.get(l);
+    };
+    const nf = {
+      id: nextId++, type: 'frame', name: f.name, x: f.x + dx, y: f.y + dy,
+      groups: [], links: emptyLinks(), pair: f.pair, params: { ...f.params },
+    };
+    doc.units.push(nf);
+    const copies = [doc.units[doc.units.length - 1]];
+    for (const u of owned) {
+      const links = emptyLinks();
+      for (const c of LINK_CATS) links[c] = mapL(u.links[c]);
+      doc.units.push({
+        id: nextId++, type: u.type, name: u.name, x: u.x + dx, y: u.y + dy,
+        groups: u.groups.map(mapG), links, pair: u.pair, params: { ...u.params },
+      });
+      copies.push(doc.units[doc.units.length - 1]);
+    }
+    setSelection(copies.map((c) => c.id));
+    doc.activeId = copies[0].id;
+    return { frame: copies[0], copies };
+  }
+  // 키프레임 연결 — 우(from)→좌(to)만, 노드당 1연결(재연결 = 기존 이설, §220 사용자 확정).
+  // A→B→A 사이클 = 루프 재생으로 해석(허용), 자기 연결만 차단.
+  function connectAnim(fromId, toId) {
+    if (fromId === toId) return null;
+    const isFrame = (id) => doc.units.some((u) => u.id === id && u.type === 'frame');
+    if (!isFrame(fromId) || !isFrame(toId)) return null;
+    doc.animEdges = doc.animEdges.filter((e) => e.from !== fromId && e.to !== toId);
+    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.42, 0, 0.58, 1] }; // ease in-out 기본
+    doc.animEdges.push(edge);
+    return edge;
+  }
+  // side: 'right' = 나가는 연결(from) / 'left' = 들어오는 연결(to) 해제 (빈 곳 드롭 = 해제)
+  function disconnectAnim(frameId, side = 'right') {
+    const n = doc.animEdges.length;
+    doc.animEdges = doc.animEdges.filter((e) => (side === 'right' ? e.from !== frameId : e.to !== frameId));
+    return doc.animEdges.length !== n;
+  }
+
   function renameActive(name) {
     const t = name.trim();
     if (t && active.value) active.value.name = t;
@@ -1373,6 +1434,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
+    duplicatePairedFrame, connectAnim, disconnectAnim,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

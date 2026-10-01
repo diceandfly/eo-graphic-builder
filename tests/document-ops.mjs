@@ -585,4 +585,78 @@ function centerIn(u, f) {
   });
 }
 
+
+// 18. §223 애니메이션 페어/엣지 (Phase B): opt-복제 페어 공유·링크 재구성·연결 규칙·언두
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  const u2 = api.createUnit(f.x + 1500, f.y + 1000);
+  api.setSelection([u1.id, u2.id]);
+  api.toggleLinkSelected();
+  const lid0 = primaryLid(u1);
+  const r = api.duplicatePairedFrame(f.id, 5000, 0);
+  const nf = r.frame;
+  const [c1, c2] = r.copies.slice(1);
+  ok('페어 복제: 프레임+소유 유닛, pair 공유·상대 배치 보존', () => {
+    assert.equal(r.copies.length, 3);
+    assert.ok(f.pair != null && nf.pair === f.pair);
+    assert.ok(u1.pair != null && c1.pair === u1.pair);
+    assert.ok(u2.pair != null && c2.pair === u2.pair);
+    assert.equal(c1.x - nf.x, u1.x - f.x);
+    assert.equal(c1.y - nf.y, u1.y - f.y);
+    assert.equal(nf.name, f.name);
+  });
+  ok('페어 복제: 파라미터 링크는 사본끼리 새 lid (키프레임 간 동기화 차단)', () => {
+    assert.ok(primaryLid(c1) != null && primaryLid(c1) === primaryLid(c2));
+    assert.ok(primaryLid(c1) !== lid0);
+    assert.equal(primaryLid(u1), lid0);
+  });
+  const e1 = api.connectAnim(f.id, nf.id);
+  ok('애니 엣지: 연결 생성 (ease in-out · 1s 기본) + 자기 연결 무효', () => {
+    assert.equal(api.doc.animEdges.length, 1);
+    assert.equal(e1.duration, 1000);
+    assert.deepEqual(e1.curve, [0.42, 0, 0.58, 1]);
+    assert.equal(api.connectAnim(f.id, f.id), null);
+  });
+  const r2 = api.duplicatePairedFrame(nf.id, 5000, 0);
+  const f3 = r2.frame;
+  api.connectAnim(f.id, f3.id);
+  ok('애니 엣지: 우측 노드 재연결 = 기존 연결 이설', () => {
+    assert.equal(api.doc.animEdges.length, 1);
+    assert.equal(api.doc.animEdges[0].to, f3.id);
+  });
+  api.connectAnim(nf.id, f3.id);
+  ok('애니 엣지: 좌측 노드 중복 유입 = 기존 연결 교체', () => {
+    assert.equal(api.doc.animEdges.length, 1);
+    assert.equal(api.doc.animEdges[0].from, nf.id);
+  });
+  ok('애니 엣지: 빈 곳 드롭 해제 (side별·no-op 판정)', () => {
+    assert.equal(api.disconnectAnim(nf.id, 'right'), true);
+    assert.equal(api.doc.animEdges.length, 0);
+    assert.equal(api.disconnectAnim(nf.id, 'right'), false);
+  });
+  api.connectAnim(f.id, nf.id);
+  api.setSelection([f3.id]);
+  api.deleteSelected();
+  const keptAfterUnrelated = api.doc.animEdges.length;
+  api.setSelection([nf.id]);
+  api.deleteSelected();
+  ok('애니 엣지: 무관 프레임 삭제 유지 · 연결 프레임 삭제 시 정리', () => {
+    assert.equal(keptAfterUnrelated, 1);
+    assert.equal(api.doc.animEdges.length, 0);
+  });
+  await sleep(400);
+  const f4 = api.createFrame(9000, 0, 500, 400);
+  api.connectAnim(f.id, f4.id);
+  await sleep(400);
+  const n1 = api.doc.animEdges.length;
+  api.undo();
+  ok('애니 엣지: 언두에 연결 포함', () => {
+    assert.equal(n1, 1);
+    assert.equal(api.doc.animEdges.length, 0);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

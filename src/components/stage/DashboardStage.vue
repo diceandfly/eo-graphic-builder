@@ -13,6 +13,7 @@ import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
 import PresetFloatWindow from './PresetFloatWindow.vue';
+import AnimOverlay from './AnimOverlay.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
@@ -239,6 +240,22 @@ const presetPanel = ref(null);
 function togglePresetPanel(name) {
   presetPanel.value = presetPanel.value === name ? null : name;
 }
+// §223: 애니메이션 모드 (Phase B) — 프레임 노드/와이어 오버레이, A 키·프리셋 바 버튼 토글
+const animMode = ref(false);
+function toggleAnimMode() {
+  animMode.value = !animMode.value;
+}
+// §223: 애니 모드에서 페어 오브젝트 삭제 = 경고 후 차단 (대응 관계 보호 — §220 사용자 확정)
+function guardedDelete() {
+  if (animMode.value) {
+    const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+    if (sel.some((x) => x.pair != null)) {
+      toast('Paired keyframe object — deletion is blocked in animation mode');
+      return;
+    }
+  }
+  props.actions.deleteSelected();
+}
 // §221: 프리셋 창 내부 로직은 PresetFloatWindow로 분리 — 스테이지는 좌표 변환만 공급
 function panelCenterWorld() {
   const r = el.value.getBoundingClientRect();
@@ -453,7 +470,7 @@ function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
   else if (key === 'flip') doFlip('h');
   else if (key === 'flipv') doFlip('v');
-  else if (key === 'del') props.actions.deleteSelected();
+  else if (key === 'del') guardedDelete();
   closeCtx();
 }
 
@@ -631,13 +648,13 @@ function onKeyDown(e) {
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && props.doc.selectedIds.length) {
     e.preventDefault();
-    props.actions.deleteSelected();
+    guardedDelete();
     return;
   }
   // D = 삭제 (Delete/Backspace와 동일)
   if (!mod && !e.shiftKey && e.code === 'KeyD' && props.doc.selectedIds.length) {
     e.preventDefault();
-    props.actions.deleteSelected();
+    guardedDelete();
     return;
   }
   // Shift+D = 직전 행동 반복 (§74)
@@ -692,6 +709,11 @@ function onKeyDown(e) {
   // V = 선택 도구 복귀 (§203: 프레임 우선 모드는 줌 자동 — A 키 수동 전환 제거, 추후 애니메이션용)
   if (!mod && !e.shiftKey && e.code === 'KeyV') {
     mode.value = 'select';
+    return;
+  }
+  // §223: A = 애니메이션 모드 토글 (§203에서 예약해 둔 키)
+  if (!mod && !e.shiftKey && e.code === 'KeyA') {
+    toggleAnimMode();
     return;
   }
   // §210: 프리셋 패널 단축키 — U = 유닛, P = 패턴 (재입력 = 닫기)
@@ -782,10 +804,17 @@ function onUnitDown(u, e) {
     // 프레임 복제 = 내용물 포함 (§92 확정 사양, §201: V 모드에서도 동일)
     const frameIds = srcIds.filter((id) => props.doc.units.find((x) => x.id === id)?.type === 'frame');
     for (const o of frameOwnedUnits(frameIds)) if (!srcIds.includes(o.id)) srcIds.push(o.id);
-    targets =
-      srcIds.length > 1
-        ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
-        : [props.actions.duplicateFrom(u)];
+    // §223: 애니 모드에서 프레임 opt-드래그 = 페어 복제 (키프레임 사본 — pair 공유, 링크는 사본끼리 재구성)
+    if (animMode.value && u.type === 'frame') {
+      const r = props.actions.duplicatePairedFrame(u.id);
+      targets = r ? r.copies : [props.actions.duplicateFrom(u)];
+      if (r) toast('Paired keyframe copy — drag the right node onto a left node to connect');
+    } else {
+      targets =
+        srcIds.length > 1
+          ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
+          : [props.actions.duplicateFrom(u)];
+    }
   } else if (e.detail === 2 && og) {
     // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
     props.actions.selectOnly(u.id);
@@ -828,7 +857,7 @@ function onGroupAction(key) {
     if (hasFrame) dupFramesWithContents();
     else props.actions.duplicateSelectedOffset();
   }
-  else if (key === 'del') props.actions.deleteSelected();
+  else if (key === 'del') guardedDelete();
 }
 
 // 프레임 복제 (오버레이 dup 버튼): 내용물 포함 + 40px 오프셋 (§92, §201: 혼합 선택도 전체 복제)
@@ -1505,6 +1534,16 @@ onBeforeUnmount(() => {
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- §223: 애니메이션 오버레이 — 프레임 노드 + 키프레임 와이어 (Phase B) -->
+        <AnimOverlay
+          v-if="animMode"
+          :units="doc.units"
+          :edges="doc.animEdges"
+          :scale="vp.scale"
+          :client-to-world="dropClientToWorld"
+          @connect="(f, t) => { props.actions.connectAnim(f, t); toast('Keyframes connected — ease in-out · 1s'); }"
+          @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
+        />
         <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
@@ -1541,7 +1580,7 @@ onBeforeUnmount(() => {
         />
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
         <GroupOverlay
-          v-if="showBBox && selBounds"
+          v-if="showBBox && selBounds && !(animMode && doc.selectedIds.some((id) => doc.units.find((x) => x.id === id)?.type === 'frame'))"
           :bounds="selBounds"
           :label="groupLabel"
           :scale="vp.scale"
@@ -1550,7 +1589,7 @@ onBeforeUnmount(() => {
           @action="onGroupAction"
         />
         <SelectionOverlay
-          v-if="showBBox && singleSelected && activeUnit"
+          v-if="showBBox && singleSelected && activeUnit && !(animMode && activeUnit.type === 'frame')"
           :unit="activeUnit"
           :scale="vp.scale"
           @resize-start="onResizeStart"
@@ -1558,7 +1597,7 @@ onBeforeUnmount(() => {
           @flip="actions.flipUnit()"
           @flipv="actions.flipUnitV()"
           @dup="actions.duplicateActive()"
-          @del="actions.deleteSelected()"
+          @del="guardedDelete()"
         />
         <template v-for="(g, gi) in gapGuides" :key="'gap' + gi">
           <template v-for="(seg, si) in g.segs" :key="si">
@@ -1653,7 +1692,7 @@ onBeforeUnmount(() => {
     <ResourceMonitor v-if="view.resMon" :count="doc.units.length" />
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
     <!-- §210: 패널이 열려 있을 땐 툴팁 억제 — 네임카드가 패널 모서리로 삐져나오는 것 방지 -->
-    <ManagerBar :panel="presetPanel" :tips-off="!!presetPanel" @toggle-panel="togglePresetPanel" />
+    <ManagerBar :panel="presetPanel" :tips-off="!!presetPanel" :anim="animMode" @toggle-panel="togglePresetPanel" @toggle-anim="toggleAnimMode" />
     <!-- §205·§207·§221: 프리셋 플로팅 창 — 내부 상호작용은 PresetFloatWindow가 전담 -->
     <PresetFloatWindow
       v-if="presetPanel"
