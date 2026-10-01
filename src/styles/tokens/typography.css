@@ -6,15 +6,19 @@
 :root {
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
 
-  /* ── 크기 위계 (§216 통일) ──
-     2xs: 최소 캡션 (리소스 모니터·뱃지·노트)
-     xs : 라벨·칩·seg 토글·버튼·툴팁·토스트·섹션 캡스·팝업 타이틀 (기본 UI 텍스트)
-     sm : 값 표기·입력칸·유닛 이름·도움말 본문
-     md : 창 타이틀·브랜드 타이틀·도움말 h1 (타이틀 급) */
+  /* ── 크기 위계 = 전역 사다리 (§218: 창마다 새 스타일 금지 — 모든 창은 이 사다리의 부분집합만 사용)
+     L1 lg 16 bold 캡스 white : 브랜드 타이틀 (유일 최고위계, 메인 패널만)
+     L2 md 13 semibold white : 창·팝업 타이틀, 편집 대상 이름, 도움말 h1
+     L3 xs 11 semibold accent 캡스 : 섹션 헤드 (키컬러 특수 기능성 위계)
+     L4 sm 12 regular white : 값·입력·본문·카드 이름·메뉴 행·토스트·툴팁
+     L5 xs 11 regular dim : 라벨 (컨트롤·팝업 rowLabel·표 헤더·crumb)
+     L6 2xs 10 regular faint : 보조·노트·캡션·뱃지·단위 표기
+     특수(위계 외): 버튼·칩·토글 = xs 11 상태색(faint↔accent) */
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
+  --fs-lg: 16px;
 
   /* ── 자간 (§212 재설계: 자간을 벌려 위계를 올리던 방식 폐기 — 위계는 크기·웨이트·회색도가 담당)
      base: 라벨·칩·토글·값 등 일반 UI 텍스트

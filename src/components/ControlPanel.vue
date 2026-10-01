@@ -519,8 +519,8 @@ function setStrokeColor(c) {
 .panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
   display: flex; align-items: center; gap: 9px;
-  // §216: 타이틀 급 통일 — 창 타이틀과 같은 13px(fs-md). 웨이트만 bold(로고 락업 특수)
-  font-size: var(--fs-md); font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
+  // §218: L1 브랜드 — 전역 유일 최고위계 (16 bold 캡스)
+  font-size: var(--fs-lg); font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
   padding: 2px 2px 12px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
@@ -533,7 +533,7 @@ function setStrokeColor(c) {
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
-.unitName { font-size: var(--fs-sm); color: var(--text); cursor: text; }
+.unitName { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text); cursor: text; } /* §218: L2 */
 .unitName:hover { color: var(--accent); }
 .nameInput {
   @include text-field;
@@ -642,7 +642,7 @@ section > :last-child { margin-bottom: 0; }
 }
 // §207: 빈 문서 상태 안내 (프리셋 브라우저는 우하단으로 이관)
 .noSel {
-  p { margin: 0 0 8px; font-size: var(--fs-sm); color: var(--text); }
-  .hint { font-size: var(--fs-xs); color: var(--faint); line-height: 1.6; }
+  p { margin: 0 0 8px; font-size: var(--fs-sm); color: var(--text); } /* L4 */
+  .hint { font-size: var(--fs-2xs); color: var(--faint); line-height: 1.6; } /* §218: L6 */
 }
 </style>

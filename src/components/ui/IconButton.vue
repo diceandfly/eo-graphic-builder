@@ -72,7 +72,7 @@ defineEmits(['click', 'contextmenu', 'dblclick']);
     position: absolute; bottom: calc(100% + 10px);
     z-index: 11; /* §216: 프리셋창(z9) 위로 — 네임카드는 항시 창을 덮는다 */
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    color: var(--text); font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+    color: var(--text); font-size: var(--fs-sm); letter-spacing: var(--ls-base); /* §218: L4 */
     padding: 4px 8px; white-space: nowrap;
     opacity: 0; pointer-events: none; transition: opacity var(--tip-fade);
     &::first-letter { text-transform: uppercase; } /* §215: 툴팁도 이니셜 캡 */

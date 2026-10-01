@@ -188,7 +188,7 @@ function onDimDown(e) {
   }
   :deep(hr) { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
   :deep(table) {
-    width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: var(--fs-xs);
+    width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: var(--fs-sm); /* §218: L4 본문 */
   }
   :deep(th), :deep(td) { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
   :deep(th) { color: var(--dim); letter-spacing: var(--ls-base); font-weight: var(--fw-semibold); } /* §214 */

@@ -1906,7 +1906,7 @@ onBeforeUnmount(() => {
   position: absolute; top: var(--sp-6); /* §217: 갭 토큰 통일 */
   left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2); transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none;
+  font-size: var(--fs-sm); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none; /* §218: L4 */
   border-radius: var(--radius);
   &::first-letter { text-transform: uppercase; } /* §215 */
 }
@@ -1918,7 +1918,7 @@ onBeforeUnmount(() => {
 }
 .ctxItem {
   border: none; background: none; color: var(--text); cursor: pointer;
-  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  font-family: inherit; font-size: var(--fs-sm); letter-spacing: var(--ls-base); /* §218: L4 메뉴 행 */
   padding: 6px 10px; text-align: left; border-radius: var(--radius);
   white-space: nowrap; text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
   display: flex; align-items: center; gap: 8px; // 좌측 주제 아이콘 (§119)

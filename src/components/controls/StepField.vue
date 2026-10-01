@@ -77,7 +77,7 @@ function bump(d) {
 .sf input {
   width: 42px; padding: 2px 6px; text-align: right;
   border: none; background: none; color: var(--text);
-  font-family: inherit; font-size: var(--fs-xs);
+  font-family: inherit; font-size: var(--fs-sm); /* §218: L4 값 */
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

@@ -67,8 +67,8 @@
   z-index: 11; // §216: 프리셋창(z9) 위로 — 팝업·툴팁은 항시 창을 덮는다
 
   .menuTitle {
-    /* §213: 타이틀은 캡스·자간 대신 크기·웨이트·밝기로 (소스 텍스트가 그대로 노출됨) */
-    font-size: var(--fs-xs);
+    /* §218: L2 창·팝업 타이틀 — 전역 사다리 (창마다 다른 타이틀 스타일 금지) */
+    font-size: var(--fs-md);
     letter-spacing: 0;
     color: var(--text);
     font-weight: var(--fw-semibold);
@@ -80,7 +80,7 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    font-size: var(--fs-xs);
+    font-size: var(--fs-sm); // §218: L4 본문 행
     color: var(--text);
     cursor: pointer;
     white-space: nowrap;
@@ -89,7 +89,7 @@
     &:has(> .rowLabel) { justify-content: space-between; }
     input { text-transform: none; } // 입력값은 변형 금지 (hex 입력은 자체 uppercase)
   }
-  .rowLabel { color: var(--dim); } // §212 dim · §216 캡은 menuRow에서 상속
+  .rowLabel { font-size: var(--fs-xs); color: var(--dim); } // §218: L5 라벨
   .menuNote {
     font-size: var(--fs-2xs);
     color: var(--faint);

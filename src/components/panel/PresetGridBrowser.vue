@@ -322,18 +322,18 @@ function onFile(e) {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   margin-bottom: 12px;
   h2 {
-    /* §213: 창 타이틀 — 13px·semibold·주 텍스트색 (위계는 크기·웨이트·밝기) */
+    /* §218: L2 창 타이틀 — 전역 사다리 (팝업 menuTitle과 동일 스타일) */
     font-size: var(--fs-md); letter-spacing: 0;
     color: var(--text); font-weight: var(--fw-semibold); margin: 0; white-space: nowrap;
-    text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
+    text-transform: capitalize;
   }
 }
 .colToggle { margin-bottom: 0; }
 .toolRow { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
 .pSearch {
-  @include text-field;
-  flex: 1; min-width: 0; box-sizing: border-box; font-size: var(--fs-xs);
-  padding: 4px 8px;
+  @include text-field; // §218: L4 입력 (text-field 기본 fs-sm)
+  flex: 1; min-width: 0; box-sizing: border-box;
+  padding: 0 8px; height: 21px; /* §217: 컨트롤 공통 높이 */
 }
 .tBtn {
   @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs (패널 칩과 동급)
@@ -349,7 +349,7 @@ function onFile(e) {
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
 .pEmpty {
-  font-size: var(--fs-xs); color: var(--faint); letter-spacing: var(--ls-base);
+  font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); /* §218: L6 노트 */
   border: 1px dashed var(--line); border-radius: var(--radius);
   padding: 16px 12px; text-align: center;
   &::first-letter { text-transform: uppercase; } /* §215: 본문·안내문도 이니셜 캡 (가독) */
@@ -402,7 +402,7 @@ function onFile(e) {
   padding: 1px 5px;
 }
 .pName {
-  font-size: var(--fs-xs); color: var(--text);
+  font-size: var(--fs-sm); color: var(--text); /* §218: L4 — 창의 주된 타이포 */
   padding: 5px 7px 6px; /* §211: 카드 패딩 0에 상응하는 최소 보정값 */
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -410,12 +410,12 @@ function onFile(e) {
 .pNameInput {
   @include text-field;
   border-color: var(--accent); padding: 1px 5px; margin: 4px 5px 5px;
-  width: calc(100% - 10px); box-sizing: border-box; font-size: var(--fs-xs);
+  width: calc(100% - 10px); box-sizing: border-box; /* §218: L4 (text-field 기본) */
 }
 .dragGhost {
   position: fixed; z-index: 40; pointer-events: none;
   background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius);
-  color: var(--text); font-size: var(--fs-xs); padding: 3px 8px; white-space: nowrap;
+  color: var(--text); font-size: var(--fs-sm); padding: 3px 8px; white-space: nowrap; /* §218: L4 */
 }
 .pMenu {
   position: fixed; z-index: 30;
@@ -424,8 +424,8 @@ function onFile(e) {
 }
 .pMenuItem {
   border: none; background: none; color: var(--text); cursor: pointer;
-  font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-  text-transform: capitalize; /* §216 */
+  font-family: inherit; font-size: var(--fs-sm); letter-spacing: var(--ls-base); /* §218: L4 메뉴 행 */
+  text-transform: capitalize;
   padding: 6px 10px; text-align: left; border-radius: var(--radius); white-space: nowrap;
   &:hover { color: var(--accent); }
 }

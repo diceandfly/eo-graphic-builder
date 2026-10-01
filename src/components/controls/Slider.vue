@@ -107,8 +107,8 @@ function bump(d) {
 .auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }
 .prefix {
   margin-left: auto; margin-right: 6px;
-  font-size: var(--fs-xs); color: var(--faint); white-space: nowrap;
-  text-transform: capitalize; /* §216 — suffix(단위 표기 x·%)는 값 위계라 제외 */
+  font-size: var(--fs-xs); color: var(--dim); white-space: nowrap; /* §218: L5 라벨 */
+  text-transform: capitalize;
 }
 // 필드+화살표 — StepField와 동일 문법 (§124), 단위 어도른먼트 내장 (§125)
 .sf {
@@ -141,7 +141,7 @@ function bump(d) {
   &:hover svg { fill: var(--accent); }
 }
 .suffix {
-  font-size: var(--fs-xs); color: var(--faint); white-space: nowrap;
+  font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; /* §218: L6 단위 표기 */
   align-self: center; padding-right: 6px; pointer-events: none; // 편집 대상 아님 — 클릭은 .sf가 입력 포커스로
 }
 </style>
