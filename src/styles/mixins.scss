@@ -60,7 +60,7 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 9px 11px; // §213: 창 패딩 축소와 리듬 통일
+  padding: var(--window-pad-y) var(--panel-pad); // §219: 창과 동일 토큰 (팝업 개별값 9/11 폐기)
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);

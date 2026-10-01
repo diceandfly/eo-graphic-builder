@@ -203,6 +203,8 @@ function onFile(e) {
         :options="[{ value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '6', label: '6' }]"
       />
     </div>
+    <!-- §219: L3 섹션 헤드 — 전역 사다리의 키컬러 위계를 프리셋창에도 적극 사용 (사용자 지시) -->
+    <h3 class="sect3">Library</h3>
     <!-- §210·§211: [검색] … [back·move out(상황부)] [+ folder] — 기호 버튼 대신 단어 라벨 -->
     <div class="toolRow">
       <input v-model="q" class="pSearch" type="text" placeholder="Search all" spellcheck="false" />
@@ -276,6 +278,7 @@ function onFile(e) {
         </div>
       </div>
     </div>
+    <h3 class="sect3 fileHead">File</h3>
     <div class="pIoRow">
       <button class="pIoBtn" @click="emit('exportJson')">Export JSON</button>
       <button class="pIoBtn" @click="fileEl.click()">Import JSON</button>
@@ -329,6 +332,13 @@ function onFile(e) {
   }
 }
 .colToggle { margin-bottom: 0; }
+/* §219: L3 — 메인 패널 섹션 h2와 동일 스타일 (전역 사다리) */
+.sect3 {
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--ls-caps);
+  color: var(--accent); font-weight: var(--fw-semibold);
+  margin: 0 0 10px;
+}
+.fileHead { margin: 12px 0 8px; }
 .toolRow { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
 .pSearch {
   @include text-field; // §218: L4 입력 (text-field 기본 fs-sm)
@@ -429,7 +439,7 @@ function onFile(e) {
   padding: 6px 10px; text-align: left; border-radius: var(--radius); white-space: nowrap;
   &:hover { color: var(--accent); }
 }
-.pIoRow { display: flex; gap: 6px; margin-top: 12px; }
+.pIoRow { display: flex; gap: 6px; } /* §219: 상단 마진은 File 헤드가 담당 */
 .pIoBtn {
   @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
   flex: 1; text-transform: capitalize;

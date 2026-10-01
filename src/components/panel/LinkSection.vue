@@ -51,7 +51,7 @@ section h2 {
   margin: 0 0 12px; /* §138: ControlPanel h2와 동일 */
 }
 .ghost {
-  width: 100%; margin-top: 2px; padding: 8px 12px;
+  width: 100%; margin-top: 2px; padding: 0 12px; height: 21px; /* §219: 컨트롤 공통 높이 */
   border: 1px solid var(--line); background: none; color: var(--text);
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
   text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */

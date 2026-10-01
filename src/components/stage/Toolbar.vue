@@ -304,7 +304,8 @@ function onPick(c) {
 // §201·§202: SNS 프리셋 토글 — segMini 버튼과 동일 문법 (활성 인셋 아웃라인)
 .presetTg {
   border: 1px solid var(--line); border-radius: var(--radius); background: none;
-  padding: 2px 9px; font-size: var(--fs-xs); color: var(--faint);
+  padding: 0 9px; height: 21px; display: inline-flex; align-items: center; /* §219: 컨트롤 공통 높이 */
+  font-size: var(--fs-xs); color: var(--faint);
   font-family: inherit; cursor: pointer; white-space: nowrap;
   &.on { @include active-outline-inset; }
 }

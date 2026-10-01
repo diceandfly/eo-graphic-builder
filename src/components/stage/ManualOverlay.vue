@@ -142,8 +142,8 @@ function onDimDown(e) {
 }
 // §201: EN/KR 토글 — 닫기 버튼 왼쪽, 툴바 segMini와 동일 문법 (닫기 버튼과 같은 높이)
 .langSeg {
-  position: absolute; top: 10px; right: 44px; z-index: 1;
-  display: flex; height: 26px;
+  position: absolute; top: 12px; right: 42px; z-index: 1;
+  display: flex; height: 21px; /* §219: 컨트롤 공통 높이 */
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel);
   button {
@@ -155,8 +155,8 @@ function onDimDown(e) {
   }
 }
 .closeBtn {
-  position: absolute; top: 10px; right: 10px; z-index: 1;
-  width: 26px; height: 26px; padding: 0;
+  position: absolute; top: 12px; right: 12px; z-index: 1;
+  width: 21px; height: 21px; padding: 0; /* §219: 컨트롤 공통 높이 (langSeg와 쌍) */
   display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel); cursor: pointer;
@@ -165,7 +165,9 @@ function onDimDown(e) {
 }
 .doc {
   user-select: text; -webkit-user-select: text; /* §160: 도움말 본문은 텍스트 드래그 허용 (전역 락 예외) */
-  overflow-y: auto; padding: 26px 32px 40px;
+  overflow-y: auto;
+  /* §219: 패딩 토큰 파생 — 문서형 창은 창 패딩의 2배(상하좌우), 하단 스크롤 여유 3배 */
+  padding: calc(2 * var(--window-pad-y)) calc(2 * var(--panel-pad)) calc(3 * var(--window-pad-y));
   color: var(--text); font-size: var(--fs-sm); line-height: 1.7; letter-spacing: var(--ls-base);
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 
