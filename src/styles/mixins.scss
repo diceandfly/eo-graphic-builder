@@ -92,6 +92,7 @@
   .rowLabel { font-size: var(--fs-xs); color: var(--dim); } // §218: L5 라벨
   .menuNote {
     font-size: var(--fs-2xs);
+    letter-spacing: var(--ls-2xs); // §222
     color: var(--faint);
     white-space: nowrap;
     &::first-letter { text-transform: uppercase; } // §215: 보조 설명도 이니셜 캡 (작은 폰트 가독 보강)

@@ -49,7 +49,7 @@ const fpsHot = computed(() => fps.value != null && fps.value < 30);
   /* §141: 3항목을 코너 바 폭(160px)에 등분 고정 — 자릿수 변동에도 전체 텍스트 밀림 없음 */
   width: 160px;
   display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base);
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs);
   /* §111: 흰색+오파시티 — 커스텀 캔버스 색 등 대부분의 배경에서 가독 */
   color: color-mix(in srgb, #ffffff 55%, transparent); font-variant-numeric: tabular-nums;
 }

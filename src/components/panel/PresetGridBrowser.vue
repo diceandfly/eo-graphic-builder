@@ -359,7 +359,7 @@ function onFile(e) {
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
 .pEmpty {
-  font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); /* §218: L6 노트 */
+  font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-2xs); /* §218 L6 · §222 자간 */
   border: 1px dashed var(--line); border-radius: var(--radius);
   padding: 16px 12px; text-align: center;
   &::first-letter { text-transform: uppercase; } /* §215: 본문·안내문도 이니셜 캡 (가독) */
@@ -394,7 +394,7 @@ function onFile(e) {
   }
   .fCount {
     position: absolute; right: 8px; bottom: 6px;
-    font-size: var(--fs-2xs); color: var(--faint);
+    font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-2xs);
   }
   &:hover .folderBody svg { stroke: var(--accent); }
   &.dropTarget .folderBody svg { stroke: var(--accent); }

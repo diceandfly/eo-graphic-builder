@@ -190,17 +190,23 @@ const frameLabels = computed(() => {
   if (mode.value !== 'select') return [];
   const fs = [...props.doc.units.filter((x) => x.type === 'frame')]
     .sort((a, b) => (props.doc.selectedIds.includes(a.id) ? 1 : 0) - (props.doc.selectedIds.includes(b.id) ? 1 : 0));
+  // §222: 라벨 폭을 프레임 화면 폭에 맞춰 말줄임 — 저배율에서 긴 이름이 이웃 라벨 오클루전 필터에
+  // 통째로 숨던 문제 해결 (숨기는 대신 잘라서라도 보여줌). 최소 4자+… 보장.
+  const entry = (f) => {
+    const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 8) / 6.8));
+    const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
+    return { f, label, w: label.length * 6.8 + 20 }; // w = 히트 패드와 동일한 화면 px 근사
+  };
+  const es = fs.map(entry);
   const out = [];
-  for (let i = 0; i < fs.length; i++) {
-    const a = fs[i];
-    const aw = a.name.length * 6.8 + 20; // 라벨 히트 패드와 동일한 화면 px 근사
+  for (let i = 0; i < es.length; i++) {
+    const a = es[i];
     let hidden = false;
-    for (let j = i + 1; j < fs.length; j++) {
-      const b = fs[j];
-      const bw = b.name.length * 6.8 + 20;
-      const dxs = (a.x - b.x) * vp.scale;
-      const dys = (a.y - b.y) * vp.scale;
-      if (dxs < bw && dxs > -aw && Math.abs(dys) < 22) { hidden = true; break; }
+    for (let j = i + 1; j < es.length; j++) {
+      const b = es[j];
+      const dxs = (a.f.x - b.f.x) * vp.scale;
+      const dys = (a.f.y - b.f.y) * vp.scale;
+      if (dxs < b.w && dxs > -a.w && Math.abs(dys) < 22) { hidden = true; break; }
     }
     if (!hidden) out.push(a);
   }
@@ -1503,7 +1509,7 @@ onBeforeUnmount(() => {
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
         <g
-          v-for="f in frameLabels"
+          v-for="{ f, label, w } in frameLabels"
           :key="'fl' + f.id"
           class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
@@ -1515,9 +1521,9 @@ onBeforeUnmount(() => {
           <rect
             class="labelPad"
             :x="-pxs(6)" :y="-pxs(22)"
-            :width="pxs(f.name.length * 6.8 + 20)" :height="pxs(24)"
+            :width="pxs(w)" :height="pxs(24)"
           />
-          <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ f.name }}</text>
+          <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ label }}</text>
         </g>
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
         <rect

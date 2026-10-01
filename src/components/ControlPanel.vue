@@ -644,6 +644,6 @@ section > :last-child { margin-bottom: 0; }
 // §207: 빈 문서 상태 안내 (프리셋 브라우저는 우하단으로 이관)
 .noSel {
   p { margin: 0 0 8px; font-size: var(--fs-sm); color: var(--text); } /* L4 */
-  .hint { font-size: var(--fs-2xs); color: var(--faint); line-height: 1.6; } /* §218: L6 */
+  .hint { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); line-height: 1.6; } /* §218: L6 */
 }
 </style>

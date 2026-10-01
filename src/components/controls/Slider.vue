@@ -141,7 +141,7 @@ function bump(d) {
   &:hover svg { fill: var(--accent); }
 }
 .suffix {
-  font-size: var(--fs-2xs); color: var(--faint); white-space: nowrap; /* §218: L6 단위 표기 */
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); white-space: nowrap; /* §218 L6 · §222 */
   align-self: center; padding-right: 6px; pointer-events: none; // 편집 대상 아님 — 클릭은 .sf가 입력 포커스로
 }
 </style>

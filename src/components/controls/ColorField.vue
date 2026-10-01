@@ -161,7 +161,7 @@ watch(open, (o) => {
   display: flex; flex-direction: column; gap: 8px;
 }
 .recentRow { display: flex; gap: 6px; }
-.recentNote { font-size: var(--fs-2xs); letter-spacing: var(--ls-base); color: var(--faint); white-space: nowrap; }
+.recentNote { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); white-space: nowrap; }
 .recentChip {
   width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;
   border-radius: var(--radius);
