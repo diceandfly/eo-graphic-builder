@@ -45,6 +45,22 @@ const edgeWires = computed(() =>
 const connectedR = computed(() => new Set(props.edges.map((e) => e.from)));
 const connectedL = computed(() => new Set(props.edges.map((e) => e.to)));
 
+// §234: 활성 체인 — 선택 엣지에서 연결을 따라 확장한 프레임 집합 (in/out ≤1이라 선형 체인)
+const chainIds = computed(() => {
+  if (!props.selectedEdge || props.dimmed) return new Set();
+  const ids = new Set([props.selectedEdge.from, props.selectedEdge.to]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const e of props.edges) {
+      const hasF = ids.has(e.from);
+      const hasT = ids.has(e.to);
+      if (hasF !== hasT) { ids.add(e.from); ids.add(e.to); grew = true; }
+    }
+  }
+  return ids;
+});
+
 // ── 노드 드래그: 우측 노드에서 시작 → 좌측 노드에 드롭 = 연결 / 빈 곳 = 해제 ──
 const drag = ref(null); // { fromId, x1, y1, x, y }
 function onNodeDown(f, e) {
@@ -79,6 +95,12 @@ function onNodeDown(f, e) {
 
 <template>
   <g class="animOverlay">
+    <!-- §234: 활성 체인 하이라이트 — 체인 소속 프레임 전부 볼드 스트로크 -->
+    <rect
+      v-for="f in frames.filter((x) => chainIds.has(x.id))" :key="'ch' + f.id"
+      class="chainHi"
+      :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
+    />
     <!-- 연결 와이어 + 중앙 페어 아이콘 (엣지 파라미터 컨트롤 자리 — Phase C) -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
       <path class="wire" :class="{ sel: !dimmed && selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e), dim: dimmed }" :d="w.d" />
@@ -89,11 +111,11 @@ function onNodeDown(f, e) {
         @pointerdown.stop.prevent="(ev) => !dimmed && emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
         <circle :r="pxs(9)" />
-        <!-- §233: 타이밍 컨트롤 = 모래시계 -->
+        <!-- §233·§234: 타이밍 컨트롤 = 모래시계 — 세로 압축·넓은 받침의 안정 비율 -->
         <g :transform="`translate(${-pxs(6)} ${-pxs(6)}) scale(${pxs(12) / 24})`">
-          <path d="M7 4 H17 M7 20 H17" />
-          <path d="M8.2 4 C8.2 9.4, 11.2 10.4, 12 12 C11.2 13.6, 8.2 14.6, 8.2 20" />
-          <path d="M15.8 4 C15.8 9.4, 12.8 10.4, 12 12 C12.8 13.6, 15.8 14.6, 15.8 20" />
+          <path d="M5.5 6.5 H18.5 M5.5 17.5 H18.5" />
+          <path d="M7.2 6.5 C7.2 10, 10.8 10.8, 12 12 C10.8 13.2, 7.2 14, 7.2 17.5" />
+          <path d="M16.8 6.5 C16.8 10, 13.2 10.8, 12 12 C13.2 13.2, 16.8 14, 16.8 17.5" />
         </g>
       </g>
     </g>
@@ -127,6 +149,11 @@ function onNodeDown(f, e) {
 </template>
 
 <style scoped lang="scss">
+// §234: 활성 체인 프레임 — 볼드 액센트 아웃라인 (화면 고정 2.5px)
+.chainHi {
+  fill: none; stroke: var(--accent); stroke-width: 2.5;
+  vector-effect: non-scaling-stroke; pointer-events: none;
+}
 .wire {
   fill: none; stroke: var(--accent); stroke-width: 1.5;
   vector-effect: non-scaling-stroke; opacity: 0.9;
