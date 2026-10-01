@@ -54,14 +54,15 @@ section h2 {
   width: 100%; margin-top: 2px; padding: 8px 12px;
   border: 1px solid var(--line); background: none; color: var(--text);
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
+  text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
   cursor: pointer;
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
 .scopeChips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .scopeChip {
-  @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 0 8px;
+  @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
+  padding: 0 8px;
   height: 21px; display: inline-flex; align-items: center; // §141: 토글 세그와 동일 세로폭
   color: var(--faint);
   &.on { border-color: var(--accent); color: var(--accent); }

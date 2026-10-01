@@ -148,7 +148,7 @@ function onDimDown(e) {
   background: var(--panel);
   button {
     border: none; background: none; padding: 0 9px;
-    font-size: var(--fs-2xs); letter-spacing: var(--ls-caps);
+    font-size: var(--fs-xs); letter-spacing: var(--ls-caps); /* §216: 버튼 타이포 단일화 */
     color: var(--faint); font-family: inherit; cursor: pointer;
     &:not(:last-child) { border-right: 1px solid var(--line); }
     &.on { @include active-outline-inset; }
@@ -169,10 +169,11 @@ function onDimDown(e) {
   color: var(--text); font-size: var(--fs-sm); line-height: 1.7; letter-spacing: var(--ls-base);
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 
-  :deep(h1) { font-size: 16px; font-weight: var(--fw-bold); margin: 0 0 14px; color: var(--text); }
+  /* §216: 메인 패널과 같은 위계 구성 — h1 = 창 타이틀급(13 semibold), h2 = 섹션 문법(11 캡스 액센트) */
+  :deep(h1) { font-size: var(--fs-md); font-weight: var(--fw-semibold); margin: 0 0 14px; color: var(--text); }
   :deep(h2) {
-    font-size: 13px; font-weight: var(--fw-semibold); /* §214: 문장형 — 캡스·자간 해제 */
-    letter-spacing: 0; color: var(--accent);
+    font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+    text-transform: uppercase; letter-spacing: var(--ls-caps); color: var(--accent);
     margin: 30px 0 10px; scroll-margin-top: 12px;
   }
   :deep(h3) { font-size: var(--fs-sm); font-weight: var(--fw-semibold); margin: 18px 0 8px; scroll-margin-top: 12px; }

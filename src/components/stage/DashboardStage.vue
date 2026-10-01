@@ -1466,7 +1466,7 @@ onBeforeUnmount(() => {
   <div
     ref="el"
     class="stage"
-    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', framedraw: mode === 'frame', framesel: frameMode && mode === 'select' }"
+    :class="{ panning: spaceHeld, eyedrop: mode === 'eyedrop', framedraw: mode === 'frame', framesel: frameMode && mode === 'select', unitsel: !frameMode && mode === 'select' }"
     :style="{
       ...(view.guideColor ? { '--unit-guide': view.guideColor } : {}),
       ...(view.stageGridColor ? { '--stage-grid': view.stageGridColor } : {}),
@@ -1829,6 +1829,14 @@ onBeforeUnmount(() => {
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
+// §216: 선택 커서 — 시스템 커서와 같은 자연스런 각도의 커스텀 화살표가 선택 우선 상태를 표시.
+// 툴바 선택 아이콘과 동일 문법: 유닛 우선 = 라인(홀로우) / 프레임 우선 = 솔리드. 핫스팟 = 화살촉 (6,2).
+.stage.unitsel:not(.panning), .stage.unitsel:not(.panning) .hit {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+}
+.stage.framesel:not(.panning), .stage.framesel:not(.panning) .hit {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='white' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+}
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
 // non-scaling-stroke에서는 대시 패턴도 화면 좌표로 계산됨 — 고정값이 곧 화면 고정 간격
@@ -1913,7 +1921,7 @@ onBeforeUnmount(() => {
   border: none; background: none; color: var(--text); cursor: pointer;
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
   padding: 6px 10px; text-align: left; border-radius: var(--radius);
-  white-space: nowrap;
+  white-space: nowrap; text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
   display: flex; align-items: center; gap: 8px; // 좌측 주제 아이콘 (§119)
   &:hover { color: var(--accent); }
 }

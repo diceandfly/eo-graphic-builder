@@ -519,8 +519,8 @@ function setStrokeColor(c) {
 .panel { display: flex; flex-direction: column; gap: var(--sp-section); }
 .brand {
   display: flex; align-items: center; gap: 9px;
-  // §123: 타이틀 축소(14→12px) — 상단 여백은 App .side 패딩과 함께 축소
-  font-size: var(--fs-sm); font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
+  // §216: 타이틀 급 통일 — 창 타이틀과 같은 13px(fs-md). 웨이트만 bold(로고 락업 특수)
+  font-size: var(--fs-md); font-weight: var(--fw-bold); letter-spacing: 0em; color: var(--text);
   padding: 2px 2px 12px; border-bottom: 1px solid var(--line);
 }
 .logo { flex-shrink: 0; }
@@ -528,8 +528,8 @@ function setStrokeColor(c) {
 .unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
 .ratioHead {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-  color: var(--dim); margin-bottom: 6px; /* §214: 이니셜 캡 */
-  &::first-letter { text-transform: uppercase; }
+  color: var(--dim); margin-bottom: 6px;
+  text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
 }
 .ratioRow { display: flex; align-items: flex-start; gap: 6px; }
 .ratioRow :deep(.chips) { margin-bottom: 0; }
@@ -573,12 +573,13 @@ section > :last-child { margin-bottom: 0; }
 }
 .dpiWrap {
   display: flex; align-items: center; gap: 5px; margin-left: 4px;
-  font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); /* §214: 이니셜 캡 */
-  &::first-letter { text-transform: uppercase; }
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim);
+  text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
 }
 // NumberField 입력과 동일 규격 (W/H 행과 가로 정렬, §76)
 .dpiInput {
   @include text-field;
+  text-transform: none; /* §216: 입력값은 캡 상속 차단 */
   width: 58px; padding: 3px 8px; text-align: right;
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button,
@@ -590,8 +591,7 @@ section > :last-child { margin-bottom: 0; }
   100% { border-color: var(--line); background: none; }
 }
 .eachBtn {
-  @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
+  @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs·ls-base (2xs·wide 개별값 폐기)
   padding: 3px 9px; height: 21px; // §140: Toggle 세그(컨테이너 보더 포함 21px)와 동일 세로폭
   &.on { border-color: var(--accent); color: var(--accent); }
 }
@@ -600,8 +600,7 @@ section > :last-child { margin-bottom: 0; }
 .unitSeg {
   display: flex;
   button {
-    @include bordered-control;
-    font-size: var(--fs-2xs); letter-spacing: var(--ls-wide);
+    @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs·ls-base
     padding: 3px 9px; height: 21px; // §140: Toggle 세그와 동일 세로폭
     &:first-child { border-radius: var(--radius) 0 0 var(--radius); border-right-width: 0; }
     &:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
@@ -630,8 +629,8 @@ section > :last-child { margin-bottom: 0; }
 }
 .rowLabel {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base);
-  color: var(--dim); flex: 1; /* §214: 이니셜 캡 */
-  &::first-letter { text-transform: uppercase; }
+  color: var(--dim); flex: 1;
+  text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
 }
 .colorPrev {
   width: 14px; height: 14px; flex-shrink: 0;

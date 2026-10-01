@@ -116,8 +116,7 @@ function onPick(c) {
         @contextmenu.prevent="emit('toggleFrameMode')"
       >
         <svg v-if="frameMode" class="fillArrow" viewBox="0 0 24 24">
-          <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
-          <path class="tail" d="M13 13l9 9" />
+          <path d="M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z" />
         </svg>
       </IconButton>
       <!-- 프레임 툴 (F, §92): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
@@ -268,6 +267,9 @@ function onPick(c) {
   position: absolute; bottom: var(--sp-6);
   left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2);
   transform: translateX(-50%);
+  /* §216: transform이 스태킹 컨텍스트를 만들어 내부 팝업/툴팁 z11이 갇힘 —
+     래퍼째 프리셋창(z9) 위로. 캔버스 ctx 메뉴(z10)는 DOM 후순위라 동급에서도 위에 그려짐 */
+  z-index: 10;
   display: flex; align-items: center; gap: var(--sp-6); // 바-바 간격 = 패널↔바 간격과 동일 (--sp-6)
 }
 .chip {
@@ -284,7 +286,6 @@ function onPick(c) {
 .fillArrow {
   width: var(--icon-size); height: var(--icon-size);
   path { fill: var(--accent); stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; }
-  .tail { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: square; }
 }
 .recentChip {
   width: 16px; height: 16px; flex-shrink: 0; border: none; cursor: pointer;

@@ -70,6 +70,7 @@ defineEmits(['click', 'contextmenu', 'dblclick']);
   /* 툴팁 — --tip-delay 후 표시 */
   .tip {
     position: absolute; bottom: calc(100% + 10px);
+    z-index: 11; /* §216: 프리셋창(z9) 위로 — 네임카드는 항시 창을 덮는다 */
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     color: var(--text); font-size: var(--fs-xs); letter-spacing: var(--ls-base);
     padding: 4px 8px; white-space: nowrap;

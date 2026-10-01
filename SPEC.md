@@ -1710,3 +1710,15 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 2. **본문·보조 텍스트 이니셜 캡 확장** — 작은 폰트 가독 보강(사용자 지시): CSS `::first-letter`를 .menuNote(믹스인)·.pEmpty·.toast·IconButton .tip에 추가, 네이티브 title 툴팁 11곳은 CSS 불가라 소스 대문자화("Click to rename" 등). "UNIT HEIGHT ×" prefix → "Unit height ×" (§214 All Caps 정책의 잔여 위반 정리).
 3. **프리셋창 최대 높이 = 성능 인디케이터 아래까지** — max-height calc(100% − 155px): 하단 오프셋 66 + 상단(코너 바 66 + 리소스 모니터 13 + 갭 10). 드래그 클램프도 동일 식(스테이지 높이 기준).
 4. 타이포 위계 전수조사(섹션별·전체)·애니메이션 착수 전 개발부채 목록은 대화로 보고 (SPEC 반영은 조치 확정 시).
+
+## 216. 2026-10-01 — 선택 커서·타이포 시스템 통합(Title Case·버튼 단일화·z-오더)
+
+1. **커스텀 선택 커서** — 스테이지에서 선택툴일 때 시스템 커서 대신 자연스런 시스템 각도의 커스텀 화살표(핫스팟 6,2): 유닛 우선 = 라인(홀로우, 백 할로+흑 라인) / 프레임 우선 = 솔리드(백 채움+흑 테두리) — 툴바 선택 아이콘과 동일 문법. 팬 중(spaceHeld)은 grab 유지. **툴바 선택 아이콘도 같은 각도·쉐입으로 교체**(ICONS.select 꼬리 폐기, fillArrow 동일 패스).
+2. **이니셜 캡 = Title Case 확정** — "이니셜 캡"은 전 단어 첫 글자 대문자(사용자 확정, 토글 위계만 제외): 라벨·타이틀·버튼·메뉴에 `text-transform: capitalize` (컨트롤 .label, rowLabel/ratioHead/dpiWrap, Slider prefix, menuTitle/menuRow(입력·segMini는 none 리셋), 창 h2, tBtn/pIoBtn/pMenuItem, ghost, ctxItem). 문장형 보조(menuNote·pEmpty·toast·툴팁)는 첫 글자만. 사용자 입력 텍스트(프리셋/프레임 이름·crumb·뱃지)는 무변형.
+3. **팝업·툴팁 z-오더 해결(§214 잔여)** — 원인: .toolbarWrap의 transform(translateX)이 스태킹 컨텍스트를 생성, 내부 .menu/.tip z11이 갇혀 프리셋창(z9)에 가려짐. toolbarWrap z10 부여 + popup-menu 믹스인 z11 + IconButton .tip z11 — 프리셋창은 항시 창이므로 팝업/네임카드가 위로(사용자 확정). 캔버스 ctx 메뉴(z10)는 DOM 후순위라 동급에서도 위.
+4. **타이포 위계 시스템 통합** (전수조사 후 사용자 법칙: 화이트 기본·웨이트 2–3·크기 우선 차등·키컬러는 최상위/특수 기능성만·토글 상태색은 위계 아님):
+   - 타이틀 급 일원화: 브랜드 12 bold → **13(fs-md) bold**(로고 락업만 웨이트 특수) = 창 타이틀(13 semibold)과 동급. 팝업 타이틀 11 semibold 유지(창>팝업 2단).
+   - 섹션 헤드 문법 일원화: 도움말 h2 13 문장형 → **11 캡스 액센트(ls-caps)** = 패널 섹션과 동일. 도움말 h1 16 bold → 13 semibold(창 타이틀급). 도움말 7→6단.
+   - **버튼 타이포 단일화: 전 텍스트 버튼 fs-xs(11)·ls-base** — eachBtn/unitSeg(10·wide→11), tBtn/pIoBtn(10→11), miniBtn(10→11), scopeChip(10→11), 도움말 EN/KR(10→11). ls-wide 미사용화(토큰 예약). 프리셋창 crumb은 라벨층(11 dim)으로.
+   - fs 토큰 역할 재정의 주석(typography.css): 2xs 캡션 전용 / xs 기본 UI / sm 값·본문 / md 타이틀.
+5. 섹션별 위계: 메인 6(브랜드·이름/값·섹션·라벨·칩토글·보조) / 프리셋창 4 / 팝업 4(타이틀·행·라벨·노트) / 도움말 6 — 전부 메인 패널 스타일의 부분집합.

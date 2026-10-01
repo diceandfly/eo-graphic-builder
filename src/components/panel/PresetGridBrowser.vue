@@ -322,9 +322,10 @@ function onFile(e) {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   margin-bottom: 12px;
   h2 {
-    /* §213: 창 타이틀 — 문장형·13px·semibold·주 텍스트색 (위계는 크기·웨이트·밝기) */
+    /* §213: 창 타이틀 — 13px·semibold·주 텍스트색 (위계는 크기·웨이트·밝기) */
     font-size: var(--fs-md); letter-spacing: 0;
     color: var(--text); font-weight: var(--fw-semibold); margin: 0; white-space: nowrap;
+    text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
   }
 }
 .colToggle { margin-bottom: 0; }
@@ -335,14 +336,14 @@ function onFile(e) {
   padding: 4px 8px;
 }
 .tBtn {
-  @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 4px 10px;
-  white-space: nowrap;
+  @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs (패널 칩과 동급)
+  padding: 4px 10px;
+  white-space: nowrap; text-transform: capitalize; /* §216 */
   &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   /* §214: 비활성도 형태는 그대로 — 글자만 흐리게 (버튼이 안 보인다는 피드백) */
   &:disabled { color: var(--faint); cursor: default; }
 }
-.crumb { font-size: var(--fs-2xs); color: var(--faint); letter-spacing: var(--ls-base); margin: -4px 0 8px; }
+.crumb { font-size: var(--fs-xs); color: var(--dim); letter-spacing: var(--ls-base); margin: -4px 0 8px; } /* §216: 라벨층(dim) */
 .gridArea {
   flex: 1; min-height: 0; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
@@ -421,13 +422,14 @@ function onFile(e) {
 .pMenuItem {
   border: none; background: none; color: var(--text); cursor: pointer;
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base);
+  text-transform: capitalize; /* §216 */
   padding: 6px 10px; text-align: left; border-radius: var(--radius); white-space: nowrap;
   &:hover { color: var(--accent); }
 }
 .pIoRow { display: flex; gap: 6px; margin-top: 12px; }
 .pIoBtn {
-  @include bordered-control;
-  flex: 1; font-size: var(--fs-2xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
+  @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
+  flex: 1; text-transform: capitalize;
   padding: 5px 0;
   &:hover { border-color: var(--accent); color: var(--accent); }
 }

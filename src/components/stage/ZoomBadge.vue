@@ -215,8 +215,8 @@ function resetGridDefaults() {
   position: absolute; top: calc(100% + 14px); right: 0;
 }
 .miniBtn {
-  @include bordered-control;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-base); padding: 3px 8px;
+  @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
+  padding: 3px 8px;
   align-self: flex-start;
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
