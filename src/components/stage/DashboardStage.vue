@@ -12,11 +12,11 @@ import GroupOverlay from './GroupOverlay.vue';
 import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
-import PresetGridBrowser from '../panel/PresetGridBrowser.vue';
+import PresetFloatWindow from './PresetFloatWindow.vue';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
-import { frameGridLines, frameAttrs } from '../../geometry/frameGrid.js';
+import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
 import { canvasPointToLocal } from '../../geometry/derive.js';
 import { layerOf, isPresetable } from '../../objects/registry.js';
@@ -233,59 +233,15 @@ const presetPanel = ref(null);
 function togglePresetPanel(name) {
   presetPanel.value = presetPanel.value === name ? null : name;
 }
-// §208·§214: 패널 폭 = 고정(4열 기준), 밀도는 열 토글 — **높이만** 상단 엣지 드래그로 조절 (로컬 영속)
-const panelH = ref(Number(localStorage.getItem('eo.presetFloatH')) || 620);
-function onHeightGripDown(e) {
-  e.preventDefault();
-  const sy = e.clientY;
-  const h0 = panelH.value;
-  const mv = (ev) => {
-    // §215·§217: 상한 = 성능 인디케이터 바로 아래 갭까지 — CSS max-height(157)와 동일 식
-    const maxH = (el.value?.clientHeight ?? window.innerHeight) - 157;
-    panelH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), maxH);
-  };
-  const up = () => {
-    window.removeEventListener('pointermove', mv);
-    localStorage.setItem('eo.presetFloatH', String(Math.round(panelH.value)));
-  };
-  window.addEventListener('pointermove', mv);
-  window.addEventListener('pointerup', up, { once: true });
-}
+// §221: 프리셋 창 내부 로직은 PresetFloatWindow로 분리 — 스테이지는 좌표 변환만 공급
 function panelCenterWorld() {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(r.width / 2, r.height / 2);
-}
-function onPlacePattern(p) {
-  const [cx, cy] = panelCenterWorld();
-  props.actions.placePattern(p, cx, cy);
-  toast(`Placed "${p.name}"`);
-}
-async function onImportPatterns(file) {
-  const n = await props.actions.patternImportJson(file);
-  toast(n ? `Imported ${n} pattern${n > 1 ? 's' : ''}` : 'No patterns found in that file');
-}
-// §207: 유닛 프리셋 — 메인 패널에서 프리셋 바 플로팅 패널로 이관
-function onPlacePreset(p) {
-  const [cx, cy] = panelCenterWorld();
-  props.actions.createUnitFrom(p.params, cx, cy, p.name);
-}
-async function onImportPresets(file) {
-  const n = await props.actions.presetImportJson(file);
-  toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
 }
 // §210: 카드 → 캔버스 드랍 배치 (뷰포트 client 좌표 → 월드 변환)
 function dropClientToWorld(cx, cy) {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(cx - r.left, cy - r.top);
-}
-function onPlacePresetAt(item, cx, cy) {
-  const [wx, wy] = dropClientToWorld(cx, cy);
-  props.actions.createUnitFrom(item.params, wx, wy, item.name);
-}
-function onPlacePatternAt(item, cx, cy) {
-  const [wx, wy] = dropClientToWorld(cx, cy);
-  props.actions.placePattern(item, wx, wy);
-  toast(`Placed "${item.name}"`);
 }
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
@@ -1692,76 +1648,17 @@ onBeforeUnmount(() => {
     <AlignBar :active="alignActive" :dist-active="distActive" @align="onAlign" />
     <!-- §210: 패널이 열려 있을 땐 툴팁 억제 — 네임카드가 패널 모서리로 삐져나오는 것 방지 -->
     <ManagerBar :panel="presetPanel" :tips-off="!!presetPanel" @toggle-panel="togglePresetPanel" />
-    <!-- §205·§207: 프리셋 플로팅 패널 — 프리셋 바 위, 우측 정렬. 좌상단 그립으로 크기 조절 -->
-    <div
+    <!-- §205·§207·§221: 프리셋 플로팅 창 — 내부 상호작용은 PresetFloatWindow가 전담 -->
+    <PresetFloatWindow
       v-if="presetPanel"
-      class="presetFloat"
-      :style="{ height: panelH + 'px' }"
-      @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
-    >
-      <div class="heightGrip" title="Drag to resize height" @pointerdown.stop="onHeightGripDown" />
-      <PresetGridBrowser
-        v-if="presetPanel === 'patterns'"
-        title="Pattern presets"
-        :items="patterns"
-        :folders="patternFolders"
-        empty-text="right-click a frame to register a pattern"
-        thumb-aspect="16 / 9"
-        :view-box-of="(p) => `0 0 ${p.frame.W} ${p.frame.H}`"
-        cols-key="eo.presetCols.patterns"
-        @place="onPlacePattern"
-        @place-at="onPlacePatternAt"
-        @remove="(ids) => ids.forEach((id) => props.actions.patternRemove(id))"
-        @rename="(id, name) => props.actions.patternRename(id, name)"
-        @duplicate="(ids) => props.actions.patternDuplicate(ids)"
-        @reorder="(ids, to) => ids.forEach((id) => props.actions.patternReorder(id, to))"
-        @move-to-folder="(ids, fid) => props.actions.patternMoveToFolder(ids, fid)"
-        @add-folder="props.actions.patternAddFolder()"
-        @rename-folder="(id, name) => props.actions.patternRenameFolder(id, name)"
-        @remove-folder="(id) => props.actions.patternRemoveFolder(id)"
-        @export-json="props.actions.patternExportJson"
-        @import-json="onImportPatterns"
-      >
-        <template #thumb="{ item }">
-          <rect
-            :width="item.frame.W" :height="item.frame.H"
-            :fill="frameAttrs(item.frame).fill" :stroke="frameAttrs(item.frame).stroke"
-            :stroke-width="frameAttrs(item.frame).strokeW"
-          />
-          <g v-for="(u, i) in item.units" :key="i" :transform="`translate(${u.dx} ${u.dy})`">
-            <UnitGraphic :params="u.params" :seam-width="0.75" />
-          </g>
-        </template>
-      </PresetGridBrowser>
-      <PresetGridBrowser
-        v-else
-        title="Unit presets"
-        :items="presets"
-        :folders="presetFolders"
-        empty-text="right-click a unit to register a preset"
-        protected-id="default"
-        show-export-svg
-        :view-box-of="(p) => `0 0 ${p.params.W} ${p.params.H}`"
-        cols-key="eo.presetCols.units"
-        @place="onPlacePreset"
-        @place-at="onPlacePresetAt"
-        @remove="(ids) => ids.forEach((id) => props.actions.presetRemove(id))"
-        @rename="(id, name) => props.actions.presetRename(id, name)"
-        @duplicate="(ids) => props.actions.presetDuplicate(ids)"
-        @reorder="(ids, to) => ids.forEach((id) => props.actions.presetReorder(id, to))"
-        @move-to-folder="(ids, fid) => props.actions.presetMoveToFolder(ids, fid)"
-        @add-folder="props.actions.presetAddFolder()"
-        @rename-folder="(id, name) => props.actions.presetRenameFolder(id, name)"
-        @remove-folder="(id) => props.actions.presetRemoveFolder(id)"
-        @export-json="props.actions.presetExportJson"
-        @import-json="onImportPresets"
-        @export-svg="(p) => props.actions.presetExportSvg(p)"
-      >
-        <template #thumb="{ item }">
-          <UnitGraphic :params="item.params" :seam-width="0.75" />
-        </template>
-      </PresetGridBrowser>
-    </div>
+      :panel="presetPanel"
+      :presets="presets" :preset-folders="presetFolders"
+      :patterns="patterns" :pattern-folders="patternFolders"
+      :actions="props.actions"
+      :center-world="panelCenterWorld"
+      :client-to-world="dropClientToWorld"
+      @toast="toast"
+    />
     <ZoomBadge
       :scale="vp.scale"
       :guides="showGuides || showFrameGrid"
@@ -1859,26 +1756,7 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-// §205~§208: 프리셋 플로팅 패널 — 프리셋 바(우하단) 위, 고정 크기(4열 기준 폭).
-// 밀도 조절은 브라우저 헤더의 3/4/6열 토글 (§208: 그립 리사이즈 폐기).
-.presetFloat {
-  position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + var(--sp-6)); /* §217: 갭 토큰 통일 */
-  /* §214: 캔버스 우클릭 메뉴(z10)·이름 편집(z20)이 창 위로 겹치도록 오더 하향 */
-  z-index: 9;
-  width: 580px;
-  max-width: calc(100% - 2 * var(--sp-6));
-  /* §215·§217: 최대 높이 = 성능 인디케이터 아래 갭까지 — 하단(12+42+12=66) + 상단(66+13+12=91) = 157 */
-  max-height: calc(100% - 157px);
-  box-sizing: border-box; overflow: hidden;
-  padding: var(--window-pad-y) var(--panel-pad); // §213·§219: 하단 개별값 14 폐기 — 토큰 통일
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-}
-// §214: 프리셋창 높이 조절 — 상단 엣지 스트립 (bottom 앵커라 위로 늘어남)
-.heightGrip {
-  position: absolute; top: 0; left: 0; right: 0; height: 7px;
-  cursor: ns-resize;
-  &:hover { box-shadow: inset 0 2px 0 var(--accent); }
-}
+// §221: 프리셋 플로팅 창 스타일은 PresetFloatWindow.vue로 이동
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체
 .frameNameInput {
   @include text-field;

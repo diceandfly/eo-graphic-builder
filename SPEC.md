@@ -1758,3 +1758,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **스키마 마이그레이션 (1회 완결)** — `unit.linkId` 단일 + `doc.linkScopes` 플래그 → **`unit.links = { size, orientation, grid, shape, color }` 범주별 lid** ("스코프 off" = null). `unit.pair`(애니 페어)·`doc.animEdges`(키프레임 연결)·params `rotation`(연속 회전)/`opacity`/`anchorU·V`(앵커) 예약. 자동저장 version 2(linkScopes 폐기), 프로젝트 JSON도 유닛 내장 links(+animEdges) — 구 문서·구 패턴·구 작업파일은 로드 시 자동 이관(스코프 메타 부재 = 전 범주 on, §220 이전 기본 스코프 승계).
 2. **동작 보존** — 미러 워처·스포이드·분리 감지·링크 생성/해제/서브셋 분리·패턴 캡처/배치·클립보드/복제 전부 범주별 멤버십 기준으로 재작성하되 가시 동작은 종전과 동일(현행 UI는 한 그룹이 전 범주 공유). 칩 토글 = 그룹 전 멤버의 범주 멤버십 on/off. 테스트 44케이스 신 스키마 접근자(primaryLid/links)로 갱신 통과, 지오 기준선 30콤보 불변. 브라우저 실측: v1→v2 자동 이관(링크·예약 필드), 링크 생성·미러 동기·칩 토글·배지 정상.
 3. **히스토리 extra 스냅샷 캐시** — 프리셋/패턴 직렬화를 computed 문자열로 캐시(변경 없는 틱은 재직렬화 0, 참조 공유). 구 스냅샷(객체/배열) 하위 호환.
+
+## 221. 2026-10-01 — 애니메이션 선행 2: 프리셋 플로팅 창 분리 (스테이지 다이어트)
+
+- `PresetFloatWindow.vue` 신설 — 프리셋/패턴 창의 템플릿·배치/IO 핸들러·높이 그립·스타일 전부 이관 (DashboardStage 1,950→1,824줄). 스테이지는 열림 상태(presetPanel)·좌표 변환(panelCenterWorld/dropClientToWorld)·스토어 액션 패스스루만 담당, 토스트는 emit.
+- 분리 범위 판단(효율 우선): 캔버스 ctx 메뉴·프레임 라벨은 스테이지 상호작용 코어와 결합이 깊어 잔류 — 애니메이션 오버레이(노드·와이어)와 애니메이션 창은 처음부터 **별도 컴포넌트**(AnimOverlay/AnimWindow)로 작성 예정이라 스테이지가 더 비대해질 일 없음.
+- 실측: 창 열기·더블클릭 배치·높이 그립(클램프·영속) 정상, 빌드·테스트 통과.
