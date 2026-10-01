@@ -190,7 +190,7 @@ const previewH = computed(() => {
   /* §225: 애니메이션 버튼(프리셋 바) 바로 위 — 우하단 앵커 (사용자 확정) */
   right: var(--sp-6);
   bottom: calc(var(--sp-6) + 42px + var(--sp-6));
-  z-index: 9;
+  z-index: 25; /* §231: 최상 오더 — 메인 패널(z10)·이름 편집(z20)도 덮음 (도움말 z40 아래) */
   box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
@@ -214,8 +214,8 @@ const previewH = computed(() => {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s; pointer-events: none;
   svg {
-    /* §230: 2.5배 확대 (사용자 요청) */
-    width: 85px; height: 85px; padding: 25px;
+    /* §231: 원(배경) 2배(54→107px) · 아이콘 1.2배(34→41px) — border-box 기준 총폭 = 41 + 33×2 */
+    width: 107px; height: 107px; padding: 33px;
     background: rgba(0, 0, 0, 0.55); border-radius: 50%;
     fill: var(--text); stroke: var(--text); stroke-width: 2.4; stroke-linejoin: miter;
     path[d^='M8 5 L'] { stroke-width: 0; }
