@@ -152,9 +152,10 @@ const previewH = computed(() => {
         </svg>
         <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체) -->
         <div class="pvPlay">
+          <!-- §232: 필 글리프 + 광학 중심 보정(삼각형 우측 치우침 상쇄) -->
           <svg viewBox="0 0 24 24">
-            <path v-if="!playing" d="M8 5 L19 12 L8 19 Z" />
-            <g v-else><path d="M8.5 5 V19" /><path d="M15.5 5 V19" /></g>
+            <path v-if="!playing" d="M9.3 5.2 L20 12 L9.3 18.8 Z" />
+            <g v-else><rect x="7" y="5.5" width="3.6" height="13" /><rect x="13.4" y="5.5" width="3.6" height="13" /></g>
           </svg>
         </div>
       </div>
@@ -214,11 +215,10 @@ const previewH = computed(() => {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s; pointer-events: none;
   svg {
-    /* §231: 원(배경) 2배(54→107px) · 아이콘 1.2배(34→41px) — border-box 기준 총폭 = 41 + 33×2 */
-    width: 107px; height: 107px; padding: 33px;
-    background: rgba(0, 0, 0, 0.55); border-radius: 50%;
-    fill: var(--text); stroke: var(--text); stroke-width: 2.4; stroke-linejoin: miter;
-    path[d^='M8 5 L'] { stroke-width: 0; }
+    /* §232: 밸런스 재설계 — 솔리드 블랙 원 96px, 아이콘 = 지름의 ~46%(44px) 필 글리프 */
+    width: 96px; height: 96px; padding: 26px;
+    background: var(--space-black); border-radius: 50%;
+    fill: var(--text);
   }
 }
 .pvWrap:hover .pvPlay { opacity: 1; }
