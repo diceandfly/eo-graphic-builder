@@ -116,4 +116,36 @@ ok('콜스 디졸브: cols 차이 페어 = 두 밀도 상태 크로스페이드 
   assert.equal(same.items.length, 1);
 });
 
+
+ok('압축 부호 보간: 좌↔우 압축 크로스도 연속 (§229 — direction 50% 미러 해결)', () => {
+  const a = { rate: 3, direction: 'LtoS' };
+  const b = { rate: 3, direction: 'StoL' };
+  const mid = lerpParams(a, b, 0.5);
+  assert.ok(Math.abs(mid.rate - 1) < 1e-9);       // 중간 = 무압축
+  const q1 = lerpParams(a, b, 0.25);
+  assert.ok(Math.abs(q1.rate - 2) < 1e-9);
+  assert.equal(q1.direction, 'LtoS');
+  const q3 = lerpParams(a, b, 0.75);
+  assert.ok(Math.abs(q3.rate - 2) < 1e-9);
+  assert.equal(q3.direction, 'StoL');
+  // 같은 방향끼리도 정상 lerp
+  const same = lerpParams({ rate: 2, direction: 'LtoS' }, { rate: 4, direction: 'LtoS' }, 0.5);
+  assert.ok(Math.abs(same.rate - 3) < 1e-9);
+  assert.equal(same.direction, 'LtoS');
+});
+
+
+ok('일반 디졸브: orientation 등 이산 차이도 컷 없이 크로스페이드 (§229)', () => {
+  const fA = { id: 1, params: { W: 1000, H: 800 }, x: 0, y: 0 };
+  const fB = { id: 2, params: { W: 1000, H: 800 }, x: 0, y: 0 };
+  const uA = { id: 10, pair: 7, x: 0, y: 0, params: { W: 200, H: 100, orientation: 0, opacity: 100 } };
+  const uB = { id: 20, pair: 7, x: 0, y: 0, params: { W: 200, H: 100, orientation: 90, opacity: 100 } };
+  const pose = samplePose(fA, [uA], fB, [uB], 0.6);
+  assert.equal(pose.items.length, 2);
+  const a = pose.items.find((i) => i.params.orientation === 0);
+  const b = pose.items.find((i) => i.params.orientation === 90);
+  assert.ok(Math.abs(a.opacity - 0.4) < 1e-9);
+  assert.ok(Math.abs(b.opacity - 0.6) < 1e-9);
+});
+
 console.log(`✓ anim engine: ${passed} cases passed`);

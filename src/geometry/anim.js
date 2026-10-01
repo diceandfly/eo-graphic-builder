@@ -73,16 +73,25 @@ export function lerpHex(a, b, t) {
 
 // §226: 보간 불가 이산키 — 수치여도 중간값이 무의미(orientation 45° 등). 편집 차단(§220 표)의 엔진측 방어.
 const DISCRETE_KEYS = new Set([
-  'orientation', 'flipX', 'threads', 'threadDir', 'gutterMode', 'direction',
+  'orientation', 'flipX', 'threads', 'threadDir', 'gutterMode',
   'compModeX', 'compModeY', 'compOn', 'compLock', 'fillOn', 'strokeOn', 'gridOn', 'unitMode', 'showGuides',
-]);
+]); // §229: direction은 rate와 결합한 부호 보간으로 이동 (컷 대상 아님)
 
 // 파라미터 보간 — cols 다단계 스텝, 수치 lerp, 그 외 50% 컷.
 // §225: 패널 편집을 거친 값이 문자열 숫자("500")로 저장될 수 있어 **수치 강제 변환** —
 // 문자열이면 전부 50% 컷으로 빠져 "한 프레임에 싹 바뀌는" 버그가 났던 원인.
 export function lerpParams(a, b, t) {
   const out = { ...a };
+  // §229: 유닛 압축은 rate(크기)+direction(부호) 쌍 — 따로 보간하면 direction이 50%에 컷되며
+  // 전체 패턴이 미러됨("50% 튐"의 실제 범인). 부호 있는 연속값으로 묶어 lerp 후 되돌린다.
+  if ((a.rate !== b.rate || a.direction !== b.direction) && a.rate != null && b.rate != null) {
+    const signed = (p) => (Number(p.rate) - 1) * (p.direction === 'StoL' ? -1 : 1);
+    const sv = lerp(signed(a), signed(b), t);
+    out.rate = 1 + Math.abs(sv);
+    out.direction = sv >= 0 ? 'LtoS' : 'StoL';
+  }
   for (const k in b) {
+    if (k === 'rate' || k === 'direction') continue; // §229: 위에서 결합 처리
     const av = a[k];
     const bv = b[k];
     if (av === bv) { out[k] = av; continue; }
@@ -115,11 +124,25 @@ export function samplePose(fromF, fromUnits, toF, toUnits, t) {
       const dx = lerp(a.x - fromF.x, b.x - toF.x, t);
       const dy = lerp(a.y - fromF.y, b.y - toF.y, t);
       const op = lerp(a.params.opacity ?? 100, b.params.opacity ?? 100, t) / 100;
-      // §228: cols(정수 토폴로지)가 다르면 스텝 대신 **디졸브** — 두 밀도 상태를 겹쳐 크로스페이드.
-      // 1칸 차이 = "50% 점프"로 보이던 문제의 해결 (나머지 파라미터는 양쪽 모두에서 계속 lerp).
-      if (a.params.cols !== b.params.cols) {
-        items.push({ key: `p${a.pair}a`, params: { ...params, cols: a.params.cols }, dx, dy, opacity: op * (1 - t) });
-        items.push({ key: `p${a.pair}b`, params: { ...params, cols: b.params.cols }, dx, dy, opacity: op * t });
+      // §228·§229: 보간 불가 차이(cols 토폴로지·이산키·비수치 — 과거에 작성된 키프레임 포함)는
+      // 50% 컷 대신 **디졸브** — 두 상태를 겹쳐 크로스페이드, 연속 파라미터는 양쪽 모두에서 계속 lerp.
+      // 이로써 "50% 점프"가 화면에 나타날 경로 자체가 없다.
+      const hard = Object.keys(b.params).filter((k) => {
+        const av = a.params[k];
+        const bv = b.params[k];
+        if (av === bv || k === 'rate' || k === 'direction') return false; // 압축은 부호 보간 처리
+        if (k === 'cols' || DISCRETE_KEYS.has(k)) return true;
+        if (lerpHex(av, bv, 0.5)) return false;
+        const an = typeof av === 'boolean' ? NaN : Number(av);
+        const bn = typeof bv === 'boolean' ? NaN : Number(bv);
+        return !(Number.isFinite(an) && Number.isFinite(bn));
+      });
+      if (hard.length) {
+        const pa = { ...params };
+        const pb = { ...params };
+        for (const k of hard) { pa[k] = a.params[k]; pb[k] = b.params[k]; }
+        items.push({ key: `p${a.pair}a`, params: pa, dx, dy, opacity: op * (1 - t) });
+        items.push({ key: `p${a.pair}b`, params: pb, dx, dy, opacity: op * t });
       } else {
         items.push({ key: `p${a.pair}`, params, dx, dy, opacity: op });
       }

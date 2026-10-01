@@ -383,7 +383,9 @@ export function useDocument() {
   let animGuard = false;
   let animRevertTick = false; // 원복 자체가 워처를 재점화하는 1회분 무시 (핑퐁 차단)
   function setAnimMode(on) { animGuard = !!on; }
-  const ANIM_LOCKED = ['orientation', 'flipX', 'threads', 'threadDir', 'gutterMode', 'direction'];
+  // §229: direction 제외 — 압축 부호는 rate와 결합해 연속 보간되므로 잠글 필요도, 잠그면 오히려
+  // 슬라이더가 0을 지날 때 편집이 반쯤 원복되는 부작용만 있음.
+  const ANIM_LOCKED = ['orientation', 'flipX', 'threads', 'threadDir', 'gutterMode'];
   function animLockBlock(targets) {
     if (!animGuard) return false;
     const arr = Array.isArray(targets) ? targets : [targets];
