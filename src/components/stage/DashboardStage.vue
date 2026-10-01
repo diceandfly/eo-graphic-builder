@@ -257,11 +257,18 @@ const edgeKey = (e) => `${e.from}-${e.to}`;
 const selEdge = computed(() => {
   const edges = props.doc.animEdges;
   if (!edges.length) return null;
-  const byKey = edges.find((e) => edgeKey(e) === animEdgeSel.value);
-  if (byKey) return byKey;
-  // 폴백: 선택 프레임이 물린 엣지 (나가는 쪽 우선) → 첫 엣지
-  const sel = props.doc.selectedIds;
-  return edges.find((e) => sel.includes(e.from)) ?? edges.find((e) => sel.includes(e.to)) ?? edges[0];
+  // §235: 우선순위 = ①현재 선택(프레임 직접 + 유닛의 home 프레임) ②뱃지로 기억된 엣지 ③첫 엣지.
+  // 종전엔 ②가 ①보다 우선이라 다른 체인의 프레임/유닛을 선택해도 하이라이트가 안 따라오던 문제.
+  const selFrames = new Set();
+  for (const id of props.doc.selectedIds) {
+    const u = props.doc.units.find((x) => x.id === id);
+    if (!u) continue;
+    if (u.type === 'frame') selFrames.add(u.id);
+    else if (u.home != null) selFrames.add(u.home);
+  }
+  const bySel = edges.find((e) => selFrames.has(e.from)) ?? edges.find((e) => selFrames.has(e.to));
+  if (bySel) return bySel;
+  return edges.find((e) => edgeKey(e) === animEdgeSel.value) ?? edges[0];
 });
 function onEdgeClick(e, cx, cy) {
   animEdgeSel.value = edgeKey(e);

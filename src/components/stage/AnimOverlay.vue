@@ -111,11 +111,9 @@ function onNodeDown(f, e) {
         @pointerdown.stop.prevent="(ev) => !dimmed && emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
         <circle :r="pxs(9)" />
-        <!-- §233·§234: 타이밍 컨트롤 = 모래시계 — 세로 압축·넓은 받침의 안정 비율 -->
+        <!-- §235: 타이밍 컨트롤 = 메뉴(가로 막대 3개) — 모래시계·시계 반려 (사용자 확정) -->
         <g :transform="`translate(${-pxs(6)} ${-pxs(6)}) scale(${pxs(12) / 24})`">
-          <path d="M5.5 6.5 H18.5 M5.5 17.5 H18.5" />
-          <path d="M7.2 6.5 C7.2 10, 10.8 10.8, 12 12 C10.8 13.2, 7.2 14, 7.2 17.5" />
-          <path d="M16.8 6.5 C16.8 10, 13.2 10.8, 12 12 C13.2 13.2, 16.8 14, 16.8 17.5" />
+          <path d="M6.5 7.5 H17.5 M6.5 12 H17.5 M6.5 16.5 H17.5" />
         </g>
       </g>
     </g>
@@ -192,7 +190,7 @@ function onNodeDown(f, e) {
 }
 .pairBadge {
   circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; }
+  path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
   cursor: pointer; // §224: 클릭 = 엣지 파라미터 팝업
   &.sel circle { fill: var(--accent); }
   &.sel path { stroke: var(--bg); }
