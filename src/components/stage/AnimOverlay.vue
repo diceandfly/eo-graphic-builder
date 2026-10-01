@@ -89,8 +89,11 @@ function onNodeDown(f, e) {
         @pointerdown.stop.prevent="(ev) => !dimmed && emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
         <circle :r="pxs(9)" />
+        <!-- §233: 타이밍 컨트롤 = 모래시계 -->
         <g :transform="`translate(${-pxs(6)} ${-pxs(6)}) scale(${pxs(12) / 24})`">
-          <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
+          <path d="M7 4 H17 M7 20 H17" />
+          <path d="M8.2 4 C8.2 9.4, 11.2 10.4, 12 12 C11.2 13.6, 8.2 14.6, 8.2 20" />
+          <path d="M15.8 4 C15.8 9.4, 12.8 10.4, 12 12 C12.8 13.6, 15.8 14.6, 15.8 20" />
         </g>
       </g>
     </g>
@@ -102,10 +105,11 @@ function onNodeDown(f, e) {
       class="pairMark" :class="{ dim: dimmed }"
       :transform="`translate(${f.x + f.params.W - pxs(9)} ${f.y - pxs(12)})`"
     >
-      <!-- §233: 글리프 = 겹친 두 링(쌍) — 와이어 컨트롤(재생 삼각형)과 구별 -->
+      <!-- §233: 페어 = 재생 삼각형 / 와이어 컨트롤 = 모래시계 — 역할 글리프 교체 (사용자 확정) -->
       <circle class="bg" :r="pxs(8)" />
-      <circle class="ring" :cx="-pxs(2.4)" cy="0" :r="pxs(3.2)" />
-      <circle class="ring" :cx="pxs(2.4)" cy="0" :r="pxs(3.2)" />
+      <g :transform="`translate(${-pxs(5.5)} ${-pxs(5.5)}) scale(${pxs(11) / 24})`">
+        <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
+      </g>
     </g>
     <!-- 프레임 노드: 좌(입력)·우(출력) — §228: 비활성 모드에도 같은 스타일·회색으로 표시 (조작은 모드 안에서만) -->
     <g v-for="f in frames" :key="'an' + f.id" :class="{ dimNodes: dimmed }">
@@ -136,13 +140,13 @@ function onNodeDown(f, e) {
   circle { stroke: var(--dim); }
   path { stroke: var(--dim); }
 }
-// §231·§233: 페어 인디케이터 — 겹친 두 링(쌍 메타포, 프레임 우상단). 와이어 컨트롤과 글리프 구별.
+// §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
 .pairMark {
   pointer-events: none;
   .bg { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  .ring { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: miter; }
   &.dim .bg { stroke: var(--dim); }
-  &.dim .ring { stroke: var(--dim); }
+  &.dim path { stroke: var(--dim); }
 }
 .dimNodes .node {
   pointer-events: none; cursor: default;

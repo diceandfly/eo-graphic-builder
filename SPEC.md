@@ -1843,6 +1843,6 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 1. **V 재입력 = 유닛/프레임 우선 토글** — 선택 도구 상태에서 V를 다시 누르면 우클릭과 동일한 일시 수동 전환(toggleFrameModeManual — 줌 변경/도구 전환 시 자동 복귀 규칙 그대로).
 2. **루프 모드 재구성** — [pingpong][cycle(구 loop 라벨)][once] 순, **기본 pingpong** (사용자 확정).
 3. **재생/정지 버튼** — 원 90%(96→86px)·아이콘 115%(44→50px).
-4. **페어 인디케이터 글리프 구별** — 와이어 컨트롤(재생 삼각형)과 혼동 → **겹친 두 링(쌍 메타포)**으로 교체.
+4. **페어/컨트롤 글리프 역할 확정(2차 조정)** — 1차 두 링 안은 반려: **페어 마크 = 재생 삼각형**, **와이어 타이밍 컨트롤 = 모래시계**(Keyframe timing과 의미 일치) — 서로 다른 글리프로 혼동 해소.
 5. **Export WebM (v1)** — 애니메이션 창에 익스포트 구성(포맷 추가 예정 전제): 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스 래스터 → captureStream(30)+MediaRecorder(vp9) 실시간 녹화, 한 사이클 = duration, 최대 변 1920 캡, 진행률 표시, saveFileAs('export' 버킷). 환경 검증: vp9 녹화 blob·SVG 래스터 경로 실측.
 6. 도움말 KR/EN: V 토글(단축키 표), pingpong/cycle/once·Export WebM(§17).
