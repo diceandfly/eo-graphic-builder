@@ -378,6 +378,21 @@ export function useDocument() {
   let lastBroadcastNote = 0;
 
   let mirrorGuard = false;
+  // §227: 애니메이션 모드 이산값 잠금 (§220 합의 "페어에서 조작 시 경고+차단"의 구현).
+  // 보간 불가 키(orientation·flipX·threads·threadDir·gutterMode·direction)는 페어 유닛에서 편집 차단.
+  let animGuard = false;
+  let animRevertTick = false; // 원복 자체가 워처를 재점화하는 1회분 무시 (핑퐁 차단)
+  function setAnimMode(on) { animGuard = !!on; }
+  const ANIM_LOCKED = ['orientation', 'flipX', 'threads', 'threadDir', 'gutterMode', 'direction'];
+  function animLockBlock(targets) {
+    if (!animGuard) return false;
+    const arr = Array.isArray(targets) ? targets : [targets];
+    if (arr.some((u) => u && u.pair != null && u.type !== 'frame')) {
+      notify('Paired keyframe unit — rotation/flip/discrete values are locked in animation mode');
+      return true;
+    }
+    return false;
+  }
   // 지오메트리 조작 가드 — 유닛별로 "다른" 값을 의도적으로 쓰는 조작(통합 스케일·회전·플립) 중에는
   // 멀티선택 브로드캐스트가 끼어들어 활성 유닛 값으로 덮어쓰지 않도록 한 틱 동안 억제.
   let geomOp = false;   // 미러 워처 억제 플래그 (틱이 끝날 때 해제)
@@ -451,6 +466,24 @@ export function useDocument() {
     ([id, now], [oldId, old]) => {
       if (geomOp) return;
       if (mirrorGuard || id == null || id !== oldId || now === old) return;
+      // §227: 페어 유닛의 이산값 편집 = 경고 후 원복
+      if (animRevertTick) { animRevertTick = false; return; }
+      if (animGuard) {
+        const me0 = doc.units.find((u) => u.id === id);
+        if (me0 && me0.pair != null && me0.type !== 'frame') {
+          const prev0 = JSON.parse(old);
+          const cur0 = JSON.parse(now);
+          let hit = false;
+          for (const k of ANIM_LOCKED) {
+            if (cur0[k] !== prev0[k]) { me0.params[k] = prev0[k]; hit = true; }
+          }
+          if (hit) {
+            animRevertTick = true; // 원복 재점화 1회 무시
+            notify('Paired keyframe unit — this value cannot animate and is locked');
+            return;
+          }
+        }
+      }
       // 대상: 멀티선택 미러링(전체 패치) + 링크 그룹 상시 동기화(스코프 범주 필터)
       const selT = new Set();
       if (doc.selectedIds.length >= 2 && doc.selectedIds.includes(id)) {
@@ -745,7 +778,7 @@ export function useDocument() {
     const isFrame = (id) => doc.units.some((u) => u.id === id && u.type === 'frame');
     if (!isFrame(fromId) || !isFrame(toId)) return null;
     doc.animEdges = doc.animEdges.filter((e) => e.from !== fromId && e.to !== toId);
-    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.65, 0, 0.35, 1] }; // §225: 기본 = 곡선 벨(ease in-out)
+    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.33, 0, 0.67, 1] }; // §227: 기본 = Ease 33·33
     doc.animEdges.push(edge);
     return edge;
   }
@@ -891,6 +924,7 @@ export function useDocument() {
     if (p.a + p.b > AB_SUM_MAX) p.a = Math.max(A_MIN, +(AB_SUM_MAX - p.b).toFixed(4));
   }
   function flipActive() {
+    if (animLockBlock(active.value)) return; // §227
     if (!active.value) return;
     const p = active.value.params;
     p.threadDir = p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR';
@@ -1056,6 +1090,7 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
+    if (animLockBlock(u)) return; // §227
     // 링크 확산은 orientation 스코프가 켜진 링크만 (공용 헬퍼 경유)
     const ids = expandLinkByScope([u.id], 'orientation');
     const targets = [u, ...doc.units.filter((m) => m !== u && ids.has(m.id))];
@@ -1074,12 +1109,14 @@ export function useDocument() {
   }
   // 화면 기준 상하 반전 — 90/270° 회전 상태면 로컬 좌우 미러가 화면 상하 미러
   function flipUnitV() {
+    if (animLockBlock(active.value)) return; // §227
     if (!active.value) return;
     const p = active.value.params;
     isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
   }
   // 선택 전체 플립 (통합 바운딩박스 기준): 각 유닛을 화면축 미러 + 위치를 bbox 중심 대칭으로 재배치
   function flipSelected(axis) {
+    if (animLockBlock(doc.units.filter((u) => doc.selectedIds.includes(u.id)))) return; // §227
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
     const bb = bboxOf(sel);
@@ -1098,6 +1135,7 @@ export function useDocument() {
   }
   // 선택 전체를 하나의 덩어리처럼 90° 회전 — 통합 bbox 중심 기준으로 각 유닛 중심을 회전시키고 유닛 자체도 회전
   function rotateSelected(dir) {
+    if (animLockBlock(doc.units.filter((u) => doc.selectedIds.includes(u.id)))) return; // §227
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
     const bb = bboxOf(sel);
@@ -1447,7 +1485,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
-    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits,
+    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

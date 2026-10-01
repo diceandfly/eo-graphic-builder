@@ -3,7 +3,6 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
-import { ICONS } from '../../ui/icons.js';
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30 · once/loop/pingpong).
 // 엣지 소속 파라미터(duration·곡선)는 와이어 중앙 컨트롤이 담당(§220 확정) — 여기선 재생만.
@@ -30,22 +29,30 @@ const pos = ref((() => {
   return null;
 })());
 const rootEl = ref(null);
-function onTitleDown(e) {
-  e.preventDefault();
+// §227: 컨트롤이 아닌 모든 영역 드래그 = 창 이동 (5px 임계 — 프리뷰는 임계 미만이면 클릭 = 재생 토글)
+function onWinDown(e) {
+  if (e.target.closest('input, button, .scrub, .loopSeg, .sizeGrip')) return;
   const host = rootEl.value?.parentElement;
   const wr = rootEl.value.getBoundingClientRect();
   const hr = host.getBoundingClientRect();
   const offX = e.clientX - wr.left;
   const offY = e.clientY - wr.top;
+  const sx = e.clientX;
+  const sy = e.clientY;
+  let moved = false;
   const mv = (ev) => {
+    if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 5) return;
+    moved = true;
     pos.value = {
       x: Math.min(hr.width - 80, Math.max(8 - wr.width + 80, ev.clientX - hr.left - offX)),
       y: Math.min(hr.height - 40, Math.max(0, ev.clientY - hr.top - offY)),
     };
   };
-  const up = () => {
+  const up = (ev) => {
     window.removeEventListener('pointermove', mv);
-    localStorage.setItem('eo.animWinPos', JSON.stringify(pos.value));
+    if (moved) localStorage.setItem('eo.animWinPos', JSON.stringify(pos.value));
+    // §227: 프리뷰 클릭(무이동) = 재생/정지
+    else if (ev.target.closest('.preview')) (playing.value ? stop() : play());
   };
   window.addEventListener('pointermove', mv);
   window.addEventListener('pointerup', up, { once: true });
@@ -131,9 +138,9 @@ const previewH = computed(() => {
     class="animWin"
     :class="{ floating: !!pos }"
     :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
-    @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
+    @pointerdown.stop="onWinDown" @wheel.stop @contextmenu.stop.prevent
   >
-    <h2 class="title" title="Drag to move" @pointerdown.stop.prevent="onTitleDown">Animation</h2>
+    <h2 class="title" title="Drag to move">Animation</h2>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
       <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
@@ -148,12 +155,7 @@ const previewH = computed(() => {
         @input="(e) => { stop(); p = Number(e.target.value) / 1000; }"
       />
       <div class="row">
-        <button class="playBtn" :title="playing ? 'Pause' : 'Play'" @click="playing ? stop() : play()">
-          <svg viewBox="0 0 24 24">
-            <g v-if="!playing"><path v-for="(d, i) in ICONS.animation" :key="i" :d="d" /></g>
-            <g v-else><path d="M8 5v14" /><path d="M16 5v14" /></g>
-          </svg>
-        </button>
+        <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
         <span class="time">{{ timeLabel }}</span>
         <div class="segMini loopSeg">
           <button :class="{ on: loopMode === 'once' }" @click="loopMode = 'once'">once</button>
@@ -195,6 +197,7 @@ const previewH = computed(() => {
   width: 100%; display: block;
   background: var(--stage-bg);
   border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer; /* §227: 클릭 = 재생/정지 */
 }
 // §226: 우하단 크기 조절 그립 — 기호 상시 표시, 호버 = 액센트
 .sizeGrip {
@@ -208,12 +211,6 @@ const previewH = computed(() => {
   width: 100%; margin: 0; accent-color: var(--accent);
 }
 .row { display: flex; align-items: center; gap: 8px; }
-.playBtn {
-  @include bordered-control;
-  width: 28px; height: 21px; padding: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-  svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: miter; }
-}
 .time {
   font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums;
   flex: 1;

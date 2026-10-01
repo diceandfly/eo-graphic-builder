@@ -27,18 +27,30 @@ export function bezierEase(curve, x) {
 
 // 곡선 프리셋 — §225: 사용자 시안(스피드그래프 글리프 9종)과 **같은 순서·같은 모양**:
 // ⊓등속 · 삼각 벨 · 곡선 벨(기본) · 와이드 벨 · 라운드 플래토 · 상승 램프 · 하강 램프 · 급상승 램프 · 후반 피크
+// §227: 사용자 확대 시안(AE 스피드그래프, in/out 영향도 표기) **순서·모양·수치 그대로**.
+// 환산: 구간 시작 = out 영향도, 구간 끝 = in 영향도 → curve = [out/100, 0, 1 − in/100, 1] (1행 등속만 예외).
+// icon = 시트 글리프 모사 수제 패스 (viewBox 0 0 24 20, 베이스라인 y17 — 샘플링 생성 폐기, §227 사용자 지시).
 export const CURVE_PRESETS = [
-  { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1] },
-  { key: 'in-out-2', label: 'In-out quad', curve: [0.45, 0, 0.55, 1] },
-  { key: 'in-out-3', label: 'In-out cubic', curve: [0.65, 0, 0.35, 1] },
-  { key: 'in-out-sine', label: 'In-out sine', curve: [0.37, 0, 0.63, 1] },
-  { key: 'soft-linear', label: 'Soft linear', curve: [0.1, 0, 0.9, 1] },
-  { key: 'in', label: 'In', curve: [0.32, 0, 0.67, 0] },
-  { key: 'out', label: 'Out', curve: [0.33, 1, 0.68, 1] },
-  { key: 'in-5', label: 'In quint', curve: [0.64, 0, 0.78, 0] },
-  { key: 'late-peak', label: 'Late peak', curve: [0.7, 0, 0.85, 1] },
+  { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1],
+    icon: 'M4 5 H20 M12 5 V17' },
+  { key: 'ease-50', label: 'Ease 50 · 50', curve: [0.5, 0, 0.5, 1],
+    icon: 'M5 17 C9 12, 10.5 4, 12 4 C13.5 4, 15 12, 19 17' },
+  { key: 'ease-33', label: 'Ease 33 · 33', curve: [0.33, 0, 0.67, 1],
+    icon: 'M5 17 C7.5 10, 9 4, 12 4 C15 4, 16.5 10, 19 17' },
+  { key: 'ease-25', label: 'Ease 25 · 25', curve: [0.25, 0, 0.75, 1],
+    icon: 'M5 17 C6.5 8, 8 4, 12 4 C16 4, 17.5 8, 19 17' },
+  { key: 'ease-10', label: 'Ease 10 · 10', curve: [0.1, 0, 0.9, 1],
+    icon: 'M5 17 C5 8, 6 4.5, 9 4.5 L15 4.5 C18 4.5, 19 8, 19 17' },
+  { key: 'end-spike', label: 'Out 5 → in 100', curve: [1, 0, 0.95, 1],
+    icon: 'M4 16.5 C12 16.2, 16.5 14, 18.5 8 C19 6.5, 19.3 5, 19.5 4' },
+  { key: 'start-spike', label: 'Out 100 → in 5', curve: [0.05, 0, 0, 1],
+    icon: 'M4.5 4 C4.7 5, 5 6.5, 5.5 8 C7.5 14, 12 16.2, 20 16.5' },
+  { key: 'peak-late', label: 'Out 75 → in 33', curve: [0.75, 0, 0.67, 1],
+    icon: 'M4 17 C9 15.5, 13.5 10, 15 5.5 C15.4 4.5, 15.8 4, 16 4 C17 4.5, 18.5 12, 19.5 17' },
+  { key: 'peak-early', label: 'Out 33 → in 75', curve: [0.33, 0, 0.25, 1],
+    icon: 'M4.5 17 C5.5 12, 7 4.5, 8 4 C8.2 4, 8.6 4.5, 9 5.5 C10.5 10, 15 15.5, 20 17' },
 ];
-export const DEFAULT_CURVE = [0.65, 0, 0.35, 1]; // 연결 기본값 = 곡선 벨 (ease in-out)
+export const DEFAULT_CURVE = [0.33, 0, 0.67, 1]; // 연결 기본값 = Ease 33·33 (AE easy ease)
 
 const lerp = (a, b, t) => a + (b - a) * t;
 

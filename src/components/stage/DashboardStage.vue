@@ -15,7 +15,7 @@ import ManagerBar from './ManagerBar.vue';
 import PresetFloatWindow from './PresetFloatWindow.vue';
 import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
-import { CURVE_PRESETS, bezierEase } from '../../geometry/anim.js';
+import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
 import { primaryLid } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
@@ -248,6 +248,7 @@ function togglePresetPanel(name) {
 const animMode = ref(false);
 function toggleAnimMode() {
   animMode.value = !animMode.value;
+  props.actions.setAnimMode(animMode.value); // §227: 이산값 잠금 가드 동기화
 }
 // §224: 엣지 선택(와이어 강조 + 애니메이션 창 연동) + 와이어 중앙 컨트롤 팝업 (duration·곡선)
 const animEdgeSel = ref(null); // 'from-to' 키
@@ -274,23 +275,6 @@ watch(animEdgePopup, (open, was) => {
   if (open && !was) setTimeout(() => window.addEventListener('pointerdown', onEdgePopupOutside, true), 0);
   else if (!open) window.removeEventListener('pointerdown', onEdgePopupOutside, true);
 });
-// §225: 곡선 프리셋 아이콘 = **스피드그래프**(속도 = 값 곡선의 미분) — 사용자 시안 글리프와 동일 문법.
-// 등속(linear) = ⊓, in-out = 종 모양, in = 상승 램프, out = 하강 램프. 베이스라인에서 시작/끝.
-const curveIcon = (c) => {
-  const n = 16;
-  const vs = [];
-  let vmax = 0;
-  for (let i = 0; i <= n; i++) {
-    const x = i / n;
-    const a = bezierEase(c, Math.max(0, x - 0.02));
-    const b = bezierEase(c, Math.min(1, x + 0.02));
-    const v = (b - a) / (Math.min(1, x + 0.02) - Math.max(0, x - 0.02));
-    vs.push(v);
-    vmax = Math.max(vmax, v);
-  }
-  const pts = vs.map((v, i) => `${(2 + (16 * i) / n).toFixed(1)} ${(17 - (v / vmax) * 13).toFixed(1)}`);
-  return `M2 18 L ${pts.join(' L ')} L18 18`;
-};
 const sameCurve = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 // 애니메이션 창 데이터 — 선택 엣지의 양 키프레임 + 소유 유닛 (reactive)
 const animFrom = computed(() => (selEdge.value ? props.doc.units.find((u) => u.id === selEdge.value.from) : null));
@@ -1821,7 +1805,7 @@ onBeforeUnmount(() => {
           :title="cp.label"
           @click="selEdge.curve = [...cp.curve]"
         >
-          <svg viewBox="0 0 20 20"><path :d="curveIcon(cp.curve)" /></svg>
+          <svg viewBox="0 0 24 20"><path :d="cp.icon" /></svg>
         </button>
       </div>
     </div>
@@ -1993,11 +1977,11 @@ onBeforeUnmount(() => {
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
-.curveGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.curveGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; } /* §227: 3열 — 아이콘 확대 */
 .curveBtn {
   @include bordered-control;
-  height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
-  svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  svg { width: 30px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
   &.on { border-color: var(--accent); color: var(--accent); }
 }
 .ctxItem {

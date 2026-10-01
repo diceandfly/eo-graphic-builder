@@ -33,13 +33,14 @@ const minimap = computed(() => {
     x: -props.vpos.x / vs, y: -props.vpos.y / vs,
     w: props.stageSize.w / vs, h: props.stageSize.h / vs,
   };
-  let minX = view.x; let minY = view.y; let maxX = view.x + view.w; let maxY = view.y + view.h;
+  // §227: 스케일 기준 = **콘텐츠 bbox만** — 뷰포트를 범위에 합치면 팬 중 범위가 변해
+  // 사각형 크기가 출렁이던 문제 해결 (줌 고정 팬 = 사각형 크기 불변). 뷰 사각형은 밖으로 나가면 잘림.
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
   for (const u of props.units) {
     minX = Math.min(minX, u.x); minY = Math.min(minY, u.y);
     maxX = Math.max(maxX, u.x + u.params.W); maxY = Math.max(maxY, u.y + u.params.H);
   }
-  // §226: 범위를 중심 기준 2.4배로 확장 — Fit 상태에서도 뷰포트 사각형이 미니맵의 일부만 차지해
-  // "어디를 보고 있는지"가 읽히고, 주변으로 드래그해 나갈 여지도 생김
+  // §226: 범위를 중심 기준 2.4배로 확장 — Fit 상태에서도 뷰포트 사각형이 미니맵의 일부만 차지
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
   const hw = Math.max((maxX - minX), 10) * 1.2;

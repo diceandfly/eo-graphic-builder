@@ -617,7 +617,7 @@ function centerIn(u, f) {
   ok('애니 엣지: 연결 생성 (ease in-out · 1s 기본) + 자기 연결 무효', () => {
     assert.equal(api.doc.animEdges.length, 1);
     assert.equal(e1.duration, 1000);
-    assert.deepEqual(e1.curve, [0.65, 0, 0.35, 1]); // §225 기본 곡선
+    assert.deepEqual(e1.curve, [0.33, 0, 0.67, 1]); // §227 기본 Ease 33·33
     assert.equal(api.connectAnim(f.id, f.id), null);
   });
   const r2 = api.duplicatePairedFrame(nf.id, 5000, 0);
@@ -680,6 +680,40 @@ function centerIn(u, f) {
   api.deleteSelected();
   ok('애니 소속: 프레임 삭제 시 home 해제', () => {
     assert.ok(api.doc.units.every((u) => u.home == null || u.home === f.id));
+  });
+}
+
+
+// 20. §227 애니 모드 이산값 잠금: 페어 유닛 편집 경고+원복
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  api.duplicatePairedFrame(f.id, 5000, 0);
+  api.setAnimMode(true);
+  let warned = null;
+  api.setNotifier((m) => { warned = m; });
+  api.doc.activeId = u1.id;
+  api.doc.selectedIds = [u1.id];
+  await sleep(10);
+  u1.params.orientation = 90; // 패널 편집 시뮬
+  await sleep(20);
+  ok('잠금: 페어 유닛 orientation 편집 = 원복+경고', () => {
+    assert.equal(u1.params.orientation, 0);
+    assert.ok(/locked/i.test(warned ?? ''));
+  });
+  warned = null;
+  api.rotate(1);
+  ok('잠금: rotate 게이트', () => {
+    assert.equal(u1.params.orientation, 0);
+    assert.ok(/locked/i.test(warned ?? ''));
+  });
+  api.setAnimMode(false);
+  api.rotate(1);
+  await sleep(20);
+  ok('잠금: 모드 해제 시 정상 회전', () => {
+    assert.equal(u1.params.orientation, 90);
   });
 }
 
