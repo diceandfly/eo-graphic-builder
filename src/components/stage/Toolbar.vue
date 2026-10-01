@@ -116,7 +116,7 @@ function onPick(c) {
         @contextmenu.prevent="emit('toggleFrameMode')"
       >
         <svg v-if="frameMode" class="fillArrow" viewBox="0 0 24 24">
-          <path d="M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z" />
+          <path d="M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z" />
         </svg>
       </IconButton>
       <!-- 프레임 툴 (F, §92): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->
@@ -297,7 +297,7 @@ function onPick(c) {
 // §202: 팝업 공통 문법은 popup-menu 믹스인 — 여기선 앵커(하단 바 위, 버튼 중앙)만
 .menu {
   @include popup-menu;
-  position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: calc(100% + var(--sp-6)); left: 50%; transform: translateX(-50%); /* §217: 갭 토큰 통일 */
 }
 // 퀵프레임 메뉴 — 안내문만 줄바꿈 허용 (§198)
 .menu.qf .menuNote { white-space: normal; }

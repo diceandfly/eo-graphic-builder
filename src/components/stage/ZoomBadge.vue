@@ -212,11 +212,11 @@ function resetGridDefaults() {
 // §202: 팝업 공통 문법은 popup-menu 믹스인 — §203: 상단 바라 메뉴는 아래로 드롭, 우측 정렬
 .menu {
   @include popup-menu;
-  position: absolute; top: calc(100% + 14px); right: 0;
+  position: absolute; top: calc(100% + var(--sp-6)); right: 0; /* §217: 갭 토큰 통일 */
 }
 .miniBtn {
   @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
-  padding: 3px 8px;
+  padding: 0 8px; height: 21px; display: inline-flex; align-items: center; /* §217: 컨트롤 공통 높이 */
   align-self: flex-start;
   &:hover { border-color: var(--accent); color: var(--accent); }
 }

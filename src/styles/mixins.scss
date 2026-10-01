@@ -108,7 +108,9 @@
     button {
       border: none;
       background: none;
-      padding: 2px 9px;
+      padding: 0 9px;
+      height: 19px; // §217: 세그 내부 높이 — 컨테이너 보더 포함 21px (패널 컨트롤 공통 규격)
+      display: inline-flex; align-items: center;
       font-size: var(--fs-xs);
       color: var(--faint);
       font-family: inherit;

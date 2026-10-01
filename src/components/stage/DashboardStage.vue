@@ -238,9 +238,8 @@ function onHeightGripDown(e) {
   const sy = e.clientY;
   const h0 = panelH.value;
   const mv = (ev) => {
-    // §215: 상한 = 성능 인디케이터(우상단 리소스 모니터) 바로 아래 패딩까지
-    //   스테이지 높이 − 하단 오프셋(sp-6+42+10 = 66) − 상단 점유(sp-6+42+10 + 모니터 13 + 갭 10 = 89)
-    const maxH = (el.value?.clientHeight ?? window.innerHeight) - 155;
+    // §215·§217: 상한 = 성능 인디케이터 바로 아래 갭까지 — CSS max-height(157)와 동일 식
+    const maxH = (el.value?.clientHeight ?? window.innerHeight) - 157;
     panelH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), maxH);
   };
   const up = () => {
@@ -1829,13 +1828,13 @@ onBeforeUnmount(() => {
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
-// §216: 선택 커서 — 시스템 커서와 같은 자연스런 각도의 커스텀 화살표가 선택 우선 상태를 표시.
-// 툴바 선택 아이콘과 동일 문법: 유닛 우선 = 라인(홀로우) / 프레임 우선 = 솔리드. 핫스팟 = 화살촉 (6,2).
+// §216·§217: 선택 커서 — 툴바 선택 아이콘과 같은 쉐입(스템 연장), 레이어 = 블랙 스트로크 > 네온 스트로크 > 필.
+// 유닛 우선 = 블랙 필 / 프레임 우선 = 네온 필 (같은 아이콘, 필 색만 전환 — 사용자 확정). 핫스팟 = 화살촉 (6,2).
 .stage.unitsel:not(.panning), .stage.unitsel:not(.panning) .hit {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='none' stroke='black' stroke-width='3.6' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='black' stroke='%23F9EE3A' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
 }
 .stage.framesel:not(.panning), .stage.framesel:not(.panning) .hit {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 19.3 10.2 15.4 12.9 21.2 15.3 20.1 12.6 14.3 18.3 14.3Z' fill='white' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='none' stroke='black' stroke-width='3.6' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='%23F9EE3A' stroke='%23F9EE3A' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
 }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -1859,13 +1858,13 @@ onBeforeUnmount(() => {
 // §205~§208: 프리셋 플로팅 패널 — 프리셋 바(우하단) 위, 고정 크기(4열 기준 폭).
 // 밀도 조절은 브라우저 헤더의 3/4/6열 토글 (§208: 그립 리사이즈 폐기).
 .presetFloat {
-  position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + 10px);
+  position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + var(--sp-6)); /* §217: 갭 토큰 통일 */
   /* §214: 캔버스 우클릭 메뉴(z10)·이름 편집(z20)이 창 위로 겹치도록 오더 하향 */
   z-index: 9;
   width: 580px;
   max-width: calc(100% - 2 * var(--sp-6));
-  /* §215: 최대 높이 = 성능 인디케이터(우상단, top 66 + 높이 13) 아래 10px 패딩까지 — 하단 오프셋 66과 합산 155 */
-  max-height: calc(100% - 155px);
+  /* §215·§217: 최대 높이 = 성능 인디케이터 아래 갭까지 — 하단(12+42+12=66) + 상단(66+13+12=91) = 157 */
+  max-height: calc(100% - 157px);
   box-sizing: border-box; overflow: hidden;
   padding: var(--window-pad-y) var(--panel-pad) 14px; // §213
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
@@ -1904,7 +1903,7 @@ onBeforeUnmount(() => {
 }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
-  position: absolute; top: 14px;
+  position: absolute; top: var(--sp-6); /* §217: 갭 토큰 통일 */
   left: calc(50% + (var(--panel-w) + 2 * var(--sp-6)) / 2); transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none;

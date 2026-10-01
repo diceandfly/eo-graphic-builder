@@ -136,6 +136,6 @@ function onFile(e) {
 // §202: 팝업 공통 문법은 popup-menu 믹스인 — 상단 바라 메뉴는 아래로 드롭 (앵커만 지정)
 .menu {
   @include popup-menu;
-  position: absolute; top: calc(100% + 14px); left: 0;
+  position: absolute; top: calc(100% + var(--sp-6)); left: 0; /* §217: 갭 토큰 통일 */
 }
 </style>

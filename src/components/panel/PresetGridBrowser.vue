@@ -195,7 +195,7 @@ function onFile(e) {
 </script>
 
 <template>
-  <div class="browser">
+  <div class="browser" :class="{ dragging: !!ghost }">
     <div class="secHead">
       <h2>{{ title }}</h2>
       <Toggle
@@ -337,7 +337,7 @@ function onFile(e) {
 }
 .tBtn {
   @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs (패널 칩과 동급)
-  padding: 4px 10px;
+  padding: 0 10px; height: 21px; display: inline-flex; align-items: center; /* §217: 컨트롤 공통 높이 */
   white-space: nowrap; text-transform: capitalize; /* §216 */
   &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   /* §214: 비활성도 형태는 그대로 — 글자만 흐리게 (버튼이 안 보인다는 피드백) */
@@ -360,6 +360,9 @@ function onFile(e) {
   position: absolute; width: 2px; border-radius: 1px;
   background: var(--accent); pointer-events: none; z-index: 2;
 }
+// §217: 드래그 중엔 삽입 라인만 — 지나치는 카드의 호버 강조(선택과 같은 룩) 억제 (폴더 드롭 대상만 유지)
+.dragging .pCard:hover:not(.dropTarget) { border-color: var(--line); }
+.dragging .folderCard:hover:not(.dropTarget) .folderBody svg { stroke: var(--faint); }
 .pCard {
   position: relative; cursor: pointer;
   border: 1px solid var(--line); border-radius: var(--radius); padding: 0;
@@ -430,7 +433,7 @@ function onFile(e) {
 .pIoBtn {
   @include bordered-control; // §216: 버튼 타이포 단일화 — fs-xs
   flex: 1; text-transform: capitalize;
-  padding: 5px 0;
+  padding: 0; height: 21px; display: inline-flex; align-items: center; justify-content: center; /* §217 */
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>
