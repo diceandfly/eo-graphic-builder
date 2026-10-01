@@ -14,7 +14,7 @@ const props = defineProps({
   selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
   dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
 });
-const emit = defineEmits(['connect', 'disconnect', 'edgeClick']);
+const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
 
 const pxs = (n) => n / props.scale;
@@ -44,6 +44,13 @@ const edgeWires = computed(() =>
 );
 const connectedR = computed(() => new Set(props.edges.map((e) => e.from)));
 const connectedL = computed(() => new Set(props.edges.map((e) => e.to)));
+
+// §236: 페어 번호 — 링크 배지와 같은 로직: 계보(lineage)가 하나면 아이콘만, 여럿이면 1..k 번호
+const pairIndex = computed(() => {
+  const ids = [...new Set(frames.value.filter((f) => f.pair != null).map((f) => f.pair))].sort((a, b) => a - b);
+  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+});
+const showPairNums = computed(() => Object.keys(pairIndex.value).length >= 2);
 
 // §234: 활성 체인 — 선택 엣지에서 연결을 따라 확장한 프레임 집합 (in/out ≤1이라 선형 체인)
 const chainIds = computed(() => {
@@ -124,8 +131,11 @@ function onNodeDown(f, e) {
       v-for="f in frames.filter((x) => x.pair != null)" :key="'pm' + f.id"
       class="pairMark" :class="{ dim: dimmed }"
       :transform="`translate(${f.x + f.params.W - pxs(9)} ${f.y - pxs(12)})`"
+      @contextmenu.stop.prevent="(ev) => emit('pairContext', f, ev.clientX, ev.clientY)"
+      @pointerdown.stop
     >
-      <!-- §233: 페어 = 재생 삼각형 / 와이어 컨트롤 = 모래시계 — 역할 글리프 교체 (사용자 확정) -->
+      <!-- §233: 페어 = 재생 삼각형 · §236: 번호(계보 2개↑)·우클릭 = 프레임 ctx 팝업 -->
+      <text v-if="showPairNums" class="pairNum" :x="-pxs(12)" :y="pxs(4)" :font-size="pxs(12)" text-anchor="end">{{ pairIndex[f.pair] }}</text>
       <circle class="bg" :r="pxs(8)" />
       <g :transform="`translate(${-pxs(5.5)} ${-pxs(5.5)}) scale(${pxs(11) / 24})`">
         <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
@@ -167,11 +177,13 @@ function onNodeDown(f, e) {
 }
 // §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
 .pairMark {
-  pointer-events: none;
+  cursor: context-menu; // §236: 우클릭 = 프레임 ctx 팝업 (Unpair 포함)
   .bg { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
   path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: miter; }
+  .pairNum { fill: var(--accent); font-family: inherit; font-weight: var(--fw-semibold); } // §236: 링크 배지 번호 문법
   &.dim .bg { stroke: var(--dim); }
   &.dim path { stroke: var(--dim); }
+  &.dim .pairNum { fill: var(--dim); }
 }
 .dimNodes .node {
   pointer-events: none; cursor: default;

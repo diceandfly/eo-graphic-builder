@@ -546,6 +546,15 @@ const CTX_ACTIONS = [
 //   { key: 'front', label: 'Bring to front (Q)' },
 //   { key: 'back', label: 'Send to back (W)' },
 // ];
+// §236: 페어 마크 우클릭 = 프레임 직접 우클릭과 동일한 ctx 팝업 (선택 동기 포함)
+function onPairContext(f, cx, cy) {
+  if (!props.doc.selectedIds.includes(f.id)) {
+    props.actions.setSelection([f.id]);
+    props.doc.activeId = f.id;
+  }
+  const r = el.value.getBoundingClientRect();
+  ctxMenu.value = { x: cx - r.left, y: cy - r.top, u: f };
+}
 // §235: 페어 해제 — 페어·소속·연결 정리 후 일반 프레임 복귀 (삭제 차단 해제)
 function onUnpairFrame() {
   const r = props.actions.unpairFrame(ctxMenu.value.u.id);
@@ -1636,6 +1645,7 @@ onBeforeUnmount(() => {
           @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
+          @pair-context="onPairContext"
         />
         <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
