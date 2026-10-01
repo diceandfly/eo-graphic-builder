@@ -74,6 +74,7 @@ defineEmits(['click', 'contextmenu', 'dblclick']);
     color: var(--text); font-size: var(--fs-xs); letter-spacing: var(--ls-base);
     padding: 4px 8px; white-space: nowrap;
     opacity: 0; pointer-events: none; transition: opacity var(--tip-fade);
+    &::first-letter { text-transform: uppercase; } /* §215: 툴팁도 이니셜 캡 */
   }
   &.tip-center .tip { left: 50%; transform: translateX(-50%); }
   &.tip-left .tip { left: 0; }

@@ -253,7 +253,7 @@ function setStrokeColor(c) {
         @keydown.esc="cancelRename"
         @blur="cancelRename"
       />
-      <span v-else class="unitName" title="click to rename" @click="startRename">{{ group ? group.name : unit.name }}</span>
+      <span v-else class="unitName" title="Click to rename" @click="startRename">{{ group ? group.name : unit.name }}</span>
     </div>
 
     <template v-if="unit">
@@ -269,7 +269,7 @@ function setStrokeColor(c) {
           <button
             v-if="selected.length >= 2"
             class="eachBtn" :class="{ on: eachMode }"
-            title="apply to each unit instead of the combined bounding box"
+            title="Apply to each unit instead of the combined bounding box"
             @click="eachMode = !eachMode"
           >each</button>
         </div>
@@ -390,10 +390,10 @@ function setStrokeColor(c) {
           >
             <template #aux>
               <span class="modeSeg">
-                <button :class="{ on: p.compModeY === 'dir' }" title="directional" @click="setCompMode('compModeY', 'dir')">
+                <button :class="{ on: p.compModeY === 'dir' }" title="Directional" @click="setCompMode('compModeY', 'dir')">
                   <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compDir" :key="d" :d="d" /></svg>
                 </button>
-                <button :class="{ on: p.compModeY === 'sym' }" title="symmetrical" @click="setCompMode('compModeY', 'sym')">
+                <button :class="{ on: p.compModeY === 'sym' }" title="Symmetrical" @click="setCompMode('compModeY', 'sym')">
                   <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compSym" :key="d" :d="d" /></svg>
                 </button>
               </span>
@@ -410,10 +410,10 @@ function setStrokeColor(c) {
           >
             <template #aux>
               <span class="modeSeg">
-                <button :class="{ on: p.compModeX === 'dir' }" title="directional" @click="setCompMode('compModeX', 'dir')">
+                <button :class="{ on: p.compModeX === 'dir' }" title="Directional" @click="setCompMode('compModeX', 'dir')">
                   <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compDir" :key="d" :d="d" /></svg>
                 </button>
-                <button :class="{ on: p.compModeX === 'sym' }" title="symmetrical" @click="setCompMode('compModeX', 'sym')">
+                <button :class="{ on: p.compModeX === 'sym' }" title="Symmetrical" @click="setCompMode('compModeX', 'sym')">
                   <svg class="segIco" viewBox="0 0 24 24"><path v-for="d in ICONS.compSym" :key="d" :d="d" /></svg>
                 </button>
               </span>
@@ -471,7 +471,7 @@ function setStrokeColor(c) {
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
-        prefix="UNIT HEIGHT ×" suffix="%" :mixed="mixed('dPct')"
+        prefix="Unit height ×" suffix="%" :mixed="mixed('dPct')"
       />
       <Slider
         label="thread top width" :model-value="aPct"

@@ -238,7 +238,10 @@ function onHeightGripDown(e) {
   const sy = e.clientY;
   const h0 = panelH.value;
   const mv = (ev) => {
-    panelH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), window.innerHeight - 140);
+    // §215: 상한 = 성능 인디케이터(우상단 리소스 모니터) 바로 아래 패딩까지
+    //   스테이지 높이 − 하단 오프셋(sp-6+42+10 = 66) − 상단 점유(sp-6+42+10 + 모니터 13 + 갭 10 = 89)
+    const maxH = (el.value?.clientHeight ?? window.innerHeight) - 155;
+    panelH.value = Math.min(Math.max(h0 + (sy - ev.clientY), 280), maxH);
   };
   const up = () => {
     window.removeEventListener('pointermove', mv);
@@ -1695,7 +1698,7 @@ onBeforeUnmount(() => {
       :style="{ height: panelH + 'px' }"
       @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
     >
-      <div class="heightGrip" title="drag to resize height" @pointerdown.stop="onHeightGripDown" />
+      <div class="heightGrip" title="Drag to resize height" @pointerdown.stop="onHeightGripDown" />
       <PresetGridBrowser
         v-if="presetPanel === 'patterns'"
         title="Pattern presets"
@@ -1853,7 +1856,8 @@ onBeforeUnmount(() => {
   z-index: 9;
   width: 580px;
   max-width: calc(100% - 2 * var(--sp-6));
-  max-height: calc(100% - 2 * var(--sp-6) - 52px);
+  /* §215: 최대 높이 = 성능 인디케이터(우상단, top 66 + 높이 13) 아래 10px 패딩까지 — 하단 오프셋 66과 합산 155 */
+  max-height: calc(100% - 155px);
   box-sizing: border-box; overflow: hidden;
   padding: var(--window-pad-y) var(--panel-pad) 14px; // §213
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
@@ -1897,6 +1901,7 @@ onBeforeUnmount(() => {
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   font-size: var(--fs-xs); letter-spacing: var(--ls-base); padding: 7px 14px; pointer-events: none;
   border-radius: var(--radius);
+  &::first-letter { text-transform: uppercase; } /* §215 */
 }
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
 .ctxMenu {

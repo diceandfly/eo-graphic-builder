@@ -103,7 +103,7 @@ watch(open, (o) => {
   <div class="cf">
     <button
       class="preview" :style="{ background: modelValue || fallback }"
-      title="pick color" @click="toggleOpen"
+      title="Pick color" @click="toggleOpen"
     />
     <input
       class="hexInput" type="text" placeholder="#RRGGBB" spellcheck="false"

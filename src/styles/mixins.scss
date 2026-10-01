@@ -90,6 +90,7 @@
     font-size: var(--fs-2xs);
     color: var(--faint);
     white-space: nowrap;
+    &::first-letter { text-transform: uppercase; } // §215: 보조 설명도 이니셜 캡 (작은 폰트 가독 보강)
   }
   .sect {
     margin-top: 6px;

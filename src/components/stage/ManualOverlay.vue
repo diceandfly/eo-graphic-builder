@@ -117,7 +117,7 @@ function onDimDown(e) {
         <button :class="{ on: lang === 'en' }" @click="setLang('en')">EN</button>
         <button :class="{ on: lang === 'ko' }" @click="setLang('ko')">KR</button>
       </div>
-      <button class="closeBtn" title="close (Esc)" @click="emit('close')">
+      <button class="closeBtn" title="Close (Esc)" @click="emit('close')">
         <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" /></svg>
       </button>
       <div ref="docEl" class="doc" :class="lang" @click="onClick" v-html="html" />
