@@ -111,11 +111,12 @@ function onNodeDown(f, e) {
     <!-- 연결 와이어 + 중앙 페어 아이콘 (엣지 파라미터 컨트롤 자리 — Phase C) -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
       <path class="wire" :class="{ sel: !dimmed && selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e), dim: dimmed }" :d="w.d" />
-      <!-- §224: 와이어 중앙 컨트롤 — 클릭 = 엣지 파라미터 팝업 (비활성 모드엔 표시만, §228) -->
+      <!-- §224·§237: 와이어 중앙 컨트롤 — 비활성 모드에선 완전 숨김 (회색 잔존 = 와이어·페어 마크만) -->
       <g
-        class="pairBadge" :class="{ dim: dimmed, sel: !dimmed && selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }"
+        v-if="!dimmed"
+        class="pairBadge" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }"
         :transform="`translate(${w.mx} ${w.my})`"
-        @pointerdown.stop.prevent="(ev) => !dimmed && emit('edgeClick', w.e, ev.clientX, ev.clientY)"
+        @pointerdown.stop.prevent="(ev) => emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
         <circle :r="pxs(9)" />
         <!-- §235: 타이밍 컨트롤 = 메뉴(가로 막대 3개) — 글리프 확대 (12→14px) -->
@@ -141,8 +142,8 @@ function onNodeDown(f, e) {
         <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
       </g>
     </g>
-    <!-- 프레임 노드: 좌(입력)·우(출력) — §228: 비활성 모드에도 같은 스타일·회색으로 표시 (조작은 모드 안에서만) -->
-    <g v-for="f in frames" :key="'an' + f.id" :class="{ dimNodes: dimmed }">
+    <!-- 프레임 노드: 좌(입력)·우(출력) — §237: 비활성 모드엔 완전 숨김 (사용자 확정) -->
+    <g v-for="f in dimmed ? [] : frames" :key="'an' + f.id">
       <circle
         class="node left" :class="{ on: connectedL.has(f.id), target: !!drag && drag.fromId !== f.id }"
         :cx="f.x" :cy="f.y + f.params.H / 2" :r="pxs(6)"
@@ -150,7 +151,7 @@ function onNodeDown(f, e) {
       <circle
         class="node right" :class="{ on: connectedR.has(f.id) }"
         :cx="f.x + f.params.W" :cy="f.y + f.params.H / 2" :r="pxs(6)"
-        @pointerdown.stop.prevent="!dimmed && onNodeDown(f, $event)"
+        @pointerdown.stop.prevent="onNodeDown(f, $event)"
       />
     </g>
   </g>
@@ -168,13 +169,8 @@ function onNodeDown(f, e) {
 }
 .wire.sel { stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
 .wire.temp { stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
-// §228: 애니 모드 밖 — **같은 스타일, 색만 회색**(사용자 확정: 점선·흐림 폐기), 조작 없음
+// §228·§237: 애니 모드 밖 — 회색 잔존 = **와이어·페어 마크만** (노드·와이어 컨트롤은 완전 숨김)
 .wire.dim { stroke: var(--dim); opacity: 0.85; pointer-events: none; }
-.pairBadge.dim {
-  pointer-events: none;
-  circle { stroke: var(--dim); }
-  path { stroke: var(--dim); }
-}
 // §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
 .pairMark {
   cursor: context-menu; // §236: 우클릭 = 프레임 ctx 팝업 (Unpair 포함)
@@ -184,11 +180,6 @@ function onNodeDown(f, e) {
   &.dim .bg { stroke: var(--dim); }
   &.dim path { stroke: var(--dim); }
   &.dim .pairNum { fill: var(--dim); }
-}
-.dimNodes .node {
-  pointer-events: none; cursor: default;
-  stroke: var(--dim);
-  &.on { fill: var(--dim); stroke: var(--dim); }
 }
 .node {
   // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트

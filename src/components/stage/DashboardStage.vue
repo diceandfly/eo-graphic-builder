@@ -250,6 +250,9 @@ function toggleAnimMode() {
   animMode.value = !animMode.value;
   props.actions.setAnimMode(animMode.value); // §227: 이산값 잠금 가드 동기화
 }
+// §237: 오버레이 표시 조건 — 모드 on / 엣지 존재 / 페어 존재(엣지 없어도 회색 페어 마크 유지)
+const animOverlayOn = computed(() =>
+  animMode.value || props.doc.animEdges.length > 0 || props.doc.units.some((u) => u.pair != null));
 // §224: 엣지 선택(와이어 강조 + 애니메이션 창 연동) + 와이어 중앙 컨트롤 팝업 (duration·곡선)
 const animEdgeSel = ref(null); // 'from-to' 키
 const animEdgePopup = ref(null); // { x, y } — 화면 좌표
@@ -1635,7 +1638,7 @@ onBeforeUnmount(() => {
         </g>
         <!-- §223: 애니메이션 오버레이 — 프레임 노드 + 키프레임 와이어 (Phase B) -->
         <AnimOverlay
-          v-if="animMode || doc.animEdges.length"
+          v-if="animOverlayOn"
           :units="doc.units"
           :edges="doc.animEdges"
           :scale="vp.scale"
