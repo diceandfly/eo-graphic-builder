@@ -302,7 +302,7 @@ const previewH = computed(() => {
   return Math.round((winW.value - 2 - side * 2) * ratio);
 });
 // §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
-const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.65))));
+const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.42))));
 // §252: 출력 총 길이 = duration × 반복 + 홀드 — Cycles/End hold 합성 결과를 숫자로 보여줘 혼동 제거
 const totalLabel = computed(() => {
   if (!props.edge) return '';
@@ -340,9 +340,10 @@ const totalLabel = computed(() => {
           <!-- §232: 필 글리프 + 광학 중심 보정(삼각형 우측 치우침 상쇄) -->
           <svg
             viewBox="0 0 24 24"
-            :style="{ width: playD + 'px', height: playD + 'px', padding: Math.round(playD * 0.27) + 'px' }"
+            :style="{ width: playD + 'px', height: playD + 'px', padding: Math.round(playD * 0.07) + 'px' }"
           >
-            <path v-if="!playing" d="M9.3 5.2 L20 12 L9.3 18.8 Z" />
+            <!-- §253: 삼각형 좌측 보정 — bbox 중심 +2.65(11%)는 과우측, +1.15(≈5% 광학 표준)로 -->
+            <path v-if="!playing" d="M7.8 5.2 L18.5 12 L7.8 18.8 Z" />
             <g v-else><rect x="7" y="5.5" width="3.6" height="13" /><rect x="13.4" y="5.5" width="3.6" height="13" /></g>
           </svg>
         </div>
