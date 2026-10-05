@@ -13,7 +13,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['link', 'unlinkOne', 'setCatLink']);
 
-const CATS = ['size', 'grid', 'shape', 'color', 'animation', 'orientation']; // §266: 사용자 확정 순서
+const CATS = ['size', 'shape', 'grid', 'color', 'orientation', 'animation']; // §269: 메인 패널 섹션 순서와 정렬 (사용자 확정)
 // Link parameters 숏컷의 기본 스코프 (useDocument linkScopeDefault와 동일 값 유지)
 const DEFAULT_SCOPE = { size: true, orientation: false, grid: true, shape: true, color: false, animation: true };
 
