@@ -193,6 +193,8 @@ async function doExport() {
     canvas.height = ch;
     const ctx = canvas.getContext('2d', { willReadFrequently: exportCfg.format === 'gif' });
     const alpha = exportCfg.format === 'gif' && exportCfg.alpha; // §250: 투명 = GIF 전용
+    // §251: GIF 외 포맷에서 투명 체크 시 — 배경 유지 안내 (체크박스 자체는 상시 활성)
+    if (exportCfg.alpha && exportCfg.format !== 'gif') exportMsg.value = 'Transparent bg applies to GIF only — background kept';
     const drawAt = async (t) => {
       p.value = t;
       await nextTick();
@@ -293,11 +295,14 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
-// §250: 화면 좌우 패딩 = 1px (보더라인 느낌 — 사용자 확정). 내부 폭 = winW − 창보더2 − 패딩2
+// §250: 화면 좌우 패딩 = 1px (보더라인 느낌) · §251: 접힘 상태는 3px (+2 — 사용자 확정)
 const previewH = computed(() => {
+  const side = optsOpen.value ? 1 : 3;
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round((winW.value - 4) * ratio);
+  return Math.round((winW.value - 2 - side * 2) * ratio);
 });
+// §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
+const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.65))));
 </script>
 
 <template>
@@ -308,14 +313,8 @@ const previewH = computed(() => {
     :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
     @pointerdown.stop="onWinDown" @wheel.stop @contextmenu.stop.prevent
   >
-    <!-- §249·§250: 옵션 접기 토글 = 타이틀바 우측 — 라벨(Show/Hide options) + 셰브론 -->
-    <div class="titleRow">
-      <h2 class="title" title="Drag to move">Animation Preview</h2>
-      <button v-if="pose" class="optTg" @click="optsOpen = !optsOpen">
-        {{ optsOpen ? 'Hide options' : 'Show options' }}
-        <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
-      </button>
-    </div>
+    <!-- §251: 접기 토글은 창 하단으로 이동 (타이틀 우측 취소 — 사용자 확정) -->
+    <h2 class="title" title="Drag to move">Animation Preview</h2>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
       <div class="pvWrap">
@@ -325,10 +324,14 @@ const previewH = computed(() => {
             <UnitGraphic :params="it.params" :seam-width="0.75" />
           </g>
         </svg>
-        <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체) -->
+        <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체)
+             §251: 크기 = 화면 비례 (playD — 리사이즈를 따라 글리프도 스케일) -->
         <div class="pvPlay">
           <!-- §232: 필 글리프 + 광학 중심 보정(삼각형 우측 치우침 상쇄) -->
-          <svg viewBox="0 0 24 24">
+          <svg
+            viewBox="0 0 24 24"
+            :style="{ width: playD + 'px', height: playD + 'px', padding: Math.round(playD * 0.27) + 'px' }"
+          >
             <path v-if="!playing" d="M9.3 5.2 L20 12 L9.3 18.8 Z" />
             <g v-else><rect x="7" y="5.5" width="3.6" height="13" /><rect x="13.4" y="5.5" width="3.6" height="13" /></g>
           </svg>
@@ -360,14 +363,14 @@ const previewH = computed(() => {
             <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
           </div>
         </div>
-        <!-- ── §247·§250: 익스포트 그룹 — 투명 · 배율 · 포맷 · 반복 · 홀드 · 저장 (사용자 순서) ── -->
+        <!-- ── §247·§251: 익스포트 그룹 — 투명 · 배율 · 반복 · 홀드 · 포맷(맨 아래) · 저장 ── -->
         <div class="sectHead">Export</div>
         <div class="optRow">
           <span class="optLabel">Transparent bg</span>
-          <!-- §250: GIF 전용 — 비디오 실시간 녹화는 알파 비보존 -->
+          <!-- §251: 상시 활성 — GIF 외 포맷은 익스포트 시 안내 후 배경 유지 (disabled 게이트 폐기) -->
           <input
-            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format !== 'gif'"
-            :title="exportCfg.format === 'gif' ? 'Drop the frame background (binary alpha)' : 'GIF only'"
+            type="checkbox" v-model="exportCfg.alpha"
+            title="Drop the frame background — applies to GIF (binary alpha); video keeps the background"
           />
         </div>
         <div class="optRow">
@@ -376,15 +379,6 @@ const previewH = computed(() => {
             <button :class="{ on: exportCfg.scale === 0.5 }" @click="exportCfg.scale = 0.5">0.5×</button>
             <button :class="{ on: exportCfg.scale === 1 }" @click="exportCfg.scale = 1">1×</button>
             <button :class="{ on: exportCfg.scale === 2 }" @click="exportCfg.scale = 2">2×</button>
-          </div>
-        </div>
-        <div class="optRow">
-          <span class="optLabel">Format</span>
-          <div class="segMini">
-            <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
-            <button :class="{ on: exportCfg.format === 'mp4' }" @click="exportCfg.format = 'mp4'">MP4</button>
-            <button :class="{ on: exportCfg.format === 'gif' }" @click="exportCfg.format = 'gif'">GIF</button>
-            <button :class="{ on: exportCfg.format === 'json' }" @click="exportCfg.format = 'json'">JSON</button>
           </div>
         </div>
         <div class="optRow">
@@ -403,14 +397,29 @@ const previewH = computed(() => {
             @keydown.enter.stop.prevent="$event.target.blur()"
           />
         </div>
+        <div class="optRow">
+          <span class="optLabel">Format</span>
+          <div class="segMini">
+            <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
+            <button :class="{ on: exportCfg.format === 'mp4' }" @click="exportCfg.format = 'mp4'">MP4</button>
+            <button :class="{ on: exportCfg.format === 'gif' }" @click="exportCfg.format = 'gif'">GIF</button>
+            <button :class="{ on: exportCfg.format === 'json' }" @click="exportCfg.format = 'json'">JSON</button>
+          </div>
+        </div>
         <div class="exRow">
           <!-- §250: 버튼 라벨은 포맷에 반응하지 않음 — 그냥 Export (사용자 확정) -->
           <button class="exBtn" :disabled="exporting" @click="doExport">
             {{ exporting ? `Exporting… ${exportPct}%` : 'Export' }}
           </button>
         </div>
-        <div class="menuNote">{{ exportMsg || `Saved as ${fileBase} — timing per connection via the wire ≡ control` }}</div>
+        <!-- §251: 설명문 삭제 — 폴백/투명 안내 등 1회성 메시지만 조건 표시 -->
+        <div v-if="exportMsg" class="menuNote">{{ exportMsg }}</div>
       </template>
+      <!-- §251: 접기 토글 = 창 하단 (구 설명문 자리) — 접힘 상태에서도 이 자리에 상주 -->
+      <button class="optTg" @click="optsOpen = !optsOpen">
+        {{ optsOpen ? 'Hide options' : 'Show options' }}
+        <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
+      </button>
     </template>
     <!-- §245·§250: 페어링 진입점 — 뱃지 팝업(Make keyframe) -->
     <div v-else class="empty">
@@ -435,8 +444,9 @@ const previewH = computed(() => {
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   display: flex; flex-direction: column; gap: 10px;
 }
-/* §250: 접힘 = 화면이 마지막 요소 — 하단 패딩 1px (화면 좌우 1px과 동일 문법) */
-.animWin.collapsed { padding-bottom: 1px; }
+/* §250·§251: 접힘 — 좌우/하단 패딩 3px (+2, 사용자 확정). 하단엔 접기 토글이 상주 */
+.animWin.collapsed { padding-bottom: 3px; }
+.animWin.collapsed .pvWrap { margin: 0 calc(3px - var(--panel-pad)); }
 .title {
   /* L2 창 타이틀 (§218 전역 사다리) — §226: 드래그 = 창 이동 */
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
@@ -456,8 +466,8 @@ const previewH = computed(() => {
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s; pointer-events: none;
   svg {
-    /* §232·§233: 원 90%(96→86px) · 아이콘 115%(44→50px) */
-    width: 86px; height: 86px; padding: 18px;
+    /* §251: 크기 = 화면 비례 (인라인 playD) — border-box: width가 곧 원 지름 */
+    box-sizing: border-box;
     background: var(--space-black); border-radius: 50%;
     fill: var(--text);
   }
@@ -505,10 +515,10 @@ const previewH = computed(() => {
   &:disabled { color: var(--disabled); }
 }
 .holdIn { width: 48px; }
-// §247·§249·§250: 옵션 접기 토글 — 타이틀바 우측 라벨+셰브론
-.titleRow { display: flex; align-items: center; justify-content: space-between; }
+// §251: 옵션 접기 토글 — 창 하단 중앙 라벨+셰브론 (구 설명문 자리)
 .optTg {
   border: none; background: none; cursor: pointer; padding: 0;
+  align-self: center;
   display: inline-flex; align-items: center; gap: 3px;
   font-family: inherit; font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
   &::first-letter { text-transform: uppercase; }

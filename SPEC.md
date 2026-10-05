@@ -1974,3 +1974,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 6. **EXPORT 행 순서 = Transparent → Scale → Format → Cycles(×n, 재생 행에서 이동) → End hold → Export** (사용자 지정). 재생 그룹 = 스크러버·시간·pingpong/cycle(시뮬 보기 전용)·Frame rate.
 7. **타이틀 = "Animation Preview"**.
 8. **바운딩박스 팝업**: 체크 순서 321(unit name → link badges → group outlines) + **Show animation badges** 추가(view.showAnimBadges — 페어 ▶ 뱃지 전체 게이트, AnimOverlay showBadges prop).
+
+## 251. 2026-10-05 — 체인 이동 그립(1안 채택)·투명 토글 수정·재생 글리프 비례·토글 하단 복귀·접힘 패딩
+
+1. **체인 이동 그립** (§250 제안 1안 사용자 채택) — 애니 모드에서 페어/체인 선택 시 선택 프레임 합집합 bbox **상단 중앙 ✥ 칩**(페어 뱃지와 동일 칩 문법, 호버 반전) 드래그 = 체인 전체 이동(기하+home 동반 포함). 2개 이상 선택이면 합집합 **점선 테두리** 동반. 실측: 그립 드래그로 두 프레임 동시 이동.
+2. **투명 배경 토글 수정** — "선택 안됨"의 원인 = GIF 외 포맷에서 disabled 게이트. **상시 활성**으로 변경, GIF 외 포맷으로 익스포트 시 "배경 유지" 1회성 안내(exportMsg). 
+3. **재생/정지 글리프 = 화면 비례** — 지름 = previewH×0.65(48~220 클램프), 아이콘 = 지름 46%(border-box 패딩 27%) — 유튜브류 사이즈감(사용자 스샷 기준), 리사이즈 동승. 실측 ratio 0.65.
+4. **설명문 삭제 + 접기 토글 = 창 하단**(구 설명문 자리, 타이틀 우측 취소) — 접힘 상태에서도 하단 상주. 1회성 메시지(MP4 폴백·투명 안내)만 조건 표시.
+5. **Format 행 = EXPORT 맨 아래** (Transparent → Scale → Cycles → End hold → Format → Export).
+6. **접힘 패딩 = 좌우·하단 3px**(+2, 펼침은 1px 유지). previewH가 상태별 패딩 반영.
