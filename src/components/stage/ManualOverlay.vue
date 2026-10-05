@@ -138,6 +138,7 @@ function onDimDown(e) {
   width: min(660px, calc(100% - var(--panel-w) - 4 * var(--sp-6) - 144px)); /* §163: 760→660 — 행당 글자 수 축소 */
   height: calc(100% - 2 * var(--sp-6));
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  @include chamfer(7.5px); // §260: chamfer-1 — 도움말 창
   display: flex; flex-direction: column; overflow: hidden;
 }
 // §201: EN/KR 토글 — 닫기 버튼 왼쪽, 툴바 segMini와 동일 문법 (닫기 버튼과 같은 높이)

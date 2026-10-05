@@ -40,7 +40,7 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
 </template>
 
 <style scoped lang="scss">
-.managerCorner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); } /* §203: 우하단 (보기와 스왑) */
+.managerCorner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); z-index: 26; } /* §203: 우하단 · §260: 애니 창(z25) 위 */
 // 솔리드 심볼 확정 (§106) — 필 밀도 광학 보정으로 13px 고정
 .eoSym {
   width: 13px; height: 13px;
@@ -57,4 +57,6 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
   100% { transform: translateX(0); opacity: 1; }
 }
 .animHover.active :deep(svg) { animation: animPlaySlide 0.9s ease-in-out infinite; }
+/* §260: 애니 모드 활성 = 풀 네온 **솔리드** 삼각형 — 토글 상태가 한눈에 (스트로크 전용 대비) */
+.animHover.active :deep(svg path) { fill: var(--accent); stroke: var(--accent); }
 </style>

@@ -326,14 +326,16 @@ const totalLabel = computed(() => {
   >
     <!-- §251: 접기 토글은 창 하단 · §252: 타이틀 우측 = 재생 구간명 (풀 Neon 와이어 = 이 구간) -->
     <div class="titleRow">
-      <h2 class="title" title="Drag to move">Animation Preview</h2>
+      <h2 class="title" title="Drag to move">Animation Simulator</h2><!-- §260: 명칭 변경 -->
       <span v-if="pose" class="segName" :title="`${fromFrame?.name} → ${toFrame?.name}`">{{ fromFrame?.name }} → {{ toFrame?.name }}</span>
     </div>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
       <div class="pvWrap">
         <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
-          <rect :width="pose.W" :height="pose.H" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
+          <!-- §260: 양옆 1px 선의 진짜 정체 = 프레임 rect 가장자리 안티앨리어싱으로 svg 배경이
+               0.5px 비치던 것 — 배경 rect를 viewBox 밖까지 1px 오버드로(루트 클립이 잘라줌, export 동일) -->
+          <rect :x="-1" :y="-1" :width="pose.W + 2" :height="pose.H + 2" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
             <UnitGraphic :params="it.params" :seam-width="0.75" />
           </g>
@@ -479,9 +481,9 @@ const totalLabel = computed(() => {
 .pvWrap { position: relative; cursor: pointer; margin: 0 calc(5px - var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
-  background: var(--stage-bg);
-  /* §257: 좌우 1px 선의 정체 = 프리뷰 자체 보더 — 좌우만 제거 (상/하단 보더 유지) */
-  border: 1px solid var(--line); border-left: none; border-right: none; border-radius: 0;
+  /* §260: 배경 제거 — 프레임 rect가 전면 커버(+오버드로)라 불필요했고, 안티앨리어싱 틈으로
+     비치며 양옆 1px 헤어라인을 만들던 원인 (§257의 보더 제거는 오진이었음) */
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0;
 }
 /* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
 .pvPlay {
@@ -506,8 +508,18 @@ const totalLabel = computed(() => {
   &:hover svg { stroke: var(--accent); }
 }
 .pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.85; } /* 프리뷰 그립 + 빈 상태 그립 */
+/* §260: 플레이바 — 각진 브랜드 문법 (기본 라운드 썸 폐기: 사각 Neon 썸 + 헤어라인 트랙) */
 .scrub {
-  width: 100%; margin: 0; accent-color: var(--accent);
+  width: 100%; margin: 0; height: 14px;
+  -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+  &::-webkit-slider-runnable-track { height: 2px; background: var(--line); border-radius: 0; }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 7px; height: 14px; margin-top: -6px;
+    background: var(--accent); border: none; border-radius: 0;
+  }
+  &::-moz-range-track { height: 2px; background: var(--line); }
+  &::-moz-range-thumb { width: 7px; height: 14px; background: var(--accent); border: none; border-radius: 0; }
 }
 .row { display: flex; align-items: center; gap: 8px; }
 .time {

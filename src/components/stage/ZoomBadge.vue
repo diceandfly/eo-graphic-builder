@@ -290,7 +290,7 @@ function resetGridDefaults() {
 </template>
 
 <style scoped lang="scss">
-.corner { position: absolute; right: var(--sp-6); top: var(--sp-6); } /* §203: 보기 그룹 = 우상단 (고급기능과 스왑) */
+.corner { position: absolute; right: var(--sp-6); top: var(--sp-6); z-index: 26; } /* §203: 우상단 · §260: 팝업이 애니 창(z25)에 가리지 않게 */
 .zoom { width: var(--zoom-w); font-variant-numeric: tabular-nums; }
 .optWrap { position: relative; }
 // §202: 팝업 공통 문법은 popup-menu 믹스인 — §203: 상단 바라 메뉴는 아래로 드롭, 우측 정렬
