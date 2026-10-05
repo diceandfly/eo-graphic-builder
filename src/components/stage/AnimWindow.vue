@@ -458,7 +458,7 @@ const totalLabel = computed(() => {
   box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  @include chamfer(10px); // §257: chamfer-1 — 애니 창
+  @include chamfer(5px); // §257·§258: 챔퍼 통일 5px — 애니 창
   display: flex; flex-direction: column; gap: 10px;
 }
 /* (§251의 접힘 전용 하단 3px 폐기 — §257: 토글 바 패딩이 상태별로 달라지던 원인. 전 상태 공통 패딩) */

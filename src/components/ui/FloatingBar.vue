@@ -11,9 +11,15 @@
 <style scoped lang="scss">
 .fbar {
   display: flex; align-items: center; gap: 2px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  @include chamfer(5px); // §257: chamfer-2 — 툴바
+  position: relative; isolation: isolate; // §258: ::before(z-1)를 바 안에 가두는 스태킹 컨텍스트
   padding: var(--sp-1);
+  /* §258: 챔퍼는 **배경 가상요소**에만 — 바 자체를 clip하면 슬롯 자식인 팝업 메뉴까지 잘려
+     우클릭 팝업이 전부 먹통이 되던 회귀(§257)의 원인 */
+  &::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; box-sizing: border-box;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    @include chamfer(5px); // §257: chamfer-2 — 툴바
+  }
   :deep(.sep) { width: 1px; height: 18px; background: var(--line); margin: 0 var(--sp-1); }
 }
 </style>
