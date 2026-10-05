@@ -31,8 +31,10 @@ export function bezierEase(curve, x) {
 // 환산: 구간 시작 = out 영향도, 구간 끝 = in 영향도 → curve = [out/100, 0, 1 − in/100, 1] (1행 등속만 예외).
 // icon = 시트 글리프 모사 수제 패스 (viewBox 0 0 24 20, 베이스라인 y17 — 샘플링 생성 폐기, §227 사용자 지시).
 export const CURVE_PRESETS = [
-  { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1],
-    icon: 'M4 17 H20 M12 17 V5' }, // §228: ⊥ (상하반전 — 시트 1행)
+  // §246: 1번 = **미드 스파이크** (중앙에서 속도가 가장 뾰족하게 솟는 "뿅" 이즈 — 사용자 정정:
+  // ⊥ 글리프는 리니어가 아니라 중앙 스파이크의 속도그래프였음). out 100 → in 100.
+  { key: 'spike', label: 'Ease 100 · 100', curve: [1, 0, 0, 1],
+    icon: 'M4 17 H20 M12 17 V5' }, // ⊥ (양끝 정지 + 중앙 수직 스파이크)
   { key: 'ease-50', label: 'Ease 50 · 50', curve: [0.5, 0, 0.5, 1],
     icon: 'M5 17 C9 12, 10.5 4, 12 4 C13.5 4, 15 12, 19 17' },
   { key: 'ease-33', label: 'Ease 33 · 33', curve: [0.33, 0, 0.67, 1],
@@ -49,6 +51,9 @@ export const CURVE_PRESETS = [
     icon: 'M4 17 C9 15.5, 13.5 10, 15 5.5 C15.4 4.5, 15.8 4, 16 4 C17 4.5, 18.5 12, 19.5 17' },
   { key: 'peak-early', label: 'Out 33 → in 75', curve: [0.33, 0, 0.25, 1],
     icon: 'M4.5 17 C5.5 12, 7 4.5, 8 4 C8.2 4, 8.6 4.5, 9 5.5 C10.5 10, 15 15.5, 20 17' },
+  // §246: 10번 = 리니어 복귀 버튼 (등속 — 속도그래프는 수평선). 9+1 = 5열 그리드 2행 완성.
+  { key: 'linear', label: 'Linear', curve: [0, 0, 1, 1],
+    icon: 'M4 10.5 H20' },
 ];
 export const DEFAULT_CURVE = [0.33, 0, 0.67, 1]; // 연결 기본값 = Ease 33·33 (AE easy ease)
 

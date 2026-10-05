@@ -227,6 +227,10 @@ const animSelFrames = computed(() => {
   const fs = props.doc.units.filter((u) => u.type === 'frame' && props.doc.selectedIds.includes(u.id));
   return fs.some((f) => f.pair != null) ? fs : [];
 });
+// §246: 프레임 2개 이상 선택 = 프레임 단위 조작 중 — 유닛 링크 배지 숨김
+const multiFrameSel = computed(
+  () => props.doc.units.filter((u) => u.type === 'frame' && props.doc.selectedIds.includes(u.id)).length >= 2
+);
 // §208: 프레임 이름 라벨 더블클릭 = 뷰포트 인라인 이름변경 (HTML input을 라벨 화면 위치에 오버레이)
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 const frameNameEdit = ref(null); // { id, draft }
@@ -313,7 +317,7 @@ function guardedDelete() {
   if (animMode.value) {
     const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
     if (sel.some((x) => x.pair != null)) {
-      toast('Paired keyframe — click its pair badge → Unpair keyframe to release it first'); // §243: 뱃지 클릭 안내
+      toast('Keyframe — use its ▶ badge → Delete keyframe (or Unpair first)'); // §246: 용어 통일
       return;
     }
   }
@@ -600,13 +604,24 @@ function onUnpairFromMark() {
   if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
   closePairMenu();
 }
-// §245: 페어링 생성 = 뱃지 팝업 — 미페어 프레임 선택 시 고스트 뱃지 클릭 → Make paired keyframe.
+// §245: 키프레임 생성 = 뱃지 팝업 — §246: 용어 통일 "Make new keyframe" (페어링 용어는 UI에서 배제).
+// 페어 프레임에서도 가능 — 작동시킨 프레임 기준으로 같은 계보의 새 키프레임을 복제 (사용자 확정).
 // 사본은 **오른쪽 옆 공간**(간격 = 프레임 폭의 10%, 최소 24px): 연결 규칙(우→좌)의 자연 흐름과 일치.
 function onMakePair() {
   const f = pairMenu.value.f;
   const gap = Math.max(24, Math.round(f.params.W * 0.1));
   const r = props.actions.duplicatePairedFrame(f.id, f.params.W + gap, 0);
-  if (r) toast('Paired keyframe created — drag the right node onto its left node to connect');
+  if (r) toast('New keyframe created — drag the right node onto its left node to connect');
+  closePairMenu();
+}
+// §246: 키프레임 삭제 — 프레임 + home 소속 유닛 + 연결·짝 정리를 한 번에 (뱃지 팝업 전용)
+function onDeleteKeyframe() {
+  const f = pairMenu.value.f;
+  const ownedIds = props.actions.animOwnedUnits(f.id).map((u) => u.id);
+  props.actions.unpairFrame(f.id); // 짝·연결 해제 (삭제 가드 통과)
+  props.actions.setSelection([f.id, ...ownedIds]);
+  props.actions.deleteSelected();
+  toast(`Keyframe deleted — frame & ${ownedIds.length} unit${ownedIds.length === 1 ? '' : 's'} removed`);
   closePairMenu();
 }
 // §245: 체인 선택 — 연결(엣지)을 따라 확장한 프레임 전부 선택 (연결이 없으면 같은 계보의 페어).
@@ -1691,9 +1706,10 @@ onBeforeUnmount(() => {
             :x="g.x" :y="g.y" :width="g.w" :height="g.h"
           />
         </template>
-        <!-- 링크 배지 (선택 관련 링크만, 뷰 옵션으로 숨김 가능) -->
+        <!-- 링크 배지 (선택 관련 링크만, 뷰 옵션으로 숨김 가능)
+             §246: 프레임 다중선택(체인 선택 등) 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
         <g
-          v-for="u in view.showLinks ? doc.units.filter((x) => primaryLid(x) != null && visibleLinkIds.has(primaryLid(x))) : []"
+          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => primaryLid(x) != null && visibleLinkIds.has(primaryLid(x))) : []"
           :key="'lk' + u.id"
           class="linkBadge"
           :transform="`translate(${u.x + u.params.W} ${u.y})`"
@@ -1996,12 +2012,12 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
+      <!-- §246: 용어 통일 — Make new keyframe(페어 프레임에서도 새 키프레임 복제) / Delete keyframe -->
       <button
-        v-if="pairMenu.f.pair == null"
         class="ctxItem"
         @click="onMakePair"
-      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make paired keyframe</button>
-      <template v-else>
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make new keyframe</button>
+      <template v-if="pairMenu.f.pair != null">
         <button
           class="ctxItem"
           @click="onSelectChain"
@@ -2010,6 +2026,10 @@ onBeforeUnmount(() => {
           class="ctxItem"
           @click="onUnpairFromMark"
         ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
+        <button
+          class="ctxItem"
+          @click="onDeleteKeyframe"
+        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.trash" :key="d" :d="d" /></svg>Delete keyframe</button>
       </template>
     </div>
     <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->

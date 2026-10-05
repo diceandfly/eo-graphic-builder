@@ -5,7 +5,7 @@ import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
 
-// §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30 · once/loop/pingpong).
+// §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
 // 엣지 소속 파라미터(duration·곡선)는 와이어 중앙 컨트롤이 담당(§220 확정) — 여기선 재생만.
 // 좌하단 정렬 바 위 플로팅 — 프리셋창(우하단)과 대칭.
 const props = defineProps({
@@ -84,7 +84,7 @@ function onSizeGripDown(e) {
   window.addEventListener('pointerup', up, { once: true });
 }
 const playing = ref(false);
-const loopMode = ref('pingpong'); // §233: 기본 = pingpong ('once' | 'loop'(cycle) | 'pingpong')
+const loopMode = ref('pingpong'); // §233: 기본 = pingpong ('loop'(cycle) | 'pingpong' — §246: once 폐기)
 const p = ref(0);             // raw 진행률 0..1
 let dir = 1;
 let rafId = 0;
@@ -105,8 +105,7 @@ function tick(now) {
     if (np >= 1) { np = 1; dir = -1; }
     else if (np <= 0) { np = 0; dir = 1; }
   } else if (np >= 1) {
-    if (loopMode.value === 'loop') np = 0;
-    else { np = 1; stop(); }
+    np = 0; // cycle: 처음으로 (§246: once 폐기)
   }
   p.value = np;
 }
@@ -173,9 +172,9 @@ async function exportWebm() {
         img.src = url;
       });
     };
-    // §244: 반복 회수 — once = 1패스, cycle = cycles패스, pingpong 1회 = **왕복**(2패스)
+    // §244: 반복 회수 — cycle = cycles패스, pingpong 1회 = **왕복**(2패스). §246: once 폐기
     const dur = props.edge.duration;
-    const legs = loopMode.value === 'once' ? 1 : loopMode.value === 'loop' ? cycles.value : cycles.value * 2;
+    const legs = loopMode.value === 'loop' ? cycles.value : cycles.value * 2;
     const total = dur * legs;
     const tAt = (ms) => {
       const leg = Math.min(legs - 1, Math.floor(ms / dur));
@@ -251,27 +250,26 @@ const previewH = computed(() => {
       <div class="row">
         <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
         <span class="time">{{ timeLabel }}</span>
-        <!-- §233: pingpong · cycle · once 순, 기본 pingpong -->
+        <!-- §233: pingpong · cycle, 기본 pingpong (§246: once 폐기) · 반복 회수 = 루프 행으로 이동 -->
         <div class="segMini loopSeg">
           <button :class="{ on: loopMode === 'pingpong' }" @click="loopMode = 'pingpong'">pingpong</button>
           <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">cycle</button>
-          <button :class="{ on: loopMode === 'once' }" @click="loopMode = 'once'">once</button>
         </div>
+        <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
+          ×<input class="cycIn" type="number" min="1" max="8" v-model.number="cycles" />
+        </label>
       </div>
-      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) · §244: fps(30/24)·반복 회수 -->
+      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) · §244: fps(30/24) -->
       <div class="exRow">
         <button class="exBtn" :disabled="exporting" @click="exportWebm">
           {{ exporting ? `Exporting… ${exportPct}%` : 'Export WebM' }}
         </button>
         <div class="segMini" title="Frame rate — playback & export">
-          <button :class="{ on: fps === 30 }" @click="fps = 30">30</button>
-          <button :class="{ on: fps === 24 }" @click="fps = 24">24</button>
+          <button :class="{ on: fps === 30 }" @click="fps = 30">30fps</button>
+          <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
         </div>
-        <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
-          ×<input class="cycIn" type="number" min="1" max="8" v-model.number="cycles" :disabled="loopMode === 'once'" />
-        </label>
       </div>
-      <div class="menuNote">{{ fps }}fps simulation — edge timing via the wire control · ×n = export cycles</div>
+      <div class="menuNote">Timing per connection — wire ≡ control · ×n cycles apply to export</div>
     </template>
     <!-- §245: 페어링 진입점 변경 — opt-드래그 복제 폐기, 뱃지 팝업(Make paired keyframe)으로 -->
     <div v-else class="empty">
@@ -349,7 +347,7 @@ const previewH = computed(() => {
   }
 }
 .exRow { display: flex; gap: 6px; align-items: center; }
-// §244: 익스포트 반복 회수 — ×n (once 모드에선 비활성)
+// §244: 익스포트 반복 회수 — ×n (§246: 루프 모드 세그 옆으로 이동)
 .cycWrap {
   display: inline-flex; align-items: center; gap: 2px;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
