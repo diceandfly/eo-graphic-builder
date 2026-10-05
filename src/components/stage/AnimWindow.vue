@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { saveFileAs } from '../../utils/saveFile.js';
-import { zipStore } from '../../utils/zipStore.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
@@ -29,16 +29,17 @@ watch(cycles, (v) => {
   else if (v > 8) cycles.value = 8;
   else localStorage.setItem('eo.animCycles', String(v));
 });
-// §247: 익스포트 옵션 묶음 — format(WebM|PNG 시퀀스) · scale(0.5/1/2× — 1920 캡도 배율 동승) ·
-// alpha(배경 투명 — PNG 전용: WebM 실시간 녹화는 알파 비보존) · hold(끝 프레임 유지 ms, 루프 호흡)
+// §247·§250: 익스포트 옵션 묶음 — format(WebM|MP4|GIF|JSON) · scale(0.5/1/2× — 1920 캡 동승) ·
+// alpha(배경 투명 — GIF 전용: 비디오 실시간 녹화는 알파 비보존) · hold(끝 프레임 유지 ms, 루프 호흡)
 const exportCfg = reactive({ format: 'webm', scale: 1, alpha: false, hold: 0 });
 try { Object.assign(exportCfg, JSON.parse(localStorage.getItem('eo.animExport') || '{}')); } catch { /* 기본값 유지 */ }
+if (!['webm', 'mp4', 'gif', 'json'].includes(exportCfg.format)) exportCfg.format = 'webm'; // §250: 구 'png' 이관
 watch(exportCfg, (v) => localStorage.setItem('eo.animExport', JSON.stringify(v)));
-// §247: 옵션 접기 — 재생화면 바로 아래 토글, 프리뷰 제외 전부 숨김
+// §247·§249: 옵션 접기 — 타이틀바 우측 토글, 프리뷰 제외 전부 숨김
 const optsOpen = ref(localStorage.getItem('eo.animOptsOpen') !== '0');
 watch(optsOpen, (v) => localStorage.setItem('eo.animOptsOpen', v ? '1' : '0'));
 
-// §226: 창 크기 — 우하단 그립(상시 표시)으로 조절. 비율은 임의가 아니라 **보고 있는 프레임 비율 고정**:
+// §226: 창 크기 — 화면 우하단 그립으로 조절. 비율은 임의가 아니라 **보고 있는 프레임 비율 고정**:
 // 폭만 저장하고 프리뷰 높이는 프레임 W:H에서 파생된다.
 const winW = ref((() => {
   const v = Number(localStorage.getItem('eo.animWinW'));
@@ -140,18 +141,44 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
-// ── §233·§247: 익스포트 — WebM(MediaRecorder 실시간 녹화) / PNG 시퀀스(ZIP) 공용 엔진 ──
-// 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터. 옵션: 배율(0.5/1/2× — 1920 캡 동승) ·
-// 배경 투명(PNG 전용) · 끝 프레임 홀드(ms). 파일명 = `From→To_1000ms` 규칙 (§247 사용자 확정).
+// ── §233·§247·§250: 익스포트 — WebM/MP4(실시간 녹화) · GIF(비실시간) · JSON(웹 모션 데이터) ──
+// 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터. 파일명 = `From→To_1000ms` 규칙.
 const exporting = ref(false);
 const exportPct = ref(0);
+const exportMsg = ref(''); // §250: 폴백 안내 등 1회성 메시지 (menuNote 자리)
 const fileBase = computed(() => {
   const nm = (u) => (u?.name || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
   return `${nm(props.fromFrame)}→${nm(props.toFrame)}_${props.edge?.duration ?? 0}ms`;
 });
+// §250: JSON (웹 모션용) — 두 키프레임 + 타이밍을 재생 가능한 데이터로 직렬화 (렌더 독립)
+function motionJson() {
+  const unitOf = (u, f) => ({
+    name: u.name, pair: u.pair ?? null,
+    x: u.x - f.x, y: u.y - f.y, params: { ...u.params },
+  });
+  return {
+    version: 1,
+    generator: 'eo-graphic-builder',
+    fps: fps.value,
+    durationMs: props.edge.duration,
+    curve: [...props.edge.curve], // cubic-bezier [x1, y1, x2, y2]
+    loop: loopMode.value,         // 'pingpong' | 'loop'
+    cycles: cycles.value,
+    endHoldMs: Math.max(0, Number(exportCfg.hold) || 0),
+    keyframes: [
+      { role: 'from', frame: { ...props.fromFrame.params }, units: props.fromUnits.map((u) => unitOf(u, props.fromFrame)) },
+      { role: 'to', frame: { ...props.toFrame.params }, units: props.toUnits.map((u) => unitOf(u, props.toFrame)) },
+    ],
+  };
+}
 async function doExport() {
   if (!props.edge || !pose.value || exporting.value) return;
   stop();
+  exportMsg.value = '';
+  if (exportCfg.format === 'json') {
+    await saveFileAs(new Blob([JSON.stringify(motionJson(), null, 2)], { type: 'application/json' }), `${fileBase.value}.json`, 'export');
+    return;
+  }
   exporting.value = true;
   exportPct.value = 0;
   try {
@@ -164,8 +191,8 @@ async function doExport() {
     const canvas = document.createElement('canvas');
     canvas.width = cw;
     canvas.height = ch;
-    const ctx = canvas.getContext('2d');
-    const alpha = exportCfg.format === 'png' && exportCfg.alpha; // §247: 투명 = PNG 전용
+    const ctx = canvas.getContext('2d', { willReadFrequently: exportCfg.format === 'gif' });
+    const alpha = exportCfg.format === 'gif' && exportCfg.alpha; // §250: 투명 = GIF 전용
     const drawAt = async (t) => {
       p.value = t;
       await nextTick();
@@ -197,27 +224,42 @@ async function doExport() {
       const local = Math.min(1, (ms - leg * dur) / dur);
       return loopMode.value === 'pingpong' && leg % 2 === 1 ? 1 - local : local;
     };
-    if (exportCfg.format === 'png') {
-      // §247: PNG 시퀀스 — 비실시간 프레임 루프 → ZIP(store) 한 파일로 저장
+    if (exportCfg.format === 'gif') {
+      // §250: GIF — 비실시간 프레임 루프 (gifenc: 팔레트 양자화 + LZW). 홀드 = 끝 프레임 딜레이 연장
       const frameMs = 1000 / fps.value;
       const n = Math.max(2, Math.round(total / frameMs));
-      const holdN = Math.round(hold / frameMs);
-      const files = [];
-      const grab = async () => new Uint8Array(await (await new Promise((r) => canvas.toBlob(r, 'image/png'))).arrayBuffer());
+      const gif = GIFEncoder();
+      const fmt = alpha ? 'rgba4444' : 'rgb444';
+      const addFrame = (delayMs) => {
+        const { data } = ctx.getImageData(0, 0, cw, ch);
+        const palette = quantize(data, 256, { format: fmt });
+        const index = applyPalette(data, palette, fmt);
+        gif.writeFrame(index, cw, ch, { palette, delay: Math.round(delayMs), transparent: alpha, dispose: alpha ? 2 : -1 });
+      };
       for (let i = 0; i < n; i += 1) {
         await drawAt(tAt(i * frameMs));
-        files.push({ name: `seq_${String(i).padStart(4, '0')}.png`, data: await grab() });
-        exportPct.value = Math.round((i / (n + holdN + 1)) * 100);
+        addFrame(frameMs);
+        exportPct.value = Math.round((i / (n + 1)) * 100);
       }
       await drawAt(endT);
-      const endData = await grab();
-      files.push({ name: `seq_${String(n).padStart(4, '0')}.png`, data: endData });
-      for (let h = 1; h <= holdN; h += 1) files.push({ name: `seq_${String(n + h).padStart(4, '0')}.png`, data: endData });
+      addFrame(frameMs + hold);
+      gif.finish();
       exportPct.value = 100;
-      await saveFileAs(zipStore(files), `${fileBase.value}_seq.zip`, 'export');
+      await saveFileAs(new Blob([gif.bytes()], { type: 'image/gif' }), `${fileBase.value}.gif`, 'export');
     } else {
+      // WebM / MP4 — 실시간 녹화. §250: MP4 미지원 브라우저는 WebM 폴백 + 안내
+      const wantMp4 = exportCfg.format === 'mp4';
+      const cand = wantMp4
+        ? ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4']
+        : ['video/webm;codecs=vp9', 'video/webm'];
+      let mime = cand.find((m) => MediaRecorder.isTypeSupported(m));
+      let ext = wantMp4 ? 'mp4' : 'webm';
+      if (!mime) {
+        mime = ['video/webm;codecs=vp9', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
+        ext = 'webm';
+        exportMsg.value = 'MP4 not supported by this browser — saved as WebM';
+      }
       const stream = canvas.captureStream(fps.value);
-      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
       const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
       const chunks = [];
       rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
@@ -238,7 +280,7 @@ async function doExport() {
       await new Promise((r) => setTimeout(r, 150));
       rec.stop();
       await done;
-      await saveFileAs(new Blob(chunks, { type: 'video/webm' }), `${fileBase.value}.webm`, 'export');
+      await saveFileAs(new Blob(chunks, { type: mime.split(';')[0] }), `${fileBase.value}.${ext}`, 'export');
     }
   } finally {
     exporting.value = false;
@@ -251,10 +293,10 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
-// §248·§249: 화면 = 좌우 4px 미니 패딩만 (풀블리드는 과했음 — 사용자 정정)
+// §250: 화면 좌우 패딩 = 1px (보더라인 느낌 — 사용자 확정). 내부 폭 = winW − 창보더2 − 패딩2
 const previewH = computed(() => {
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round((winW.value - 8) * ratio);
+  return Math.round((winW.value - 4) * ratio);
 });
 </script>
 
@@ -262,14 +304,15 @@ const previewH = computed(() => {
   <div
     ref="rootEl"
     class="animWin"
-    :class="{ floating: !!pos }"
+    :class="{ floating: !!pos, collapsed: pose && !optsOpen }"
     :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
     @pointerdown.stop="onWinDown" @wheel.stop @contextmenu.stop.prevent
   >
-    <!-- §249: 옵션 접기 토글 = 타이틀바 우측 — 접힌 상태에서 하단 바 불필요 (사용자 확정) -->
+    <!-- §249·§250: 옵션 접기 토글 = 타이틀바 우측 — 라벨(Show/Hide options) + 셰브론 -->
     <div class="titleRow">
-      <h2 class="title" title="Drag to move">Animation</h2>
-      <button v-if="pose" class="optTg" :title="optsOpen ? 'Hide options' : 'Show options'" @click="optsOpen = !optsOpen">
+      <h2 class="title" title="Drag to move">Animation Preview</h2>
+      <button v-if="pose" class="optTg" @click="optsOpen = !optsOpen">
+        {{ optsOpen ? 'Hide options' : 'Show options' }}
         <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
       </button>
     </div>
@@ -296,7 +339,7 @@ const previewH = computed(() => {
         </div>
       </div>
       <template v-if="optsOpen">
-        <!-- ── 재생 그룹: 스크러버 · 시간 · 루프 모드 · 반복 · 프레임레이트 ── -->
+        <!-- ── 재생 그룹: 스크러버 · 시간 · 루프 모드(시뮬 보기 전용) · 프레임레이트 ── -->
         <input
           class="scrub" type="range" min="0" max="1000" :value="Math.round(p * 1000)"
           @input="(e) => { stop(); p = Number(e.target.value) / 1000; }"
@@ -304,14 +347,11 @@ const previewH = computed(() => {
         <div class="row">
           <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
           <span class="time">{{ timeLabel }}</span>
-          <!-- §233: pingpong · cycle, 기본 pingpong (§246: once 폐기) -->
+          <!-- §233: pingpong · cycle, 기본 pingpong (§246: once 폐기 — 시뮬레이터 보기 옵션) -->
           <div class="segMini loopSeg">
             <button :class="{ on: loopMode === 'pingpong' }" @click="loopMode = 'pingpong'">pingpong</button>
             <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">cycle</button>
           </div>
-          <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
-            ×<input class="numIn cycIn" type="number" min="1" max="8" v-model.number="cycles" />
-          </label>
         </div>
         <div class="optRow">
           <span class="optLabel">Frame rate</span>
@@ -320,14 +360,15 @@ const previewH = computed(() => {
             <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
           </div>
         </div>
-        <!-- ── §247: 익스포트 그룹 — 포맷 · 배율 · 투명 · 끝 프레임 홀드 · 저장 ── -->
+        <!-- ── §247·§250: 익스포트 그룹 — 투명 · 배율 · 포맷 · 반복 · 홀드 · 저장 (사용자 순서) ── -->
         <div class="sectHead">Export</div>
         <div class="optRow">
-          <span class="optLabel">Format</span>
-          <div class="segMini">
-            <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
-            <button :class="{ on: exportCfg.format === 'png' }" @click="exportCfg.format = 'png'">PNG seq</button>
-          </div>
+          <span class="optLabel">Transparent bg</span>
+          <!-- §250: GIF 전용 — 비디오 실시간 녹화는 알파 비보존 -->
+          <input
+            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format !== 'gif'"
+            :title="exportCfg.format === 'gif' ? 'Drop the frame background (binary alpha)' : 'GIF only'"
+          />
         </div>
         <div class="optRow">
           <span class="optLabel">Scale</span>
@@ -338,28 +379,42 @@ const previewH = computed(() => {
           </div>
         </div>
         <div class="optRow">
-          <span class="optLabel">Transparent bg</span>
-          <!-- §247: PNG 전용 — WebM 실시간 녹화는 알파 비보존 -->
-          <input
-            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format !== 'png'"
-            :title="exportCfg.format === 'png' ? 'Drop the frame background (alpha PNG)' : 'PNG sequence only'"
-          />
+          <span class="optLabel">Format</span>
+          <div class="segMini">
+            <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
+            <button :class="{ on: exportCfg.format === 'mp4' }" @click="exportCfg.format = 'mp4'">MP4</button>
+            <button :class="{ on: exportCfg.format === 'gif' }" @click="exportCfg.format = 'gif'">GIF</button>
+            <button :class="{ on: exportCfg.format === 'json' }" @click="exportCfg.format = 'json'">JSON</button>
+          </div>
+        </div>
+        <div class="optRow">
+          <span class="optLabel">Cycles</span>
+          <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
+            ×<input
+              class="numIn cycIn" type="number" min="1" max="8" v-model.number="cycles"
+              @keydown.enter.stop.prevent="$event.target.blur()"
+            />
+          </label>
         </div>
         <div class="optRow">
           <span class="optLabel">End hold (ms)</span>
-          <input class="numIn holdIn" type="number" min="0" max="5000" step="100" v-model.number="exportCfg.hold" />
+          <input
+            class="numIn holdIn" type="number" min="0" max="5000" step="100" v-model.number="exportCfg.hold"
+            @keydown.enter.stop.prevent="$event.target.blur()"
+          />
         </div>
         <div class="exRow">
+          <!-- §250: 버튼 라벨은 포맷에 반응하지 않음 — 그냥 Export (사용자 확정) -->
           <button class="exBtn" :disabled="exporting" @click="doExport">
-            {{ exporting ? `Exporting… ${exportPct}%` : exportCfg.format === 'png' ? 'Export PNG sequence' : 'Export WebM' }}
+            {{ exporting ? `Exporting… ${exportPct}%` : 'Export' }}
           </button>
         </div>
-        <div class="menuNote">Saved as {{ fileBase }} — timing per connection via the wire ≡ control</div>
+        <div class="menuNote">{{ exportMsg || `Saved as ${fileBase} — timing per connection via the wire ≡ control` }}</div>
       </template>
     </template>
-    <!-- §245: 페어링 진입점 변경 — opt-드래그 복제 폐기, 뱃지 팝업(Make paired keyframe)으로 -->
+    <!-- §245·§250: 페어링 진입점 — 뱃지 팝업(Make keyframe) -->
     <div v-else class="empty">
-      Select a frame and click its ▶ badge → Make paired keyframe, then drag the right node onto the copy's left node — the connection plays here
+      Select a frame and click its ▶ badge → Make keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
     <!-- §248: 빈 상태 전용 그립 (화면이 없을 땐 창 우하단 유지) — 화면이 있으면 프리뷰 쪽 그립 사용 -->
     <div v-if="!pose" class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
@@ -380,14 +435,16 @@ const previewH = computed(() => {
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   display: flex; flex-direction: column; gap: 10px;
 }
+/* §250: 접힘 = 화면이 마지막 요소 — 하단 패딩 1px (화면 좌우 1px과 동일 문법) */
+.animWin.collapsed { padding-bottom: 1px; }
 .title {
   /* L2 창 타이틀 (§218 전역 사다리) — §226: 드래그 = 창 이동 */
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
   letter-spacing: 0; margin: 0; text-transform: capitalize;
   cursor: move; user-select: none; -webkit-user-select: none;
 }
-/* §227: 클릭 = 재생/정지 · §249: 좌우 4px 미니 패딩 (풀블리드 완화) */
-.pvWrap { position: relative; cursor: pointer; margin: 0 calc(4px - var(--panel-pad)); }
+/* §227: 클릭 = 재생/정지 · §250: 좌우 1px 패딩 (보더라인 느낌 — 사용자 확정) */
+.pvWrap { position: relative; cursor: pointer; margin: 0 calc(1px - var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
@@ -406,13 +463,13 @@ const previewH = computed(() => {
   }
 }
 .pvWrap:hover .pvPlay { opacity: 1; }
-// §226: 우하단 크기 조절 그립 — 기호 상시 표시, 호버 = 액센트
+// §226·§248·§250: 화면 우하단 크기 조절 그립 — 가시성 강화 (텍스트색·확대, 호버 = 액센트)
 .sizeGrip {
-  position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px;
+  position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px;
   cursor: nwse-resize;
   display: flex; align-items: center; justify-content: center;
-  svg { width: 10px; height: 10px; fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: square; }
-  &:hover svg { stroke: var(--accent); }
+  svg { width: 12px; height: 12px; fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: square; opacity: 0.85; }
+  &:hover svg { stroke: var(--accent); opacity: 1; }
 }
 .scrub {
   width: 100%; margin: 0; accent-color: var(--accent);
@@ -434,12 +491,12 @@ const previewH = computed(() => {
   }
 }
 .exRow { display: flex; gap: 6px; align-items: center; }
-// §244: 익스포트 반복 회수 — ×n (§246: 루프 모드 세그 옆으로 이동)
+// §244: 익스포트 반복 회수 — ×n (§250: Export 섹션으로 이동)
 .cycWrap {
   display: inline-flex; align-items: center; gap: 2px;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
 }
-// §247: 공용 숫자 입력 (반복 ×n · 끝 프레임 홀드)
+// §247: 공용 숫자 입력 (반복 ×n · 끝 프레임 홀드) — §250: Enter = 커밋(blur)
 .numIn {
   @include text-field;
   width: 28px; height: 21px; padding: 0 2px; text-align: center;
@@ -448,13 +505,15 @@ const previewH = computed(() => {
   &:disabled { color: var(--disabled); }
 }
 .holdIn { width: 48px; }
-// §247·§249: 옵션 접기 토글 — 타이틀바 우측 셰브론
+// §247·§249·§250: 옵션 접기 토글 — 타이틀바 우측 라벨+셰브론
 .titleRow { display: flex; align-items: center; justify-content: space-between; }
 .optTg {
   border: none; background: none; cursor: pointer; padding: 0;
-  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
-  svg { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
-  &:hover svg { stroke: var(--accent); }
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: inherit; font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
+  &::first-letter { text-transform: uppercase; }
+  svg { width: 12px; height: 12px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
+  &:hover { color: var(--accent); svg { stroke: var(--accent); } }
 }
 // §247: 옵션 행 — L5 라벨 + 우측 컨트롤 (메인 패널 행 문법)
 .optRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

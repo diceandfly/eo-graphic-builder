@@ -14,6 +14,7 @@ const props = defineProps({
   selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
   dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
   selectedIds: { type: Array, default: () => [] }, // §245: 선택 미페어 프레임 = 고스트 뱃지 (페어링 진입점)
+  showBadges: { type: Boolean, default: true }, // §250: 페어 ▶ 뱃지 표시 토글 (바운딩박스 팝업)
 });
 const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext', 'pairClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
@@ -54,9 +55,10 @@ const pairIndex = computed(() => {
 const showPairNums = computed(() => Object.keys(pairIndex.value).length >= 2);
 // §245: 뱃지 표시 대상 — 페어 프레임(상시) + 애니 모드에서 **선택된 미페어 프레임**(고스트:
 // 번호 없는 점선 뱃지 = "여기서 페어를 만들 수 있다"는 진입점, 클릭 = Make paired keyframe 팝업)
-const markFrames = computed(() =>
-  frames.value.filter((f) => f.pair != null || (!props.dimmed && props.selectedIds.includes(f.id)))
-);
+const markFrames = computed(() => {
+  if (!props.showBadges) return []; // §250: 뱃지 토글 off
+  return frames.value.filter((f) => f.pair != null || (!props.dimmed && props.selectedIds.includes(f.id)));
+});
 
 // §234: 활성 체인 — 선택 엣지에서 연결을 따라 확장한 프레임 집합 (in/out ≤1이라 선형 체인)
 const chainIds = computed(() => {

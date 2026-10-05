@@ -397,7 +397,7 @@ const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) 
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
 // 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색 · 캔버스 격자/배경 색 (§85)
 const view = reactive({
-  nudge: 5, showLinks: true, showGroups: true, showSelName: true, guideColor: null, // §245: showSelName = 선택 bbox 유닛 이름 라벨
+  nudge: 5, showLinks: true, showGroups: true, showSelName: true, showAnimBadges: true, guideColor: null, // §245: showSelName · §250: showAnimBadges = 페어 ▶ 뱃지
   stageGridColor: null, stageBgColor: null,
   seamOn: true, seamCutoff: 40, // seam 스트로크 보정: 줌 < cutoff% 에서만 (§86)
   framePickZoom: 20, // §203: 이 줌(%) 미만 = 프레임 우선 선택 (0 = 끔)
@@ -1741,6 +1741,7 @@ onBeforeUnmount(() => {
           :selected-edge="selEdge"
           :dimmed="!animMode"
           :selected-ids="doc.selectedIds"
+          :show-badges="view.showAnimBadges !== false"
           @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
@@ -2024,7 +2025,7 @@ onBeforeUnmount(() => {
       <button
         class="ctxItem"
         @click="onMakePair"
-      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make new keyframe</button>
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make keyframe</button><!-- §250: 명칭 단축 -->
       <template v-if="pairMenu.f.pair != null">
         <button
           class="ctxItem"

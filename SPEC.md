@@ -1959,3 +1959,18 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - §248 풀블리드 완화(사용자 정정): 화면 좌우 **4px 미니 패딩** + 보더·라운딩 복원. previewH 기준 폭 = winW − 8.
 - **옵션 접기 토글 = 타이틀바 우측 셰브론으로 이동** — 접힌 상태에서 하단 토글 바가 필요 없음(사용자 확정). titleRow(타이틀+토글) 신설, 프리뷰 하단 토글 제거. 실측: 접힘 시 옵션 전부 숨김·토글 상주.
+
+## 250. 2026-10-05 — 애니창 v2: 포맷 4종(MP4·GIF·JSON)·1px 패딩·타이틀 토글 라벨·엔터 커밋·뱃지 토글
+
+1. **화면 패딩 = 좌우 1px**(보더라인 느낌, §249의 4px 재조정) + **접힘 시 하단 패딩 1px**(.collapsed). previewH 기준 폭 = winW−4. **크기 그립 가시성 강화**(스트로크 = 텍스트색·12px·호버 액센트).
+2. **접기 토글 = 라벨 병기** — "Hide options / Show options" 텍스트+셰브론 (타이틀바 우측).
+3. **숫자 입력 Enter = 커밋**(blur) — Cycles·End hold (§227 duration 필드와 동일 문법). 실측 blur 확인.
+4. **Make new keyframe → Make keyframe** (뱃지 팝업·빈 상태 안내·매뉴얼).
+5. **포맷 개편**: PNG 시퀀스 폐기(zipStore.js 삭제 — git 이력 보존) → **WebM · MP4(h264) · GIF · JSON(웹 모션 데이터)**.
+   - MP4 = MediaRecorder video/mp4(h264) — 팬 브라우저 네이티브 지원 실측, 미지원 환경은 WebM 폴백+안내(menuNote 자리).
+   - GIF = gifenc(신규 의존성) 비실시간 인코딩, **배경 투명 = GIF 전용**(바이너리 알파), 끝 홀드 = 마지막 프레임 딜레이 연장.
+   - JSON = 두 키프레임(frame params + 유닛 프레임 로컬 좌표/params/pair) + 타이밍(fps·duration·curve·loop·cycles·hold) 직렬화 — 외부 웹 렌더러용.
+   - **Export 버튼 라벨 = 고정 "Export"**(포맷 반응 제거 — 사용자 확정).
+6. **EXPORT 행 순서 = Transparent → Scale → Format → Cycles(×n, 재생 행에서 이동) → End hold → Export** (사용자 지정). 재생 그룹 = 스크러버·시간·pingpong/cycle(시뮬 보기 전용)·Frame rate.
+7. **타이틀 = "Animation Preview"**.
+8. **바운딩박스 팝업**: 체크 순서 321(unit name → link badges → group outlines) + **Show animation badges** 추가(view.showAnimBadges — 페어 ▶ 뱃지 전체 게이트, AnimOverlay showBadges prop).
