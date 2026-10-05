@@ -1197,13 +1197,36 @@ export function useDocument() {
       for (const c of LINK_CATS) if (u.links[c] != null && counts[u.links[c]] < 2) u.links[c] = null;
     }
   }
-  // §264: 범주별 링크그룹 직접 지정 — 다중 링크 UI(범주 행 × 그룹 번호)의 단일 경로.
+  // §264: 범주별 링크그룹 직접 지정 — 다중 링크 UI의 단일 경로.
   // v: lid(기존 그룹 합류) | null(그 범주 해제) | 'new'(새 그룹 — 선택 2개 이상에서 의미)
+  // §268: 링크 = "걸면 통일" — 결성/합류 시 그 범주 키를 기준 유닛 값으로 즉시 동기
+  // (멤버십만 걸면 발산 상태로 남아 "링크가 그냥 돼버림" — 사용자 리포트).
+  // 기준 = 기존 그룹 합류면 그 그룹의 기존 멤버, 새 그룹이면 활성 유닛(없으면 첫 선택).
+  // 예외: orientation 범주는 동기하지 않음 — 오리 링크 = 절대값 동기가 아니라 "함께 회전/반전"(§266).
   function setCategoryLink(ids, cat, v) {
     const lid = v === 'new' ? nextLink++ : v;
-    for (const u of doc.units) {
-      if (!ids.includes(u.id) || u.type === 'frame') continue;
-      u.links[cat] = lid;
+    const members = doc.units.filter((u) => ids.includes(u.id) && u.type !== 'frame');
+    let src = null;
+    if (lid != null && cat !== 'orientation') {
+      // 합류: 기준 = 그 그룹의 기존 멤버 (선택 안에 섞여 있어도 — 그룹 값이 우선)
+      if (v !== 'new') src = doc.units.find((u) => u.type !== 'frame' && u.links[cat] === lid) ?? null;
+      if (!src) src = members.find((u) => u.id === doc.activeId) ?? members[0] ?? null;
+    }
+    for (const u of members) u.links[cat] = lid;
+    if (src) {
+      const patch = {};
+      for (const k of SCOPE_KEYS[cat] ?? []) patch[k] = src.params[k];
+      // §268: withGeomOp 금지 — 그 안의 발산 분리기가 "기준 외 멤버만 변경"을 서브셋 발산으로
+      // 오판해 방금 건 링크를 즉시 해체했음. 결성 동기화는 미러 워처 억제(mirrorGuard)만.
+      mirrorGuard = true;
+      try {
+        for (const u of members) {
+          if (u === src) continue;
+          applyLinkPatch(u, { ...patch }, src.params); // W/H = 로컬 치수·앵커 규칙 공유 (§202)
+        }
+      } finally {
+        mirrorGuard = false;
+      }
     }
     cleanupLinks(); // 1멤버 그룹 자동 소멸 규칙 공유
   }

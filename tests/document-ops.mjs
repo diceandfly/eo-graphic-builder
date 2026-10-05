@@ -853,4 +853,40 @@ function centerIn(u, f) {
   });
 }
 
+
+// §268. setCategoryLink = 걸면 통일 — 기준 유닛 값으로 즉시 동기 (orientation 범주는 예외)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 960×800
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x += 3000;
+  u2.params.W = 400; u2.params.H = 300;
+  u2.params.orientation = 180;
+  api.doc.activeId = u1.id; // 기준 = 활성(u1)
+  api.setCategoryLink([u1.id, u2.id], 'size', 'new');
+  await sleep(30);
+  ok('§268: size 링크 결성 = 즉시 치수 통일 (활성 기준, 로컬 치수)', () => {
+    assert.equal(u1.params.W, 960);
+    assert.equal(u2.params.W, 960);
+    assert.equal(u2.params.H, 800);
+  });
+  // orientation 링크는 값 통일 없음 (상대 유지 §266)
+  api.setCategoryLink([u1.id, u2.id], 'orientation', 'new');
+  await sleep(30);
+  ok('§268: orientation 링크 결성 = 값 불변 (상대 관계 유지)', () => {
+    assert.equal(u1.params.orientation, 0);
+    assert.equal(u2.params.orientation, 180);
+    assert.ok(u1.links.orientation != null && u1.links.orientation === u2.links.orientation);
+  });
+  // 기존 그룹 합류 = 그룹 값이 기준
+  const u3 = api.duplicateFrom(u1);
+  u3.x += 6000; u3.params.W = 123;
+  api.setCategoryLink([u3.id, u1.id], 'size', u1.links.size);
+  await sleep(30);
+  ok('§268: 기존 그룹 합류 = 그룹 값 기준 동기', () => {
+    assert.equal(u3.params.W, 960);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
