@@ -2111,3 +2111,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 5. **SIZE 헤더 정비** — 셰브론이 h2 안(래퍼 때문에 :has 불발·위치 이상)이던 것: 단위/each 토글 = 타이틀 바로 옆, 셰브론 = 행 끝(margin auto), :has 규칙을 래퍼 포함형으로 교체. 실측 접기 작동.
 6. **링크 UI 재단순화** (§264 번호 코인 폐기 — 사용자: 그룹 수동 관리 과함): 범주 6행 = **[linked | solo] 원클릭 토글** — off→선택을 한 그룹으로(기존 그룹 있으면 합류, 없으면 새로), on→각자 해제. 그룹 id 완전 내부화(번호 비노출). "그리드·형태만 통일 + 애니 상수는 각자" = grid/shape linked + animation solo 두 클릭. 실측: 혼합 상태 표시·grid 토글 전환.
 7. 간격 패스 — secHead 좌측 정렬+gap 통일(8px), 신설 행들 기존 리듬(헤더 아래 12·행간 6~8) 정렬.
+
+## 266. 2026-10-06 — 오리 링크 확산 수술·K접미 자동 제거·링크 순서·행 리듬 8px·± 확대
+
+1. **오리엔테이션 링크 "풀림" 수술** — UI의 플립/회전은 전부 flipSelected/rotateSelected 경유인데 이 둘만 orientation 링크 확산이 없어, 멤버 일부만 변경 → 발산 감지(splitDivergedLinks)가 그룹을 자동 분리하던 것. 두 함수에 expandLinkByScope('orientation') 확산 추가(선택 밖 멤버 = 제자리 각자 미러/자기중심 스핀). 실측+테스트 2건(67): 상호반전 쌍 + 일부 선택 조작 → 링크 유지·전 멤버 상대 관계 보존. ("상호반전 상태로 링크가 걸리는 것"은 설계 의도 — 오리 링크 = 절대값 동기가 아니라 **함께 회전/반전**(상대 유지). 이제 그 의미가 실제로 동작.)
+2. **언페어/고아 초기화 시 " K<n>" 접미 자동 제거** (unpairFrame·pruneMeta 양 경로, 실측 Frame K1/K2 → Frame/Frame).
+3. **링크 행 순서** = Size/Grid/Shape/Color/Animation/Orientation (사용자 확정).
+4. **행 리듬 10→8px** (NumberField·Toggle·Slider 공통, offsetSet gap 6) — 서브타이틀 하 파라미터 밀도 상향.
+5. **± 칩 기호 확대** (15px semibold).
+6. (답변) grow를 compression ± 부호에 자동 결속하는 안은 §261의 50% 튐(부호 보간 중 끝단 스왑)을 재도입하므로 불가 — 절충 = 라벨을 with/counter(또는 +/−)로 "compression 기준 상대" 의미 유지.

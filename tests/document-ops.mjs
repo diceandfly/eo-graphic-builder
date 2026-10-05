@@ -826,4 +826,31 @@ function centerIn(u, f) {
   });
 }
 
+
+// §266. 오리엔테이션 링크 — 일부 선택 플립/회전도 전 멤버 확산 (분리 대신 링크 실현)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x += 3000;
+  u2.params.orientation = 180; u2.params.flipX = true; // 상호반전 쌍
+  api.setCategoryLink([u1.id, u2.id], 'orientation', 'new');
+  api.setSelection([u1.id]); // 하나만 선택
+  api.flipSelected('h');
+  await sleep(30);
+  ok('§266: 오리 링크 + 일부 선택 플립 = 링크 유지·전 멤버 각자 미러', () => {
+    assert.ok(u1.links.orientation != null && u1.links.orientation === u2.links.orientation);
+    assert.equal(u1.params.flipX, true);
+    assert.equal(u2.params.flipX, false); // 각자 상태 기준 — 상대 관계 보존
+  });
+  api.rotateSelected(1);
+  await sleep(30);
+  ok('§266: 오리 링크 + 일부 선택 회전 = 전 멤버 +90', () => {
+    assert.equal(u1.params.orientation, 90);
+    assert.equal(u2.params.orientation, 270);
+    assert.ok(u1.links.orientation === u2.links.orientation);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

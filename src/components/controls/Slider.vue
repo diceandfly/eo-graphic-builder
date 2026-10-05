@@ -101,7 +101,7 @@ function bump(d) {
 </template>
 
 <style scoped lang="scss">
-.row { margin-bottom: 10px; } /* §138: 패널 행 리듬 10px 통일 */
+.row { margin-bottom: 8px; } /* §138·§266: 패널 행 리듬 10→8px */
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); text-transform: capitalize; } /* §216: 이니셜 캡 = 전 단어 */
 .auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }

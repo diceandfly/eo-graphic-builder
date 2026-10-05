@@ -233,6 +233,7 @@ export function useDocument() {
     for (const f of doc.units) {
       if (f.type !== 'frame' || f.pair == null || pairCounts[f.pair] >= 2) continue;
       f.pair = null;
+      f.name = f.name.replace(/\sK\d+$/, ''); // §266: 키프레임 접미 자동 제거 (고아 초기화 경로)
       for (const u of doc.units) if (u.home === f.id) { u.pair = null; u.home = null; }
       doc.animEdges = doc.animEdges.filter((e) => e.from !== f.id && e.to !== f.id);
     }
@@ -875,6 +876,7 @@ export function useDocument() {
       }
     }
     doc.animEdges = doc.animEdges.filter((e) => e.from !== frameId && e.to !== frameId);
+    f.name = f.name.replace(/\sK\d+$/, ''); // §266: 키프레임 접미 자동 제거
     pruneMeta(); // §254: 남은 짝이 혼자가 되면 자동 초기화
     return { name: f.name, units: n };
   }
@@ -1280,6 +1282,9 @@ export function useDocument() {
     });
   }
   // 선택 전체 플립 (통합 바운딩박스 기준): 각 유닛을 화면축 미러 + 위치를 bbox 중심 대칭으로 재배치
+  // §266: orientation 링크 확산 — UI 플립은 전부 이 경로라, 확산이 없으면 링크 멤버 일부만
+  // 변경되어 발산 감지가 그룹을 자동 분리("링크가 풀림" — 사용자 리포트). 선택 밖 멤버는
+  // 위치 유지한 채 각자 상태 기준으로만 미러 (rotate의 링크 문법과 동일).
   function flipSelected(axis) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id)); // §261: 잠금 폐기 — 짝 동기
     if (!sel.length) return;
@@ -1291,7 +1296,13 @@ export function useDocument() {
         if (axis === 'h') u.x = bb.minX + bb.maxX - (u.x + p.W);
         else u.y = bb.minY + bb.maxY - (u.y + p.H);
       }
-      syncFlipToMates(new Set(sel.map((u) => u.id)), axis);
+      const selIds = new Set(sel.map((u) => u.id));
+      const ids = expandLinkByScope([...selIds], 'orientation');
+      for (const u of doc.units) {
+        if (!ids.has(u.id) || selIds.has(u.id) || u.type === 'frame') continue;
+        mirrorScreen(u.params, axis); // 링크 멤버 — 제자리 미러
+      }
+      syncFlipToMates(ids, axis);
     });
   }
   // 선택 전체를 하나의 덩어리처럼 90° 회전 — 통합 bbox 중심 기준으로 각 유닛 중심을 회전시키고 유닛 자체도 회전
@@ -1316,7 +1327,14 @@ export function useDocument() {
         u.y = ncy - p.H / 2;
         normalize(p);
       }
-      syncRotateToMates(new Set([...sel, ...carried].map((u) => u.id)), dir);
+      // §266: orientation 링크 확산 — 선택 밖 멤버는 자기 중심 스핀 (flipSelected와 동일 사유)
+      const doneIds = new Set([...sel, ...carried].map((u) => u.id));
+      const ids = expandLinkByScope([...doneIds], 'orientation');
+      for (const m of doc.units) {
+        if (!ids.has(m.id) || doneIds.has(m.id) || m.type === 'frame') continue;
+        spinOwn(m, dir);
+      }
+      syncRotateToMates(ids, dir);
     });
   }
   // 선택 전체 복제 — 통합 bbox 폭 + 80px 오른쪽에 배치 (단일 복제 버튼과 동일 규칙)

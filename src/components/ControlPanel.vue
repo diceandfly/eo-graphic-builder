@@ -598,11 +598,12 @@ section:has(.foldTg.isFolded) > :not(.secH):not(.secHead) { display: none; }
   padding: 0 9px; min-width: 34px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--faint);
+  font-size: 15px; font-weight: var(--fw-semibold); line-height: 1; /* §266: ± 기호 가독 확대 */
   &:hover { color: var(--accent); border-color: var(--accent); }
 }
 .compSet { margin-bottom: 10px; }
 /* §263: offset 묶음 — 압축 칩과 간격 분리(상단 gap) + 내부 행 간격 */
-.offsetSet { margin: 4px 0 10px; display: flex; flex-direction: column; gap: 8px; }
+.offsetSet { margin: 4px 0 8px; display: flex; flex-direction: column; gap: 6px; } /* §266 */
 .compSet :deep(.row) { margin-bottom: 6px; }
 .compSet :deep(.chips) { margin-bottom: 0; }
 // §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).
