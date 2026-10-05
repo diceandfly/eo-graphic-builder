@@ -2161,3 +2161,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **tokens/layers.css 신설** — z 사다리: win-preset 9 < win-main 10 < popup 11 < inline-edit 20 < win-anim 25 < popover 26 < local-pop 30 < manual 40. 리터럴 z 전수 치환(13곳 — 로컬 스택 z1~2는 고유값 유지). 챔퍼 3단 토큰(sizes.css)으로 호출부 하드코딩 8곳 치환.
 - **@mixin window-surface** 신설(배경·보더·라운딩 단일 레시피) — 4창+ctxMenu+popup-menu 믹스인이 공유. 콤팩트 팝업 패딩 4px → --sp-1 통일(ctx·툴팁·프리셋 ctx).
 - 실측: 토큰 라이브(z·챔퍼), 메인 클립 10px·바 5px. 이제 겹침 순서/챔퍼/서피스 룩의 단일 지점 = tokens 2파일 + mixins 1레시피.
+
+## 273. 2026-10-06 — 모드 통일(step·fixed) · cols grid 복귀 · 애니 버튼 반전 하이라이트 · 압축 칩 6열 · 이름 행 위계 · 페어 번호 뷰포트 카운트
+
+- **offset mode·gutter mode 토글 숨김(사용자 확정)**: offsetType은 step, gutterMode는 fixed로 통일. migrateUnit이 기존 문서도 강제 통일(flow·proportional 로직/데이터 키는 보존 — UI만 철수). 패널 GRID는 fixed gutter 슬라이더 상시 노출, MANUAL 양어 갱신.
+- **cols = grid 링크 범주 복귀**: §264에서 animation 범주로 분리했던 유닛 cols가 "grid 링크인데 칸 수만 따로 논다"로 체감(사용자 보고) → SCOPE_KEYS·EYEDROP_KEYS에서 grid로 이동. animation 범주 = grow·offsetType·offset. 결성 동기·라이브 브로드캐스트 테스트 2건 추가(73케이스).
+- **애니 모드 툴바 버튼**: 활성 = 버튼 전체 Builder Neon 솔리드 + 아이콘 Space Black 솔리드(반전 대비, §260 네온 아이콘 방식 대체). 재생 진행 루프 애니는 유지.
+- **압축 프리셋 칩 6열 그리드**: .compSet 칩 행 = repeat(6,1fr) 100% 폭 — 유닛 pitch compression은 11칩+± = 정확히 2행, 프레임 comp rows/cols도 동일 문법.
+- **이름 행 위계**: 사다리에 `--sp-head`(34) 추가 — 개체 이름 행→첫 섹션 간격을 섹션 간(26)보다 크게 (종전 16으로 역전돼 있었음).
+- **페어 번호 = 뷰포트 동시 가시 한정**: AnimOverlay pairIndex가 viewRect(DashboardStage 월드 사각형, 팬/줌 반응) 교차 프레임의 계보만 1..k 재부여. 가시 계보 <2면 번호 숨김은 종전 문법 그대로. 실측: 팬아웃 시 번호 0개(마크는 유지)→복귀 시 1..4 재부여.

@@ -159,7 +159,7 @@ Select a unit to shape it in the left panel. Click the name at the top of the pa
 ### GRID — thread layout
 - **cols** — number of threads (teeth)
 - **pitch compression** — makes the teeth get progressively narrower toward one side. 0 is even, +/− picks the direction. The ratio buttons under the slider (1:1 – 1+√2) jump to common values, and changing direction keeps the slant shape of the teeth
-- **gutter mode** — spacing between teeth as a fixed value (fixed) or proportional to width (prop)
+- **gutter** — spacing between teeth (fixed px)
 
 ### SHAPE
 - **shaft size** — thickness of the center shaft (% of unit height)

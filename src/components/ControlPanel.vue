@@ -14,7 +14,7 @@ import { useRecentColors } from '../composables/useRecentColors.js';
 import {
   COLS_MIN, COLS_MAX, RATE_MAX,
   D_PCT_MIN, D_PCT_MAX, A_MIN, A_MAX, B_MAX,
-  GUTTER_MIN, GUTTER_MAX, G_MIN, G_MAX, G_STEP,
+  GUTTER_MIN, GUTTER_MAX,
   LIMITS, UNIT_MAX, ASPECT_TOL, COMP_SCALE, COMP_SNAP,
   FRAME_COMP_SCALE, FRAME_RATE_MAX,
 } from '../geometry/constants.js';
@@ -483,21 +483,11 @@ function setStrokeColor(c) {
           >±</button>
         </ChipRow>
       </div>
-      <Toggle
-        label="gutter mode" v-model="p.gutterMode"
-        :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
-      />
+      <!-- §273: gutter mode 토글 숨김 — fixed로 통일 (proportional·g는 데이터만 유지) -->
       <Slider
-        v-if="p.gutterMode === 'fixed'"
         label="gutter" v-model="p.gutterPx"
         :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1" :arrow-step="5"
         :mixed="mixed('gutterPx')"
-      />
-      <Slider
-        v-else
-        label="gutter" v-model="p.g"
-        :min="G_MIN" :max="G_MAX" :step="G_STEP" :decimals="3"
-        :mixed="mixed('g')"
       />
     </section>
     <!-- §264: ANIMATION 섹션 — offset 묶음 승격 (조건부 표시 폐기, 접기로 대체) -->
@@ -511,12 +501,7 @@ function setStrokeColor(c) {
           :options="[{ value: 'r', label: '+' }, { value: 'l', label: '−' }]"
           @update:model-value="(v) => { p.grow = v; }"
         />
-        <!-- §262: step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
-        <Toggle
-          label="offset mode" :model-value="p.offsetType ?? 'step'"
-          :options="[{ value: 'step', label: 'step' }, { value: 'flow', label: 'flow' }]"
-          @update:model-value="(v) => { p.offsetType = v; }"
-        />
+        <!-- §273: offset mode 토글 숨김 — step으로 통일 (flow 로직·데이터는 유지) -->
         <Slider
           label="offset" v-model="p.offset"
           :min="-12" :max="12" :step="0.01" :arrow-step="1" :decimals="2"
@@ -559,7 +544,8 @@ function setStrokeColor(c) {
 }
 .logo { flex-shrink: 0; }
 .logoFill { fill: var(--accent); }
-.unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: -10px; }
+/* §273: 이름 행 → 첫 섹션 간격 = --sp-head (패널 gap 26 위에 차액 가산) — 섹션 간보다 한 단계 큰 위계 */
+.unitRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: calc(var(--sp-head) - var(--sp-section)); }
 .ratioHead {
   font-size: var(--fs-xs); letter-spacing: var(--ls-base);
   color: var(--dim); margin-bottom: 6px;
@@ -606,7 +592,12 @@ section:has(.foldTg.isFolded) > :not(.secH):not(.secHead) { display: none; }
 /* §263: offset 묶음 — 압축 칩과 간격 분리(상단 gap) + 내부 행 간격 */
 .offsetSet { margin: var(--sp-1) 0 var(--sp-group); display: flex; flex-direction: column; gap: var(--sp-row); } /* §271 */
 .compSet :deep(.row) { margin-bottom: var(--sp-row); } /* §271 */
-.compSet :deep(.chips) { margin-bottom: 0; }
+/* §273: 압축 프리셋 칩 = 6열 그리드로 행 100% 채움 (11칩+± = 정확히 2행) */
+.compSet :deep(.chips) {
+  margin-bottom: 0;
+  display: grid; grid-template-columns: repeat(6, 1fr); width: 100%;
+}
+.compSet :deep(.chip), .compSet .pmChip { min-width: 0; padding: 0 2px; }
 // §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).
 // 버튼 세로폭은 Toggle 세그와 동일(§140) — 늘어난 만큼 하단 마진에서 상쇄해 행간 유지.
 .secHead {

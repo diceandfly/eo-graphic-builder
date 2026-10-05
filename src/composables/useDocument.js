@@ -129,6 +129,11 @@ function migrateUnit(u, legacyScopes = {}) {
   if (u.type !== 'frame' && u.params && u.params.offset == null) u.params.offset = 0;
   if (u.type !== 'frame' && u.params && u.params.offsetType == null) u.params.offsetType = 'step'; // §262
   if (u.type !== 'frame' && u.params && u.params.grow == null) u.params.grow = 'r'; // §263
+  // §273: 모드 통일 (사용자 확정 — UI에서 두 토글 숨김): offset은 step, 거터는 fixed만 사용
+  if (u.type !== 'frame' && u.params) {
+    u.params.offsetType = 'step';
+    if (u.params.gutterMode != null) u.params.gutterMode = 'fixed';
+  }
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   // §220: linkId 단일 + linkScopes 플래그 → 범주형 links로 이관
@@ -255,9 +260,10 @@ export function useDocument() {
   const SCOPE_KEYS = {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
-    grid: ['gutterMode', 'gutterPx', 'g', 'rate', 'direction'],
-    // §264: 애니 재료(cols·grow·offsetType·offset)는 별도 범주 — "같은 그리드, 반전 애니" 조합 허용
-    animation: ['cols', 'grow', 'offsetType', 'offset'],
+    // §273: cols는 grid 범주로 복귀 — "grid 링크면 칸 수도 함께"가 사용자 기대 (따로 노는 게 버그로 체감)
+    grid: ['gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'cols'],
+    // §264: 애니 재료(grow·offsetType·offset)는 별도 범주 — "같은 그리드, 반전 애니" 조합 허용
+    animation: ['grow', 'offsetType', 'offset'],
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
@@ -273,10 +279,10 @@ export function useDocument() {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'],
     grid: [
-      ...['gutterMode', 'gutterPx', 'g', 'rate', 'direction'], // 유닛
-      ...['margin', 'rows', 'cols', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임 (§264: cols — 유닛 cols는 animation 범주로 이동, 프레임 그리드 cols는 여기)
+      ...['gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'cols'], // 유닛 (§273: cols grid 복귀)
+      ...['margin', 'rows', 'cols', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
     ],
-    animation: ['cols', 'grow', 'offsetType', 'offset'], // §264
+    animation: ['grow', 'offsetType', 'offset'], // §264·§273
     shape: [
       ...['dPct', 'a', 'b', 'threads', 'threadDir'],       // 유닛 shape
       ...['fillOn', 'strokeOn', 'stroke', 'strokeW'],       // 프레임 style (§133: Shape/Style 겸용)

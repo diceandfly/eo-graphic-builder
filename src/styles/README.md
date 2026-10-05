@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **토큰** | `tokens/colors.css` | 브랜드 네임드 컬러(1층: EO NEON·WORLD GREEN·HORIZON BLUE·SPACE BLACK·VOID GREY·HALO WHITE) → 시맨틱(2층: bg/panel/line/text/faint/accent/danger/link/guide…) | 색을 바꿀 때. **값만** 고친다. 컴포넌트에 색 리터럴 금지 |
 | | `tokens/typography.css` | 폰트 소스(@import)·`--font-sans`·크기 위계(fs-2xs/xs/sm/md)·자간(ls-base/wide/caps)·굵기 | 폰트 교체 / 위계 조정 |
-| | `tokens/spacing.css` | 레이아웃 층위 간격 — **수직 리듬 사다리(§271): `--sp-row`(6, 컨트롤 행) < `--sp-group`(8, 묶음·칩 행 뒤·팝업 행) < `--sp-win`(10, 창 블록) < `--sp-section`(26, 섹션)** + sp-1/3/6·panel-pad·window-pad-y. 창(메인·프리셋·애니·도움말)과 툴바 팝업이 전부 이 사다리 공유 | 여백 리듬 조정 — 새 간격은 사다리에서 고르고, 새 토큰 발명 금지 |
+| | `tokens/spacing.css` | 레이아웃 층위 간격 — **수직 리듬 사다리(§271): `--sp-row`(6, 컨트롤 행) < `--sp-group`(8, 묶음·칩 행 뒤·팝업 행) < `--sp-win`(10, 창 블록) < `--sp-section`(26, 섹션) < `--sp-head`(34, 개체 이름 행→첫 섹션 §273)** + sp-1/3/6·panel-pad·window-pad-y. 창(메인·프리셋·애니·도움말)과 툴바 팝업이 전부 이 사다리 공유 | 여백 리듬 조정 — 새 간격은 사다리에서 고르고, 새 토큰 발명 금지 |
 | | `tokens/sizes.css` | 컴포넌트 치수(btn/icon/thumb/check/swatch/panel-w/zoom-w)·`--radius` | 버튼 크기·라운딩 정책 |
 | | `tokens/motion.css` | 툴팁 지연·토스트 시간 | 타이밍 감각 |
 | | `tokens/layers.css` | **z-index 사다리(§272)**: win-preset 9 < win-main 10 < popup 11 < inline-edit 20 < win-anim 25 < popover 26 < local-pop 30 < manual 40. 새 표면은 여기서 고르고 리터럴 z 금지 (컴포넌트 내부 로컬 스택 z:1~2는 고유값 허용) | 겹침 순서 정책 |

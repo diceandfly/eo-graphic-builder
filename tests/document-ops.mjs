@@ -900,4 +900,29 @@ function centerIn(u, f) {
   });
 }
 
+// §273. cols = grid 범주 복귀 — grid 링크면 결성 동기 + 라이브 브로드캐스트 모두 cols 포함
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x += 3000;
+  u1.params.cols = 9;
+  u2.params.cols = 4;
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u2.id], 'grid', 'new');
+  await sleep(30);
+  ok('§273: grid 링크 결성 = cols 즉시 통일', () => {
+    assert.equal(u2.params.cols, 9);
+  });
+  api.doc.selectedIds = [u1.id];
+  api.doc.activeId = u1.id;
+  u1.params.cols = 6;
+  await sleep(30);
+  ok('§273: grid 링크 라이브 동기 = cols 브로드캐스트', () => {
+    assert.equal(u2.params.cols, 6);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

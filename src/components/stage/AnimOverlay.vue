@@ -15,6 +15,7 @@ const props = defineProps({
   dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
   selectedIds: { type: Array, default: () => [] }, // §245: 선택 미페어 프레임 = 고스트 뱃지 (페어링 진입점)
   showBadges: { type: Boolean, default: true }, // §250: 페어 ▶ 뱃지 표시 토글 (바운딩박스 팝업)
+  viewRect: { type: Object, default: null }, // §273: 뷰포트 월드 사각형 {x0,y0,x1,y1} — 페어 번호를 화면 가시 프레임 한정으로 매김
 });
 const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'edgeSelect', 'pairContext', 'pairClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
@@ -48,8 +49,14 @@ const connectedR = computed(() => new Set(props.edges.map((e) => e.from)));
 const connectedL = computed(() => new Set(props.edges.map((e) => e.to)));
 
 // §236: 페어 번호 — 링크 배지와 같은 로직: 계보(lineage)가 하나면 아이콘만, 여럿이면 1..k 번호
+// §273: 카운트 대상 = **뷰포트에서 동시에 보이는** 페어 프레임 한정 — 팬/줌에 따라 1..k 재부여
+const inViewRect = (f) => {
+  const r = props.viewRect;
+  if (!r) return true;
+  return f.x + f.params.W >= r.x0 && f.x <= r.x1 && f.y + f.params.H >= r.y0 && f.y <= r.y1;
+};
 const pairIndex = computed(() => {
-  const ids = [...new Set(frames.value.filter((f) => f.pair != null).map((f) => f.pair))].sort((a, b) => a - b);
+  const ids = [...new Set(frames.value.filter((f) => f.pair != null && inViewRect(f)).map((f) => f.pair))].sort((a, b) => a - b);
   return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
 });
 const showPairNums = computed(() => Object.keys(pairIndex.value).length >= 2);

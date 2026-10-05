@@ -57,6 +57,7 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
   100% { transform: translateX(0); opacity: 1; }
 }
 .animHover.active :deep(svg) { animation: animPlaySlide 0.9s ease-in-out infinite; }
-/* §260: 애니 모드 활성 = 풀 네온 **솔리드** 삼각형 — 토글 상태가 한눈에 (스트로크 전용 대비) */
-.animHover.active :deep(svg path) { fill: var(--accent); stroke: var(--accent); }
+/* §260 → §273: 애니 모드 활성 = **버튼 전체** 풀 네온 솔리드 + 아이콘은 블랙 솔리드 (반전 대비) */
+.managerCorner .animHover.active { background: var(--accent); }
+.managerCorner .animHover.active :deep(svg path) { fill: var(--space-black); stroke: var(--space-black); }
 </style>

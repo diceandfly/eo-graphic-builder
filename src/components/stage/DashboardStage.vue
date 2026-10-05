@@ -388,6 +388,14 @@ function dropClientToWorld(cx, cy) {
   const r = el.value.getBoundingClientRect();
   return props.viewport.toWorld(cx - r.left, cy - r.top);
 }
+// §273: 뷰포트 월드 사각형(반응형) — 페어 번호를 "동시에 보이는 프레임" 한정으로 매기는 기준
+const animViewRect = computed(() => {
+  const { w, h } = stageSize.value;
+  if (!w || !h) return null;
+  const [x0, y0] = props.viewport.toWorld(0, 0); // vp 반응 접근 — 팬/줌 추적
+  const [x1, y1] = props.viewport.toWorld(w, h);
+  return { x0, y0, x1, y1 };
+});
 const showManual = ref(false);   // 도움말 오버레이 (§157 — 파일 바 ? 좌클릭)
 const showGuides = ref(true);    // 유닛 그리드 가이드 (선택된 유닛에만 표시)
 const showFrameGrid = ref(true); // 프레임 그리드 가이드 (§132 — on/off 파라미터 폐기 후 뷰 토글로 이관)
@@ -1779,6 +1787,7 @@ onBeforeUnmount(() => {
           :dimmed="!animMode"
           :selected-ids="doc.selectedIds"
           :show-badges="view.showAnimBadges !== false"
+          :view-rect="animViewRect"
           @connect="(f, t) => { // §257: 연결 = 키프레임끼리만 — 미페어 프레임은 실패 + 안내
             const a = doc.units.find((x) => x.id === f);
             const b = doc.units.find((x) => x.id === t);
