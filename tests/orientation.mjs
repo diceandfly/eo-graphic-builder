@@ -155,10 +155,10 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
   const d = deriveUnit(base, { dockedEnds: { left: false, right: true } });
   const last = d.unit.threadsTop.length - 1;
   const [lo, hi] = span(d.unit.threadsTop[last]);
-  assert.ok(Math.abs(lo - 399.5) < 1e-6 && Math.abs(hi - 400.5) < 1e-6, `도킹면 뀝 스레드 ${lo}~${hi}`);
-  const [l0, h0] = span(d.unit.threadsTop[0]); // 비도킹 반대쪽 뀝 = 종전 규칙 유지
-  assert.ok(h0 <= base.W + 1e-6 && l0 >= -1e-6, '비도킹 뀝은 경계 내');
-  ok('§292: 도킹면 뀝 스레드 = 경계 중심 100% minW', () => {});
+  assert.ok(Math.abs(lo - 399.5) < 1e-6 && Math.abs(hi - 400.5) < 1e-6, `도킹면 끝 스레드 ${lo}~${hi}`);
+  const [l0, h0] = span(d.unit.threadsTop[0]); // 비도킹 반대쪽 끝 = 종전 규칙 유지
+  assert.ok(h0 <= base.W + 1e-6 && l0 >= -1e-6, '비도킹 끝은 경계 내');
+  ok('§292: 도킹면 끝 스레드 = 경계 중심 100% minW', () => {});
 }
 
 console.log(`✓ orientation: ${passed} cases passed`);
