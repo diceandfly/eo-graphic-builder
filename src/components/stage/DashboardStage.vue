@@ -109,6 +109,12 @@ function dockPt(u, side) {
 }
 // §284: 도크 브리지 — 공유 헬퍼 (익스포트·애니패널 프리뷰와 동일 소스)
 const stageBridges = computed(() => dockBridges(props.doc.units, props.doc.docks));
+// §285: 도크 배지 표시 대상 = 선택된 결착 유닛 + **같은 도크 체인의 상대들** (사용자 확정)
+const dockBadgeIds = computed(() => {
+  const ids = new Set(props.doc.selectedIds.filter((id) => dockedIdSet.value.has(id)));
+  if (ids.size) for (const m of props.actions.dockMates([...ids])) ids.add(m.id);
+  return ids;
+});
 // §283: 도크 배지 클릭 팝업 — 해제(Undock) 진입점 (페어 인디케이터 문법)
 const dockMenu = ref(null); // { x, y, u }
 function onDockBadgeClick(u, cx, cy) {
@@ -1879,7 +1885,7 @@ onBeforeUnmount(() => {
         <!-- §278 → §283: 도크 배지 = 페어 인디케이터 문법(원 안 글리프) + 클릭 = Undock 팝업
              §246: 프레임 다중선택 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
         <g
-          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockedIdSet.has(x.id) && doc.selectedIds.includes(x.id)) : []"
+          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockBadgeIds.has(x.id)) : []"
           :key="'dk' + u.id"
           class="dockMark"
           :transform="`translate(${u.x + u.params.W - pxs(9)} ${u.y - pxs(12)})`"
@@ -1908,7 +1914,7 @@ onBeforeUnmount(() => {
                 target: dockTargetOf(u),
                 docked: dockAttached.get(u.id)?.has(side),
               }"
-              :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(5)"
+              :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(6.5)"
               @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, side); }"
             />
           </g>
