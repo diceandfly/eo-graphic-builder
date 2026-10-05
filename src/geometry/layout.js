@@ -1,4 +1,4 @@
-import { MIN_COL_W } from './constants.js';
+import { MIN_COL_W, LIMITS } from './constants.js';
 
 // MIN_COL_W 가드로 늘어난 만큼 전체를 재정규화 — 합계가 목표(inner/k)를 넘지 않게.
 // (극소 폭에서 가드가 컬럼을 억지로 넓혀 W를 초과하던 오버플로 방지. 서브픽셀 영역이라 비율 왜곡은 비가시)
@@ -57,11 +57,18 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     // Σ k·wN + Σ g·k·wN[j]·gs[j] = W (정수·φ0에서 종전 폐형식과 일치)
     const k = W / (1 + g * wN.slice(0, -1).reduce((s, w, j) => s + w * gs[j], 0));
     colW = renorm(wN.map((w, i) => Math.max(MIN_COL_W * Math.min(1, len[i]), k * w)), k);
+    // MIN 가드로 부푼 colW가 거터(g·colW·gs)까지 키워 총폭이 W를 서브픽셀 초과할 수 있음 — 전체 캡
+    const total = colW.reduce((s, w, i) => s + w + (i < nCells - 1 ? g * w * gs[i] : 0), 0);
+    if (total > W && total > 0) colW = colW.map((w) => (w * W) / total);
     gutterAfter = (i) => g * colW[i] * gs[i];
   } else {
-    const inner = Math.max(0, W - gs.reduce((s, v) => s + v, 0) * gutterPx);
+    // 거터 합이 W를 넘으면 거터를 비례 축소 — 안 하면 x 누적이 W 밖까지 진행돼 0폭 유령 칸이
+    // W 밖에 깔림 (총폭 보존 위반 — UI는 gutterMax로 못 가는 영역이지만 함수 불변식으로 보장)
+    const gSum = gs.reduce((s, v) => s + v, 0);
+    const gpx = gSum > 0 ? Math.min(gutterPx, W / gSum) : gutterPx;
+    const inner = Math.max(0, W - gSum * gpx);
     colW = renorm(wN.map((w, i) => Math.max(MIN_COL_W * Math.min(1, len[i]), w * inner)), inner);
-    gutterAfter = (i) => gutterPx * gs[i];
+    gutterAfter = (i) => gpx * gs[i];
   }
 
   const out = [];
@@ -69,7 +76,9 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
   for (let i = 0; i < nCells; i += 1) {
     const L = x;
     const R = L + colW[i];
-    out.push({ L, R, w: colW[i] });
+    // len (§276): 칸의 인덱스 공간 길이(부분 칸 < 1) 동반 — buildUnit의 threadMin 가드가
+    // 꼬리 칸에서 len 비례로 자연 소멸하도록 (MIN_COL_W·거터 스케일과 같은 문법)
+    out.push({ L, R, w: colW[i], len: Math.min(1, len[i]) });
     x = R + (i < nCells - 1 ? gutterAfter(i) : 0);
   }
   // §262: step 모드 — 부분 칸을 "온전 슬롯"의 가상 경계로 치환 (렌더가 유닛 밖을 클립).
@@ -80,18 +89,25 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     const scale = wnSum > 0 ? pxSum / wnSum : 0; // 가드/renorm 반영된 유효 px 배율
     if (len[0] < 1 - EPS) { // 왼쪽 부분 칸: 슬롯 = [t1−1, t1]
       const vw = (gw(ts[1] / N) - gw((ts[1] - 1) / N)) * scale;
-      out[0] = { L: out[0].R - vw, R: out[0].R, w: vw };
+      out[0] = { L: out[0].R - vw, R: out[0].R, w: vw, len: len[0] };
     }
     const li = nCells - 1;
     if (li > 0 && len[li] < 1 - EPS) { // 오른쪽 부분 칸: 슬롯 = [tk, tk+1]
       const vw = (gw((ts[li] + 1) / N) - gw(ts[li] / N)) * scale;
-      out[li] = { L: out[li].L, R: out[li].L + vw, w: vw };
+      out[li] = { L: out[li].L, R: out[li].L + vw, w: vw, len: len[li] };
     }
   }
   // §261·§262: 극소 **부분 칸** 드랍 — 기준 = **가시 폭**(step은 가상 폭이 커도 보이는 조각이
   // 0.75px 미만이면 스트로크 틱만 남음). 정적 극압축의 실제 가는 칸(len=1)은 유지 (회귀 보존)
+  // §276: 단, threadMin 가드가 아직 그릴 폭(minPx·len)이 0.75px 이상이면 유지 — 좁은 끝의
+  // 부분칸을 즉시 드랍하면 1px 가드 직사각형이 테이퍼 없이 뚝 사라지는 팝의 원인이었음.
   return out.filter((c, i) => {
     const visW = Math.min(c.R, W) - Math.max(c.L, 0);
-    return visW >= 0.75 || len[i] >= 1 - EPS;
+    const guardW = LIMITS.threadMinPx * Math.min(1, len[i]);
+    // guardW 유지 조건: 일부라도 보이고, flow에선 칸이 경계 안일 것 — 거터 과대(Σ거터>W) 병리에서
+    // W 밖으로 밀려난 부분칸까지 살리면 총폭 보존(마지막 R ≤ W)이 깨짐. step의 끝 칸은
+    // 가상 경계가 밖으로 나가는 게 설계라 예외 (§262).
+    const inBounds = mode === 'step' || (c.R <= W + 1e-6 && c.L >= -1e-6);
+    return visW >= 0.75 || len[i] >= 1 - EPS || (guardW >= 0.75 && visW > 0 && inBounds);
   });
 }

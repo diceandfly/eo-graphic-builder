@@ -1144,6 +1144,7 @@ export function useDocument() {
       for (const u of sel) u.links = emptyLinks();
       cleanupLinks();
       pruneMeta();
+      syncPairLinks(sel.map((u) => u.id)); // §277
       return { action: 'unlinked', count: sel.length };
     } else {
       const lid = nextLink++;
@@ -1163,6 +1164,7 @@ export function useDocument() {
       }
       cleanupLinks(); // 기존 링크에서 일부만 편입된 경우, 밖에 홀로 남은 멤버 해제
       pruneMeta();
+      syncPairLinks(sel.map((u) => u.id)); // §277
       return { action: 'linked', count: sel.length, src: src.name };
     }
   }
@@ -1185,6 +1187,7 @@ export function useDocument() {
     }
     cleanupLinks();
     pruneMeta();
+    syncPairLinks(sel.map((u) => u.id)); // §277
     return { count: sel.length, lid };
   }
   // 단일 유닛을 자기 링크에서 제거 (나머지 멤버는 유지, 1개만 남으면 자동 해체)
@@ -1194,6 +1197,7 @@ export function useDocument() {
     u.links = emptyLinks();
     cleanupLinks();
     pruneMeta();
+    syncPairLinks([id]); // §277
     return { name: u.name };
   }
   function cleanupLinks() {
@@ -1228,38 +1232,88 @@ export function useDocument() {
       if (!src) src = members.find((u) => u.id === doc.activeId) ?? members[0] ?? null;
     }
     for (const u of members) u.links[cat] = lid;
-    if (src) {
-      const patch = {};
-      for (const k of SCOPE_KEYS[cat] ?? []) patch[k] = src.params[k];
-      // §268: withGeomOp 금지 — 그 안의 발산 분리기가 "기준 외 멤버만 변경"을 서브셋 발산으로
-      // 오판해 방금 건 링크를 즉시 해체했음. 결성 동기화는 미러 워처 억제(mirrorGuard)만.
-      mirrorGuard = true;
-      try {
-        for (const u of members) {
-          if (u === src) continue;
-          if (cat === 'orientation') {
-            // §269: 방위 통일 — 홀수(90/270)↔짝수 전환이면 캔버스 W/H를 중심 유지로 재스왑
-            // (params.W/H는 회전 반영 치수라, orientation만 복사하면 로컬 형상이 뒤틀림)
-            const wasOdd = isOdd(u.params);
-            u.params.orientation = src.params.orientation;
-            u.params.flipX = src.params.flipX;
-            if (wasOdd !== isOdd(u.params)) {
-              const p = u.params;
-              const cx = u.x + p.W / 2;
-              const cy = u.y + p.H / 2;
-              [p.W, p.H] = [p.H, p.W];
-              u.x = cx - p.W / 2;
-              u.y = cy - p.H / 2;
-            }
-          } else {
-            applyLinkPatch(u, { ...patch }, src.params); // W/H = 로컬 치수·앵커 규칙 공유 (§202)
+    if (src) unifyCatMembers(members, cat, src);
+    cleanupLinks(); // 1멤버 그룹 자동 소멸 규칙 공유
+    syncPairLinks(ids); // §277: 페어 프레임 짝 유닛에 링크 구조 복제
+  }
+  // §268 통일 로직 단일 경로 — setCategoryLink 결성 동기 + §277 페어 복제가 공유.
+  // withGeomOp 금지(발산 분리기가 신생 링크를 해체), 미러 워처 억제(mirrorGuard)만.
+  function unifyCatMembers(members, cat, src) {
+    const patch = {};
+    for (const k of SCOPE_KEYS[cat] ?? []) patch[k] = src.params[k];
+    mirrorGuard = true;
+    try {
+      for (const u of members) {
+        if (u === src) continue;
+        if (cat === 'orientation') {
+          // §269: 방위 통일 — 홀수(90/270)↔짝수 전환이면 캔버스 W/H를 중심 유지로 재스왑
+          // (params.W/H는 회전 반영 치수라, orientation만 복사하면 로컬 형상이 뒤틀림)
+          const wasOdd = isOdd(u.params);
+          u.params.orientation = src.params.orientation;
+          u.params.flipX = src.params.flipX;
+          if (wasOdd !== isOdd(u.params)) {
+            const p = u.params;
+            const cx = u.x + p.W / 2;
+            const cy = u.y + p.H / 2;
+            [p.W, p.H] = [p.H, p.W];
+            u.x = cx - p.W / 2;
+            u.y = cy - p.H / 2;
           }
+        } else {
+          applyLinkPatch(u, { ...patch }, src.params); // W/H = 로컬 치수·앵커 규칙 공유 (§202)
         }
-      } finally {
-        mirrorGuard = false;
+      }
+    } finally {
+      mirrorGuard = false;
+    }
+  }
+  // §277: 페어 프레임 간 링크 구조 자동 동기 — 한 키프레임에서 링크를 바꾸면 계보의 다른
+  // 키프레임 짝 유닛들도 같은 구조(프레임별 **분리 lid** — duplicatePairedFrame의 lidMap 관례)로.
+  // 값은 짝 프레임 **자체의 기준 유닛**(소스 counterpart)으로 그 프레임 안에서만 통일 —
+  // 키프레임 간 값 차이(애니 재료)는 건드리지 않는다. 멤버십이 이미 일치하면 lid 재사용(무교란).
+  function syncPairLinks(seedIds) {
+    const seeds = doc.units.filter((u) => seedIds.includes(u.id) && u.type !== 'frame' && u.pair != null);
+    if (!seeds.length) return;
+    const pairs = new Set(seeds.map((u) => u.pair));
+    const fam = doc.units.filter((u) => u.type !== 'frame' && u.pair != null && pairs.has(u.pair));
+    const homes = new Map(); // home 프레임 id → 계보 내 유닛들
+    for (const u of fam) {
+      const h = u.home ?? null;
+      if (!homes.has(h)) homes.set(h, []);
+      homes.get(h).push(u);
+    }
+    const srcHome = seeds[0].home ?? null;
+    const srcUnits = homes.get(srcHome) ?? [];
+    let touched = false;
+    for (const [h, mates] of homes) {
+      if (h === srcHome) continue;
+      for (const cat of LINK_CATS) {
+        const groups = new Map(); // 소스 lid → [{ m(짝), s(소스) }]
+        for (const s of srcUnits) {
+          const m = mates.find((x) => x.pair === s.pair);
+          if (!m) continue;
+          if (s.links[cat] == null) {
+            if (m.links[cat] != null) { m.links[cat] = null; touched = true; }
+            continue;
+          }
+          if (!groups.has(s.links[cat])) groups.set(s.links[cat], []);
+          groups.get(s.links[cat]).push({ m, s });
+        }
+        for (const grp of groups.values()) {
+          const ms = grp.map((x) => x.m);
+          // 기존 lid 재사용: 전원이 이미 같은 lid를 공유하고 그 lid가 그룹 밖에 없을 때 = 구조 일치 — 무교란
+          const cur = [...new Set(ms.map((m) => m.links[cat]))];
+          if (cur.length === 1 && cur[0] != null
+            && !doc.units.some((u) => u.links?.[cat] === cur[0] && !ms.includes(u))) continue;
+          const lid = nextLink++;
+          for (const m of ms) m.links[cat] = lid;
+          touched = true;
+          // 프레임 내 통일 — 기준 = 첫 짝 유닛 (이 프레임의 값 체계 유지, 키프레임 간 값은 불간섭)
+          if (ms.length >= 2) unifyCatMembers(ms, cat, ms[0]);
+        }
       }
     }
-    cleanupLinks(); // 1멤버 그룹 자동 소멸 규칙 공유
+    if (touched) cleanupLinks();
   }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   // 회전은 링크 멤버 각각에 자기 중심 기준으로 직접 적용

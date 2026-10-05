@@ -2181,3 +2181,17 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **"끝 스레드가 일정 두께 유지하다 뚝" 현상의 원인 규명**: threadMinPx 보정(§108, 기본 1px, ZoomBadge "Thread min") — buildUnit이 폭<minW 스레드를 고정 minW 직사각형으로 치환 → 압축 좁은 쪽으로 밀리는 꼬리 스레드가 1px를 유지하다 극소칸 드랍(가시폭<0.75px)에서 소멸. 필드·클립 수학 자체는 연속.
 - **Stroke fix 토글**(애니창, Frame rate 아래): off = 이 창의 프리뷰·익스포트 렌더에서만 보정 제거(UnitGraphic `threadMin=0` → deriveUnit/buildUnit 오버라이드 경로 신설) — 스레드가 실제 폭 그대로 0까지 테이퍼. 스테이지·정적 export는 종전 보정 유지. 설정은 edge.sim 동반 저장 + localStorage(eo.animStrokeFix) 초기값. 수치 검증: on 최소폭 1.000px / off 0.005px, 컬럼 구성 동일.
 - 열린 제안(미구현): 보정 자체를 꼬리에서 자연 소멸시키는 len 비례 가드(minW×min(1,len)) — 정적 보정 유지 + 애니 연속성 양립안. 사용자 결정 대기.
+
+## 276. 2026-10-06 — threadMin 보정 근본 수선: len 비례 자연 소멸 (§275 토글 철회) + 총폭 보존 불변식
+
+- **§275 Stroke fix 토글 철회**(UI·sim 키·threadMin 오버라이드 경로 제거) — 사용자 확정: 토글 대신 근본 해법.
+- **가드 len 비례**: buildUnit의 threadMinPx 가드 = `minPx × min(1, len)` (columns가 len 동반 — MIN_COL_W·거터 스케일과 같은 문법). 온전 칸(len=1)은 종전 1px 보장 그대로, 경계를 빠져나가는 꼬리 칸만 보정이 자연 소멸.
+- **드랍 필터 보강**: 가드가 아직 그릴 폭(minPx·len)이 0.75px↑면 부분칸 유지(일부 가시 + flow는 경계 내 한정) — 좁은 끝 부분칸이 즉시 드랍되며 1px 가드 직사각형이 뚝 사라지던 **진짜 팝 지점**. 실측: cols/offset 스윕 꼬리 폭 1→0.9→0.8→드랍, 프레임 간 점프 ≤0.25px (종전 ≈1px 팝).
+- **총폭 보존 불변식 수선(기존 잠복 버그)**: 고정 거터 합>W 병리에서 0폭 유령 칸이 W 밖까지 깔려 마지막 R≫W (퍼즈 1284/30만, 최악 139px — '총폭 보존' 테스트의 간헐 플레이크 원인). 거터 비례 축소 + proportional MIN 부풀림 전체 캡 → 퍼즈 0/50만. 지오메트리 베이스라인 tiny 3종만 갱신(거터>W 퇴화 유닛 — 유령 칸이 캔버스 안 분배로 교정).
+- 테스트: orientation +2 (온전 칸 가드 유지 · 꼬리 테이퍼 연속), 총 136케이스.
+
+## 277. 2026-10-06 — 페어 프레임 간 유닛 링크 구조 자동 동기
+
+- 한 키프레임에서 링크를 걸면/바꾸면/해제하면 계보의 다른 키프레임 짝 유닛들도 같은 구조로 — **프레임별 분리 lid**(duplicatePairedFrame lidMap 관례)로 복제, 값은 짝 프레임 자체 기준 유닛으로 **그 프레임 안에서만** 통일(키프레임 간 값 차이 = 애니 재료, 불간섭). 멤버십이 이미 일치하면 lid 재사용(무교란).
+- 진입점 4곳 공통: setCategoryLink · toggleLinkSelected(결성/해제) · splitLinkSelected · unlinkUnit → syncPairLinks. §268 통일 로직은 unifyCatMembers로 단일화해 공유.
+- 테스트 3건(복제·값 통일·해제 동기, 78케이스).

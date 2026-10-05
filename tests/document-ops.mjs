@@ -952,4 +952,34 @@ function centerIn(u, f) {
   });
 }
 
+// §277. 페어 프레임 간 링크 구조 자동 동기 — 프레임별 분리 lid 복제 + 해제 동기
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  const u2 = api.createUnit(f.x + 1500, f.y + 1000);
+  api.duplicatePairedFrame(f.id, 5000, 0);
+  const m1 = api.doc.units.find((u) => u.pair === u1.pair && u.id !== u1.id);
+  const m2 = api.doc.units.find((u) => u.pair === u2.pair && u.id !== u2.id);
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u2.id], 'grid', 'new');
+  await sleep(30);
+  ok('§277: 링크 결성 = 짝 프레임 유닛에 구조 복제 (분리 lid)', () => {
+    assert.ok(m1.links.grid != null);
+    assert.equal(m1.links.grid, m2.links.grid);
+    assert.notEqual(m1.links.grid, u1.links.grid); // duplicatePairedFrame lidMap 관례와 동일
+  });
+  ok('§277: 짝 프레임 내 값 통일 — 키프레임 간 값은 불간섭', () => {
+    assert.equal(m1.params.cols, m2.params.cols);
+  });
+  api.unlinkUnit(u1.id);
+  await sleep(30);
+  ok('§277: 해제도 동기 — 짝 프레임 링크 소멸', () => {
+    assert.equal(m1.links.grid, null);
+    assert.equal(m2.links.grid, null);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
