@@ -242,7 +242,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - Select **two units whose shaft axes are parallel** and four round nodes appear on their shafts. Drag one node onto the other unit's node and the two units **snap together as placed, aligned on the shaft axis** — the gap between them is the average of both gutters (nodes stay hidden when axes aren't parallel or zoom is under 15%)
 - Docked units **move together** (selection stays per-unit) and show the chain icon ({icon:link})
 - Chain 3, 4 or more units in series the same way; changing a gutter updates the gap live
-- While docked, **only rotation is locked** — flips and every other parameter stay per-unit
+- While docked, **rotation works per chain** — select every docked unit together (or their frame) to rotate as one; partial selections stay locked. Flips and every other parameter stay per-unit
 - Docked units get a **shaft bridge** filling the gap, so the pair reads as one piece joined by a natural gutter (included in SVG/PNG export and animation)
 - To undock, select the docked unit and click its chain badge ({icon:link}), then **Undock** — dropping a node on empty space works too
 - Docking units inside a keyframe replicates the same dock to its paired keyframes

@@ -1527,12 +1527,21 @@ export function useDocument() {
   // 회전은 링크 멤버 각각에 자기 중심 기준으로 직접 적용
   // (미러 패치는 W/H만 복사해 위치가 어긋나므로 여기서 위치까지 보정.
   //  반올림 없이 소수 좌표 유지 — 반복 회전 시 누적 오차 방지)
+  // §295: 도킹 회전 락 완화 — 조작 대상(targets)에 각 결착 유닛의 **체인 전체**가 포함돼 있으면
+  // 함께 회전 허용 (상대 기하가 통째로 돌아 결착 정의 유지 — 단독/큰 바운딩박스 포함 모두).
+  // 체인이 쪼개져 도는 경우만 락.
+  function dockRotateBlocked(targets) {
+    const ids = new Set(targets.map((t) => t.id));
+    return targets.some((t) =>
+      t.type !== 'frame' && dockedIdSet.value.has(t.id)
+      && dockMates([t.id]).some((m) => !ids.has(m.id)));
+  }
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
-    // §278: 도킹 중 회전 락 — 샤프트 축이 꺾이면 결착 정의가 무너짐 (반전은 축 불변이라 허용)
+    // §278 → §295: 단독 회전은 체인 동반이 없으므로, 결착 유닛이면 락 (체인 전체 선택 회전은 허용)
     if (u.type !== 'frame' && dockedIdSet.value.has(u.id)) {
-      notify('Docked unit — rotation is locked while docked');
+      notify('Docked unit — select the whole docked chain to rotate (or undock first)');
       return;
     }
     // §245: 프레임 회전 = 내부(기하 소속) 유닛 동반 (§261: 잠금 게이트 폐기 — 짝 동기로 대체)
@@ -1630,14 +1639,14 @@ export function useDocument() {
   function rotateSelected(dir) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
-    // §278: 도킹 중 회전 락 (단일 rotate와 동일 사유)
-    if (sel.some((u) => u.type !== 'frame' && dockedIdSet.value.has(u.id))) {
-      notify('Docked unit in selection — rotation is locked while docked');
-      return;
-    }
     // §245: 선택에 프레임이 있으면 내부(기하 소속) 유닛 동반 — bbox 기준은 선택만 (동반분은 같은 변환)
     const carried = frameOwnedUnits(sel.filter((u) => u.type === 'frame').map((u) => u.id))
       .filter((m) => !sel.includes(m)); // §261: 잠금 폐기 — 짝 동기
+    // §278 → §295: 결착 유닛의 체인 전체가 조작 대상(선택+동반)에 있으면 함께 회전 허용
+    if (dockRotateBlocked([...sel, ...carried])) {
+      notify('Docked unit — rotate the whole docked chain together (or undock first)');
+      return;
+    }
     const bb = bboxOf(sel);
     const C = { x: (bb.minX + bb.maxX) / 2, y: (bb.minY + bb.maxY) / 2 };
     withGeomOp(() => {

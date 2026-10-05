@@ -2311,3 +2311,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **이동 동반 확장 단일 경로**: expandMoveTargets(프레임 소유 §92 + 페어 home §245 + 도크 체인 §278) — 체인 영역/일반 이동 드래그의 중복 2벌 통합.
 - **데드코드 제거·린트 0**: App importPresets(프리셋 바 이관 후 잔재), ControlPanel 커스텀 비율 구독 블록(§264 Ratio 칩 폐지 잔재 — ASPECT_CHIPS·eo:ratios 리스너 포함), AnimOverlay onNodeDown 미사용 인자, migrateArrange의 구 axis 키 처리 정리. ESLint 경고 4→0.
 - CLAUDE.md 갱신: 진행 상태 포인터(애니·필드·멀티링크·도킹 완료, blend 합의 반영), 코드 관례에 geometry/dock.js 명시.
+
+## 295. 2026-10-06 — §292 flipX 반쪽 적용 수선 · 도킹 회전 락 체인 단위 완화
+
+- **§292 반쪽 적용의 원인 = flipX 라벨 공간 불일치**: dockedEnds 라벨은 dockNodePoint 기준(미러 **전** 로컬 u=0/1)인데 buildUnit 컬럼은 flipX 미러 **후** 공간 — flipX 유닛은 반대쪽 끝이 처리됐음. deriveUnit에서 flipX면 좌/우 라벨 스왑. 수치 검증: 비플립(우측 399.5~400.5)·플립(좌측 −0.5~0.5) 모두 마주 보는 경계 중심.
+- **회전 락 완화(사용자 확정)**: 결착 유닛의 **체인 전체가 조작 대상(선택+프레임 동반)에 포함되면 함께 회전 허용** — 단독 둘만 선택이든 큰 바운딩박스 포함이든. 상대 기하가 통째로 돌아 결착 정의 유지, 회전 후 재정렬 워처가 새 축으로 무결 재집행(수직 축 거터 10 보존 테스트). 체인이 쪼개지는 회전만 락(dockRotateBlocked). 단독 rotate(활성 1기)는 종전 락 + 안내문 갱신. 테스트 2건(94케이스), 매뉴얼 갱신.

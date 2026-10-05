@@ -37,10 +37,16 @@ export function deriveUnit(p, opts = {}) {
   const mirrorCols = (cs) => cs.map((c) => ({ L: localW - c.R, R: localW - c.L, w: c.w, len: c.len })).reverse();
   if (rev) columns = mirrorCols(columns);      // §265: 생산/흐름만 반대 끝 (밀도 원위치)
   if (p.flipX) columns = mirrorCols(columns);  // §263: 표시 미러 (형상은 threadDir 스왑이 담당)
+  // §295: dockedEnds 라벨은 dockNodePoint 기준(= 미러 **전** 로컬 u=0/1) — buildUnit의 컬럼은
+  // flipX 미러 **후** 공간이라 flipX 유닛은 좌/우를 스왑해야 같은 기하 끝을 가리킨다
+  // (미스왑 = 도킹면 반대쪽 끝이 경계 중심 처리되던 §292 반쪽 적용 버그)
+  const de = opts.dockedEnds
+    ? (p.flipX ? { left: !!opts.dockedEnds.right, right: !!opts.dockedEnds.left } : opts.dockedEnds)
+    : null;
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
     a: p.a, b: p.b, threads: p.threads, threadDir,
-    dockedEnds: opts.dockedEnds ?? null,
+    dockedEnds: de,
   });
   // clip: step 가상 경계가 유닛 밖으로 나갈 때만 렌더가 클립 창을 씌움 (미러 반영 후 판정)
   const clip = columns.some((c) => c.L < -1e-6 || c.R > localW + 1e-6);

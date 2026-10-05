@@ -1126,4 +1126,33 @@ function centerIn(u, f) {
   });
 }
 
+// §295. 도킹 회전 락 완화 — 체인 전체가 조작 대상이면 허용, 쪼개지면 락
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  u1.x = 0; u1.y = 0;
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x = 5000; u2.y = 0;
+  await sleep(30);
+  api.connectDock(u1.id, u2.id);
+  await sleep(30);
+  api.doc.selectedIds = [u1.id];
+  api.rotateSelected(1);
+  ok('§295: 체인 일부만 선택 = 회전 락 유지', () => {
+    assert.equal(u1.params.orientation, 0);
+  });
+  api.doc.selectedIds = [u1.id, u2.id];
+  api.rotateSelected(1);
+  await sleep(30);
+  ok('§295: 체인 전체 선택 = 함께 회전 허용 + 결착 유지', () => {
+    assert.equal(u1.params.orientation, 90);
+    assert.equal(u2.params.orientation, 90);
+    assert.equal(api.doc.docks.length, 1);
+    // 수직 축 재정렬: u2가 u1 아래로, 경계 간 거터 10
+    assert.ok(Math.abs(u2.y - (u1.y + u1.params.H + 10)) < 1e-6, `u2.y=${u2.y} u1.y=${u1.y} H=${u1.params.H}`);
+    assert.ok(Math.abs(u2.x - u1.x) < 1e-6);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
