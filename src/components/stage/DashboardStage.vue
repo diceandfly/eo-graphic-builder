@@ -169,6 +169,12 @@ const dockNodeUnits = computed(() => {
 // 칠해져 "엉뚱한 데가 결착됐다"는 오독을 만들었음 (사용자 리포트 0-1의 실체)
 // §292: 공유 헬퍼로 승격 (익스포트·애니패널과 동일 소스) — threadMin 경계 중심 100%에도 사용
 const dockAttached = computed(() => dockAttachedEnds(props.doc.units, props.doc.docks));
+// §293: 노드의 결착(파란 필) 표시 = **선택한 유닛들끼리 묶인 결착만** (사용자 확정) —
+// 서로 다른 도크그룹의 유닛을 하나씩 선택하면 노드는 비활성 룩 (이 선택 안에선 결착이 아님)
+const selDockAttached = computed(() => {
+  const sel = new Set(props.doc.selectedIds);
+  return dockAttachedEnds(props.doc.units, props.doc.docks.filter((e) => sel.has(e.from) && sel.has(e.to)));
+});
 // §281: 드래그 중 타깃 = 다른 선택 유닛의 **양쪽 노드 모두** — 같은쪽 노드에 놓아도 결착
 // (반대쪽 한정이 "드래그는 되는데 연결이 안 됨" 무반응의 원인. 방향은 드래그 시작 쪽이 결정)
 const dockTargetOf = (u) => !!dockDrag.value && dockDrag.value.fromId !== u.id;
@@ -1917,7 +1923,7 @@ onBeforeUnmount(() => {
               class="dockNode"
               :class="{
                 target: dockTargetOf(u),
-                docked: dockAttached.get(u.id)?.[side],
+                docked: selDockAttached.get(u.id)?.[side],
               }"
               :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(6.5)"
               @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, side); }"
