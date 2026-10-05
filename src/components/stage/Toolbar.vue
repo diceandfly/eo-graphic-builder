@@ -115,8 +115,9 @@ function onPick(c) {
         @click="emit('update:mode', 'select')"
         @contextmenu.prevent="emit('toggleFrameMode')"
       >
+        <!-- §243: 프레임 우선 = 같은 cursorDefault 실루엣의 채움 변형 (ICONS.select와 동일 패스) -->
         <svg v-if="frameMode" class="fillArrow" viewBox="0 0 24 24">
-          <path d="M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z" />
+          <path d="M5.59 3.3l-0.01 17.4c0 0.2 0.24 0.3 0.38 0.16l4.97 -4.97c0.04 -0.04 0.1 -0.07 0.16 -0.07h7.03c0.2 0 0.3 -0.24 0.16 -0.38L5.97 3.14c-0.14 -0.14 -0.38 -0.04 -0.38 0.16Z" />
         </svg>
       </IconButton>
       <!-- 프레임 툴 (F, §92): 드래그 = 그 크기, 더블클릭 = 퀵 사이즈 즉시 생성, 우클릭 = 퀵 사이즈 설정 -->

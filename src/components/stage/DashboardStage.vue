@@ -198,10 +198,13 @@ const frameLabels = computed(() => {
   const entry = (f) => {
     const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 8) / 6.8));
     const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
-    return { f, label, w: label.length * 6.8 + 20 }; // w = 히트 패드와 동일한 화면 px 근사
+    // w = 히트 패드 포함 화면 px 근사(렌더용) / tw = 텍스트만 (충돌 판정용 — §243)
+    return { f, label, w: label.length * 6.8 + 20, tw: label.length * 6.8 };
   };
   // §242: 겹침 = 숨김 대신 **윗줄 스태거(최대 3줄)** — 저배율 군집에서도 긴 이름이 사라지지 않음.
   // 우선순위(선택 > z 상위)가 0줄을 차지하고, 겹치는 라벨은 한 줄씩 위로. 3줄 초과만 숨김.
+  // §243: 충돌 판정은 **텍스트 폭(tw)** 기준 — 히트 패드(+20px)까지 포함하면 말줄임으로
+  // 시각적 겹침이 이미 해소된 이웃 라벨이 가짜 충돌로 한 줄 올라가던 문제.
   const es = fs.reverse().map(entry); // reverse: 선택(정렬 끝) → 첫 순위, 그다음 z 상위
   const out = [];
   for (const a of es) {
@@ -209,7 +212,7 @@ const frameLabels = computed(() => {
       if (b.row !== row) return false;
       const dxs = (a.f.x - b.f.x) * vp.scale;
       const dys = (a.f.y - b.f.y) * vp.scale;
-      return Math.abs(dys) < 18 && dxs < b.w && dxs > -a.w;
+      return Math.abs(dys) < 18 && dxs < b.tw + 4 && dxs > -(a.tw + 4);
     });
     let row = 0;
     while (row <= 2 && clash(row)) row += 1;
@@ -303,7 +306,7 @@ function guardedDelete() {
   if (animMode.value) {
     const sel = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
     if (sel.some((x) => x.pair != null)) {
-      toast('Paired keyframe — right-click the frame → Unpair keyframe to release it first');
+      toast('Paired keyframe — click its pair badge → Unpair keyframe to release it first'); // §243: 뱃지 클릭 안내
       return;
     }
   }
@@ -565,6 +568,36 @@ function onUnpairFrame() {
   const r = props.actions.unpairFrame(ctxMenu.value.u.id);
   if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
   closeCtx();
+}
+// §243: 페어 인디케이터 좌클릭 = 페어 전용 미니 팝업 — Unpair를 우클릭 ctx에만 숨기지 않고
+// 인디케이터 자체에 노출 (다른 우클릭 표면엔 없는 항목이라 ctx 단독으론 비직관적 — 사용자 지적)
+const pairMenu = ref(null); // { x, y, f } — 스테이지 로컬 px
+function onPairClick(f, cx, cy) {
+  if (!props.doc.selectedIds.includes(f.id)) {
+    props.actions.setSelection([f.id]);
+    props.doc.activeId = f.id;
+  }
+  const r = el.value.getBoundingClientRect();
+  pairMenu.value = { x: cx - r.left, y: cy - r.top, f };
+}
+function closePairMenu() { pairMenu.value = null; }
+function closePairMenuOutside(e) {
+  if (e.target instanceof Element && e.target.closest('.pairMenu')) return;
+  closePairMenu();
+}
+watch(pairMenu, (open) => {
+  if (open) {
+    registerPopup(closePairMenu);
+    setTimeout(() => window.addEventListener('pointerdown', closePairMenuOutside, true), 0);
+  } else {
+    unregisterPopup(closePairMenu);
+    window.removeEventListener('pointerdown', closePairMenuOutside, true);
+  }
+});
+function onUnpairFromMark() {
+  const r = props.actions.unpairFrame(pairMenu.value.f.id);
+  if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
+  closePairMenu();
 }
 function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
@@ -1650,6 +1683,7 @@ onBeforeUnmount(() => {
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
           @pair-context="onPairContext"
+          @pair-click="onPairClick"
         />
         <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
@@ -1910,6 +1944,19 @@ onBeforeUnmount(() => {
       <button class="ctxItem" @click="actions.copyActive(); onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
       <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
+    </div>
+    <!-- §243: 페어 인디케이터 클릭 = 페어 전용 미니 팝업 (현재 항목: Unpair) -->
+    <div
+      v-if="pairMenu"
+      class="ctxMenu pairMenu"
+      :style="{ left: pairMenu.x + 'px', top: pairMenu.y + 'px' }"
+      @pointerdown.stop
+      @contextmenu.prevent
+    >
+      <button
+        class="ctxItem"
+        @click="onUnpairFromMark"
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
     </div>
     <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->
     <input

@@ -14,7 +14,7 @@ const props = defineProps({
   selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
   dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
 });
-const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext']);
+const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext', 'pairClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
 
 const pxs = (n) => n / props.scale;
@@ -133,7 +133,7 @@ function onNodeDown(f, e) {
       class="pairMark" :class="{ dim: dimmed }"
       :transform="`translate(${f.x + f.params.W - pxs(9)} ${f.y - pxs(12)})`"
       @contextmenu.stop.prevent="(ev) => emit('pairContext', f, ev.clientX, ev.clientY)"
-      @pointerdown.stop
+      @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) emit('pairClick', f, ev.clientX, ev.clientY); }"
     >
       <!-- §233: 페어 = 재생 삼각형 · §236: 번호(계보 2개↑)·우클릭 = 프레임 ctx 팝업 -->
       <text v-if="showPairNums" class="pairNum" :x="-pxs(12)" :y="pxs(4)" :font-size="pxs(12)" text-anchor="end">{{ pairIndex[f.pair] }}</text>
@@ -173,13 +173,17 @@ function onNodeDown(f, e) {
 .wire.dim { stroke: var(--dim); opacity: 0.85; pointer-events: none; }
 // §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
 .pairMark {
-  cursor: context-menu; // §236: 우클릭 = 프레임 ctx 팝업 (Unpair 포함)
+  cursor: pointer; // §243: 클릭 = 페어 팝업 (Unpair) · 우클릭 = 프레임 ctx 팝업 (§236)
   .bg { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
   path { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: miter; }
   .pairNum { fill: var(--accent); font-family: inherit; font-weight: var(--fw-semibold); } // §236: 링크 배지 번호 문법
+  // §243: 호버 = 반전 강조 — 클릭 가능한 컨트롤임을 표시 (와이어 컨트롤 선택 문법과 동일)
+  &:hover .bg { fill: var(--accent); }
+  &:hover path { stroke: var(--bg); }
   &.dim .bg { stroke: var(--dim); }
   &.dim path { stroke: var(--dim); }
   &.dim .pairNum { fill: var(--dim); }
+  &.dim:hover .bg { fill: var(--dim); }
 }
 .node {
   // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트
