@@ -2263,7 +2263,9 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
-      <!-- §288 → §290: Gutter Compensation — 자동 평균에 더하는 ±px 단일 필드 (화살표 1px) -->
+      <!-- §288 → §290: Gutter Compensation — 자동 평균에 더하는 ±px 단일 필드 (화살표 1px)
+           §291: 잠정 숨김 (사용자 확정 — setDockComp·comp 데이터·짝 복제 로직은 보존) -->
+      <template v-if="false">
       <div v-for="(row, ri) in dockMenuEdges" :key="row.e.from + '-' + row.e.to" class="dockGapRow">
         <svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>
         <span class="dockGapLabel">Gutter compensation{{ dockMenuEdges.length > 1 ? ' ' + (ri + 1) : '' }}</span>
@@ -2271,7 +2273,8 @@ onBeforeUnmount(() => {
           :model-value="row.comp" :min="-2000" :max="2000" :step="1" suffix="px"
           @update:model-value="(v) => props.actions.setDockComp(row.e.from, row.e.to, v)"
         />
-      </div><!-- §289: 구분선 폐기 (사용자 확정) -->
+      </div>
+      </template><!-- §289: 구분선 폐기 · §291: 보정 행 숨김 -->
       <button
         class="ctxItem"
         @click="onUndockFromBadge"

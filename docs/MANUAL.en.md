@@ -245,7 +245,6 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - While docked, **only rotation is locked** — flips and every other parameter stay per-unit
 - Docked units get a **shaft bridge** filling the gap, so the pair reads as one piece joined by a natural gutter (included in SVG/PNG export and animation)
 - To undock, select the docked unit and click its chain badge ({icon:link}), then **Undock** — dropping a node on empty space works too
-- The same badge popup's **Gutter compensation** adds a ±px tweak on top of the automatic average gap
 - Docking units inside a keyframe replicates the same dock to its paired keyframes
 
 ---
