@@ -697,23 +697,38 @@ function centerIn(u, f) {
   api.doc.activeId = u1.id;
   api.doc.selectedIds = [u1.id];
   await sleep(10);
-  u1.params.orientation = 90; // 패널 편집 시뮬
+  // §261: orientation·flipX는 잠금 대상에서 제외 — threads 같은 나머지 이산키만 원복+경고 유지
+  u1.params.threads = 'one';
   await sleep(20);
-  ok('잠금: 페어 유닛 orientation 편집 = 원복+경고', () => {
-    assert.equal(u1.params.orientation, 0);
+  ok('잠금: 페어 유닛 threads 편집 = 원복+경고 (§261 잔존 잠금)', () => {
+    assert.equal(u1.params.threads, 'both');
     assert.ok(/locked/i.test(warned ?? ''));
   });
-  warned = null;
+  // §261: 회전 = 잠금 대신 **짝 전체 동시 적용**
+  const mate = api.doc.units.find((m) => m !== u1 && m.type !== 'frame' && m.pair === u1.pair);
   api.rotate(1);
-  ok('잠금: rotate 게이트', () => {
-    assert.equal(u1.params.orientation, 0);
-    assert.ok(/locked/i.test(warned ?? ''));
+  await sleep(20);
+  ok('§261: 페어 유닛 회전 = 짝 동기 (양쪽 90°)', () => {
+    assert.equal(u1.params.orientation, 90);
+    assert.equal(mate.params.orientation, 90);
+  });
+  // §261: 반전도 짝 동기 (화면 H — 현재 90° 상태라 mirrorScreen 분기 포함 검증)
+  const f0 = { a: u1.params.flipX, b: mate.params.flipX };
+  api.flipUnit();
+  await sleep(20);
+  ok('§261: 페어 유닛 좌우반전 = 짝 동기', () => {
+    assert.notEqual(u1.params.flipX, f0.a);
+    assert.notEqual(mate.params.flipX, f0.b);
+    assert.equal(u1.params.orientation, mate.params.orientation);
   });
   api.setAnimMode(false);
   api.rotate(1);
   await sleep(20);
-  ok('잠금: 모드 해제 시 정상 회전', () => {
-    assert.equal(u1.params.orientation, 90);
+  // 90° 상태의 H-flip은 orientation 270(+flipX)이 됨 → +90 회전 = 0
+  ok('§261: 비애니 모드 회전도 짝 동기 (대응 유지)', () => {
+    assert.equal(u1.params.orientation, 0);
+    assert.equal(mate.params.orientation, 0);
+    assert.equal(u1.params.flipX, mate.params.flipX);
   });
 }
 

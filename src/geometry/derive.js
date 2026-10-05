@@ -37,20 +37,24 @@ export function deriveUnit(p) {
 // (0~1)를 로컬 ↔ 캔버스로 변환한다. 두 오리엔트가 개별 저장되어 중첩 판정이 흩어지던 혼선 방지:
 // 오리엔트 조합을 따지는 로직은 반드시 이 두 헬퍼를 쓸 것. (예: 로컬 원점 (0,0)은 0°=좌상,
 // 90°=우상, 180°=우하, 270°=좌하, flipX는 캔버스 좌우 미러)
+// §261: flipX는 **로컬(회전 전) 미러** — 렌더가 deriveUnit에서 direction/threadDir을 뒤집어
+// 로컬 지오메트리를 미러한 뒤 orientationTransform을 적용하므로(R∘M 순서), 판정도 같은 순서여야 한다.
+// (구현 전: 캔버스(회전 후) 미러로 계산해 90/270°+flipX 조합에서 판정이 180° 어긋났음 —
+//  "좌우반전했는데 앵커가 상하로 바뀌어 보이던" 이상현상의 원인)
 export function localPointToCanvas(p, u, v) {
-  let x, y;
-  if (p.orientation === 90) { x = 1 - v; y = u; }
-  else if (p.orientation === 180) { x = 1 - u; y = 1 - v; }
-  else if (p.orientation === 270) { x = v; y = 1 - u; }
-  else { x = u; y = v; }
-  return [p.flipX ? 1 - x : x, y];
+  const uu = p.flipX ? 1 - u : u;
+  if (p.orientation === 90) return [1 - v, uu];
+  if (p.orientation === 180) return [1 - uu, 1 - v];
+  if (p.orientation === 270) return [v, 1 - uu];
+  return [uu, v];
 }
 export function canvasPointToLocal(p, x, y) {
-  if (p.flipX) x = 1 - x;
-  if (p.orientation === 90) return [y, 1 - x];
-  if (p.orientation === 180) return [1 - x, 1 - y];
-  if (p.orientation === 270) return [1 - y, x];
-  return [x, y];
+  let u, v;
+  if (p.orientation === 90) { u = y; v = 1 - x; }
+  else if (p.orientation === 180) { u = 1 - x; v = 1 - y; }
+  else if (p.orientation === 270) { u = 1 - y; v = x; }
+  else { u = x; v = y; }
+  return [p.flipX ? 1 - u : u, v];
 }
 
 // 로컬 좌표 → 캔버스 배치 transform (0/90/180/270, 시계방향)

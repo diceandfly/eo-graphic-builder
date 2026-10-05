@@ -2081,7 +2081,7 @@ onBeforeUnmount(() => {
         <button
           class="ctxItem"
           @click="onSelectChain"
-        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>Select chain</button>
+        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>Select all frames in chain</button><!-- §261: 명칭 명시화 -->
       </template>
     </div>
     <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->

@@ -399,7 +399,16 @@ export function useDocument() {
   function setAnimMode(on) { animGuard = !!on; doc.animOn = !!on; } // §255: 패널 조건부 표시 연동
   // §229: direction 제외 — 압축 부호는 rate와 결합해 연속 보간되므로 잠글 필요도, 잠그면 오히려
   // 슬라이더가 0을 지날 때 편집이 반쯤 원복되는 부작용만 있음.
-  const ANIM_LOCKED = ['orientation', 'flipX', 'threads', 'threadDir', 'gutterMode'];
+  // §261: orientation·flipX 제외 — 회전/반전은 잠금 대신 **짝 전체 동시 적용**(pairMates)으로 전환.
+  const ANIM_LOCKED = ['threads', 'threadDir', 'gutterMode'];
+  // §261: 같은 계보(pair)의 대응 유닛들 — 회전/반전을 짝 전원에 전파해 키프레임 대응을 유지
+  // (잠금+경고보다 친절: 어느 키프레임에서 뒤집든 애니 전체가 함께 뒤집힌다. 애니 모드 여부 무관)
+  function pairMates(ids) {
+    const pairs = new Set();
+    for (const u of doc.units) if (ids.has(u.id) && u.type !== 'frame' && u.pair != null) pairs.add(u.pair);
+    if (!pairs.size) return [];
+    return doc.units.filter((m) => m.type !== 'frame' && m.pair != null && pairs.has(m.pair) && !ids.has(m.id));
+  }
   function animLockBlock(targets) {
     if (!animGuard) return false;
     const arr = Array.isArray(targets) ? targets : [targets];
@@ -1003,8 +1012,8 @@ export function useDocument() {
   // 화면 기준 좌우 반전 — 90/270° 회전 상태면 로컬 축이 바뀌어 있으므로 로컬 상하 미러를 적용
   function flipUnit() {
     if (!active.value) return;
-    const p = active.value.params;
-    isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
+    mirrorScreen(active.value.params, 'h'); // §261: 짝 동기 공용 경로
+    syncFlipToMates(new Set([active.value.id]), 'h');
   }
   // 스와치: 선택 유닛(없으면 활성)에 fill 적용 — 링크 확산은 color 스코프가 켜진 링크만
   function setFill(color) {
@@ -1151,9 +1160,8 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
-    // §245: 프레임 회전 = 내부(기하 소속) 유닛 동반 — 잠금 검사도 동반 유닛 포함
+    // §245: 프레임 회전 = 내부(기하 소속) 유닛 동반 (§261: 잠금 게이트 폐기 — 짝 동기로 대체)
     const carried = u.type === 'frame' ? frameOwnedUnits([u.id]) : [];
-    if (animLockBlock([u, ...carried])) return; // §227
     // 링크 확산은 orientation 스코프가 켜진 링크만 (공용 헬퍼 경유)
     const ids = expandLinkByScope([u.id], 'orientation');
     const targets = [u, ...doc.units.filter((m) => m !== u && ids.has(m.id))];
@@ -1185,32 +1193,50 @@ export function useDocument() {
         m.y = ncy - p.H / 2;
         normalize(p);
       }
+      syncRotateToMates(new Set([...targets, ...carried].map((t) => t.id)), dir);
     });
+  }
+  // §261: 짝 동기 — 회전: 짝 유닛들을 **자기 중심**에서 같은 방향으로 회전 (위치 불변, 파라미터 대응 유지)
+  function spinOwn(m, dir) {
+    const p = m.params;
+    const cx = m.x + p.W / 2;
+    const cy = m.y + p.H / 2;
+    [p.W, p.H] = [p.H, p.W];
+    p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+    m.x = cx - p.W / 2;
+    m.y = cy - p.H / 2;
+    normalize(p);
+  }
+  function syncRotateToMates(doneIds, dir) {
+    for (const m of pairMates(doneIds)) spinOwn(m, dir);
+  }
+  // §261: 짝 동기 — 미러: 화면축 기준 미러를 각자의 orientation 상태에 맞춰 적용 (위치 불변)
+  const mirrorScreen = (p, axis) => {
+    if (axis === 'h') (isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p));
+    else (isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p));
+  };
+  function syncFlipToMates(doneIds, axis) {
+    for (const m of pairMates(doneIds)) mirrorScreen(m.params, axis);
   }
   // 화면 기준 상하 반전 — 90/270° 회전 상태면 로컬 좌우 미러가 화면 상하 미러
   function flipUnitV() {
-    if (animLockBlock(active.value)) return; // §227
     if (!active.value) return;
-    const p = active.value.params;
-    isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
+    mirrorScreen(active.value.params, 'v'); // §261: 잠금 폐기 — 짝 동기
+    syncFlipToMates(new Set([active.value.id]), 'v');
   }
   // 선택 전체 플립 (통합 바운딩박스 기준): 각 유닛을 화면축 미러 + 위치를 bbox 중심 대칭으로 재배치
   function flipSelected(axis) {
-    if (animLockBlock(doc.units.filter((u) => doc.selectedIds.includes(u.id)))) return; // §227
-    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
+    const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id)); // §261: 잠금 폐기 — 짝 동기
     if (!sel.length) return;
     const bb = bboxOf(sel);
     withGeomOp(() => {
       for (const u of sel) {
         const p = u.params;
-        if (axis === 'h') {
-          isOdd(p) ? mirrorLocalY(p) : mirrorLocalX(p);
-          u.x = bb.minX + bb.maxX - (u.x + p.W);
-        } else {
-          isOdd(p) ? mirrorLocalX(p) : mirrorLocalY(p);
-          u.y = bb.minY + bb.maxY - (u.y + p.H);
-        }
+        mirrorScreen(p, axis);
+        if (axis === 'h') u.x = bb.minX + bb.maxX - (u.x + p.W);
+        else u.y = bb.minY + bb.maxY - (u.y + p.H);
       }
+      syncFlipToMates(new Set(sel.map((u) => u.id)), axis);
     });
   }
   // 선택 전체를 하나의 덩어리처럼 90° 회전 — 통합 bbox 중심 기준으로 각 유닛 중심을 회전시키고 유닛 자체도 회전
@@ -1219,8 +1245,7 @@ export function useDocument() {
     if (!sel.length) return;
     // §245: 선택에 프레임이 있으면 내부(기하 소속) 유닛 동반 — bbox 기준은 선택만 (동반분은 같은 변환)
     const carried = frameOwnedUnits(sel.filter((u) => u.type === 'frame').map((u) => u.id))
-      .filter((m) => !sel.includes(m));
-    if (animLockBlock([...sel, ...carried])) return; // §227
+      .filter((m) => !sel.includes(m)); // §261: 잠금 폐기 — 짝 동기
     const bb = bboxOf(sel);
     const C = { x: (bb.minX + bb.maxX) / 2, y: (bb.minY + bb.maxY) / 2 };
     withGeomOp(() => {
@@ -1236,6 +1261,7 @@ export function useDocument() {
         u.y = ncy - p.H / 2;
         normalize(p);
       }
+      syncRotateToMates(new Set([...sel, ...carried].map((u) => u.id)), dir);
     });
   }
   // 선택 전체 복제 — 통합 bbox 폭 + 80px 오른쪽에 배치 (단일 복제 버튼과 동일 규칙)

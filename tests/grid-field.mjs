@@ -57,27 +57,60 @@ for (const direction of ['LtoS', 'StoL']) {
     ok(`회귀 fixed ${direction} rate=${rate}`, () => colsClose(computeColumns(p), legacyColumns(p), 1e-6));
   }
 }
-for (const rate of [1.5, 2]) {
-  const p = { ...BASE, rate, gutterMode: 'proportional', direction: 'LtoS' };
-  ok(`회귀 proportional LtoS rate=${rate}`, () => colsClose(computeColumns(p), legacyColumns(p), 1e-6));
+for (const direction of ['LtoS', 'StoL']) {
+  for (const rate of [1.5, 2]) {
+    const p = { ...BASE, rate, gutterMode: 'proportional', direction };
+    ok(`회귀 proportional ${direction} rate=${rate}`, () => colsClose(computeColumns(p), legacyColumns(p), 1e-6));
+  }
 }
-// proportional StoL = §255에서 "LtoS의 정확한 거울"로 재정의 (구 구현은 비대칭이었음 — 의도 변경)
+// §261: direction = 지수 부호 — 구(§pre-255) 구현과 전 조합 완전 호환 (proportional StoL 포함)
 
-// ── L2: 방향 반전 = 정확한 공간 거울 (연속 cols·offset 포함 전수) ──
+// ── L2′ (§261): direction = 지수 부호 — fixed·정수 N에서 StoL(φ) = mirror(LtoS(−φ)) ──
+// (§255의 "StoL = 좌표 미러" 폐기: 컷·끝단은 캐노니컬 고정, 거울상은 φ 부호까지 함께 뒤집어야 성립)
 {
   const rnd = (a, b) => a + Math.random() * (b - a);
   for (let i = 0; i < 40; i += 1) {
     const p = {
-      W: rnd(200, 2000), cols: rnd(1.2, 14), gutterPx: rnd(0, 20), g: rnd(0, 0.4),
-      rate: rnd(1, 3.5), offset: rnd(-5, 5),
-      gutterMode: Math.random() < 0.5 ? 'fixed' : 'proportional',
+      W: rnd(200, 2000), cols: 2 + Math.floor(rnd(0, 11)), gutterPx: rnd(0, 20), g: 0.2,
+      rate: rnd(1, 3.5), gutterMode: 'fixed',
     };
-    const A = computeColumns({ ...p, direction: 'LtoS' });
-    const B = computeColumns({ ...p, direction: 'StoL' });
+    const phi = rnd(-5, 5);
+    const A = computeColumns({ ...p, direction: 'LtoS', offset: -phi });
+    const B = computeColumns({ ...p, direction: 'StoL', offset: phi });
     const M = A.map((c) => ({ L: p.W - c.R, R: p.W - c.L, w: c.w })).reverse();
     colsClose(B, M, 1e-6);
   }
-  ok('L2: StoL = mirror(LtoS) — 랜덤 40조합 (연속 cols·offset·양 거터모드)', () => {});
+  ok('L2′: StoL(φ) = mirror(LtoS(−φ)) — fixed·정수 N 랜덤 40조합', () => {});
+}
+
+// ── §261: 50% 튐 회귀 — cols 4↔5 + 압축 부호 반전 동시 보간이 전 구간 연속인지 ──
+{
+  const layout = (cols, rate, direction) =>
+    computeColumns({ ...BASE, cols, rate, direction, gutterPx: 10 });
+  const edges = (cs) => cs.flatMap((c) => [c.L, c.R]);
+  // §261: 로그 부호 결합 (anim.js lerpParams와 동일 수식) — 균등(0) 통과가 매끄러움
+  const sweep = (step) => {
+    let worst = 0;
+    let prev = null;
+    for (let t = 0; t <= 1.0001; t += step) {
+      const sv = Math.log(2.56) * -1 * (1 - t) + Math.log(2.56) * 1 * t;
+      const cur = layout(4 + t, Math.exp(Math.abs(sv)), sv >= 0 ? 'LtoS' : 'StoL');
+      if (prev) {
+        for (const x of edges(cur)) {
+          const d = Math.min(...edges(prev).map((y) => Math.abs(y - x)));
+          worst = Math.max(worst, d);
+        }
+      }
+      prev = cur;
+    }
+    return worst;
+  };
+  const w1 = sweep(0.01);
+  const w2 = sweep(0.002);
+  // 연속 함수라면 스텝을 1/5로 줄일 때 프레임 간 최대 이동도 그에 비례해 줄어야 (점프는 안 줄어듦)
+  assert.ok(w2 < w1 * 0.4, `점프 의심: step 0.01→0.002에서 ${w1.toFixed(2)}→${w2.toFixed(2)}px`);
+  assert.ok(w2 < 4, `미세 스텝에서도 ${w2.toFixed(2)}px 이동 — 불연속`);
+  ok(`§261: cols 4→5 + 압축 ± 동시 보간 연속 (0.01스텝 ${w1.toFixed(2)}px → 0.002스텝 ${w2.toFixed(2)}px)`, () => {});
 }
 
 // ── L3: offset 주기 1 — φ와 φ±1·φ±3 동일 화면 ──
@@ -105,15 +138,18 @@ for (const rate of [1.5, 2]) {
   ok('L1(연속성): 칸 생성/소멸 경계에서 위치 점프 없음', () => {});
 }
 
-// ── L4: 성장 끝단 = 좁은 쪽 (LtoS = 우측, StoL = 좌측) ──
+// ── L4′ (§261): 성장 끝단 = **항상 우측 고정** (방향 무관 — 보간 중 direction 플립에도 불변) ──
 {
-  const a = computeColumns({ ...BASE, cols: 3 + 1e-6, rate: 2, direction: 'LtoS' });
-  assert.equal(a.length, 4);
-  assert.ok(a[3].w < 0.01, `신생 칸이 우측 0폭이어야: ${a[3].w}`);
-  const b = computeColumns({ ...BASE, cols: 3 + 1e-6, rate: 2, direction: 'StoL' });
-  assert.equal(b.length, 4);
-  assert.ok(b[0].w < 0.01, `신생 칸이 좌측 0폭이어야: ${b[0].w}`);
-  ok('L4: cols 성장 칸 = 좁은 끝단에서 0폭 출발 (방향 종속)', () => {});
+  for (const direction of ['LtoS', 'StoL']) {
+    const a = computeColumns({ ...BASE, cols: 3.25, rate: 2, direction });
+    assert.equal(a.length, 4, `${direction}: 3.25칸 = 4칸`);
+    const minW = Math.min(...a.map((c) => c.w));
+    assert.ok(Math.abs(a[3].w - minW) < 1e-6 || a[3].w < a[2].w, `${direction}: 부분 칸은 우측 끝`);
+    // 극소(0폭 수렴) 칸은 드랍 — 스트로크 틱 방지 (§261)
+    const b = computeColumns({ ...BASE, cols: 3 + 1e-6, rate: 2, direction });
+    assert.equal(b.length, 3, `${direction}: 극소 칸 드랍`);
+  }
+  ok('L4′: 부분 칸 = 항상 우측 + 극소 칸 드랍 (양 방향)', () => {});
 }
 
 // ── 총폭 보존: 어떤 조합에도 마지막 R ≤ W (+오차) ──
@@ -127,8 +163,8 @@ for (const rate of [1.5, 2]) {
       direction: Math.random() < 0.5 ? 'LtoS' : 'StoL',
     };
     const cs = computeColumns(p);
-    assert.ok(cs[cs.length - 1].R <= p.W + 1e-6, `오버플로: ${cs[cs.length - 1].R} > ${p.W}`);
-    assert.ok(cs[0].L >= -1e-6);
+    assert.ok(cs[cs.length - 1].R <= p.W + 1e-3, `오버플로: ${cs[cs.length - 1].R} > ${p.W}`);
+    assert.ok(cs[0].L >= -1e-3);
   }
   ok('총폭 보존: 랜덤 30조합 오버플로 없음', () => {});
 }

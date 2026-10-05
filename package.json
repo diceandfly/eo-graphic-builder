@@ -10,8 +10,9 @@
     "lint": "eslint src",
     "test:geo": "node tests/geometry-regression.mjs",
     "test:doc": "node tests/document-ops.mjs",
-    "test": "npm run test:geo && npm run test:doc && npm run test:grid",
-    "test:grid": "node tests/grid-field.mjs"
+    "test": "npm run test:geo && npm run test:doc && npm run test:grid && npm run test:orient",
+    "test:grid": "node tests/grid-field.mjs",
+    "test:orient": "node tests/orientation.mjs"
   },
   "dependencies": {
     "gifenc": "^1.0.3",

@@ -2062,3 +2062,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **애니 창 타이틀 = "Animation Simulator"**.
 5. **플레이바 각지게** — appearance none, 사각 Neon 썸(7×14)+2px 헤어라인 트랙 (웹킷/모질라 모두).
 6. **도움말 창 chamfer-1(7.5px)**.
+
+## 261. 2026-10-06 — 회전/반전 짝 동기·오리엔테이션 버그 수술·direction=지수 부호(50% 튐 해소)·디테일
+
+1. **회전/반전 = 잠금 → 짝 동기** (사용자 확정): ANIM_LOCKED에서 orientation·flipX 제거(threads·threadDir·gutterMode만 잔존). rotate/rotateSelected/flipUnit/flipUnitV/flipSelected가 **같은 계보(pair)의 모든 대응 유닛에 동일 변환 전파**(pairMates — 회전 = 자기 중심 스핀, 반전 = 각자 orientation 상태 기준 화면축 미러. 위치 불변, 애니 모드 여부 무관). 테스트 4건 재작성(65 통과).
+2. **오리엔테이션 이상현상 수술** — 원인: 렌더는 flipX를 **회전 전 로컬 미러**(deriveUnit의 direction/threadDir 반전 → orientationTransform)로 적용하는데, 판정 헬퍼(localPointToCanvas/canvasPointToLocal)는 **회전 후 캔버스 미러**로 계산 → 90/270°+flipX 조합에서 판정이 180° 어긋남("좌우반전했는데 앵커가 상하로"). 헬퍼를 렌더 순서(R∘M)로 재작성. 플립 연산들(isOdd 분기)은 로컬-미러 규약 기준으로 원래 올바랐음을 수학 검증. **tests/orientation.mjs 신설**(npm test 편입): 8상태 왕복 항등·렌더 순서 일치·16 시나리오 화면 H/V 미러 전수.
+3. **direction = 좌표 미러 → 지수 부호** (§255 미러 방식 폐기): 컷 사다리·부분 칸 끝단(**항상 우측 고정** = L4′)·거터 규칙은 방향 무관, 밀도 기울기(a = ±ln r·N)만 반전. 효과 — ①보간 중 direction 플립 시 부분 칸이 좌↔우 점프하던 **50% 튐 소멸**(cols 4↔5 + 압축 ± 핑퐁 사용자 리포트) ②정적 결과 = 구(§pre-255) 구현과 전 조합 완전 호환(proportional StoL 복원) ③offset 부호 = 화면 방향 고정. L2′ 재정의: StoL(φ) = mirror(LtoS(−φ)) (fixed·정수 N). "cols 생산 방향" = 우측 고정 + 반대는 flipX(별도 파라미터 불필요 — 필요 시 growEnd 추후).
+4. **부호 결합 보간 = 로그 기준** (anim.js §229 개정): (rate−1)·부호 → **ln(rate)·부호** — |·| 쿠스프로 50%에서 변화율이 꺾이던 "툭" 체감 제거(지수 필드의 정칙 좌표). 연속성 테스트: 스텝 정밀화 수렴(9.00→1.80px)으로 증명.
+5. **핑퐁 끝 반동 샤프트 틱** — 0폭 수렴 부분 칸의 고정 두께 스트로크가 1~2px로 깜빡이던 것: **0.75px 미만 부분 칸 드랍**(정적 극압축의 실제 가는 칸(len=1)은 보존 — 회귀 유지).
+6. Select chain → **Select all frames in chain**. 플레이바 썸 = 10px 정사각(.rg 문법, --thumb-size+2). 매뉴얼 양어 갱신. grid-field 18케이스.

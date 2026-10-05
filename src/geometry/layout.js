@@ -9,16 +9,17 @@ function renorm(ws, target) {
   return ws.map((w) => w * f);
 }
 
-// ─── §255: 연속 그리드 필드 — 등비수열 레이아웃의 일반화 ─────────
+// ─── §255·§261: 연속 그리드 필드 — 등비수열 레이아웃의 일반화 ─────────
 // 모델: 공간 고정 밀도 필드 g(지수 누적 워프, 끝점 0→0/1→1) 속을 칸이 흐른다.
-//  · cols(N) = 연속 허용 — 비정수는 좁은 끝단의 부분 칸 (성장/소멸 끝단 = 좁은 쪽, L4)
-//  · offset(φ) = 칸 단위 위상, 소수·± 허용, 랩 순환 (φ+1 = 동일 화면, L3)
-//  · direction = **캐노니컬(LtoS: 넓→좁) 계산 후 좌표 미러** — 반전 = 구조적으로 정확한 거울 (L2).
-//    (주의: 구 구현의 proportional+StoL은 "거터 = 왼쪽 col 비례"가 방향을 안 따라가 완전 대칭이
-//     아니었음 — §255 공리 우선으로 미러 통일, 해당 조합의 정적 레이아웃이 미세 변경됨)
-//  · 컷 거터 스케일 = min(1, 양옆 칸의 인덱스 길이) — 칸이 끝단에서 0으로 수렴할 때 거터도
-//    함께 0으로: 칸 생성/소멸이 무점프 연속 (애니 L1·L3의 화면 연속성 보장)
-// 정수 cols + offset 0 = 종전 출력과 동일 (fixed 전 방향·proportional LtoS — 회귀 테스트 고정).
+//  · cols(N) = 연속 허용 — 비정수 부분 칸의 생성/소멸 끝단 = **항상 우측 고정**(L4′ — §261:
+//    "좁은 쪽" 규칙 폐기. direction이 보간 중 부호를 지날 때 끝단이 좌↔우로 점프하며
+//    50% 틱을 만들던 원인. 반대쪽 성장이 필요하면 flipX = 표시 미러)
+//  · offset(φ) = 칸 단위 위상, 소수·± 허용, 랩 순환 (φ+1 = 동일 화면, L3). +φ = 화면 왼쪽으로 흐름(방향 무관)
+//  · direction = **지수의 부호**(좌표 미러 아님 — §261: §255의 미러 방식 폐기): 컷 사다리·끝단·거터
+//    규칙은 방향 무관 캐노니컬 고정, 밀도 기울기만 뒤집힌다 → rate·direction 결합 부호 보간이
+//    균등(0)을 지나는 내내 연속. 정적 결과는 구(§pre-255) 구현과 완전 호환(proportional StoL 포함).
+//  · 컷 거터 스케일 = min(1, 양옆 칸의 인덱스 길이) — 칸 생성/소멸 무점프.
+//  · 극소 칸 드랍(w < 0.75px) — 0폭 칸의 스트로크가 1~2px로 깜빡이는 틱 방지 (§261).
 // 반환: [{ L, R, w }] (px, 좌→우)
 export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, direction, offset = 0 }) {
   const EPS = 1e-9;
@@ -33,8 +34,9 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     if (t > EPS) ts.push(t);
   }
   ts.push(N);
-  // 워프 — 캐노니컬(넓→좁): 밀도 ∝ r^(−N·u), 누적 g(u) = (1 − r^(−N·u)) / (1 − r^(−N)). r→1 = 선형
-  const a = Math.log(r) * N;
+  // 워프 — 밀도 ∝ r^(∓N·u), 누적 g(u) = (1 − e^(−a·u)) / (1 − e^(−a)), a = ±ln(r)·N. r→1 = 선형.
+  // LtoS = +a(넓→좁), StoL = −a(좁→넓) — 같은 식의 부호만 바뀌므로 a가 0을 지나도 연속 (§261)
+  const a = Math.log(r) * N * (direction === 'StoL' ? -1 : 1);
   const gw = Math.abs(a) < 1e-9 ? (u) => u : (u) => (1 - Math.exp(-a * u)) / (1 - Math.exp(-a));
   const nCells = ts.length - 1;
   const wN = [];
@@ -59,7 +61,7 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     gutterAfter = (i) => gutterPx * gs[i];
   }
 
-  let out = [];
+  const out = [];
   let x = 0;
   for (let i = 0; i < nCells; i += 1) {
     const L = x;
@@ -67,9 +69,8 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     out.push({ L, R, w: colW[i] });
     x = R + (i < nCells - 1 ? gutterAfter(i) : 0);
   }
-  // §255: StoL = 캐노니컬 좌표 미러 (L2) — 성장 끝단·흐름 방향이 함께 뒤집힌다
-  if (direction === 'StoL') {
-    out = out.map((c) => ({ L: W - c.R, R: W - c.L, w: c.w })).reverse();
-  }
-  return out;
+  // §261: 극소 **부분 칸** 드랍 — 0폭 수렴 조각은 fill이 비가시인데 스트로크(두께 고정)만
+  // 1~2px로 남아 핑퐁 반동 순간 "샤프트 틱"으로 보였음. 0.75px 미만의 부분 칸(len<1)만 드랍 —
+  // 정적 극압축 레이아웃의 실제 가는 칸(len=1)은 유지 (회귀 보존)
+  return out.filter((c, i) => c.w >= 0.75 || len[i] >= 1 - EPS);
 }

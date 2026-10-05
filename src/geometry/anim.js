@@ -90,9 +90,12 @@ export function lerpParams(a, b, t) {
   // §229: 유닛 압축은 rate(크기)+direction(부호) 쌍 — 따로 보간하면 direction이 50%에 컷되며
   // 전체 패턴이 미러됨("50% 튐"의 실제 범인). 부호 있는 연속값으로 묶어 lerp 후 되돌린다.
   if ((a.rate !== b.rate || a.direction !== b.direction) && a.rate != null && b.rate != null) {
-    const signed = (p) => (Number(p.rate) - 1) * (p.direction === 'StoL' ? -1 : 1);
+    // §261: 부호 결합을 **로그 지수** 기준으로 — 필드가 지수( e^(±ln r·N·u) )라 ln(r)·부호가
+    // 레이아웃의 정칙 좌표. 구( (rate−1)·부호 ) 보간은 |·| 쿠스프로 50% 지점에서 변화율이
+    // 꺾이며 "툭" 체감을 만들었음. 로그 보간은 균등(0)을 완전 매끄럽게 통과한다.
+    const signed = (p) => Math.log(Math.max(1, Number(p.rate))) * (p.direction === 'StoL' ? -1 : 1);
     const sv = lerp(signed(a), signed(b), t);
-    out.rate = 1 + Math.abs(sv);
+    out.rate = Math.exp(Math.abs(sv));
     out.direction = sv >= 0 ? 'LtoS' : 'StoL';
   }
   for (const k in b) {

@@ -306,7 +306,7 @@ const previewH = computed(() => {
   return Math.round((winW.value - 12) * ratio);
 });
 // §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
-const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.42))));
+const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.36))));
 // §252: 출력 총 길이 = duration × 반복 + 홀드 — Cycles/End hold 합성 결과를 숫자로 보여줘 혼동 제거
 const totalLabel = computed(() => {
   if (!props.edge) return '';
@@ -508,18 +508,19 @@ const totalLabel = computed(() => {
   &:hover svg { stroke: var(--accent); }
 }
 .pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.85; } /* 프리뷰 그립 + 빈 상태 그립 */
-/* §260: 플레이바 — 각진 브랜드 문법 (기본 라운드 썸 폐기: 사각 Neon 썸 + 헤어라인 트랙) */
+/* §260·§261: 플레이바 — 메인 패널 슬라이더(.rg)와 동일 문법: 2px 트랙 + 정사각 썸.
+   썸은 --thumb-size(8px)보다 한 단계 큰 10px 정사각 (사용자 확정: 동일~조금 큰) */
 .scrub {
   width: 100%; margin: 0; height: 14px;
   -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
   &::-webkit-slider-runnable-track { height: 2px; background: var(--line); border-radius: 0; }
   &::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 7px; height: 14px; margin-top: -6px;
-    background: var(--accent); border: none; border-radius: 0;
+    width: 10px; height: 10px; margin-top: -4px;
+    background: var(--accent); border: none; border-radius: var(--radius);
   }
   &::-moz-range-track { height: 2px; background: var(--line); }
-  &::-moz-range-thumb { width: 7px; height: 14px; background: var(--accent); border: none; border-radius: 0; }
+  &::-moz-range-thumb { width: 10px; height: 10px; background: var(--accent); border: none; border-radius: var(--radius); }
 }
 .row { display: flex; align-items: center; gap: 8px; }
 .time {
