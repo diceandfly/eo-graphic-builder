@@ -176,7 +176,8 @@ function onPick(c) {
           <div class="menuNote">double-click the tool to create</div>
         </div>
       </div>
-      <div class="toolWrap">
+      <!-- §279: 스포이드 잠정 숨김 (사용자 확정 — 멀티 링크 정착으로 사용처 축소. 코드·스코프 메뉴는 복귀 대비 보존) -->
+      <div v-if="false" class="toolWrap">
         <IconButton
           :paths="ICONS.eyedrop"
           :tip="openPopup === 'scope' ? '' : 'Eyedropper (I)'"

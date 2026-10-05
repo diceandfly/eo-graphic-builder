@@ -70,7 +70,8 @@ function onMinimapDown(e) {
     const mm = minimap.value;
     if (!mm) return;
     const r = svg.getBoundingClientRect();
-    const [wx, wy] = mm.toWorld(ev.clientX - r.left, ev.clientY - r.top);
+    const k = MM_W / r.width; // §279: 반응형 폭 — 표시 px → 미니맵 좌표계 환산 (비율 고정 스케일)
+    const [wx, wy] = mm.toWorld((ev.clientX - r.left) * k, (ev.clientY - r.top) * k);
     emit('jumpTo', wx, wy);
     resetIdle();
   };
@@ -188,7 +189,7 @@ function resetGridDefaults() {
           <!-- §250: 순서 재배열(기존 123 → 321) + 애니메이션 뱃지 토글 추가 -->
           <label class="menuRow">
             <input type="checkbox" v-model="view.showSelName" />
-            <span>Show unit name</span>
+            <span>Show selected unit name</span><!-- §279: 명칭 명시화 -->
           </label>
           <label class="menuRow">
             <input type="checkbox" v-model="view.showLinks" />
@@ -266,12 +267,13 @@ function resetGridDefaults() {
                보정은 내부 자동(기존 기본값·줌 곡선)으로만 유지. 완전 제거는 잔여 케이스 관찰 후. -->
           <!-- §203: 선택 도구의 프레임 우선 전환 경계 (줌 % 미만 = 프레임 우선, 0 = 끔) -->
           <label class="menuRow">
-            <span class="rowLabel">Frame first below</span>
-            <StepField v-model="view.framePickZoom" :min="0" :max="200" :step="5" />
+            <span class="rowLabel">Frame selection first below</span><!-- §279: 명칭 명시화 + % 단위·기본 6%·화살표 1% -->
+            <StepField v-model="view.framePickZoom" :min="0" :max="200" :step="1" suffix="%" />
           </label>
           <!-- §225: 미니맵 — 뷰포트(직사각형) 위치 파악 + 클릭 = 그 지점으로 시점 이동 -->
-          <div v-if="minimap" class="sect">
-            <svg class="minimap" :width="168" :height="100" @pointerdown.stop="onMinimapDown">
+          <!-- §279: 미니맵 = 팝업 전폭 − 좌우 5px (애니패널 프리뷰와 동일 화면 패딩 문법) -->
+          <div v-if="minimap" class="sect mmSect">
+            <svg class="minimap" :viewBox="`0 0 ${MM_W} ${MM_H}`" @pointerdown.stop="onMinimapDown">
               <rect class="mmBg" x="0" y="0" width="168" height="100" />
               <rect
                 v-for="it in minimap.items" :key="it.id"
@@ -305,8 +307,11 @@ function resetGridDefaults() {
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
 // §225: 미니맵 — 전체 오브젝트 분포 + 현재 뷰포트(액센트 직사각형)
+// §279: 좌우 5px 화면 패딩 (애니패널 .pvWrap 문법) — 팝업이 넓어져도 전폭 추종
+.mmSect { margin: 0 calc(5px - var(--panel-pad)); }
 .minimap {
-  display: block; border: 1px solid var(--line); border-radius: var(--radius);
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--line); border-radius: var(--radius);
   cursor: pointer;
 }
 .mmBg { fill: var(--stage-bg); opacity: 0.7; }

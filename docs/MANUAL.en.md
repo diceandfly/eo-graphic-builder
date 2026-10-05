@@ -42,7 +42,6 @@ Click a description to jump to the details.
 |---|---|
 | V | {icon:select}[Select mode (units + frames)](#5-select-move-transform) — **press V again to toggle unit/frame priority**; zoomed out it goes [frame-first](#9-frames) automatically |
 | F | {icon:frame}[Draw a frame](#9-frames) |
-| I | {icon:eyedrop}[Eyedropper](#8-toolbar) |
 | B | {icon:blend}[Run blend](#8-toolbar) |
 | G | {icon:unitGrid}[Show/hide unit & frame grids](#13-view-options-corner-bar) |
 | U / P | Open/close the [unit / pattern preset panels](#14-unit-presets) |
@@ -96,7 +95,7 @@ EO Graphic Builder is a parametric graphic tool for building brand assets from a
 | Top left | **File bar** | {icon:manual}[Help](#13-view-options-corner-bar) · {icon:save}[Save](#save-and-open-as-a-file-file-bar) · {icon:open}[Open](#save-and-open-as-a-file-file-bar) · {icon:resetArrow}[Reset](#reset-file-bar) |
 | Top right | **Corner bar (view)** | [Background grid · selection box · grid display · zoom level](#13-view-options-corner-bar) |
 | Bottom left | **Align bar** | [Align · distribute](#11-align-and-arrange) |
-| Bottom center | **Color bar + toolbar** | [7 brand colors + custom](#7-color) / [select · frame · eyedropper · blend · arrange tools](#8-toolbar) |
+| Bottom center | **Color bar + toolbar** | [7 brand colors + custom](#7-color) / [select · frame · blend · arrange tools](#8-toolbar) |
 | Bottom right | **Preset bar** | [Unit presets](#14-unit-presets) · [Pattern presets](#16-pattern-presets) · [Animation Mode](#17-animation-mode) |
 
 **{icon:mouseL}Left-click = run, {icon:mouseR}right-click = options** is the rule for every button. Numbers next to sliders can also be typed in directly.
@@ -184,12 +183,8 @@ Select a unit to shape it in the left panel. Click the name at the top of the pa
 |---|---|---|
 | {icon:select}**Select** | [Select mode](#5-select-move-transform) (V) — units and frames. Zoomed out it switches to [frame-first](#9-frames) automatically and the icon becomes a filled arrow | Temporarily flip unit↔frame priority (reverts to the automatic rule when you zoom or switch tools) |
 | {icon:frame}**Frame** | Draw a [frame](#9-frames) (F) — made at the size you drag. **Double-click** the button to create one instantly at a preset size | Quick frame options: [social banner presets](#9-frames) · size · margin · gutter · color |
-| {icon:eyedrop}**Eyedropper** | Eyedropper (I) | Choose what to pick up: color / size / grid / shape & style / orientation |
 | {icon:blend}**Blend** | Run blend (B) | Direction · repeat count · gap · scale change |
 | {icon:arrange}**Grid arrange** | Run arrange | Horizontal & vertical gaps · column count |
-
-### {icon:eyedrop}Eyedropper — pick up another object's properties
-With objects selected, click another object with the eyedropper to copy over the categories you enabled in {icon:mouseR}right-click (color, size, grid, shape, …). Units pick up from units and frames from frames only — overlapping objects of the other kind are never clicked by mistake.
 
 ### {icon:blend}Blend — repeat with variation
 Select a unit (or a [group](#10-groups-and-links)) and run it: copies are laid out at even spacing, growing or shrinking in the chosen direction, and grouped automatically.
@@ -215,7 +210,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - **Frames can be selected and moved in V (normal select) too** — where a unit overlaps, the unit wins; click an empty area or the **name label at the top left** to grab the frame
 - **Double-click a frame's name label** to rename it in place
 - **Zoom out below a certain level and the select tool goes frame-first automatically** — the toolbar icon becomes a filled arrow, and clicking or dragging over units grabs the frame. Handy for picking and moving frames from a distance
-- The switching level is set under **Frame first below** in the [% badge {icon:mouseR}right-click menu](#13-view-options-corner-bar) (0 = off)
+- The switching level is set under **Frame selection first below** in the [% badge {icon:mouseR}right-click menu](#13-view-options-corner-bar) (0 = off)
 - Need the opposite of what the current zoom gives you? **{icon:mouseR}Right-click** the {icon:select}select tool — it flips temporarily, and reverts to the automatic rule when you zoom or switch tools
 
 ### How do contents follow?

@@ -11,7 +11,7 @@ const props = defineProps({
   rowsVisible: Boolean,  // 유닛 전용 (프레임 혼합 선택이면 행 숨김 — 프레임 링크는 전체 동기)
   selected: { type: Array, default: () => [] },
 });
-const emit = defineEmits(['link', 'unlinkOne', 'setCatLink']);
+const emit = defineEmits(['link', 'unlinkOne', 'setCatLink', 'hoverCat']); // §279: hoverCat = 칩 호버 하이라이트
 
 const CATS = ['size', 'shape', 'grid', 'color', 'orientation', 'animation']; // §269: 메인 패널 섹션 순서와 정렬 (사용자 확정)
 // Link parameters 숏컷의 기본 스코프 (useDocument linkScopeDefault와 동일 값 유지)
@@ -68,6 +68,8 @@ function rowToggle(cat) {
           ? (units().length < 2 ? 'Linked — click to leave this group' : 'Linked — click to make each solo')
           : soloDisabled(cat) ? 'Solo — select 2+ units to link' : 'Solo — click to link selection'"
         @click="rowToggle(cat)"
+        @mouseenter="emit('hoverCat', cat)"
+        @mouseleave="emit('hoverCat', null)"
       >
         <span class="catName">{{ cat }}</span>
         <span class="catState">{{ catState(cat) === 'on' ? 'linked' : catState(cat) === 'mixed' ? 'mixed' : 'solo' }}</span>

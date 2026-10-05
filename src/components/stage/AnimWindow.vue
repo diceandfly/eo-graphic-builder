@@ -594,8 +594,9 @@ const totalLabel = computed(() => {
 // §247: 옵션 행 — L5 라벨 + 우측 컨트롤 (메인 패널 행 문법)
 .optRow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-group); } /* §271 */
 .optLabel {
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
-  &::first-letter { text-transform: uppercase; }
+  /* §279: 메인 패널 행 라벨(L? — Slider .label)과 동급으로 승격: fs-2xs·faint → fs-xs·dim */
+  font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim);
+  text-transform: capitalize;
 }
 // §247: 섹션 헤드 — L3 (액센트 캡스, 메인 패널 SIZE/STYLE 문법)
 .sectHead {

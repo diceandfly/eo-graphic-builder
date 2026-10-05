@@ -1006,7 +1006,9 @@ export function useDocument() {
       }
     }
   }
-  // 실시간 재정렬 — 결착 유닛의 위치·정렬 관련 수치만 감시 (전 문서 직렬화 회피)
+  // 실시간 재정렬 — 결착 유닛의 위치·배치 수치만 감시 (전 문서 직렬화 회피).
+  // §279: 도크 = **독립 요소** (사용자 확정) — 샤프트 자체 파라미터(dPct·threads)는 트리거에서
+  // 제외: 샤프트 두께/면 수를 바꿔도 체인이 끌려다니지 않는다 (축 정렬은 결착·배치 조작 시점 기준).
   watch(
     () => {
       if (!doc.docks.length) return '';
@@ -1015,7 +1017,7 @@ export function useDocument() {
         doc.docks,
         doc.units.filter((u) => ids.has(u.id)).map((u) => [
           u.id, u.x, u.y, u.params.W, u.params.H, u.params.gutterPx,
-          u.params.dPct, u.params.threads, u.params.orientation, u.params.flipX,
+          u.params.orientation, u.params.flipX,
         ]),
       ]);
     },

@@ -37,6 +37,7 @@ const props = defineProps({
   presets: { type: Array, default: () => [] },  // §207: 유닛 프리셋 목록 (usePresets — 메인 패널에서 이관)
   patternFolders: { type: Array, default: () => [] }, // §210: 프리셋 폴더 (1단계)
   presetFolders: { type: Array, default: () => [] },
+  hoverLinkCat: { type: String, default: null }, // §279: LINK 칩 호버 중인 범주 — 링크 상대 하이라이트
 });
 
 const { vp, panBy, zoomAt, resetAt } = props.viewport;
@@ -80,9 +81,31 @@ const dockedIdSet = computed(() => {
   for (const e of props.doc.docks) { s.add(e.from); s.add(e.to); }
   return s;
 });
+// §279: LINK 칩 호버 하이라이트 — 선택 유닛들의 그 범주 lid를 공유하는 모든 유닛 (딤드 네온 아웃라인)
+const hoverLinkUnits = computed(() => {
+  const cat = props.hoverLinkCat;
+  if (!cat) return [];
+  const lids = new Set();
+  for (const u of props.doc.units) {
+    if (props.doc.selectedIds.includes(u.id) && u.links?.[cat] != null) lids.add(u.links[cat]);
+  }
+  if (!lids.size) return [];
+  return props.doc.units.filter((u) => u.links?.[cat] != null && lids.has(u.links[cat]));
+});
 // §278: 도킹 노드 — 표시 대상 = 선택/결착 유닛 (드래그 중엔 전 유닛이 타깃 후보)
 const dockDrag = ref(null); // { fromId, x1, y1, x, y }
-const dockPt = dockNodePoint;
+// §279: 노드 표시 위치 = 샤프트 축 위, 가장자리에서 **안쪽** 16px(화면 기준) — 엣지 정중앙은
+// 선택 박스 리사이즈 핸들과 정확히 겹쳐 가려지고 클릭도 뺏기던 문제 (사용자 확정: 안쪽 배치)
+function dockPt(u, side) {
+  const [lx, ly] = dockNodePoint(u, 'left');
+  const [rx, ry] = dockNodePoint(u, 'right');
+  const L = Math.hypot(rx - lx, ry - ly) || 1;
+  const inset = Math.min(L / 3, pxs(16));
+  const d = [(rx - lx) / L, (ry - ly) / L];
+  return side === 'right'
+    ? [rx - d[0] * inset, ry - d[1] * inset]
+    : [lx + d[0] * inset, ly + d[1] * inset];
+}
 const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
 const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
 const dockNodeUnits = computed(() => {
@@ -91,7 +114,7 @@ const dockNodeUnits = computed(() => {
   return units.filter((u) => props.doc.selectedIds.includes(u.id) || dockedIdSet.value.has(u.id));
 });
 function onDockNodeDown(u) {
-  const [x1, y1] = dockNodePoint(u, 'right');
+  const [x1, y1] = dockPt(u, 'right');
   dockDrag.value = { fromId: u.id, x1, y1, x: x1, y: y1 };
   const mv = (ev) => {
     const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
@@ -107,7 +130,7 @@ function onDockNodeDown(u) {
     let best = 14 / vp.scale; // 애니 노드와 동일 드롭 반경
     for (const t of props.doc.units) {
       if (t.type === 'frame' || t.id === d.fromId) continue;
-      const [nx, ny] = dockNodePoint(t, 'left');
+      const [nx, ny] = dockPt(t, 'left'); // 표시 위치 = 히트 위치 (§279)
       const dist = Math.hypot(wx - nx, wy - ny);
       if (dist < best) { best = dist; hit = t; }
     }
@@ -463,10 +486,11 @@ const view = reactive({
   nudge: 5, showLinks: true, showGroups: true, showSelName: true, showAnimBadges: true, guideColor: null, // §245: showSelName · §250: showAnimBadges = 페어 ▶ 뱃지
   stageGridColor: null, stageBgColor: null,
   seamOn: true, seamCutoff: 40, // seam 스트로크 보정: 줌 < cutoff% 에서만 (§86)
-  framePickZoom: 20, // §203: 이 줌(%) 미만 = 프레임 우선 선택 (0 = 끔)
+  framePickZoom: 6, // §203: 이 줌(%) 미만 = 프레임 우선 선택 (0 = 끔) — §279: 기본 20→6%
   resMon: false, // 리소스 모니터 표시 (§86)
   ...(prefs.view || {}),
 });
+if (view.framePickZoom === 20) view.framePickZoom = 6; // §279: 구 기본값(20) 저장분 1회 이관
 // seam 보정 폭 (화면 px): 토글 + 컷오프 줌 이상에서 0
 // §148: 줌 배율 비례 보정 — 구식(1.2 - scale)은 줌아웃일수록 두꺼워져(0.05x에서 1.15px 화면 고정)
 // 극소 렌더에서 스트로크가 과대해 보였음. 배율에 비례해 얇아지게: cutoff 부근 ≈1px → 줌아웃 시 점감.
@@ -944,7 +968,8 @@ function onKeyDown(e) {
   // §210: 프리셋 패널 단축키 — U = 유닛, P = 패턴 (재입력 = 닫기)
   if (!mod && !e.shiftKey && e.code === 'KeyU') togglePresetPanel('units');
   if (!mod && !e.shiftKey && e.code === 'KeyP') togglePresetPanel('patterns');
-  if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
+  // (§279: 스포이드 잠정 숨김 — 멀티 링크 정착으로 사용처 축소, I 단축키·툴바 버튼 동시 비활성. 복귀 대비 보존)
+  // if (!mod && !e.shiftKey && e.code === 'KeyI') mode.value = 'eyedrop';
   if (!mod && !e.shiftKey && e.code === 'KeyF') mode.value = 'frame';
   if (!mod && !e.shiftKey && e.code === 'KeyB') onBlend();
   if (!mod && !e.shiftKey && e.code === 'KeyG') toggleAllGrids(); // §145: G = 그리드 보기 토글 (arrange 단축키 삭제)
@@ -1777,6 +1802,12 @@ onBeforeUnmount(() => {
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- §279: LINK 칩 호버 하이라이트 — 그 범주 링크 상대 = 딤드 네온 아웃라인 (§254 문법 재사용) -->
+        <rect
+          v-for="u in hoverLinkUnits" :key="'hl' + u.id"
+          class="hoverLinkHl"
+          :x="u.x" :y="u.y" :width="u.params.W" :height="u.params.H"
+        />
         <!-- §278: 도킹 노드 — 비애니 모드 + 선택 유닛의 샤프트 양끝 **사각형** 노드
              (애니 노드 = 프레임·애니 모드·원형과 삼중 구분). 우측 노드 드래그 → 다른 유닛
              좌측 노드에 드롭 = 결착 / 빈 곳 = 해제. 드래그 중엔 전 유닛 좌측 노드가 타깃 표시 -->
@@ -1846,8 +1877,8 @@ onBeforeUnmount(() => {
           :transform="`translate(${f.x} ${f.y - pxs(row * 16)})`"
           @pointerdown.stop="onUnitDown(f, $event)"
           @dblclick.stop="startFrameNameEdit(f)"
-          @contextmenu.prevent.stop
-        >
+          @contextmenu.prevent.stop="onUnitContext(f, $event)"
+        ><!-- §279: 라벨 우클릭 = 프레임 본체와 동일 ctx 팝업 -->
           <rect
             class="labelPad"
             :x="-pxs(6)" :y="-pxs(22)"
@@ -2083,9 +2114,13 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
+      <!-- §279: 프레임 대상이면 flip 2종 비활성 (사용자 확정) -->
       <button
         v-for="a in CTX_ACTIONS" :key="a.key"
-        class="ctxItem" @click="onCtxAction(a.key)"
+        class="ctxItem"
+        :class="{ off: ctxMenu.u.type === 'frame' && (a.key === 'flip' || a.key === 'flipv') }"
+        :disabled="ctxMenu.u.type === 'frame' && (a.key === 'flip' || a.key === 'flipv')"
+        @click="onCtxAction(a.key)"
       ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in a.paths" :key="d" :d="d" /></svg>{{ a.label }}</button>
       <!-- 오더 그룹(CTX_ORDER)은 §107에서 잠정 숨김 — 단축키 Q/W는 유지, 복귀 대비 정의 보존 -->
       <div class="ctxSep" />
@@ -2210,6 +2245,11 @@ onBeforeUnmount(() => {
 .dockWire {
   stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke; pointer-events: none;
+}
+/* §279: LINK 칩 호버 하이라이트 — 애니 오버레이의 딤드 네온 문법(§254) 재사용 */
+.hoverLinkHl {
+  fill: none; stroke: color-mix(in srgb, var(--accent) 50%, var(--panel));
+  stroke-width: 2.5; vector-effect: non-scaling-stroke; pointer-events: none;
 }
 // §221: 프리셋 플로팅 창 스타일은 PresetFloatWindow.vue로 이동
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체

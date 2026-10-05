@@ -30,6 +30,7 @@ const props = defineProps({
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
   'renameGroup', 'linkScopeToggle', 'unlinkOne', 'setCatLink', // §264
+  'hoverCat', // §279: 링크 칩 호버 → 스테이지 하이라이트
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -525,6 +526,7 @@ function setStrokeColor(c) {
       @link="(scope) => emit('link', scope)"
       @set-cat-link="(cat, v) => emit('setCatLink', cat, v)"
       @unlink-one="emit('unlinkOne')"
+      @hover-cat="(c) => emit('hoverCat', c)"
     />
     </template>
 

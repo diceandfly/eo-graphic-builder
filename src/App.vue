@@ -23,6 +23,7 @@ const selectedUnits = computed(() => doc.units.filter((u) => doc.selectedIds.inc
 // 패널 표시 대상: 선택이 없으면 null → 패널이 새 유닛/프리셋 브라우저로 전환
 // §207: 선택이 없어도 마지막 활성 오브젝트의 파라미터를 유지 표시 (프리셋 브라우저는 우하단으로 이관)
 const panelUnit = computed(() => active.value);
+const hoverLinkCat = ref(null); // §279: LINK 칩 호버 → 스테이지의 그 범주 링크 상대 하이라이트
 
 // 선택이 정확히 하나의 최외곽 그룹 전체일 때 → 패널에 그룹 이름 표시/편집
 const selectedGroup = computed(() => {
@@ -289,6 +290,7 @@ const stageActions = {
         :link-scope="linkScope"
         :anim="docApi.doc.animOn"
         @set-cat-link="(cat, v) => docApi.setCategoryLink(doc.selectedIds, cat, v)"
+        @hover-cat="hoverLinkCat = $event"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
@@ -301,7 +303,7 @@ const stageActions = {
         @fill="docApi.setFill"
       />
     </aside>
-    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :patterns="patternsApi.patterns" :presets="presetList" :pattern-folders="patternsApi.folders" :preset-folders="presetsApi.folders" />
+    <DashboardStage ref="stageRef" :doc="doc" :viewport="viewport" :actions="stageActions" :hover-link-cat="hoverLinkCat" :patterns="patternsApi.patterns" :presets="presetList" :pattern-folders="patternsApi.folders" :preset-folders="presetsApi.folders" />
   </div>
 </template>
 

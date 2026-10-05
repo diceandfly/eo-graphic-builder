@@ -2205,3 +2205,15 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **LINK 섹션 단일 선택 상시 표시**: 칩 6종이 단일 유닛에서도 상태 표시 — linked 칩 클릭 = 그 범주만 이탈, solo 칩은 비활성(상대 없음). Link parameters 버튼은 2개 이상에서만.
 - **용어 교체(패널·매뉴얼)**: cols → **Threads** · pitch compression → **Thread Compression** · 프레임 compression → **Grid Compression** · cols grow direction → **Thread Driving Direction** (파라미터 키는 불변).
 - **자잘**: 애니 툴바 버튼 활성 = §260 네온 솔리드 삼각형 원복(§273 버튼 반전은 촌스러움 — 사용자). 페어 팝업 Select all frames in chain 숨김(점선 영역 드래그로 충분), Detach 아이콘 = 사슬+슬래시 신설(ICONS.detach — ▶ 오용 수정). Stroke fix는 §276에서 이미 철회 확인. 매뉴얼 도킹 절 추가(한/영).
+
+## 279. 2026-10-06 — 도크 노드 안쪽 배치·독립성, 칩 호버 하이라이트, 패널·팝업 다듬기 9건
+
+- **도크 노드 가림 수선(0)**: 노드가 선택 박스 좌우 리사이즈 핸들과 **정확히 동좌표**라 가려지고 클릭도 뺏김(실측 779,530/1069,530 일치) → 노드를 **바운딩박스 안쪽, 샤프트 축 위**(가장자리에서 화면 16px 인셋, 폭의 1/3 상한)로 이동 (사용자 확정 — 바깥 돌출안 대체). 표시 = 히트 동일점.
+- **도크 독립성(사용자 확정)**: 재정렬 트리거에서 샤프트 파라미터(dPct·threads) 제외 — 샤프트 수치를 바꿔도 체인이 끌려다니지 않음. 배치 수치(x·y·W·H·gutterPx·orientation·flipX)만 감시. 애니 중 거터 변화는 키프레임별로 결착된 위치가 샘플 보간에 **이미 구워져** 갭도 선형으로 따라옴 — 런타임 집행 불요(§280 논의 참조).
+- **칩 호버 하이라이트(8)**: LINK 칩 mouseenter → 그 범주 lid를 공유하는 전 유닛에 딤드 네온 아웃라인(§254 문법, hoverLinkUnits·.hoverLinkHl). LinkSection→ControlPanel→App→Stage 프롭 체인.
+- **(1)** 프레임 이름 라벨 우클릭 = 본체와 동일 ctx 팝업. ctx의 Flip 2종은 프레임 대상이면 비활성.
+- **(2) 애니 익스포트 투명 로직 확인**: 요청 로직 그대로 구현돼 있음 — alpha off = 프레임 fill이 배경 / on = 프레임 치수 유지·배경 rect fill/stroke 제거. 단 실제 투명 산출은 GIF 한정(§250 — WebM/MP4는 안내 후 배경 유지, MP4는 토글 자체 비활성).
+- **(3·4)** "Show selected unit name" 명칭 변경. "Frame selection first below" + StepField **% 서픽스**(신규 prop)·기본 20→6%(구 기본값 저장분 1회 이관)·화살표 1%. 줌 팝업 미니맵 = 전폭 반응형(viewBox 스케일+좌표 환산)·좌우 5px 화면 패딩(애니 프리뷰 문법).
+- **(5)** 프리셋창 높이 그립 커서 = curScale-n (브랜드 스케일 커서 통일).
+- **(6)** 스포이드 잠정 숨김(툴바 v-if false·I 단축키 주석 — 복귀 대비 보존, 매뉴얼에서 절 제거). 멀티 링크 정착으로 사용처 축소 — 사용자 확정.
+- **(7)** 애니창 optLabel 타이포 승격: fs-2xs·faint → fs-xs·dim (메인 패널 행 라벨 동급).

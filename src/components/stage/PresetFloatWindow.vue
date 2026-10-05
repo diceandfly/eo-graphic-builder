@@ -79,7 +79,7 @@ function onPlacePatternAt(item, cx, cy) {
     :style="{ height: panelH + 'px', width: width + 'px' }"
     @pointerdown.stop @wheel.stop @contextmenu.stop.prevent
   >
-    <div class="heightGrip" title="Drag to resize height" @pointerdown.stop="onHeightGripDown" />
+    <div class="heightGrip curScale-n" title="Drag to resize height" @pointerdown.stop="onHeightGripDown" /><!-- §279: 브랜드 스케일 커서 -->
     <PresetGridBrowser
       v-if="panel === 'patterns'"
       title="Pattern presets"
@@ -161,9 +161,9 @@ function onPlacePatternAt(item, cx, cy) {
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
 }
 // §214: 프리셋창 높이 조절 — 상단 엣지 스트립 (bottom 앵커라 위로 늘어남)
+// §279: 커서 = 브랜드 스케일 커서 (ns-resize → curScale-n, 애니창 그립과 통일)
 .heightGrip {
   position: absolute; top: 0; left: 0; right: 0; height: 7px;
-  cursor: ns-resize;
   &:hover { box-shadow: inset 0 2px 0 var(--accent); }
 }
 </style>

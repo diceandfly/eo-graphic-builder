@@ -10,6 +10,7 @@ const props = defineProps({
   min: Number,
   max: Number,
   step: { type: Number, default: 1 },
+  suffix: { type: String, default: '' }, // §279: 필드 안 단위 표기 (예: %)
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -51,6 +52,7 @@ function bump(d) {
 <template>
   <div class="sf" :class="{ flash }">
     <input type="number" :value="modelValue" @change="onChange" @keydown.stop="onKey" />
+    <span v-if="suffix" class="suf">{{ suffix }}</span>
     <div class="btns">
       <button tabindex="-1" @click="bump(1)">
         <svg viewBox="0 0 8 6"><path d="M4 1 7 5H1z" /></svg>
@@ -82,6 +84,10 @@ function bump(d) {
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   &:focus { outline: none; }
+}
+.suf { /* §279: 필드 내 단위 — 값과 같은 타이포, 흐린 톤 */
+  align-self: center; padding-right: 6px;
+  font-size: var(--fs-sm); color: var(--dim);
 }
 .btns { display: flex; flex-direction: column; border-left: 1px solid var(--line); }
 .btns button {
