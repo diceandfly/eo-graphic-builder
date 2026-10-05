@@ -844,6 +844,7 @@ export function useDocument() {
     };
     doc.units.push(nf);
     const copies = [doc.units[doc.units.length - 1]];
+    const uidMap = new Map(); // §283: 도크 엣지 복제용 (원본 유닛 id → 사본 id)
     for (const u of owned) {
       const links = emptyLinks();
       for (const c of LINK_CATS) links[c] = mapL(u.links[c]);
@@ -851,7 +852,12 @@ export function useDocument() {
         id: nextId++, type: u.type, name: u.name, x: u.x + dx, y: u.y + dy,
         groups: u.groups.map(mapG), links, pair: u.pair, home: nf.id, params: { ...u.params },
       });
+      uidMap.set(u.id, doc.units[doc.units.length - 1].id);
       copies.push(doc.units[doc.units.length - 1]);
+    }
+    // §283: 소유 유닛 간 도크도 사본으로 복제 (lidMap 관례와 동일 — 프레임별 분리 엣지)
+    for (const e of [...doc.docks]) {
+      if (uidMap.has(e.from) && uidMap.has(e.to)) doc.docks.push({ from: uidMap.get(e.from), to: uidMap.get(e.to) });
     }
     setSelection(copies.map((c) => c.id));
     doc.activeId = copies[0].id;
@@ -970,12 +976,77 @@ export function useDocument() {
     const edge = { from: fromId, to: toId };
     doc.docks.push(edge);
     relayoutDocks();
+    syncPairDocks([fromId, toId]); // §283: 페어 키프레임에 도크 복제
     return edge;
   }
   function disconnectDock(unitId, side = 'right') {
+    const hit = (e) => (side === 'right' ? e.from === unitId : e.to === unitId);
+    // §283: 복제 동기는 제거 **전** 양끝 기준 — 제거 후엔 상대 계보를 못 찾는다
+    const touched = [...new Set(doc.docks.filter(hit).flatMap((e) => [e.from, e.to]))];
     const n = doc.docks.length;
-    doc.docks = doc.docks.filter((e) => (side === 'right' ? e.from !== unitId : e.to !== unitId));
-    return doc.docks.length !== n;
+    doc.docks = doc.docks.filter((e) => !hit(e));
+    const changed = doc.docks.length !== n;
+    if (changed) syncPairDocks(touched);
+    return changed;
+  }
+  // §283: 유닛의 모든 결착 해제 — 도크 배지 팝업의 Undock (양쪽 + 짝 복제 동기)
+  function undockUnit(unitId) {
+    const hit = (e) => e.from === unitId || e.to === unitId;
+    const touched = [...new Set(doc.docks.filter(hit).flatMap((e) => [e.from, e.to]))];
+    const n = doc.docks.length;
+    doc.docks = doc.docks.filter((e) => !hit(e));
+    const changed = doc.docks.length !== n;
+    if (changed) syncPairDocks(touched);
+    return changed;
+  }
+  // §283: 페어 프레임 간 도크 자동 복제 (§277 링크 복제와 동일 사상) — 소스 키프레임의
+  // 도크 구성(계보 내 유닛 간)을 다른 키프레임의 counterpart 쌍으로 재구성. 짝 프레임 유닛들은
+  // 그 프레임의 거터 기준으로 즉시 재정렬된다(도크 의미상 필요한 유일한 부수효과).
+  function syncPairDocks(ids) {
+    const seeds = doc.units.filter((u) => ids.includes(u.id) && u.type !== 'frame' && u.pair != null);
+    if (!seeds.length) return;
+    const pairs = new Set();
+    // 영향 계보 = 시드의 계보 + 시드와 도크로 묶인 유닛들의 계보 (엣지 상대도 복제 대상)
+    for (const s of seeds) pairs.add(s.pair);
+    for (const e of doc.docks) {
+      for (const id of [e.from, e.to]) {
+        if (ids.includes(id)) {
+          const other = doc.units.find((u) => u.id === (id === e.from ? e.to : e.from));
+          if (other?.pair != null) pairs.add(other.pair);
+        }
+      }
+    }
+    const fam = doc.units.filter((u) => u.type !== 'frame' && u.pair != null && pairs.has(u.pair));
+    const famIds = new Set(fam.map((u) => u.id));
+    const homes = [...new Set(fam.map((u) => u.home ?? null))];
+    const srcHome = seeds[0].home ?? null;
+    const byHomePair = new Map(); // `${home}:${pair}` → unit
+    for (const u of fam) byHomePair.set(`${u.home ?? null}:${u.pair}`, u);
+    const srcEdges = doc.docks.filter((e) => {
+      const a = doc.units.find((u) => u.id === e.from);
+      const b = doc.units.find((u) => u.id === e.to);
+      return a && b && famIds.has(a.id) && famIds.has(b.id)
+        && (a.home ?? null) === srcHome && (b.home ?? null) === srcHome;
+    });
+    for (const h of homes) {
+      if (h === srcHome) continue;
+      const hIds = new Set(fam.filter((u) => (u.home ?? null) === h).map((u) => u.id));
+      const desired = srcEdges
+        .map((e) => {
+          const a = doc.units.find((u) => u.id === e.from);
+          const b = doc.units.find((u) => u.id === e.to);
+          const ma = byHomePair.get(`${h}:${a.pair}`);
+          const mb = byHomePair.get(`${h}:${b.pair}`);
+          return ma && mb ? { from: ma.id, to: mb.id } : null;
+        })
+        .filter(Boolean);
+      const want = new Set(desired.map((e) => `${e.from}-${e.to}`));
+      // 이 키프레임의 계보 내 기존 엣지 중 소스에 없는 것 제거 + 없는 것 추가
+      doc.docks = doc.docks.filter((e) => !(hIds.has(e.from) && hIds.has(e.to)) || want.has(`${e.from}-${e.to}`));
+      const have = new Set(doc.docks.map((e) => `${e.from}-${e.to}`));
+      for (const e of desired) if (!have.has(`${e.from}-${e.to}`)) doc.docks.push(e);
+    }
+    relayoutDocks();
   }
   // §282: 두 유닛의 샤프트 축 평행 판정 (역평행 = 180°·미러 조합도 평행으로 간주)
   function dockAxesParallel(a, b) {
@@ -1921,7 +1992,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
     duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
-    connectDock, disconnectDock, dockMates, dockedIdSet, dockAxesParallel, // §278·§282: 도킹
+    connectDock, disconnectDock, undockUnit, dockMates, dockedIdSet, dockAxesParallel, // §278·§282·§283: 도킹
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

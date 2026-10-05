@@ -239,11 +239,12 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - **[Copied](#5-select-move-transform) units join the original's link.** To give the copies their own link: select just the copies and press any chip — they split off into a new link at that moment. The unlink parameters button removes only the selected units from the link
 
 ### {icon:link}Docking — joining units end to end
-- Selecting a unit shows two **round nodes** on its shaft axis. Select both units so all four nodes are visible, then drag one node onto the other unit's opposite node and the two units **snap together along the shaft axis** — the gap between them is the average of both gutters
+- Select **two units whose shaft axes are parallel** and four round nodes appear on their shafts. Drag one node onto the other unit's node and the two units **snap together as placed, aligned on the shaft axis** — the gap between them is the average of both gutters (nodes stay hidden when axes aren't parallel or zoom is under 15%)
 - Docked units **move together** (selection stays per-unit) and show the chain icon ({icon:link})
 - Chain 3, 4 or more units in series the same way; changing a gutter updates the gap live
 - While docked, **only rotation is locked** — flips and every other parameter stay per-unit
-- Drop a node on empty space to undock that side
+- To undock, click the unit's chain badge ({icon:link}) and choose **Undock** — dropping a node on empty space works too
+- Docking units inside a keyframe replicates the same dock to its paired keyframes
 
 ---
 

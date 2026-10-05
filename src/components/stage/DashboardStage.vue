@@ -107,23 +107,64 @@ function dockPt(u, side) {
     ? [rx - d[0] * inset, ry - d[1] * inset]
     : [lx + d[0] * inset, ly + d[1] * inset];
 }
-const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
-const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
-// §281: 샤프트 축의 화면 길이가 노드 2개(인셋 28×2)를 담지 못하면 자동 숨김 — 옵션 없는 물리 규칙
-// §282: 다중 선택 시 **전원 샤프트 축 평행**(역평행 포함)일 때만 노드 활성 (사용자 확정 게이트)
+// §283: 도크 배지 클릭 팝업 — 해제(Undock) 진입점 (페어 인디케이터 문법)
+const dockMenu = ref(null); // { x, y, u }
+function onDockBadgeClick(u, cx, cy) {
+  const r = el.value.getBoundingClientRect();
+  dockMenu.value = { x: cx - r.left, y: cy - r.top, u };
+}
+const closeDockMenu = () => { dockMenu.value = null; };
+function closeDockMenuOutside(e) {
+  if (e.target instanceof Element && e.target.closest('.ctxMenu')) return;
+  closeDockMenu();
+}
+watch(dockMenu, (open) => {
+  if (open) {
+    registerPopup(closeDockMenu);
+    setTimeout(() => window.addEventListener('pointerdown', closeDockMenuOutside, true), 0);
+  } else {
+    unregisterPopup(closeDockMenu);
+    window.removeEventListener('pointerdown', closeDockMenuOutside, true);
+  }
+});
+function onUndockFromBadge() {
+  const u = dockMenu.value?.u;
+  closeDockMenu();
+  if (u && props.actions.undockUnit(u.id)) toast(`Undocked — ${u.name}`);
+}
+// §283: 노드 활성 조건 (사용자 확정) — ① 줌 ≥ 15% (자동 숨김 임계) ② 유닛 **2개 이상** 선택
+// ③ 전원 샤프트 축 평행(역평행 포함). 단일 유닛 노드 폐기 — 해제는 도크 배지 팝업(Undock)으로.
 const dockNodeUnits = computed(() => {
-  const sel = props.doc.units.filter((u) => {
-    if (u.type === 'frame' || !props.doc.selectedIds.includes(u.id)) return false;
-    const p = u.params;
-    const axisLen = (p.orientation === 90 || p.orientation === 270 ? p.H : p.W) * vp.scale;
-    return axisLen >= 72;
-  });
-  if (sel.length >= 2) {
-    for (let i = 1; i < sel.length; i += 1) {
-      if (!props.actions.dockAxesParallel(sel[0], sel[i])) return [];
-    }
+  if (vp.scale < 0.15) return [];
+  const sel = props.doc.units.filter((u) => u.type !== 'frame' && props.doc.selectedIds.includes(u.id));
+  if (sel.length < 2) return [];
+  for (let i = 1; i < sel.length; i += 1) {
+    if (!props.actions.dockAxesParallel(sel[0], sel[i])) return [];
   }
   return sel;
+});
+// §283: 결착 표시 = **기하적으로 붙은 끝** — 로컬 좌/우 기준은 90/270·미러 조합에서 반대쪽 끝이
+// 칠해져 "엉뚱한 데가 결착됐다"는 오독을 만들었음 (사용자 리포트 0-1의 실체)
+const dockAttached = computed(() => {
+  const map = new Map(); // id → Set('left'|'right')
+  const byId = new Map(props.doc.units.map((x) => [x.id, x]));
+  const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+  for (const e of props.doc.docks) {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b) continue;
+    for (const [u, p] of [[a, b], [b, a]]) {
+      const l = dockNodePoint(p, 'left');
+      const r = dockNodePoint(p, 'right');
+      const c = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2]; // 상대 중심
+      const ul = dockNodePoint(u, 'left');
+      const ur = dockNodePoint(u, 'right');
+      const side = d2(ur, c) <= d2(ul, c) ? 'right' : 'left';
+      if (!map.has(u.id)) map.set(u.id, new Set());
+      map.get(u.id).add(side);
+    }
+  }
+  return map;
 });
 // §281: 드래그 중 타깃 = 다른 선택 유닛의 **양쪽 노드 모두** — 같은쪽 노드에 놓아도 결착
 // (반대쪽 한정이 "드래그는 되는데 연결이 안 됨" 무반응의 원인. 방향은 드래그 시작 쪽이 결정)
@@ -1818,15 +1859,17 @@ onBeforeUnmount(() => {
             :x="g.x" :y="g.y" :width="g.w" :height="g.h"
           />
         </template>
-        <!-- §278: 도크 배지 — 결착된 유닛 표시 (구 링크 배지 자리·아이콘 승계, 뷰 옵션으로 숨김 가능)
+        <!-- §278 → §283: 도크 배지 = 페어 인디케이터 문법(원 안 글리프) + 클릭 = Undock 팝업
              §246: 프레임 다중선택 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
         <g
           v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockedIdSet.has(x.id)) : []"
           :key="'dk' + u.id"
-          class="linkBadge"
-          :transform="`translate(${u.x + u.params.W} ${u.y})`"
+          class="dockMark"
+          :transform="`translate(${u.x + u.params.W - pxs(9)} ${u.y - pxs(12)})`"
+          @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockBadgeClick(u, ev.clientX, ev.clientY); }"
         >
-          <g :transform="`translate(${-pxs(13)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
+          <circle class="bg" :r="pxs(8)" />
+          <g :transform="`translate(${-pxs(5.5)} ${-pxs(5.5)}) scale(${pxs(11) / 24})`">
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
@@ -1846,7 +1889,7 @@ onBeforeUnmount(() => {
               class="dockNode"
               :class="{
                 target: dockTargetOf(u),
-                docked: side === 'left' ? dockedLeft.has(u.id) : dockedRight.has(u.id),
+                docked: dockAttached.get(u.id)?.has(side),
               }"
               :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(5)"
               @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, side); }"
@@ -2165,6 +2208,19 @@ onBeforeUnmount(() => {
       <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
     </div>
+    <!-- §283: 도크 배지 클릭 = Undock 미니 팝업 (페어 인디케이터 문법) -->
+    <div
+      v-if="dockMenu"
+      class="ctxMenu pairMenu"
+      :style="{ left: dockMenu.x + 'px', top: dockMenu.y + 'px' }"
+      @pointerdown.stop
+      @contextmenu.prevent
+    >
+      <button
+        class="ctxItem"
+        @click="onUndockFromBadge"
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.detach" :key="d" :d="d" /></svg>Undock</button>
+    </div>
     <!-- §243: 페어 인디케이터 클릭 = 페어 전용 미니 팝업 — §245: 미페어 = Make / 페어 = Select chain·Unpair -->
     <div
       v-if="pairMenu"
@@ -2256,6 +2312,14 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
+/* §283: 도크 배지 — 페어 인디케이터 문법 (원 안 사슬 글리프, 클릭 = Undock 팝업) */
+.dockMark {
+  cursor: pointer;
+  .bg { fill: var(--panel); stroke: var(--link); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  path { fill: none; stroke: var(--link); stroke-width: 2.5; stroke-linejoin: miter; }
+  &:hover .bg { fill: var(--link); }
+  &:hover path { stroke: var(--bg); }
+}
 /* §280: 도킹 노드 — 원형(선택 유닛 한정 — 모드/대상으로 애니 노드와 분리), 결착 = 솔리드
    §282: 스트로크 = 화이트(--text) (사용자 확정 — §281 --link는 유닛색 위 가독 부족), 결착 필 = --link */
 .dockNode {

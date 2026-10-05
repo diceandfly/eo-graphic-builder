@@ -1061,4 +1061,37 @@ function centerIn(u, f) {
   });
 }
 
+// §283. 페어 프레임 간 도크 자동 복제 + Undock(배지 팝업) + 복제 시 도크 동반
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 3000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  u1.x = f.x + 100;
+  const u2 = api.createUnit(f.x + 1500, u1.y);
+  api.duplicatePairedFrame(f.id, 8000, 0);
+  const m1 = api.doc.units.find((u) => u.pair === u1.pair && u.id !== u1.id);
+  const m2 = api.doc.units.find((u) => u.pair === u2.pair && u.id !== u2.id);
+  await sleep(30);
+  api.connectDock(u1.id, u2.id);
+  await sleep(30);
+  ok('§283: 결착 = 짝 키프레임에 도크 복제 + 그 프레임 기준 정렬', () => {
+    assert.ok(api.doc.docks.some((e) => e.from === m1.id && e.to === m2.id));
+    assert.ok(Math.abs(m2.x - (m1.x + m1.params.W + 10)) < 1e-6, `m2.x=${m2.x}`);
+  });
+  api.undockUnit(u1.id);
+  await sleep(30);
+  ok('§283: Undock = 짝 키프레임 포함 전체 해제', () => {
+    assert.equal(api.doc.docks.length, 0);
+  });
+  // 도크가 있는 프레임을 페어 복제하면 사본에도 도크 동반
+  api.connectDock(u1.id, u2.id);
+  await sleep(30);
+  const before = api.doc.docks.length;
+  api.duplicatePairedFrame(f.id, 16000, 0);
+  ok('§283: 페어 복제 시 소유 유닛 간 도크 동반 복제', () => {
+    assert.ok(api.doc.docks.length > before);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
