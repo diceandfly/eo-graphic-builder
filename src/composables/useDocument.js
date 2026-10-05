@@ -97,14 +97,19 @@ export function dockBridgePolys(a, b) {
   const mb = mid(pb[0], pb[1]);
   const L = Math.hypot(mb[0] - ma[0], mb[1] - ma[1]) || 1;
   const dir = [(mb[0] - ma[0]) / L, (mb[1] - ma[1]) / L];
-  const ext = 1;
+  // §285: 틈 보정 2px — 유닛 쪽 끝은 유닛 안으로, 중간 접합은 두 반쪽을 서로 1px씩(총 2px) 겹침
+  // (접합선 AA 라인 제거 — 같은 fill이면 완전 비가시, 다른 fill이면 뒤쪽 반이 경계를 덮음)
+  const ext = 2;
+  const ov = 1;
   const paE = pa.map((pt) => [pt[0] - dir[0] * ext, pt[1] - dir[1] * ext]);
   const pbE = pb.map((pt) => [pt[0] + dir[0] * ext, pt[1] + dir[1] * ext]);
   const m0 = mid(pa[0], pb[0]);
   const m1 = mid(pa[1], pb[1]);
+  const fwd = (pt) => [pt[0] + dir[0] * ov, pt[1] + dir[1] * ov];
+  const bck = (pt) => [pt[0] - dir[0] * ov, pt[1] - dir[1] * ov];
   return [
-    { pts: [paE[0], paE[1], m1, m0], fill: a.params.fill },
-    { pts: [m0, m1, pbE[1], pbE[0]], fill: b.params.fill },
+    { pts: [paE[0], paE[1], fwd(m1), fwd(m0)], fill: a.params.fill },
+    { pts: [bck(m0), bck(m1), pbE[1], pbE[0]], fill: b.params.fill },
   ];
 }
 // 문서 단위 일괄 — 스테이지·익스포트 공용
