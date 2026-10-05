@@ -101,11 +101,11 @@ section h2 {
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
 /* §265·§267: 범주 토글 칩 — 내용 폭 랩 배치(100% 행 폐기). on = 전체 액센트,
    mixed = 보더·이름은 기본, 상태 텍스트만 액센트 */
-.catRows { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
+.catRows { margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } /* §267: 행당 2칩 (완전 랩은 과축약 — 사용자 정정) */
 .catTg {
   @include bordered-control;
   height: 21px; padding: 0 8px;
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 6px;
   color: var(--faint);
   .catName { text-transform: capitalize; }
   .catState { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); }
