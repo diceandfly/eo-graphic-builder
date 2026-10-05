@@ -1939,9 +1939,9 @@ onBeforeUnmount(() => {
   cursor: url('../../assets/cursor/cursorDefault.svg') 0 0, default;
 }
 .stage.framesel:not(.panning), .stage.framesel:not(.panning) .hit {
-  cursor: url('../../assets/cursor/cursorBlock.svg') 0 0, default; /* 테스트 1 (현재) */
-  /* cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default;  테스트 2 */
-  /* cursor: url('../../assets/cursor/cursorWhite.svg') 0 0, default;        테스트 3 */
+  cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default; /* §240: 바운딩박스 (현재) */
+  /* cursor: url('../../assets/cursor/cursorBlock.svg') 0 0, default;  대체 1 */
+  /* cursor: url('../../assets/cursor/cursorWhite.svg') 0 0, default;  대체 2 */
 }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
