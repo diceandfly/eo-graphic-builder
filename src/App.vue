@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useDocument, LINK_CATS, primaryLid, dockBridges } from './composables/useDocument.js';
+import { useDocument, LINK_CATS, primaryLid, dockBridges, dockAttachedEnds } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { usePatterns } from './composables/usePatterns.js';
@@ -89,7 +89,7 @@ function exportPreset(preset) {
 }
 
 // 타입별 export 아이템 구성 (rect는 도형 정보만, 그리드 가이드 미포함)
-function exportItem(u) {
+function exportItem(u, dockedEnds = null) {
   const p = u.params;
   if (u.type === 'frame') {
     return {
@@ -99,7 +99,7 @@ function exportItem(u) {
   }
   return {
     type: 'unit', x: u.x, y: u.y, W: p.W, H: p.H,
-    unit: deriveUnit(p).unit, orientation: p.orientation, fill: p.fill,
+    unit: deriveUnit(p, { dockedEnds: dockedEnds ?? null }).unit, orientation: p.orientation, fill: p.fill, // §292
   };
 }
 // 현재 선택 → export 아이템 목록 (다중 = 컴포지트, 아니면 활성 유닛)
@@ -110,7 +110,11 @@ function selectionItems() {
   const frameIds = doc.units.filter((u) => ids.has(u.id) && u.type === 'frame').map((u) => u.id);
   if (frameIds.length) for (const o of docApi.frameOwnedUnits(frameIds)) ids.add(o.id);
   const sel = doc.units.filter((u) => ids.has(u.id));
-  if (sel.length > 1) return { items: sel.map(exportItem), bridges: selectionBridges(ids) };
+  if (sel.length > 1) {
+    // §292: 도킹면 threadMin 경계 중심 — 양끝이 선택에 포함된 결착만 (브리지와 동일 규칙)
+    const ends = dockAttachedEnds(doc.units, doc.docks.filter((e) => ids.has(e.from) && ids.has(e.to)));
+    return { items: sel.map((u) => exportItem(u, ends.get(u.id) ?? null)), bridges: selectionBridges(ids) };
+  }
   return { items: active.value ? [exportItem(active.value)] : [], bridges: [] };
 }
 // §284: 선택 내부 도크 브리지 — 양끝이 모두 선택(동반 포함)에 들어온 결착만

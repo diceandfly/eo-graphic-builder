@@ -2294,3 +2294,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 291. 2026-10-06 — Gutter Compensation 잠정 숨김
 
 - 도크 팝업의 보정 행 숨김 (사용자 확정 — 팝업은 Undock만). setDockComp·e.comp 데이터·짝 복제·재정렬 반영 로직은 전부 보존(복귀 대비), 매뉴얼 문구만 제거.
+
+## 292. 2026-10-06 — 도킹면 threadMin = 경계선 중심 100%
+
+- **도킹된 면의 끝 스레드는 §286 절반 가드 대신, 유닛 바운딩 경계선을 중심선으로 100% minW** (절반이 경계 밖 — 브리지 쪽으로 걸침, 사용자 확정). 유닛이 이어지는 면이므로 "끝 마감"이 아니라 "계속되는 스레드"로 취급.
+- 경로: dockAttachedEnds(공유 헬퍼 승격 — §283 표시 로직 재사용) → UnitGraphic dockedEnds prop → deriveUnit opts → buildUnit(경계 중심 배치, 클램프 생략 — non-clip 유닛은 overflow visible이라 그대로 렌더). 스테이지·컴포지트 익스포트(선택 포함 결착만)·애니패널 프리뷰 3곳 동일 소스.
+- 수치: 기본 끝 399.5~400.0(0.5px 안쪽 부착) vs 도킹면 399.5~400.5(경계 400 중심 1px). 테스트 1건(153케이스).

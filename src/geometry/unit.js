@@ -6,7 +6,9 @@ import { EPS, LIMITS } from './constants.js';
 // 'both': shaft 세로 중앙, 상/하 thread 밴드 대칭
 // 'one' : shaft가 캔버스 바닥에 접하고(shaftBot = H), 상단 밴드가 위쪽 전체를 차지
 // threadDir: 'LtoR' | 'RtoL' — RtoL이면 각 col 안에서 thread를 좌우 반전
-export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir = 'LtoR' }) {
+// dockedEnds (§292): { left, right } — 도킹된 면. 그 끝 칸은 §286 절반 가드 대신
+// **유닛 경계선을 중심선으로 100% minW** (절반이 경계 밖 — 도크 브리지 쪽으로 걸침).
+export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir = 'LtoR', dockedEnds = null }) {
   const one = threads === 'one';
   const rtl = threadDir === 'RtoL';
   const shaftTop = one ? H - D : (H - D) / 2;
@@ -34,12 +36,20 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
       // 온전한 칸(len=1)은 종전 보정 그대로 (MIN_COL_W·거터 스케일과 같은 문법).
       // §286: **끝 칸은 절반값** (사용자 확정) — 좁은 끝의 마지막 스레드가 더 가늘게 마감돼
       // 1px 런의 끝이 부드러움. 넓은 끝 칸은 어차피 w ≫ minW라 영향 없음.
+      // §292: 단 **도킹된 면**의 끝 칸은 절반 금지 — 경계선 중심 100% (유닛이 이어지는 면이므로)
       const endCell = ci === 0 || ci === columns.length - 1;
-      const minW = minW0 * (endCell ? 0.5 : 1) * Math.max(0, Math.min(1, len));
+      const dockedEnd = endCell && !!dockedEnds
+        && ((ci === 0 && dockedEnds.left) || (ci === columns.length - 1 && dockedEnds.right));
+      const minW = minW0 * (endCell && !dockedEnd ? 0.5 : 1) * Math.max(0, Math.min(1, len));
       const blendEnd = 3 * minW; // minW~3·minW 구간에서 사다리꼴 → 직사각형 모프
       if (w < minW) {
         // 극한 압축: 최소폭 직사각형으로 대체 (캔버스 안쪽으로 클램프) — 밑변은 cy까지
+        // §292: 도킹된 면은 클램프 없이 **경계선 중심** 배치 (절반이 밖으로 — 렌더가 overflow 허용)
         const rect = (attachRight) => {
+          if (dockedEnd) {
+            const cx0 = ci === 0 ? 0 : W;
+            return [cx0 - minW / 2, cx0 + minW / 2];
+          }
           let x1, x2;
           if (attachRight) {
             x1 = R - minW; x2 = R;

@@ -5,7 +5,7 @@ import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
-import { dockBridgePolys } from '../../composables/useDocument.js';
+import { dockBridges, dockAttachedEnds } from '../../composables/useDocument.js';
 import '../../ui/cursors.js'; // §264: 전역 커서 클래스(.curScale-se) 주입 — 인라인 스타일 커서 폐기
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
@@ -172,27 +172,31 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
-// §284: 포즈의 도크 브리지 — 페어 계보로 아이템 매칭 (도크는 양 키프레임에 복제돼 있음 §283).
-// 디졸브 분리(p<pair>a/b) 시 같은 pair의 첫 아이템 기준.
-const poseBridges = computed(() => {
-  if (!pose.value || !props.docks.length) return [];
+// §284: 포즈의 도크 — 페어 계보로 아이템 매칭 (도크는 양 키프레임에 복제돼 있음 §283).
+// 디졸브 분리(p<pair>a/b) 시 같은 pair의 첫 아이템 기준. §292: 도킹면 정보(ends)도 동일 소스.
+const poseDockData = computed(() => {
+  if (!pose.value || !props.docks.length) return null;
   const byId = new Map(props.fromUnits.map((u) => [u.id, u]));
   const fakeByPair = new Map();
   for (const it of pose.value.items) {
     const m = /^p(\d+)/.exec(it.key);
-    if (m && !fakeByPair.has(+m[1])) fakeByPair.set(+m[1], { x: it.dx, y: it.dy, type: 'unit', params: it.params });
+    if (m && !fakeByPair.has(+m[1])) fakeByPair.set(+m[1], { id: +m[1], x: it.dx, y: it.dy, type: 'unit', params: it.params });
   }
-  const out = [];
+  const edges = [];
   for (const e of props.docks) {
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b || a.pair == null || b.pair == null) continue;
-    const fa2 = fakeByPair.get(a.pair);
-    const fb2 = fakeByPair.get(b.pair);
-    if (fa2 && fb2) out.push(...dockBridgePolys(fa2, fb2));
+    if (fakeByPair.has(a.pair) && fakeByPair.has(b.pair)) edges.push({ from: a.pair, to: b.pair });
   }
-  return out;
+  return { fakes: [...fakeByPair.values()], edges };
 });
+const poseBridges = computed(() => (poseDockData.value ? dockBridges(poseDockData.value.fakes, poseDockData.value.edges) : []));
+const poseDockEnds = computed(() => (poseDockData.value ? dockAttachedEnds(poseDockData.value.fakes, poseDockData.value.edges) : new Map()));
+const poseEndsFor = (key) => {
+  const m = /^p(\d+)/.exec(key);
+  return m ? poseDockEnds.value.get(+m[1]) ?? null : null;
+};
 // ── §233·§247·§250: 익스포트 — WebM/MP4(실시간 녹화) · GIF(비실시간) · JSON(웹 모션 데이터) ──
 // 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터. 파일명 = `From→To_1000ms` 규칙.
 const exporting = ref(false);
@@ -395,7 +399,7 @@ const totalLabel = computed(() => {
             :fill="bp.fill"
           />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
-            <UnitGraphic :params="it.params" :seam-width="0.75" />
+            <UnitGraphic :params="it.params" :seam-width="0.75" :docked-ends="poseEndsFor(it.key)" />
           </g>
         </svg>
         <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체)

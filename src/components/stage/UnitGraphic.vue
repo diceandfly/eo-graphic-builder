@@ -7,13 +7,14 @@ const props = defineProps({
   params: Object,
   showGuides: Boolean,
   seamWidth: { type: Number, default: 0 }, // 접합 봉합 스트로크 (화면 px, 0이면 없음)
+  dockedEnds: { type: Object, default: null }, // §292: { left, right } — 도킹된 면 (threadMin 경계 중심 100%)
 });
 const fill = computed(() => props.params.fill || BRAND_COLORS[0]);
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
 
-const d = computed(() => deriveUnit(props.params));
+const d = computed(() => deriveUnit(props.params, { dockedEnds: props.dockedEnds }));
 const otf = computed(() =>
   orientationTransform(props.params.orientation, d.value.localW, d.value.localH) || undefined
 );

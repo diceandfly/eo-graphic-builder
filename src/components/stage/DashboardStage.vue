@@ -18,7 +18,7 @@ import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
-import { dockNodePoint, dockBridges, dockBridgeGuides } from '../../composables/useDocument.js';
+import { dockNodePoint, dockBridges, dockBridgeGuides, dockAttachedEnds } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -167,27 +167,8 @@ const dockNodeUnits = computed(() => {
 });
 // §283: 결착 표시 = **기하적으로 붙은 끝** — 로컬 좌/우 기준은 90/270·미러 조합에서 반대쪽 끝이
 // 칠해져 "엉뚱한 데가 결착됐다"는 오독을 만들었음 (사용자 리포트 0-1의 실체)
-const dockAttached = computed(() => {
-  const map = new Map(); // id → Set('left'|'right')
-  const byId = new Map(props.doc.units.map((x) => [x.id, x]));
-  const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
-  for (const e of props.doc.docks) {
-    const a = byId.get(e.from);
-    const b = byId.get(e.to);
-    if (!a || !b) continue;
-    for (const [u, p] of [[a, b], [b, a]]) {
-      const l = dockNodePoint(p, 'left');
-      const r = dockNodePoint(p, 'right');
-      const c = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2]; // 상대 중심
-      const ul = dockNodePoint(u, 'left');
-      const ur = dockNodePoint(u, 'right');
-      const side = d2(ur, c) <= d2(ul, c) ? 'right' : 'left';
-      if (!map.has(u.id)) map.set(u.id, new Set());
-      map.get(u.id).add(side);
-    }
-  }
-  return map;
-});
+// §292: 공유 헬퍼로 승격 (익스포트·애니패널과 동일 소스) — threadMin 경계 중심 100%에도 사용
+const dockAttached = computed(() => dockAttachedEnds(props.doc.units, props.doc.docks));
 // §281: 드래그 중 타깃 = 다른 선택 유닛의 **양쪽 노드 모두** — 같은쪽 노드에 놓아도 결착
 // (반대쪽 한정이 "드래그는 되는데 연결이 안 됨" 무반응의 원인. 방향은 드래그 시작 쪽이 결정)
 const dockTargetOf = (u) => !!dockDrag.value && dockDrag.value.fromId !== u.id;
@@ -1869,6 +1850,7 @@ onBeforeUnmount(() => {
             :params="u.params"
             :show-guides="showGuides && doc.selectedIds.includes(u.id)"
             :seam-width="seamW"
+            :docked-ends="dockAttached.get(u.id) || null"
           />
           <!-- 패스스루 (§92): 일반 커서 = 프레임 무시, 프레임 모드 = 유닛 무시 (그리기/스포이드 모드는 전부 활성) -->
           <!-- §244: 프레임 히트 = hitFrame — 유닛 우선 모드에서도 호버 시 그룹(BBox) 커서 -->
@@ -1935,7 +1917,7 @@ onBeforeUnmount(() => {
               class="dockNode"
               :class="{
                 target: dockTargetOf(u),
-                docked: dockAttached.get(u.id)?.has(side),
+                docked: dockAttached.get(u.id)?.[side],
               }"
               :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(6.5)"
               @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, side); }"

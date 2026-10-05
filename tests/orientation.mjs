@@ -144,4 +144,21 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
   ok('§276: cols 애니 꼬리 테이퍼 연속 (점프 ≤ 0.3px)', () => {});
 }
 
+// ── §292: 도킹된 면의 threadMin = 경계선 중심 100% (절반 가드 금지) ──
+{
+  const base = {
+    W: 400, H: 200, orientation: 0, cols: 10, gutterMode: 'fixed', gutterPx: 2,
+    rate: 8, direction: 'LtoS', dPct: 35, a: 0.4, b: 1, threads: 'both', threadDir: 'LtoR',
+    flipX: false, offset: 0, offsetType: 'step', grow: 'r',
+  };
+  const span = (poly) => [Math.min(...poly.map((pt) => pt[0])), Math.max(...poly.map((pt) => pt[0]))];
+  const d = deriveUnit(base, { dockedEnds: { left: false, right: true } });
+  const last = d.unit.threadsTop.length - 1;
+  const [lo, hi] = span(d.unit.threadsTop[last]);
+  assert.ok(Math.abs(lo - 399.5) < 1e-6 && Math.abs(hi - 400.5) < 1e-6, `도킹면 뀝 스레드 ${lo}~${hi}`);
+  const [l0, h0] = span(d.unit.threadsTop[0]); // 비도킹 반대쪽 뀝 = 종전 규칙 유지
+  assert.ok(h0 <= base.W + 1e-6 && l0 >= -1e-6, '비도킹 뀝은 경계 내');
+  ok('§292: 도킹면 뀝 스레드 = 경계 중심 100% minW', () => {});
+}
+
 console.log(`✓ orientation: ${passed} cases passed`);

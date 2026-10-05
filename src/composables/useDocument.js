@@ -118,6 +118,29 @@ export function dockBridgePolys(a, b) {
     { pts: [bck(m0), bck(m1), pbE[1], pbE[0]], fill: b.params.fill },
   ];
 }
+// §292: 결착된 면 맵 — id → { left, right } (렌더 로컬 기준 — dockNodePoint의 'left'/'right'와 동일 축).
+// 판정 = 상대 중심에 가까운 쪽 끝 (§282 기하 사상). 스테이지 렌더·익스포트·애니패널 프리뷰 공용.
+export function dockAttachedEnds(units, docks) {
+  const map = new Map();
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+  for (const e of docks ?? []) {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || a.type === 'frame' || b.type === 'frame') continue;
+    for (const [u, p] of [[a, b], [b, a]]) {
+      const l = dockNodePoint(p, 'left');
+      const r = dockNodePoint(p, 'right');
+      const c = [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2]; // 상대 중심
+      const ul = dockNodePoint(u, 'left');
+      const ur = dockNodePoint(u, 'right');
+      const side = d2(ur, c) <= d2(ul, c) ? 'right' : 'left';
+      if (!map.has(u.id)) map.set(u.id, { left: false, right: false });
+      map.get(u.id)[side] = true;
+    }
+  }
+  return map;
+}
 // 문서 단위 일괄 — 스테이지·익스포트 공용
 export function dockBridges(units, docks) {
   const byId = new Map(units.map((u) => [u.id, u]));
