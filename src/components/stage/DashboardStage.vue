@@ -92,15 +92,16 @@ const hoverLinkUnits = computed(() => {
   if (!lids.size) return [];
   return props.doc.units.filter((u) => u.links?.[cat] != null && lids.has(u.links[cat]));
 });
-// §278: 도킹 노드 — 표시 대상 = 선택/결착 유닛 (드래그 중엔 전 유닛이 타깃 후보)
-const dockDrag = ref(null); // { fromId, x1, y1, x, y }
-// §279: 노드 표시 위치 = 샤프트 축 위, 가장자리에서 **안쪽** 16px(화면 기준) — 엣지 정중앙은
-// 선택 박스 리사이즈 핸들과 정확히 겹쳐 가려지고 클릭도 뺏기던 문제 (사용자 확정: 안쪽 배치)
+// §280: 도킹 노드 — **선택한 유닛에만** 원형 노드 (사용자 확정 재설계).
+// 연결 = 유닛 2개를 선택해 노드 4개가 뜬 상태에서, 한 노드를 **다른 선택 유닛의 반대쪽 노드**로
+// 드래그. 양쪽 노드 모두 드래그 시작 가능 (우→좌 = 그대로, 좌→우 = 역방향 엣지). 빈 곳 = 그 노드 해제.
+const dockDrag = ref(null); // { fromId, side, x1, y1, x, y }
+// §279→§280: 노드 표시 위치 = 샤프트 축 위, 가장자리에서 안쪽 28px(화면 기준, 폭 1/3 상한)
 function dockPt(u, side) {
   const [lx, ly] = dockNodePoint(u, 'left');
   const [rx, ry] = dockNodePoint(u, 'right');
   const L = Math.hypot(rx - lx, ry - ly) || 1;
-  const inset = Math.min(L / 3, pxs(16));
+  const inset = Math.min(L / 3, pxs(28));
   const d = [(rx - lx) / L, (ry - ly) / L];
   return side === 'right'
     ? [rx - d[0] * inset, ry - d[1] * inset]
@@ -108,14 +109,16 @@ function dockPt(u, side) {
 }
 const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
 const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
-const dockNodeUnits = computed(() => {
-  const units = props.doc.units.filter((u) => u.type !== 'frame');
-  if (dockDrag.value) return units;
-  return units.filter((u) => props.doc.selectedIds.includes(u.id) || dockedIdSet.value.has(u.id));
-});
-function onDockNodeDown(u) {
-  const [x1, y1] = dockPt(u, 'right');
-  dockDrag.value = { fromId: u.id, x1, y1, x: x1, y: y1 };
+const dockNodeUnits = computed(() =>
+  props.doc.units.filter((u) => u.type !== 'frame' && props.doc.selectedIds.includes(u.id))
+);
+const oppSide = (s) => (s === 'right' ? 'left' : 'right');
+// 드래그 중 타깃 = **다른 선택 유닛**의 반대쪽 노드만
+const dockTargetOf = (u, side) =>
+  !!dockDrag.value && dockDrag.value.fromId !== u.id && side === oppSide(dockDrag.value.side);
+function onDockNodeDown(u, side) {
+  const [x1, y1] = dockPt(u, side);
+  dockDrag.value = { fromId: u.id, side, x1, y1, x: x1, y: y1 };
   const mv = (ev) => {
     const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
     if (dockDrag.value) { dockDrag.value.x = wx; dockDrag.value.y = wy; }
@@ -128,15 +131,18 @@ function onDockNodeDown(u) {
     const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
     let hit = null;
     let best = 14 / vp.scale; // 애니 노드와 동일 드롭 반경
-    for (const t of props.doc.units) {
-      if (t.type === 'frame' || t.id === d.fromId) continue;
-      const [nx, ny] = dockPt(t, 'left'); // 표시 위치 = 히트 위치 (§279)
+    for (const t of dockNodeUnits.value) {
+      if (t.id === d.fromId) continue;
+      const [nx, ny] = dockPt(t, oppSide(d.side)); // 표시 위치 = 히트 위치
       const dist = Math.hypot(wx - nx, wy - ny);
       if (dist < best) { best = dist; hit = t; }
     }
     if (hit) {
-      if (!props.actions.connectDock(d.fromId, hit.id)) toast('Cannot dock — this would close a loop');
-    } else if (props.actions.disconnectDock(d.fromId, 'right')) {
+      const ok = d.side === 'right'
+        ? props.actions.connectDock(d.fromId, hit.id)
+        : props.actions.connectDock(hit.id, d.fromId); // 좌측에서 시작 = 역방향 결착
+      if (!ok) toast('Cannot dock — this would close a loop');
+    } else if (props.actions.disconnectDock(d.fromId, d.side)) {
       toast('Undocked');
     }
   };
@@ -1808,24 +1814,20 @@ onBeforeUnmount(() => {
           class="hoverLinkHl"
           :x="u.x" :y="u.y" :width="u.params.W" :height="u.params.H"
         />
-        <!-- §278: 도킹 노드 — 비애니 모드 + 선택 유닛의 샤프트 양끝 **사각형** 노드
-             (애니 노드 = 프레임·애니 모드·원형과 삼중 구분). 우측 노드 드래그 → 다른 유닛
-             좌측 노드에 드롭 = 결착 / 빈 곳 = 해제. 드래그 중엔 전 유닛 좌측 노드가 타깃 표시 -->
+        <!-- §280: 도킹 노드 — 비애니 모드 + **선택 유닛만**, 샤프트 축 위 원형 노드
+             (애니 노드 = 프레임·애니 모드와 모드/대상 분리). 양쪽 노드 모두 드래그 시작 가능,
+             타깃 = 다른 선택 유닛의 반대쪽 노드 / 빈 곳 드롭 = 그 노드 해제 -->
         <template v-if="!animMode">
           <g v-for="u in dockNodeUnits" :key="'dn' + u.id">
-            <rect
-              class="dockNode left"
-              :class="{ target: !!dockDrag && dockDrag.fromId !== u.id, docked: dockedLeft.has(u.id) }"
-              :x="dockPt(u, 'left')[0] - pxs(4)" :y="dockPt(u, 'left')[1] - pxs(4)"
-              :width="pxs(8)" :height="pxs(8)"
-            />
-            <rect
-              v-if="u.type !== 'frame'"
-              class="dockNode right"
-              :class="{ docked: dockedRight.has(u.id) }"
-              :x="dockPt(u, 'right')[0] - pxs(4)" :y="dockPt(u, 'right')[1] - pxs(4)"
-              :width="pxs(8)" :height="pxs(8)"
-              @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, ev); }"
+            <circle
+              v-for="side in ['left', 'right']" :key="side"
+              class="dockNode"
+              :class="{
+                target: dockTargetOf(u, side),
+                docked: side === 'left' ? dockedLeft.has(u.id) : dockedRight.has(u.id),
+              }"
+              :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(5)"
+              @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, side); }"
             />
           </g>
           <line
@@ -2232,15 +2234,13 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-/* §278: 도킹 노드 — 사각형(애니 원형 노드와 구분), 결착 상태 = 솔리드 */
+/* §280: 도킹 노드 — 원형(선택 유닛 한정 — 모드/대상으로 애니 노드와 분리), 결착 = 솔리드 */
 .dockNode {
   fill: var(--panel); stroke: var(--accent);
   stroke-width: 1.5; vector-effect: non-scaling-stroke;
   cursor: crosshair;
   &.docked { fill: var(--accent); }
-  &.left { cursor: default; }
-  &.left.target { stroke-width: 2.5; }
-  &.right:hover { stroke-width: 2.5; }
+  &.target, &:hover { stroke-width: 2.5; }
 }
 .dockWire {
   stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3;
