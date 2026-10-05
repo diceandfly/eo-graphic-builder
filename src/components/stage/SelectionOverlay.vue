@@ -8,6 +8,7 @@ import { rotateCursor, scaleCursor } from '../../ui/cursors.js';
 const props = defineProps({
   unit: Object,  // { id, name, x, y, params }
   scale: Number, // 뷰포트 줌
+  showName: { type: Boolean, default: true }, // §245: 이름 라벨 토글 (바운딩박스 팝업)
 });
 const emit = defineEmits(['resizeStart', 'rotateStart', 'flip', 'flipv', 'dup', 'del']);
 function onAction(key) {
@@ -41,7 +42,7 @@ const ROT_ZONES = [
   <g :transform="`translate(${unit.x} ${unit.y})`" class="sel">
     <rect class="box" :width="W" :height="H" />
     <!-- §202: 프레임은 상시 이름 라벨(스테이지)이 선택 색으로 역할을 이어받음 — 중복 표기 제거 -->
-    <text v-if="unit.type !== 'frame'" class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
+    <text v-if="unit.type !== 'frame' && showName" class="label" :x="0" :y="-px(10)" :font-size="px(12)">{{ unit.name }}</text>
     <!-- 액션 버튼: 우측변 상단 (공용 OverlayActions) — §59 컨텍스트 메뉴로 이동, 숨김 -->
     <OverlayActions v-if="SHOW_ACTIONS" :scale="scale" :transform="`translate(${W + px(12)} 0)`" @action="onAction" />
 

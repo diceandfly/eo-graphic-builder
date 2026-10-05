@@ -742,4 +742,53 @@ function centerIn(u, f) {
   });
 }
 
+
+// §245. 프레임 회전: 내부 유닛 동반 (프레임 중심 기준 블록 회전 + 유닛 orientation 스텝)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 960×800
+  const f = api.createFrame(0, 0, 2000, 1000);
+  u1.x = 100; u1.y = 100; // 프레임 좌상단 영역 (중심 (580, 500) — 프레임 안)
+  api.setSelection([f.id]);
+  api.doc.activeId = f.id;
+  api.rotate(1); // 시계 90°
+  ok('프레임 회전: 프레임 W/H 스왑 + 중심 유지', () => {
+    assert.equal(f.params.W, 1000);
+    assert.equal(f.params.H, 2000);
+    assert.equal(f.x + f.params.W / 2, 1000);
+    assert.equal(f.y + f.params.H / 2, 500);
+  });
+  ok('프레임 회전: 내부 유닛 위치 동반 + orientation', () => {
+    // 유닛 중심 (580,500) → C(1000,500) 기준 시계 90° → (1000, 80)
+    assert.equal(u1.params.orientation, 90);
+    assert.equal(u1.params.W, 800); // W/H 스왑
+    assert.equal(u1.x + u1.params.W / 2, 1000);
+    assert.equal(u1.y + u1.params.H / 2, 80);
+  });
+  // 4회 회전 = 원위치 (누적 오차 없음)
+  api.rotate(1); api.rotate(1); api.rotate(1);
+  ok('프레임 회전: 4회 = 원위치·orientation 0', () => {
+    assert.equal(u1.params.orientation, 0);
+    assert.equal(u1.x, 100);
+    assert.equal(u1.y, 100);
+  });
+}
+
+// §245. rotateSelected: 선택에 프레임 포함 시 내부 유닛 동반
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  const f = api.createFrame(0, 0, 2000, 1000);
+  centerIn(u1, f);
+  const f2 = api.createFrame(3000, 0, 2000, 1000);
+  api.setSelection([f.id, f2.id]);
+  api.rotateSelected(1);
+  ok('rotateSelected: 프레임 선택 시 내부 유닛 동반', () => {
+    assert.equal(u1.params.orientation, 90);
+    // u1 중심 = f 중심과 일치 → 회전 후에도 f 중심과 일치해야 함
+    assert.equal(u1.x + u1.params.W / 2, f.x + f.params.W / 2);
+    assert.equal(u1.y + u1.params.H / 2, f.y + f.params.H / 2);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

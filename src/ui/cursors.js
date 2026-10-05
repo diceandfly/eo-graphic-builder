@@ -11,12 +11,16 @@ function orientedCursor(raw, deg) {
   const m = raw.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
   const vw = Number(m[1]);
   const vh = Number(m[2]);
-  const S = Math.max(vw, vh);
+  // §245: 캔버스 = 대각선 길이 — max(vw,vh) 정사각은 45°/135° 회전에서 양끝이 잘렸음 (수평·수직 스케일 커서 크롭).
+  // 렌더 px를 캔버스 확장비만큼 키워 글리프 체감 크기는 유지 (핫스팟 = 중앙 동반 이동).
+  const base = Math.max(vw, vh);
+  const S = Math.ceil(Math.hypot(vw, vh));
+  const px = Math.round(SIZE * (S / base));
   const inner = raw.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${S} ${S}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 ${S} ${S}">` +
     `<g transform="rotate(${deg} ${S / 2} ${S / 2}) translate(${(S - vw) / 2} ${(S - vh) / 2})">${inner}</g></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${Math.round(SIZE / 2)} ${Math.round(SIZE / 2)}`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${Math.round(px / 2)} ${Math.round(px / 2)}`;
 }
 
 // 회전 핸들 — 원본 = 우하단(se). 시계방향 90° 스텝으로 네 모서리.

@@ -13,6 +13,7 @@ const props = defineProps({
   clientToWorld: { type: Function, required: true }, // (cx, cy) => [wx, wy]
   selectedEdge: { default: null }, // §224: 선택 엣지 — 와이어 강조 + 애니메이션 창 연동
   dimmed: Boolean, // §225: 애니 모드 밖 — 연결 와이어만 회색 점선으로 표시 (노드·조작 없음)
+  selectedIds: { type: Array, default: () => [] }, // §245: 선택 미페어 프레임 = 고스트 뱃지 (페어링 진입점)
 });
 const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext', 'pairClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
@@ -51,6 +52,11 @@ const pairIndex = computed(() => {
   return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
 });
 const showPairNums = computed(() => Object.keys(pairIndex.value).length >= 2);
+// §245: 뱃지 표시 대상 — 페어 프레임(상시) + 애니 모드에서 **선택된 미페어 프레임**(고스트:
+// 번호 없는 점선 뱃지 = "여기서 페어를 만들 수 있다"는 진입점, 클릭 = Make paired keyframe 팝업)
+const markFrames = computed(() =>
+  frames.value.filter((f) => f.pair != null || (!props.dimmed && props.selectedIds.includes(f.id)))
+);
 
 // §234: 활성 체인 — 선택 엣지에서 연결을 따라 확장한 프레임 집합 (in/out ≤1이라 선형 체인)
 const chainIds = computed(() => {
@@ -127,16 +133,16 @@ function onNodeDown(f, e) {
     </g>
     <!-- 드래그 중 임시 와이어 -->
     <path v-if="drag" class="wire temp" :d="wirePath(drag.x1, drag.y1, drag.x, drag.y)" />
-    <!-- §231: 페어 인디케이터 — 페어(계보)가 있는 프레임 우상단에 페어 뱃지 (복제 직후 즉시 표시) -->
+    <!-- §231: 페어 인디케이터 — 페어 프레임 우상단 · §245: 선택 미페어 프레임 = 고스트 뱃지 -->
     <g
-      v-for="f in frames.filter((x) => x.pair != null)" :key="'pm' + f.id"
-      class="pairMark" :class="{ dim: dimmed }"
+      v-for="f in markFrames" :key="'pm' + f.id"
+      class="pairMark" :class="{ dim: dimmed, ghost: f.pair == null }"
       :transform="`translate(${f.x + f.params.W - pxs(9)} ${f.y - pxs(12)})`"
       @contextmenu.stop.prevent="(ev) => emit('pairContext', f, ev.clientX, ev.clientY)"
       @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) emit('pairClick', f, ev.clientX, ev.clientY); }"
     >
       <!-- §233: 페어 = 재생 삼각형 · §236: 번호(계보 2개↑)·우클릭 = 프레임 ctx 팝업 -->
-      <text v-if="showPairNums" class="pairNum" :x="-pxs(12)" :y="pxs(4)" :font-size="pxs(12)" text-anchor="end">{{ pairIndex[f.pair] }}</text>
+      <text v-if="showPairNums && f.pair != null" class="pairNum" :x="-pxs(12)" :y="pxs(4)" :font-size="pxs(12)" text-anchor="end">{{ pairIndex[f.pair] }}</text>
       <circle class="bg" :r="pxs(8)" />
       <g :transform="`translate(${-pxs(5.5)} ${-pxs(5.5)}) scale(${pxs(11) / 24})`">
         <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
@@ -187,6 +193,9 @@ function onNodeDown(f, e) {
   &.dim path { stroke: var(--dim); }
   &.dim .pairNum { fill: var(--dim); }
   &.dim:hover .bg { fill: var(--dim); }
+  // §245: 고스트 뱃지 — 미페어 선택 프레임의 페어링 진입점 (점선 링, 호버 시 실선 반전)
+  &.ghost .bg { stroke-dasharray: 3 2.5; }
+  &.ghost:hover .bg { stroke-dasharray: none; }
 }
 .node {
   // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트

@@ -273,8 +273,9 @@ const previewH = computed(() => {
       </div>
       <div class="menuNote">{{ fps }}fps simulation — edge timing via the wire control · ×n = export cycles</div>
     </template>
+    <!-- §245: 페어링 진입점 변경 — opt-드래그 복제 폐기, 뱃지 팝업(Make paired keyframe)으로 -->
     <div v-else class="empty">
-      Opt-drag a frame to make a paired keyframe, then drag its right node onto the copy's left node — the connection plays here
+      Select a frame and click its ▶ badge → Make paired keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
     <!-- §226: 우하단 크기 조절 그립 — 상시 표시, 호버 시 액센트. 프레임 비율 고정 리사이즈 -->
     <div class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">

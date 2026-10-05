@@ -193,6 +193,11 @@ function resetGridDefaults() {
             <input type="checkbox" v-model="view.showLinks" />
             <span>Show link badges</span>
           </label>
+          <!-- §245: 선택 바운딩박스 위 유닛 이름 라벨 토글 -->
+          <label class="menuRow">
+            <input type="checkbox" v-model="view.showSelName" />
+            <span>Show unit name</span>
+          </label>
         </div>
       </div>
       <div class="optWrap">
@@ -235,10 +240,11 @@ function resetGridDefaults() {
         </div>
       </div>
       <div class="optWrap">
+        <!-- §245: 기본 클릭 = Fit all objects (100% 리셋은 사용 빈도 낮아 폐기 — 사용자 확정) -->
         <IconButton
           class="zoom" tip-side="bottom" tip-align="right"
-          :tip="openMenu === 'zoom' ? '' : 'Reset zoom (100%)'"
-          @click="$emit('reset')"
+          :tip="openMenu === 'zoom' ? '' : 'Fit all objects'"
+          @click="$emit('fitAll')"
           @contextmenu="onContext('zoom', $event)"
         >
           {{ pct }}%
@@ -271,7 +277,7 @@ function resetGridDefaults() {
               />
               <rect class="mmView" :x="minimap.view.x" :y="minimap.view.y" :width="minimap.view.w" :height="minimap.view.h" />
             </svg>
-            <button class="miniBtn fitBtn" @click="emit('fitAll'); resetIdle()">Fit all objects</button>
+            <!-- (§245: Fit all 버튼 제거 — 배지 좌클릭 기본 기능으로 승격) -->
           </div>
         </div>
       </div>
@@ -297,12 +303,11 @@ function resetGridDefaults() {
 // §225: 미니맵 — 전체 오브젝트 분포 + 현재 뷰포트(액센트 직사각형)
 .minimap {
   display: block; border: 1px solid var(--line); border-radius: var(--radius);
-  cursor: pointer; margin-bottom: 8px;
+  cursor: pointer;
 }
 .mmBg { fill: var(--stage-bg); opacity: 0.7; }
 /* §226: 실제 fill 색을 그대로 — 어떤 작업물인지 색으로 식별 */
 .mmObj { opacity: 0.95; }
 .mmObj.frame { stroke: var(--faint); stroke-width: 0.75; opacity: 0.85; }
 .mmView { fill: rgba(249, 238, 58, 0.08); stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
-.fitBtn { width: 100%; justify-content: center; text-transform: capitalize; }
 </style>

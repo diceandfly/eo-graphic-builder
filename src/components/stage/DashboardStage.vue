@@ -220,6 +220,13 @@ const frameLabels = computed(() => {
   }
   return out;
 });
+// §245: 애니 모드에서 선택에 페어 프레임이 포함되면 통합 bbox(핸들)가 억제됨 — 그동안의
+// 선택·이동 피드백은 선택 프레임 **전부**(페어든 아니든)의 개별 아웃라인이 대신한다.
+const animSelFrames = computed(() => {
+  if (!animMode.value) return [];
+  const fs = props.doc.units.filter((u) => u.type === 'frame' && props.doc.selectedIds.includes(u.id));
+  return fs.some((f) => f.pair != null) ? fs : [];
+});
 // §208: 프레임 이름 라벨 더블클릭 = 뷰포트 인라인 이름변경 (HTML input을 라벨 화면 위치에 오버레이)
 const vFocus = { mounted: (el) => { el.focus(); el.select(); } };
 const frameNameEdit = ref(null); // { id, draft }
@@ -386,7 +393,7 @@ const gridCfg = reactive({ size: STAGE_GRID, snap: false, ...(prefs.grid || {}) 
 const showBBox = ref(true); // 바운딩박스(선택 오버레이) 표시 토글
 // 뷰 옵션 (코너 바 우클릭 메뉴): 방향키 이동 px · 링크 배지 표시 · 유닛 그리드 색 · 캔버스 격자/배경 색 (§85)
 const view = reactive({
-  nudge: 5, showLinks: true, showGroups: true, guideColor: null,
+  nudge: 5, showLinks: true, showGroups: true, showSelName: true, guideColor: null, // §245: showSelName = 선택 bbox 유닛 이름 라벨
   stageGridColor: null, stageBgColor: null,
   seamOn: true, seamCutoff: 40, // seam 스트로크 보정: 줌 < cutoff% 에서만 (§86)
   framePickZoom: 20, // §203: 이 줌(%) 미만 = 프레임 우선 선택 (0 = 끔)
@@ -591,6 +598,36 @@ watch(pairMenu, (open) => {
 function onUnpairFromMark() {
   const r = props.actions.unpairFrame(pairMenu.value.f.id);
   if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
+  closePairMenu();
+}
+// §245: 페어링 생성 = 뱃지 팝업 — 미페어 프레임 선택 시 고스트 뱃지 클릭 → Make paired keyframe.
+// 사본은 **오른쪽 옆 공간**(간격 = 프레임 폭의 10%, 최소 24px): 연결 규칙(우→좌)의 자연 흐름과 일치.
+function onMakePair() {
+  const f = pairMenu.value.f;
+  const gap = Math.max(24, Math.round(f.params.W * 0.1));
+  const r = props.actions.duplicatePairedFrame(f.id, f.params.W + gap, 0);
+  if (r) toast('Paired keyframe created — drag the right node onto its left node to connect');
+  closePairMenu();
+}
+// §245: 체인 선택 — 연결(엣지)을 따라 확장한 프레임 전부 선택 (연결이 없으면 같은 계보의 페어).
+// 이동 시 소속 유닛은 §245 동반 규칙이 따라붙으므로 선택은 프레임만.
+function onSelectChain() {
+  const f = pairMenu.value.f;
+  const ids = new Set([f.id]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const ed of props.doc.animEdges) {
+      const hf = ids.has(ed.from);
+      const ht = ids.has(ed.to);
+      if (hf !== ht) { ids.add(ed.from); ids.add(ed.to); grew = true; }
+    }
+  }
+  if (ids.size === 1 && f.pair != null) {
+    for (const u of props.doc.units) if (u.type === 'frame' && u.pair === f.pair) ids.add(u.id);
+  }
+  props.actions.setSelection([...ids]);
+  props.doc.activeId = f.id;
   closePairMenu();
 }
 function onCtxAction(key) {
@@ -931,17 +968,12 @@ function onUnitDown(u, e) {
     // 프레임 복제 = 내용물 포함 (§92 확정 사양, §201: V 모드에서도 동일)
     const frameIds = srcIds.filter((id) => props.doc.units.find((x) => x.id === id)?.type === 'frame');
     for (const o of frameOwnedUnits(frameIds)) if (!srcIds.includes(o.id)) srcIds.push(o.id);
-    // §223: 애니 모드에서 프레임 opt-드래그 = 페어 복제 (키프레임 사본 — pair 공유, 링크는 사본끼리 재구성)
-    if (animMode.value && u.type === 'frame') {
-      const r = props.actions.duplicatePairedFrame(u.id);
-      targets = r ? r.copies : [props.actions.duplicateFrom(u)];
-      if (r) toast('Paired keyframe copy — drag the right node onto a left node to connect');
-    } else {
-      targets =
-        srcIds.length > 1
-          ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
-          : [props.actions.duplicateFrom(u)];
-    }
+    // (§245: 애니 모드 opt-드래그 페어 복제 폐기 — 복제는 언제나 일반 복제.
+    //  페어링은 애니 모드에서 프레임 선택 → 페어 뱃지 클릭 → Make paired keyframe. 사용자 확정)
+    targets =
+      srcIds.length > 1
+        ? props.actions.duplicateUnits(props.doc.units.filter((x) => srcIds.includes(x.id)))
+        : [props.actions.duplicateFrom(u)];
   } else if (e.detail === 2 && og) {
     // 더블클릭 = 그룹 안 개별 유닛 선택 (피그마 방식)
     props.actions.selectOnly(u.id);
@@ -958,8 +990,14 @@ function onUnitDown(u, e) {
   }
   // 프레임 이동 = 소유 유닛 동반 (§92, §201: V 모드에서도) — 복제 드래그는 위에서 이미 사본에 포함됨
   if (!e.altKey) {
-    const frameIds = targets.filter((t) => t.type === 'frame').map((t) => t.id);
-    for (const o of frameOwnedUnits(frameIds)) if (!targets.includes(o)) targets.push(o);
+    const frames = targets.filter((t) => t.type === 'frame');
+    for (const o of frameOwnedUnits(frames.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
+    // §245: 페어 프레임 = home 소속 유닛도 동반 — 애니 작업 중 프레임 **밖**으로 옮겨둔 페어 유닛이
+    // 프레임만 이동하며 떨어져 나가던 문제 (기하 소속만으론 바깥 유닛을 못 쫓음)
+    for (const f of frames) {
+      if (f.pair == null) continue;
+      for (const o of props.actions.animOwnedUnits(f.id)) if (!targets.includes(o)) targets.push(o);
+    }
   }
   beginDrag(e, {
     kind: 'move',
@@ -1071,8 +1109,12 @@ function onMove(e) {
     // 실시간 교차 판정 (월드 좌표)
     const [wx1, wy1] = props.viewport.toWorld(marquee.value.x, marquee.value.y);
     const [wx2, wy2] = props.viewport.toWorld(marquee.value.x + marquee.value.w, marquee.value.y + marquee.value.h);
+    // §245: 완전 포함 규칙 (피그마식) — 유닛 모드에서도 마퀴가 프레임을 **통째로 덮으면** 프레임 선택
+    // (일부만 걸치면 유닛만 — 프레임 위 유닛 멀티선택과 충돌 없음). ⌘ 드래그 = 유닛만 강제.
+    const fullIn = (u) => u.x >= wx1 && u.x + u.params.W <= wx2 && u.y >= wy1 && u.y + u.params.H <= wy2;
+    const unitsOnly = e.metaKey || e.ctrlKey;
     const ids = props.doc.units
-      .filter((u) => (frameMode.value ? u.type === 'frame' : u.type !== 'frame'))
+      .filter((u) => (frameMode.value ? u.type === 'frame' : u.type !== 'frame' || (!unitsOnly && fullIn(u))))
       .filter((u) => u.x < wx2 && u.x + u.params.W > wx1 && u.y < wy2 && u.y + u.params.H > wy1)
       .map((u) => u.id);
     props.actions.setSelection(props.actions.expandGroups(ids));
@@ -1674,6 +1716,7 @@ onBeforeUnmount(() => {
           :client-to-world="dropClientToWorld"
           :selected-edge="selEdge"
           :dimmed="!animMode"
+          :selected-ids="doc.selectedIds"
           @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
@@ -1715,9 +1758,18 @@ onBeforeUnmount(() => {
           :x="keyRect.x" :y="keyRect.y"
           :width="keyRect.w" :height="keyRect.h"
         />
-        <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 -->
+        <!-- §245: 애니 모드 — 선택에 **페어** 프레임이 있으면 핸들(bbox) 대신 프레임별 선택
+             아웃라인 (스케일/회전 = 애니 에러 소지라 핸들 숨김은 유지, 이동 피드백은 프레임마다) -->
+        <rect
+          v-for="f in animSelFrames"
+          :key="'ps' + f.id"
+          class="pairSel"
+          :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
+        />
+        <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 — §245: 애니 모드 숨김은 **페어 프레임**
+             포함 시에만 (미페어 프레임은 애니 모드에서도 일반 bbox = 비애니 모드와 동일 문법) -->
         <GroupOverlay
-          v-if="showBBox && selBounds && !(animMode && doc.selectedIds.some((id) => doc.units.find((x) => x.id === id)?.type === 'frame'))"
+          v-if="showBBox && selBounds && !(animMode && doc.selectedIds.some((id) => { const x = doc.units.find((v) => v.id === id); return x?.type === 'frame' && x?.pair != null; }))"
           :bounds="selBounds"
           :label="groupLabel"
           :scale="vp.scale"
@@ -1726,8 +1778,9 @@ onBeforeUnmount(() => {
           @action="onGroupAction"
         />
         <SelectionOverlay
-          v-if="showBBox && singleSelected && activeUnit && !(animMode && activeUnit.type === 'frame')"
+          v-if="showBBox && singleSelected && activeUnit && !(animMode && activeUnit.type === 'frame' && activeUnit.pair != null)"
           :unit="activeUnit"
+          :show-name="view.showSelName !== false"
           :scale="vp.scale"
           @resize-start="onResizeStart"
           @rotate-start="onRotateStart"
@@ -1935,7 +1988,7 @@ onBeforeUnmount(() => {
       <button class="ctxItem" @click="onCopyPng(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.imagePng" :key="d" :d="d" /></svg>Copy as PNG (⌘⇧C)</button>
       <button class="ctxItem" @click="actions.exportSvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.exportSvg" :key="d" :d="d" /></svg>Export SVG file (⇧E)</button>
     </div>
-    <!-- §243: 페어 인디케이터 클릭 = 페어 전용 미니 팝업 (현재 항목: Unpair) -->
+    <!-- §243: 페어 인디케이터 클릭 = 페어 전용 미니 팝업 — §245: 미페어 = Make / 페어 = Select chain·Unpair -->
     <div
       v-if="pairMenu"
       class="ctxMenu pairMenu"
@@ -1944,9 +1997,20 @@ onBeforeUnmount(() => {
       @contextmenu.prevent
     >
       <button
+        v-if="pairMenu.f.pair == null"
         class="ctxItem"
-        @click="onUnpairFromMark"
-      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
+        @click="onMakePair"
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make paired keyframe</button>
+      <template v-else>
+        <button
+          class="ctxItem"
+          @click="onSelectChain"
+        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>Select chain</button>
+        <button
+          class="ctxItem"
+          @click="onUnpairFromMark"
+        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
+      </template>
     </div>
     <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->
     <input
@@ -1994,6 +2058,8 @@ onBeforeUnmount(() => {
   stroke-dasharray: 5 4; opacity: 0.7;
 }
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
+/* §245: 애니 모드 선택 페어 프레임 — 핸들 없는 선택 아웃라인 (이동 피드백 전용) */
+.pairSel { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 // 활성 프레임 아웃라인 (§134·§135) — 흰색 + difference 블렌드: 캔버스 색 무관 가시.
 // §135: 오프셋 제거·1px·저오파시티로 은은하게
 .activeFrameOutline {

@@ -1136,10 +1136,13 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
-    if (animLockBlock(u)) return; // §227
+    // §245: 프레임 회전 = 내부(기하 소속) 유닛 동반 — 잠금 검사도 동반 유닛 포함
+    const carried = u.type === 'frame' ? frameOwnedUnits([u.id]) : [];
+    if (animLockBlock([u, ...carried])) return; // §227
     // 링크 확산은 orientation 스코프가 켜진 링크만 (공용 헬퍼 경유)
     const ids = expandLinkByScope([u.id], 'orientation');
     const targets = [u, ...doc.units.filter((m) => m !== u && ids.has(m.id))];
+    const C = { x: u.x + u.params.W / 2, y: u.y + u.params.H / 2 }; // 프레임 중심 (회전 불변)
     withGeomOp(() => {
       for (const t of targets) {
         const p = t.params;
@@ -1149,6 +1152,22 @@ export function useDocument() {
         p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
         t.x = cx - p.W / 2;
         t.y = cy - p.H / 2;
+        normalize(p);
+      }
+      // §245: 동반 유닛 — 프레임 중심 기준 블록 회전 (rotateSelected와 동일 수식: 중심 재배치 + 자기 회전)
+      for (const m of carried) {
+        if (targets.includes(m)) continue;
+        const p = m.params;
+        const ucx = m.x + p.W / 2;
+        const ucy = m.y + p.H / 2;
+        const dx = ucx - C.x;
+        const dy = ucy - C.y;
+        const ncx = dir > 0 ? C.x - dy : C.x + dy;
+        const ncy = dir > 0 ? C.y + dx : C.y - dx;
+        [p.W, p.H] = [p.H, p.W];
+        p.orientation = (p.orientation + (dir > 0 ? 90 : 270)) % 360;
+        m.x = ncx - p.W / 2;
+        m.y = ncy - p.H / 2;
         normalize(p);
       }
     });
@@ -1181,13 +1200,16 @@ export function useDocument() {
   }
   // 선택 전체를 하나의 덩어리처럼 90° 회전 — 통합 bbox 중심 기준으로 각 유닛 중심을 회전시키고 유닛 자체도 회전
   function rotateSelected(dir) {
-    if (animLockBlock(doc.units.filter((u) => doc.selectedIds.includes(u.id)))) return; // §227
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
+    // §245: 선택에 프레임이 있으면 내부(기하 소속) 유닛 동반 — bbox 기준은 선택만 (동반분은 같은 변환)
+    const carried = frameOwnedUnits(sel.filter((u) => u.type === 'frame').map((u) => u.id))
+      .filter((m) => !sel.includes(m));
+    if (animLockBlock([...sel, ...carried])) return; // §227
     const bb = bboxOf(sel);
     const C = { x: (bb.minX + bb.maxX) / 2, y: (bb.minY + bb.maxY) / 2 };
     withGeomOp(() => {
-      for (const u of sel) {
+      for (const u of [...sel, ...carried]) {
         const p = u.params;
         const ucx = u.x + p.W / 2, ucy = u.y + p.H / 2;
         const dx = ucx - C.x, dy = ucy - C.y;
