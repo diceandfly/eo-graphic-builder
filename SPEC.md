@@ -2274,3 +2274,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **브리지 얇아 보임의 원인**: 유닛 도형은 봉합 스트로크(seamW, §86)로 실두께가 D+seam인데 브리지는 D뿐 → 브리지에도 **같은 fill 스트로크(seamW, non-scaling)** 동반 (스테이지·애니패널 0.75). 익스포트는 양쪽 다 seam 없음 = 원래 일치.
 - **커스텀 거터**: 엣지별 gap(px) — 도크 배지 팝업에 결착별 **Gutter 행**(auto = 양쪽 gutterPx 평균 | fixed = StepField 직접 입력). setDockGap(null = auto 복귀), 재정렬 즉시, **짝 키프레임에 gap 동반 복제**(fixed끼리 애니하면 갭 고정, fixed↔auto 섞으면 키프레임별 값의 보간). 충돌 없음 — 자동/고정이 같은 relayout 경로의 g 값만 대체. 테스트 2건(92케이스). E2E: 팝업 fixed→120 입력→960+120 재정렬·직렬화 확인.
 - 노드 인셋 28→24px(사알짝 바깥 — 사용자 확정).
+
+## 288. 2026-10-06 — 도크 팝업 디자인 통일 · 노드 인셋 20px
+
+- 거터 행 = ctx 행 문법으로 재정렬: 사슬 아이콘 + "Gutter" 라벨(L4, ctxItem 동급) 좌 / auto|fixed 세그 + 필드 우, **상대 유닛 이름 표기 폐기**(사용자: 구림), Undock 위에 구분선(ctxSep). 체인 중간 유닛(결착 2개)은 Gutter 1·2로 구분.
+- 노드 인셋 24→20px 추가 미세 조정. ("노드 안 보임" 리포트는 착각으로 사용자 철회 — §283 2유닛 게이트 정상 동작)

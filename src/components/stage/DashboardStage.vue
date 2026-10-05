@@ -102,7 +102,7 @@ function dockPt(u, side) {
   const [lx, ly] = dockNodePoint(u, 'left');
   const [rx, ry] = dockNodePoint(u, 'right');
   const L = Math.hypot(rx - lx, ry - ly) || 1;
-  const inset = Math.min(L / 3, pxs(24)); // §287: 28→24 — 사알짝 바깥쪽 (사용자 확정)
+  const inset = Math.min(L / 3, pxs(20)); // §287: 28→24 → §288: 24→20 (사용자 미세 조정)
   const d = [(rx - lx) / L, (ry - ly) / L];
   return side === 'right'
     ? [rx - d[0] * inset, ry - d[1] * inset]
@@ -2261,9 +2261,10 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
-      <!-- §287: 결착별 거터 — auto(양쪽 gutter 평균) | fixed(커스텀 px, 애니에도 고정값 복제) -->
-      <div v-for="row in dockMenuEdges" :key="row.e.from + '-' + row.e.to" class="dockGapRow">
-        <span class="dockGapLabel" :title="`Gutter to ${row.partner}`">Gutter · {{ row.partner }}</span>
+      <!-- §288: 결착별 거터 — ctx 행 문법(아이콘+라벨 좌 / 컨트롤 우)으로 통일, 상대 이름 표기 폐기 -->
+      <div v-for="(row, ri) in dockMenuEdges" :key="row.e.from + '-' + row.e.to" class="dockGapRow">
+        <svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>
+        <span class="dockGapLabel" :title="`Gutter to ${row.partner}`">Gutter{{ dockMenuEdges.length > 1 ? ' ' + (ri + 1) : '' }}</span>
         <div class="segMini">
           <button :class="{ on: !row.fixed }" @click="setDockGapMode(row, false)">auto</button>
           <button :class="{ on: row.fixed }" @click="setDockGapMode(row, true)">fixed</button>
@@ -2274,6 +2275,7 @@ onBeforeUnmount(() => {
           @update:model-value="(v) => props.actions.setDockGap(row.e.from, row.e.to, v)"
         />
       </div>
+      <div class="ctxSep" />
       <button
         class="ctxItem"
         @click="onUndockFromBadge"
@@ -2392,14 +2394,13 @@ onBeforeUnmount(() => {
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
 .dockBridge { vector-effect: non-scaling-stroke; stroke-linejoin: miter; } /* §287: 유닛 seam과 동일 문법 */
-/* §287: 도크 팝업의 결착별 거터 행 */
+/* §287·§288: 도크 팝업의 결착별 거터 행 — ctxItem 행 문법(패딩 6px 10px·아이콘 gap 8) 정렬 */
 .dockGapRow {
-  display: flex; align-items: center; gap: var(--sp-group);
-  padding: 2px 4px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 10px;
   .dockGapLabel {
-    font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
-    &::first-letter { text-transform: uppercase; }
+    font-size: var(--fs-sm); letter-spacing: var(--ls-base); color: var(--text); /* §218: L4 — ctxItem 동급 */
+    white-space: nowrap; margin-right: var(--sp-group);
   }
   /* ctxMenu는 popup-menu 믹스인 비사용 — 세그 스타일 로컬 복제 (믹스인 .segMini와 동일 문법) */
   .segMini {
