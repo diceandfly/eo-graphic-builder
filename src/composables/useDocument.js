@@ -1202,12 +1202,14 @@ export function useDocument() {
   // §268: 링크 = "걸면 통일" — 결성/합류 시 그 범주 키를 기준 유닛 값으로 즉시 동기
   // (멤버십만 걸면 발산 상태로 남아 "링크가 그냥 돼버림" — 사용자 리포트).
   // 기준 = 기존 그룹 합류면 그 그룹의 기존 멤버, 새 그룹이면 활성 유닛(없으면 첫 선택).
-  // 예외: orientation 범주는 동기하지 않음 — 오리 링크 = 절대값 동기가 아니라 "함께 회전/반전"(§266).
+  // §269: orientation도 동일하게 통일 (§268의 예외 폐기 — 멀티 링크 시대엔 교차 디자인을
+  // "같은 방위끼리 따로 걸기"로 푸는 게 정석이라 특례가 비직관적. 사용자 확정).
+  // 이후 조작의 "함께 회전/반전" 동반(§266)은 그대로.
   function setCategoryLink(ids, cat, v) {
     const lid = v === 'new' ? nextLink++ : v;
     const members = doc.units.filter((u) => ids.includes(u.id) && u.type !== 'frame');
     let src = null;
-    if (lid != null && cat !== 'orientation') {
+    if (lid != null) {
       // 합류: 기준 = 그 그룹의 기존 멤버 (선택 안에 섞여 있어도 — 그룹 값이 우선)
       if (v !== 'new') src = doc.units.find((u) => u.type !== 'frame' && u.links[cat] === lid) ?? null;
       if (!src) src = members.find((u) => u.id === doc.activeId) ?? members[0] ?? null;
@@ -1222,7 +1224,23 @@ export function useDocument() {
       try {
         for (const u of members) {
           if (u === src) continue;
-          applyLinkPatch(u, { ...patch }, src.params); // W/H = 로컬 치수·앵커 규칙 공유 (§202)
+          if (cat === 'orientation') {
+            // §269: 방위 통일 — 홀수(90/270)↔짝수 전환이면 캔버스 W/H를 중심 유지로 재스왑
+            // (params.W/H는 회전 반영 치수라, orientation만 복사하면 로컬 형상이 뒤틀림)
+            const wasOdd = isOdd(u.params);
+            u.params.orientation = src.params.orientation;
+            u.params.flipX = src.params.flipX;
+            if (wasOdd !== isOdd(u.params)) {
+              const p = u.params;
+              const cx = u.x + p.W / 2;
+              const cy = u.y + p.H / 2;
+              [p.W, p.H] = [p.H, p.W];
+              u.x = cx - p.W / 2;
+              u.y = cy - p.H / 2;
+            }
+          } else {
+            applyLinkPatch(u, { ...patch }, src.params); // W/H = 로컬 치수·앵커 규칙 공유 (§202)
+          }
         }
       } finally {
         mirrorGuard = false;

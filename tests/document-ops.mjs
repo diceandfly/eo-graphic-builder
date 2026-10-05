@@ -827,28 +827,38 @@ function centerIn(u, f) {
 }
 
 
-// §266. 오리엔테이션 링크 — 일부 선택 플립/회전도 전 멤버 확산 (분리 대신 링크 실현)
+// §266·§269. 오리엔테이션 링크 — 결성 = 방위 통일(활성 기준), 이후 일부 선택 조작도 전 멤버 동반
 {
   const api = fresh();
   const u1 = api.doc.units[0];
   api.doc.activeId = u1.id;
   const u2 = api.duplicateFrom(u1);
   u2.x += 3000;
-  u2.params.orientation = 180; u2.params.flipX = true; // 상호반전 쌍
+  u2.params.orientation = 90; // 홀수 방위 + 캔버스 치수 스왑 상태
+  [u2.params.W, u2.params.H] = [u2.params.H, u2.params.W];
+  u2.params.flipX = true;
+  api.doc.activeId = u1.id;
   api.setCategoryLink([u1.id, u2.id], 'orientation', 'new');
-  api.setSelection([u1.id]); // 하나만 선택
+  await sleep(30);
+  ok('§269: 오리 링크 결성 = 방위 통일 + 캔버스 W/H 재스왑', () => {
+    assert.equal(u2.params.orientation, 0);
+    assert.equal(u2.params.flipX, false);
+    assert.equal(u2.params.W, u1.params.W); // 홀→짝 전환 시 치수 복원
+    assert.equal(u2.params.H, u1.params.H);
+  });
+  api.setSelection([u1.id]); // 하나만 선택해도 링크 확산 (§266)
   api.flipSelected('h');
   await sleep(30);
-  ok('§266: 오리 링크 + 일부 선택 플립 = 링크 유지·전 멤버 각자 미러', () => {
+  ok('§266: 오리 링크 + 일부 선택 플립 = 링크 유지·전 멤버 동반', () => {
     assert.ok(u1.links.orientation != null && u1.links.orientation === u2.links.orientation);
     assert.equal(u1.params.flipX, true);
-    assert.equal(u2.params.flipX, false); // 각자 상태 기준 — 상대 관계 보존
+    assert.equal(u2.params.flipX, true); // §269: 통일 상태라 동일 변화
   });
   api.rotateSelected(1);
   await sleep(30);
   ok('§266: 오리 링크 + 일부 선택 회전 = 전 멤버 +90', () => {
     assert.equal(u1.params.orientation, 90);
-    assert.equal(u2.params.orientation, 270);
+    assert.equal(u2.params.orientation, 90);
     assert.ok(u1.links.orientation === u2.links.orientation);
   });
 }
@@ -871,12 +881,13 @@ function centerIn(u, f) {
     assert.equal(u2.params.W, 960);
     assert.equal(u2.params.H, 800);
   });
-  // orientation 링크는 값 통일 없음 (상대 유지 §266)
+  // §269: orientation도 결성 시 통일 (교차 디자인은 "같은 방위끼리 따로 걸기"로 — 멀티 링크 정석)
+  api.doc.activeId = u1.id;
   api.setCategoryLink([u1.id, u2.id], 'orientation', 'new');
   await sleep(30);
-  ok('§268: orientation 링크 결성 = 값 불변 (상대 관계 유지)', () => {
+  ok('§269: orientation 링크 결성 = 활성 기준 통일', () => {
     assert.equal(u1.params.orientation, 0);
-    assert.equal(u2.params.orientation, 180);
+    assert.equal(u2.params.orientation, 0);
     assert.ok(u1.links.orientation != null && u1.links.orientation === u2.links.orientation);
   });
   // 기존 그룹 합류 = 그룹 값이 기준
