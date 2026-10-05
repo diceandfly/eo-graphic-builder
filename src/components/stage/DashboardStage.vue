@@ -13,6 +13,7 @@ import AlignBar from './AlignBar.vue';
 import ResourceMonitor from './ResourceMonitor.vue';
 import ManagerBar from './ManagerBar.vue';
 import PresetFloatWindow from './PresetFloatWindow.vue';
+import StepField from '../controls/StepField.vue';
 import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
@@ -101,7 +102,7 @@ function dockPt(u, side) {
   const [lx, ly] = dockNodePoint(u, 'left');
   const [rx, ry] = dockNodePoint(u, 'right');
   const L = Math.hypot(rx - lx, ry - ly) || 1;
-  const inset = Math.min(L / 3, pxs(28));
+  const inset = Math.min(L / 3, pxs(24)); // §287: 28→24 — 사알짝 바깥쪽 (사용자 확정)
   const d = [(rx - lx) / L, (ry - ly) / L];
   return side === 'right'
     ? [rx - d[0] * inset, ry - d[1] * inset]
@@ -139,6 +140,23 @@ function onUndockFromBadge() {
   const u = dockMenu.value?.u;
   closeDockMenu();
   if (u && props.actions.undockUnit(u.id)) toast(`Undocked — ${u.name}`);
+}
+// §287: 팝업의 결착별 거터 행 — auto(양쪽 평균) | fixed(커스텀 px)
+const dockMenuEdges = computed(() => {
+  const u = dockMenu.value?.u;
+  if (!u) return [];
+  return props.doc.docks
+    .filter((e) => e.from === u.id || e.to === u.id)
+    .map((e) => {
+      const pid = e.from === u.id ? e.to : e.from;
+      const p = props.doc.units.find((x) => x.id === pid);
+      const auto = ((u.params.gutterPx ?? 0) + (p?.params.gutterPx ?? 0)) / 2;
+      const fixed = Number.isFinite(e.gap);
+      return { e, partner: p?.name ?? '?', fixed, eff: fixed ? e.gap : Math.round(auto * 100) / 100 };
+    });
+});
+function setDockGapMode(row, fixed) {
+  props.actions.setDockGap(row.e.from, row.e.to, fixed ? row.eff : null);
 }
 // §283: 노드 활성 조건 (사용자 확정) — ① 줌 ≥ 15% (자동 숨김 임계) ② 유닛 **2개 이상** 선택
 // ③ 전원 샤프트 축 평행(역평행 포함). 단일 유닛 노드 폐기 — 해제는 도크 배지 팝업(Undock)으로.
@@ -1868,11 +1886,14 @@ onBeforeUnmount(() => {
           />
         </g>
         <!-- §284: 도크 브리지 — 결착 갭을 샤프트 연장으로 메움 (도킹의 본래 목적: 한 축으로 이어진 룩) -->
+        <!-- §287: seam 동반 — 유닛 도형은 봉합 스트로크(seamW)로 실두께가 D+seam이라
+             브리지만 1px쯤 얇아 보이던 것. 같은 fill 스트로크를 입혀 동일 보정 -->
         <polygon
           v-for="(bp, bi) in stageBridges" :key="'db' + bi"
           class="dockBridge"
           :points="bp.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
           :fill="bp.fill"
+          :stroke="seamW > 0 ? bp.fill : 'none'" :stroke-width="seamW"
         />
         <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스·그룹 표시 토글 적용) -->
         <template v-if="showBBox && view.showGroups">
@@ -2240,6 +2261,19 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
+      <!-- §287: 결착별 거터 — auto(양쪽 gutter 평균) | fixed(커스텀 px, 애니에도 고정값 복제) -->
+      <div v-for="row in dockMenuEdges" :key="row.e.from + '-' + row.e.to" class="dockGapRow">
+        <span class="dockGapLabel" :title="`Gutter to ${row.partner}`">Gutter · {{ row.partner }}</span>
+        <div class="segMini">
+          <button :class="{ on: !row.fixed }" @click="setDockGapMode(row, false)">auto</button>
+          <button :class="{ on: row.fixed }" @click="setDockGapMode(row, true)">fixed</button>
+        </div>
+        <StepField
+          v-if="row.fixed"
+          :model-value="row.eff" :min="0" :max="2000" :step="1"
+          @update:model-value="(v) => props.actions.setDockGap(row.e.from, row.e.to, v)"
+        />
+      </div>
       <button
         class="ctxItem"
         @click="onUndockFromBadge"
@@ -2356,6 +2390,29 @@ onBeforeUnmount(() => {
 .dockWire {
   stroke: var(--link); stroke-width: 1.5; stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke; pointer-events: none;
+}
+.dockBridge { vector-effect: non-scaling-stroke; stroke-linejoin: miter; } /* §287: 유닛 seam과 동일 문법 */
+/* §287: 도크 팝업의 결착별 거터 행 */
+.dockGapRow {
+  display: flex; align-items: center; gap: var(--sp-group);
+  padding: 2px 4px;
+  .dockGapLabel {
+    font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
+    &::first-letter { text-transform: uppercase; }
+  }
+  /* ctxMenu는 popup-menu 믹스인 비사용 — 세그 스타일 로컬 복제 (믹스인 .segMini와 동일 문법) */
+  .segMini {
+    margin-left: auto;
+    display: flex; border: 1px solid var(--line); border-radius: var(--radius);
+    button {
+      border: none; background: none; padding: 0 9px; height: 19px;
+      display: inline-flex; align-items: center;
+      font-size: var(--fs-xs); color: var(--faint); font-family: inherit; cursor: pointer;
+      &:not(:last-child) { border-right: 1px solid var(--line); }
+      &.on { @include active-outline-inset; }
+    }
+  }
 }
 /* §279 → §284: LINK 칩 호버 하이라이트 = 유닛 그리드 색 + 두꺼운 스트로크 (사용자 확정 —
    딤드 네온은 선택 문법과 혼동. 색은 그리드 커스텀(--unit-guide)을 따라감) */

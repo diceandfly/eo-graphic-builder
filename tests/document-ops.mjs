@@ -1094,4 +1094,35 @@ function centerIn(u, f) {
   });
 }
 
+// §287. 도크 커스텀 거터 — fixed/auto + 짝 키프레임 복제
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 3000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  u1.x = f.x + 100;
+  const u2 = api.createUnit(f.x + 1500, u1.y);
+  api.duplicatePairedFrame(f.id, 8000, 0);
+  const m1 = api.doc.units.find((u) => u.pair === u1.pair && u.id !== u1.id);
+  const m2 = api.doc.units.find((u) => u.pair === u2.pair && u.id !== u2.id);
+  await sleep(30);
+  api.connectDock(u1.id, u2.id);
+  await sleep(30);
+  api.setDockGap(u1.id, u2.id, 77);
+  await sleep(30);
+  ok('§287: fixed 거터 = 재정렬 + 짝 엣지에 gap 복제', () => {
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 77)) < 1e-6, `u2.x=${u2.x}`);
+    const me = api.doc.docks.find((e) => e.from === m1.id && e.to === m2.id);
+    assert.equal(me?.gap, 77);
+    assert.ok(Math.abs(m2.x - (m1.x + 960 + 77)) < 1e-6, `m2.x=${m2.x}`);
+  });
+  api.setDockGap(u1.id, u2.id, null);
+  await sleep(30);
+  ok('§287: auto 복귀 = 평균 거터 + 짝 gap 해제', () => {
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 10)) < 1e-6, `u2.x=${u2.x}`);
+    const me = api.doc.docks.find((e) => e.from === m1.id && e.to === m2.id);
+    assert.ok(me && me.gap === undefined);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
