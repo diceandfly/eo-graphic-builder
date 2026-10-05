@@ -951,7 +951,8 @@ function onStageDown(e) {
     beginDrag(e, { kind: 'framedraw', wx, wy });
   } else if (e.button === 0) {
     const [lx, ly] = local(e);
-    beginDrag(e, { kind: 'marquee', lx, ly });
+    // §270: Shift+마퀴 = 기존 선택에 합산 — 시작 시 선택 스냅샷 보관 (드래그 중 setSelection이 갈아끼우므로)
+    beginDrag(e, { kind: 'marquee', lx, ly, base: [...props.doc.selectedIds] });
   }
 }
 
@@ -1164,7 +1165,9 @@ function onMove(e) {
       .filter((u) => (frameMode.value ? u.type === 'frame' : u.type !== 'frame' || (!unitsOnly && fullIn(u))))
       .filter((u) => u.x < wx2 && u.x + u.params.W > wx1 && u.y < wy2 && u.y + u.params.H > wy1)
       .map((u) => u.id);
-    props.actions.setSelection(props.actions.expandGroups(ids));
+    // §270: Shift = 시작 시점 선택과 합산 (피그마식 additive 마퀴)
+    const merged = e.shiftKey && drag.base?.length ? [...new Set([...drag.base, ...ids])] : ids;
+    props.actions.setSelection(props.actions.expandGroups(merged));
     return;
   }
   let dx = dxs / vp.scale; // 월드 좌표 환산 (줌 배율 보정)
@@ -1585,7 +1588,7 @@ function onUp(e) {
       props.actions.normalizeSelected();
     } else if (drag.kind === 'marquee') {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
-      if (moved < 4) props.actions.deselect(); // 제자리 클릭 = 선택 해제
+      if (moved < 4 && !e.shiftKey) props.actions.deselect(); // 제자리 클릭 = 해제 (§270: Shift 클릭은 유지)
       marquee.value = null;
     } else if (drag.kind === 'framedraw') {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
