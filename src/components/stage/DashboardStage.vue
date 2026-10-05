@@ -804,10 +804,9 @@ function onKeyDown(e) {
     }
     return;
   }
-  // V = 선택 도구 복귀 · §233: 이미 선택 도구면 V 재입력 = 유닛/프레임 우선 토글 (우클릭과 동일)
+  // V = 선택 도구 복귀 (§241: §233의 재입력 토글은 일시 해제 — 우클릭 전환만 유지)
   if (!mod && !e.shiftKey && e.code === 'KeyV') {
-    if (mode.value === 'select') toggleFrameModeManual();
-    else mode.value = 'select';
+    mode.value = 'select';
     return;
   }
   // §223: A = 애니메이션 모드 토글 (§203에서 예약해 둔 키)
@@ -1972,7 +1971,7 @@ onBeforeUnmount(() => {
 }
 // §201·§204: 프레임 이름 라벨 — 화면 고정 크기(pxs), 투명 패드로 호버 영역 확장
 .frameLabelG {
-  cursor: default;
+  cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default; /* §241: 그룹 상태 호버 = 그룹 커서 */
   .labelPad { fill: transparent; }
   .frameLabel {
     /* §206: --faint는 스테이지 위에서 거의 안 보여 한 단계 밝게 (호버 --text·선택 --accent와 위계 유지) */

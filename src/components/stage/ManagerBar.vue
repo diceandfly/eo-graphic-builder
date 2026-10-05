@@ -28,8 +28,9 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
         :tip="tipsOff ? '' : 'Pattern presets (P)'"
         @click="emit('togglePanel', 'patterns')"
       />
-      <!-- §223: 애니메이션 모드 토글 (A) — 프레임 노드/와이어 오버레이 -->
+      <!-- §223: 애니메이션 모드 토글 (A) — §241: 호버 시 재생 진행 루프 애니메이션 -->
       <IconButton
+        class="animHover"
         :paths="ICONS.animation" :active="anim" tip-align="right"
         :tip="tipsOff ? '' : 'Animation mode (A)'"
         @click="emit('toggleAnim')"
@@ -47,4 +48,12 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
 }
 .managerCorner button:hover .eoSym polygon { fill: var(--accent); }
 .managerCorner button.active .eoSym polygon { fill: var(--accent); }
+/* §241: 애니메이션 버튼 호버 — 재생 삼각형이 앞으로 흘러가며 되감기는 루프 (후보 B "재생 진행") */
+@keyframes animPlaySlide {
+  0% { transform: translateX(0); opacity: 1; }
+  45% { transform: translateX(5px); opacity: 0; }
+  55% { transform: translateX(-5px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.animHover:hover :deep(svg) { animation: animPlaySlide 0.9s ease-in-out infinite; }
 </style>

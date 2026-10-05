@@ -1,5 +1,6 @@
 <script setup>
 import OverlayActions from './OverlayActions.vue';
+import { rotateCursor, scaleCursor } from '../../ui/cursors.js';
 // 멀티선택/그룹 선택용 통합 바운딩박스 + 리사이즈 핸들 + 액션 버튼(전체 선택 대상에 적용)
 const props = defineProps({
   bounds: Object, // { x, y, w, h } 월드 좌표
@@ -25,10 +26,7 @@ const HANDLES = [
   { dir: 'w', x: 0, y: 0.5 }, { dir: 'e', x: 1, y: 0.5 },
   { dir: 'sw', x: 0, y: 1 }, { dir: 's', x: 0.5, y: 1 }, { dir: 'se', x: 1, y: 1 },
 ];
-const CURSORS = {
-  n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize',
-  nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize',
-};
+// §241: 핸들 커서 = cursorScale/cursorRotation 에셋 방향 변형 (ui/cursors.js)
 </script>
 
 <template>
@@ -42,6 +40,7 @@ const CURSORS = {
       :x="z.x * bounds.w + (z.ox < 0 ? -px(ROT + HIT / 2) : px(HIT / 2))"
       :y="z.y * bounds.h + (z.oy < 0 ? -px(ROT + HIT / 2) : px(HIT / 2))"
       :width="px(ROT)" :height="px(ROT)"
+      :style="{ cursor: rotateCursor((z.oy < 0 ? 'n' : 's') + (z.ox < 0 ? 'w' : 'e')) }"
       @pointerdown.stop.prevent="emit('rotateStart', $event)"
     />
     <g v-for="h in HANDLES" :key="h.dir">
@@ -49,7 +48,7 @@ const CURSORS = {
         class="handleHit"
         :x="h.x * bounds.w - px(HIT / 2)" :y="h.y * bounds.h - px(HIT / 2)"
         :width="px(HIT)" :height="px(HIT)"
-        :style="{ cursor: CURSORS[h.dir] }"
+        :style="{ cursor: scaleCursor(h.dir) }"
         @pointerdown.stop.prevent="emit('resizeStart', h.dir, $event)"
       />
       <rect
@@ -66,8 +65,5 @@ const CURSORS = {
 .label { fill: var(--accent); font-family: inherit; user-select: none; }
 .handle { fill: var(--bg); stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
 .handleHit { fill: transparent; }
-.rotZone {
-  fill: transparent;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpolyline points='23 4 23 10 17 10' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 9 9, alias;
-}
+.rotZone { fill: transparent; } // §241: 커서는 인라인(rotateCursor 방향 변형)
 </style>
