@@ -2,6 +2,7 @@
 // 대상: 블록 판정·프레임 소유(§92)·정렬/등간격/어레인지 동반 이동(§114·§120)·마이그레이션·히스토리.
 // UI 배선(팝업·입력·드래그)은 대상 아님 — 브라우저 검증 채널 유지.
 import { strict as assert } from 'node:assert';
+import { dockAxesParallel } from '../src/geometry/dock.js';
 
 // useDocument는 모듈 로드 시가 아닌 호출 시 localStorage를 읽음 — node 스텁
 globalThis.localStorage = {
@@ -1056,8 +1057,8 @@ function centerIn(u, f) {
   await sleep(30);
   ok('§282: 축 비평행 결착 거부', () => {
     assert.equal(api.connectDock(u1.id, u3.id), null);
-    assert.equal(api.dockAxesParallel(u1, u2), true);
-    assert.equal(api.dockAxesParallel(u1, u3), false);
+    assert.equal(dockAxesParallel(u1, u2), true);
+    assert.equal(dockAxesParallel(u1, u3), false);
   });
 }
 

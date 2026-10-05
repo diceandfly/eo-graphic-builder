@@ -17,7 +17,7 @@
 - **검증 채널 일치.** "코드 리뷰" 요청이면 소스 읽기로 검증(브라우저 스크린샷·eval 대체 금지). 브라우저 검증은 시각/런타임 동작을 확인해달라 했을 때만.
 
 ## 코드 관례
-- geometry/는 Vue 의존 0 순수 함수. 파생은 `geometry/derive.js` `deriveUnit()` 단일 경로 (렌더·export 공유).
+- geometry/는 Vue 의존 0 순수 함수. 파생은 `geometry/derive.js` `deriveUnit()` 단일 경로 (렌더·export 공유). 도킹 기하(노드·브리지·결착면)는 `geometry/dock.js` — 스테이지·익스포트·애니패널이 동일 소스.
 - 문서 모델 `composables/useDocument.js`: units[]·selectedIds·activeId·groups[](중첩)·linkId·flipX(표시 계수). 유닛별로 다른 값을 쓰는 지오메트리 조작은 `withGeomOp()`로 감싸 브로드캐스트 워처 간섭 방지.
 - 스타일: 색·치수·타이포는 `src/styles/tokens/*` CSS 변수만, 패널 컨트롤 룩은 `styles/mixins.scss`, 플로팅 바는 `components/ui/IconButton·FloatingBar`, 아이콘 패스는 `src/ui/icons.js`.
 - 커밋: 영어 제목 + 상세 불릿, `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`. 사용자가 "커밋"이라 하면 SPEC 갱신 포함.
@@ -28,5 +28,6 @@
 - 오버레이류 구조 변경 시 정규식 일괄 치환 금지(블록 명시 치환) — 과거 회귀 사례 있음.
 
 ## 진행 상태 포인터
-- Phase 1 + 대시보드(멀티유닛·그룹·링크·정렬·등간격·스마트가이드·undo·자동저장·JSON IO·export) 완료. 리팩토링 1~7·9 완료, 8(폰트 셀프호스팅)은 폰트 확정 대기.
-- 다음 큰 단계: Phase 2 템플릿(프리셋 유닛 배치 JSON 등록/불러오기, SPEC §20·§22·§29-7 참고).
+- Phase 1 + 대시보드 완료. 애니메이션 시스템(키프레임 페어·체인·시뮬레이터·export, §220~), 연속 그리드 필드 공리계(§255~·§261), 멀티 링크(범주별, §264~·§277 페어 복제), **도킹**(샤프트 노드 결착·브리지·페어 복제, §278~§293) 완료. 리팩토링 8(폰트 셀프호스팅)은 폰트 확정 대기.
+- 보류 합의: blend 컴포넌트화(멤버 = 실유닛, 컴포넌트 = 파라메트릭 프레임 — §9 답신 참조, 유닛 로직 완성 후), 칩 호버 하이라이트는 §284 구현됨.
+- 다음 큰 단계: Phase 2 템플릿(프리셋 유닛 배치 JSON 등록/불러오기, SPEC §20·§22·§29-7 참고) 또는 blend 컴포넌트화.

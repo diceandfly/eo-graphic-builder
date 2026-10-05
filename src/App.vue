@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useDocument, LINK_CATS, primaryLid, dockBridges, dockAttachedEnds } from './composables/useDocument.js';
+import { useDocument, LINK_CATS, primaryLid } from './composables/useDocument.js';
+import { dockBridges, dockAttachedEnds } from './geometry/dock.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { usePatterns } from './composables/usePatterns.js';
@@ -76,11 +77,6 @@ function deletePreset(id) {
     return;
   }
   presetsApi.remove(id);
-}
-// 프리셋 라이브러리 가져오기 (병합)
-async function importPresets(file) {
-  const n = await presetsApi.importJson(file);
-  stageRef.value?.toast(n ? `Imported ${n} preset${n > 1 ? 's' : ''}` : 'No valid presets in file');
 }
 // 프리셋 추출: 단독 유닛 SVG 다운로드
 function exportPreset(preset) {

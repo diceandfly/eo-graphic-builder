@@ -101,7 +101,7 @@ const hotNode = (f, side) => {
 
 // ── 노드 드래그: 우측 노드에서 시작 → 좌측 노드에 드롭 = 연결 / 빈 곳 = 해제 ──
 const drag = ref(null); // { fromId, x1, y1, x, y }
-function onNodeDown(f, e) {
+function onNodeDown(f) {
   const p = nodeOf(f, 'right');
   drag.value = { fromId: f.id, x1: p.x, y1: p.y, x: p.x, y: p.y };
   const mv = (ev) => {

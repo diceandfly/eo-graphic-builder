@@ -2304,3 +2304,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 293. 2026-10-06 — 노드 결착 표시 = 선택 내 결착 한정
 
 - 도크 노드의 파란(결착) 필 = **선택한 유닛들끼리 실제로 묶인 결착만** 표시 (사용자 확정) — 서로 다른 도크그룹의 유닛을 하나씩 선택하면 노드는 비활성 룩. selDockAttached(선택 내 엣지 필터) 분리 — 렌더 지오메트리(§292 dockedEnds)·배지는 전체 맵 유지.
+
+## 294. 2026-10-06 — 리팩토링·개발부채 정리 라운드
+
+- **geometry/dock.js 신설** (Vue 의존 0 — 코드 관례 정합): dockNodePoint·dockShaftEnd·dockBridgeEnds·dockBridgePolys·dockBridges·dockBridgeGuides·dockAttachedEnds·dockAxesParallel을 useDocument에서 이관 (2130→2006줄). 스테이지·App 익스포트·애니패널·테스트가 직접 import — useDocument는 상태 조작(connect/disconnect/undock/comp/relayout/syncPairDocks)만 보유. 액션 표면에서 dockAxesParallel·dockedIdSet 제거(내부/직접 import로 대체).
+- **이동 동반 확장 단일 경로**: expandMoveTargets(프레임 소유 §92 + 페어 home §245 + 도크 체인 §278) — 체인 영역/일반 이동 드래그의 중복 2벌 통합.
+- **데드코드 제거·린트 0**: App importPresets(프리셋 바 이관 후 잔재), ControlPanel 커스텀 비율 구독 블록(§264 Ratio 칩 폐지 잔재 — ASPECT_CHIPS·eo:ratios 리스너 포함), AnimOverlay onNodeDown 미사용 인자, migrateArrange의 구 axis 키 처리 정리. ESLint 경고 4→0.
+- CLAUDE.md 갱신: 진행 상태 포인터(애니·필드·멀티링크·도킹 완료, blend 합의 반영), 코드 관례에 geometry/dock.js 명시.

@@ -1,11 +1,10 @@
 <script setup>
-import { computed, ref, reactive, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, reactive } from 'vue';
 import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
 import ChipRow from './controls/ChipRow.vue';
 import LinkSection from './panel/LinkSection.vue';
-import { ASPECT_CHIPS } from '../geometry/aspects.js';
 import { isLinkScoped, typeOf } from '../objects/registry.js';
 import { primaryLid } from '../composables/useDocument.js';
 import ColorField from './controls/ColorField.vue';
@@ -94,16 +93,8 @@ function setComp(v) {
   p.value.direction = v >= 0 ? 'LtoS' : 'StoL';
 }
 
-// 커스텀 비율 프리셋 — localStorage 영속
-const RATIO_KEY = 'eo.customRatios';
-const customRatios = ref(JSON.parse(localStorage.getItem(RATIO_KEY) || '[]'));
-// JSON 프로젝트 열기 등으로 저장소가 바뀌면 칩 목록 즉시 갱신
-const reloadRatios = () => {
-  customRatios.value = JSON.parse(localStorage.getItem(RATIO_KEY) || '[]');
-};
-onMounted(() => window.addEventListener('eo:ratios', reloadRatios));
-onBeforeUnmount(() => window.removeEventListener('eo:ratios', reloadRatios));
-const allAspects = computed(() => ASPECT_CHIPS.concat(customRatios.value));
+// (§264: 유닛 Ratio 칩 폐지 — §294: 커스텀 비율 구독 잔재(allAspects·eo:ratios 리스너) 제거.
+//  커스텀 비율 저장·사용은 Slider 칩/useRecentColors와 무관한 eo.customRatios 소비처에서 계속)
 
 // Δ 슬라이더 = 변의 실제 폭 (col 폭 대비 %). 둘 다 "올리면 그 변이 넓어짐".
 // top width = a (10–70%), bottom width = 1-b (30–100%)

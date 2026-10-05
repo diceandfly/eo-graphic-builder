@@ -18,7 +18,7 @@ import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
-import { dockNodePoint, dockBridges, dockBridgeGuides, dockAttachedEnds } from '../../composables/useDocument.js';
+import { dockNodePoint, dockBridges, dockBridgeGuides, dockAttachedEnds, dockAxesParallel } from '../../geometry/dock.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -161,7 +161,7 @@ const dockNodeUnits = computed(() => {
   const sel = props.doc.units.filter((u) => u.type !== 'frame' && props.doc.selectedIds.includes(u.id));
   if (sel.length < 2) return [];
   for (let i = 1; i < sel.length; i += 1) {
-    if (!props.actions.dockAxesParallel(sel[0], sel[i])) return [];
+    if (!dockAxesParallel(sel[0], sel[i])) return [];
   }
   return sel;
 });
@@ -212,7 +212,7 @@ function onDockNodeDown(u, side) {
     }
     if (hit) {
       // §282: 에러 구분 — 축 비평행(게이트 밖 변동 대비) vs 사이클
-      if (me && !props.actions.dockAxesParallel(me, hit)) {
+      if (me && !dockAxesParallel(me, hit)) {
         toast('Cannot dock — shaft axes are not parallel (rotate one unit first)');
         return;
       }
@@ -379,16 +379,21 @@ const animSelBounds = computed(() => {
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 });
-function onChainAreaDown(e) {
-  if (e.button !== 0) return;
-  const targets = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
+// §294: 이동 동반 확장 단일 경로 — 프레임 소유 유닛(§92) + 페어 home 유닛(§245) + 도크 체인(§278).
+// 체인 영역 드래그와 일반 이동 드래그가 공유 (중복 2벌이 §278 확장 때 한쪽만 고쳐질 뻔한 부채)
+function expandMoveTargets(targets) {
   const frames = targets.filter((t) => t.type === 'frame');
   for (const o of frameOwnedUnits(frames.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
   for (const f of frames) {
     if (f.pair == null) continue;
     for (const o of props.actions.animOwnedUnits(f.id)) if (!targets.includes(o)) targets.push(o);
   }
-  for (const o of props.actions.dockMates(targets.map((t) => t.id))) if (!targets.includes(o)) targets.push(o); // §278
+  for (const o of props.actions.dockMates(targets.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
+  return targets;
+}
+function onChainAreaDown(e) {
+  if (e.button !== 0) return;
+  const targets = expandMoveTargets(props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id)));
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
 }
 // §246: 프레임 2개 이상 선택 = 프레임 단위 조작 중 — 유닛 링크 배지 숨김
@@ -591,7 +596,8 @@ const blendCfg = reactive({ axis: 'h', count: 7, gap: 30, scale: 0.4, ...(prefs.
 // 그리드 배열 설정 (툴 버튼 우클릭 메뉴, 좌클릭/G로 즉시 적용). columns 0 = 자동
 // §198: axis 모드 폐지, gap → gapX/gapY 분리. 구버전 prefs { gap, axis } 마이그레이션 포함
 function migrateArrange(p = {}) {
-  const { gap, axis, ...rest } = p;
+  const { gap, ...rest } = p;
+  delete rest.axis; // §198: axis 모드 폐지 — 구 prefs 키 버림
   if (gap !== undefined) {
     if (rest.gapX === undefined) rest.gapX = gap;
     if (rest.gapY === undefined) rest.gapY = gap;
@@ -1168,18 +1174,8 @@ function onUnitDown(u, e) {
     targets = props.doc.units.filter((x) => members.includes(x.id));
   }
   // 프레임 이동 = 소유 유닛 동반 (§92, §201: V 모드에서도) — 복제 드래그는 위에서 이미 사본에 포함됨
-  if (!e.altKey) {
-    const frames = targets.filter((t) => t.type === 'frame');
-    for (const o of frameOwnedUnits(frames.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
-    // §245: 페어 프레임 = home 소속 유닛도 동반 — 애니 작업 중 프레임 **밖**으로 옮겨둔 페어 유닛이
-    // 프레임만 이동하며 떨어져 나가던 문제 (기하 소속만으론 바깥 유닛을 못 쫓음)
-    for (const f of frames) {
-      if (f.pair == null) continue;
-      for (const o of props.actions.animOwnedUnits(f.id)) if (!targets.includes(o)) targets.push(o);
-    }
-    // §278: 도킹 체인 동반 — 결착 유닛은 어느 멤버를 끌어도 체인 전체가 함께 이동
-    for (const o of props.actions.dockMates(targets.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
-  }
+  // §294: 동반 규칙은 expandMoveTargets 단일 경로 (§92 프레임 + §245 페어 home + §278 도크 체인)
+  if (!e.altKey) targets = expandMoveTargets(targets);
   beginDrag(e, {
     kind: 'move',
     targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })),

@@ -5,7 +5,7 @@ import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
-import { dockBridges, dockAttachedEnds } from '../../composables/useDocument.js';
+import { dockBridges, dockAttachedEnds } from '../../geometry/dock.js';
 import '../../ui/cursors.js'; // §264: 전역 커서 클래스(.curScale-se) 주입 — 인라인 스타일 커서 폐기
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
