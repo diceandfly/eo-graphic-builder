@@ -21,8 +21,13 @@ const otf = computed(() =>
 
 <template>
   <g :transform="otf">
-    <!-- self-contained 유닛: 외부 translate/scale/flip만으로 재배치 가능 -->
-    <g class="unit">
+    <!-- self-contained 유닛: 외부 translate/scale/flip만으로 재배치 가능.
+         §262: step 모드에서 가상 경계가 유닛 밖으로 나가면(clip) 중첩 svg 뷰포트가 잘라낸다 —
+         "온전한 샤프트가 경계에 잘리며 진입/퇴장"하는 스텝 컨베이어 룩 (export도 동일 직렬화) -->
+    <svg
+      class="unit" :width="f(d.localW)" :height="f(d.localH)" :viewBox="`0 0 ${f(d.localW)} ${f(d.localH)}`"
+      :style="{ overflow: d.clip ? 'hidden' : 'visible' }"
+    >
       <!-- 동색 스트로크 봉합: 샤프트만 (§128) — 분절 라인은 샤프트-스레드 접합에서 생기고
            (스레드 밑변은 이미 1px 파묻힘) 스레드까지 굵히면 극세 라인의 시각 무게가 달라짐 -->
       <rect
@@ -33,7 +38,7 @@ const otf = computed(() =>
       />
       <polygon v-for="(poly, i) in d.unit.threadsTop" :key="'t' + i" :points="pts(poly)" :fill="fill" />
       <polygon v-for="(poly, i) in d.unit.threadsBottom" :key="'b' + i" :points="pts(poly)" :fill="fill" />
-    </g>
+    </svg>
     <!-- 그리드 가이드: 유닛 밖, export 미포함 -->
     <g v-if="showGuides" class="guides">
       <rect x="0" y="0" :width="d.localW" :height="d.localH" fill="none" />

@@ -20,8 +20,11 @@ function renorm(ws, target) {
 //    균등(0)을 지나는 내내 연속. 정적 결과는 구(§pre-255) 구현과 완전 호환(proportional StoL 포함).
 //  · 컷 거터 스케일 = min(1, 양옆 칸의 인덱스 길이) — 칸 생성/소멸 무점프.
 //  · 극소 칸 드랍(w < 0.75px) — 0폭 칸의 스트로크가 1~2px로 깜빡이는 틱 방지 (§261).
-// 반환: [{ L, R, w }] (px, 좌→우)
-export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, direction, offset = 0 }) {
+//  · mode (§262): 'flow' = 부분 칸을 눌린 폭으로 그림(종전) / 'step' = 부분 칸을 **온전 슬롯 폭**
+//    (가상 경계 — 유닛 밖으로 연장될 수 있음)으로 내보내 렌더가 유닛 경계로 클립 — 샤프트가
+//    통째로 미끄러져 들어와 정수 offset마다 결착하는 스텝 컨베이어. 경계 수학은 flow와 동일.
+// 반환: [{ L, R, w }] (px, 좌→우 — step의 끝 칸은 L<0 또는 R>W 가능)
+export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, direction, offset = 0, mode = 'flow' }) {
   const EPS = 1e-9;
   const N = Math.max(1, Number(cols) || 1);
   const r = Math.max(1e-6, Number(rate) || 1);
@@ -69,8 +72,26 @@ export function computeColumns({ W, cols, gutterMode, gutterPx, g, rate, directi
     out.push({ L, R, w: colW[i] });
     x = R + (i < nCells - 1 ? gutterAfter(i) : 0);
   }
-  // §261: 극소 **부분 칸** 드랍 — 0폭 수렴 조각은 fill이 비가시인데 스트로크(두께 고정)만
-  // 1~2px로 남아 핑퐁 반동 순간 "샤프트 틱"으로 보였음. 0.75px 미만의 부분 칸(len<1)만 드랍 —
-  // 정적 극압축 레이아웃의 실제 가는 칸(len=1)은 유지 (회귀 보존)
-  return out.filter((c, i) => c.w >= 0.75 || len[i] >= 1 - EPS);
+  // §262: step 모드 — 부분 칸을 "온전 슬롯"의 가상 경계로 치환 (렌더가 유닛 밖을 클립).
+  // 가상 폭 = 같은 워프 g를 도메인 밖으로 자연 연장(지수식 — 단조)해 구한 그 슬롯의 전체 폭.
+  if (mode === 'step' && nCells > 0) {
+    const wnSum = wN.reduce((s, v) => s + v, 0);
+    const pxSum = colW.reduce((s, v) => s + v, 0);
+    const scale = wnSum > 0 ? pxSum / wnSum : 0; // 가드/renorm 반영된 유효 px 배율
+    if (len[0] < 1 - EPS) { // 왼쪽 부분 칸: 슬롯 = [t1−1, t1]
+      const vw = (gw(ts[1] / N) - gw((ts[1] - 1) / N)) * scale;
+      out[0] = { L: out[0].R - vw, R: out[0].R, w: vw };
+    }
+    const li = nCells - 1;
+    if (li > 0 && len[li] < 1 - EPS) { // 오른쪽 부분 칸: 슬롯 = [tk, tk+1]
+      const vw = (gw((ts[li] + 1) / N) - gw(ts[li] / N)) * scale;
+      out[li] = { L: out[li].L, R: out[li].L + vw, w: vw };
+    }
+  }
+  // §261·§262: 극소 **부분 칸** 드랍 — 기준 = **가시 폭**(step은 가상 폭이 커도 보이는 조각이
+  // 0.75px 미만이면 스트로크 틱만 남음). 정적 극압축의 실제 가는 칸(len=1)은 유지 (회귀 보존)
+  return out.filter((c, i) => {
+    const visW = Math.min(c.R, W) - Math.max(c.L, 0);
+    return visW >= 0.75 || len[i] >= 1 - EPS;
+  });
 }

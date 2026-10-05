@@ -458,6 +458,13 @@ function setStrokeColor(c) {
           :snap-to="0" :snap-radius="0.05"
           :mixed="mixed('offset')"
         />
+        <!-- §262: offset 모드 — step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
+        <Toggle
+          v-if="anim || (p.offset ?? 0) !== 0 || p.offsetType === 'flow'"
+          label="offset mode" :model-value="p.offsetType ?? 'step'"
+          :options="[{ value: 'step', label: 'step' }, { value: 'flow', label: 'flow' }]"
+          @update:model-value="(v) => { p.offsetType = v; }"
+        />
       </div>
       <Toggle
         label="gutter mode" v-model="p.gutterMode"

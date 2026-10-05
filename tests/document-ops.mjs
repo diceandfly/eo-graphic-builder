@@ -606,7 +606,9 @@ function centerIn(u, f) {
     assert.ok(u2.pair != null && c2.pair === u2.pair);
     assert.equal(c1.x - nf.x, u1.x - f.x);
     assert.equal(c1.y - nf.y, u1.y - f.y);
-    assert.equal(nf.name, f.name);
+    // §262: 키프레임 네이밍 — 원본 "Base K1", 사본 "Base K2" (체인 내 증가)
+    assert.ok(/ K1$/.test(f.name), f.name);
+    assert.equal(nf.name, f.name.replace(/ K1$/, ' K2'));
   });
   ok('페어 복제: 파라미터 링크는 사본끼리 새 lid (키프레임 간 동기화 차단)', () => {
     assert.ok(primaryLid(c1) != null && primaryLid(c1) === primaryLid(c2));

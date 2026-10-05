@@ -23,6 +23,7 @@ export function createParams(overrides = {}) {
     rate: 2, // 2:1 칩 = UI 표기 +1.67x (compression 슬라이더 환산값)
     direction: 'LtoS',
     offset: 0, // §255: 칸 위상 (소수·± 허용, 랩 순환 — 컨베이어 흐름. 패널 표시는 조건부)
+    offsetType: 'step', // §262: 'step'(기본 — 온전 샤프트 결착 진입) | 'flow'(눌리며 통과)
     // Shape
     dPct: 35,
     a: 0.4,
@@ -125,6 +126,7 @@ function migrateUnit(u, legacyScopes = {}) {
   }
   // §255: offset 백필 — 구 유닛 문서는 키 자체가 없음 (0 = 외형 불변)
   if (u.type !== 'frame' && u.params && u.params.offset == null) u.params.offset = 0;
+  if (u.type !== 'frame' && u.params && u.params.offsetType == null) u.params.offsetType = 'step'; // §262
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   // §220: linkId 단일 + linkScopes 플래그 → 범주형 links로 이관
@@ -248,7 +250,7 @@ export function useDocument() {
   const SCOPE_KEYS = {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
-    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset'], // §255: offset = grid 범주
+    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType'], // §255·§262
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
@@ -264,7 +266,7 @@ export function useDocument() {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'],
     grid: [
-      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset'], // 유닛 (§255: offset)
+      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType'], // 유닛 (§255·§262)
       ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
     ],
     shape: [
@@ -493,6 +495,17 @@ export function useDocument() {
       if (mirrorGuard || id == null || id !== oldId || now === old) return;
       // §227: 페어 유닛의 이산값 편집 = 경고 후 원복
       if (animRevertTick) { animRevertTick = false; return; }
+      // §262: offsetType(보간 정책)은 짝 전체가 공유해야 정의됨 — 변경 시 짝에 자동 전파 (모드 무관)
+      {
+        const me0 = doc.units.find((u) => u.id === id);
+        if (me0 && me0.pair != null && me0.type !== 'frame') {
+          const prevP = JSON.parse(old);
+          const curP = JSON.parse(now);
+          if (prevP.offsetType !== curP.offsetType) {
+            for (const m of pairMates(new Set([id]))) m.params.offsetType = curP.offsetType;
+          }
+        }
+      }
       if (animGuard) {
         const me0 = doc.units.find((u) => u.id === id);
         if (me0 && me0.pair != null && me0.type !== 'frame') {
@@ -526,6 +539,10 @@ export function useDocument() {
       const cur = JSON.parse(now);
       const patch = {};
       for (const k in cur) if (cur[k] !== prev[k]) patch[k] = cur[k];
+      // §262: orientation·flipX는 워처 raw 복사 금지 — 교차 디자인(유닛마다 다른 방위)을
+      // 뭉개는 주범. 이 두 키의 전파는 rotate/flip 함수(멤버 각자 상태 기준 연산)만 담당한다.
+      delete patch.orientation;
+      delete patch.flipX;
       if (!Object.keys(patch).length) return;
       mirrorGuard = true;
       for (const u of doc.units) {
@@ -751,6 +768,17 @@ export function useDocument() {
     if (!f) return null;
     const owned = frameOwnedUnits([frameId]);
     if (f.pair == null) f.pair = nextPair++;
+    // §262: 키프레임 네이밍 — "Base K<n>": 원본이 무접미면 K1 부여, 사본 = 체인(계보) 내 최대+1
+    const nm = f.name.match(/^(.*)\sK(\d+)$/);
+    const baseName = (nm ? nm[1] : f.name).trim() || 'Frame';
+    if (!nm) f.name = `${baseName} K1`;
+    let maxK = 0;
+    for (const u of doc.units) {
+      if (u.type !== 'frame' || u.pair !== f.pair) continue;
+      const mk = u.name.match(/\sK(\d+)$/);
+      if (mk) maxK = Math.max(maxK, Number(mk[1]));
+    }
+    const copyName = `${baseName} K${maxK + 1}`;
     for (const u of owned) {
       if (u.pair == null) u.pair = nextPair++;
       if (u.home == null) u.home = f.id; // §225: 원본 소속 확정
@@ -770,7 +798,7 @@ export function useDocument() {
       return lidMap.get(l);
     };
     const nf = {
-      id: nextId++, type: 'frame', name: f.name, x: f.x + dx, y: f.y + dy,
+      id: nextId++, type: 'frame', name: copyName, x: f.x + dx, y: f.y + dy, // §262: Base K<n>
       groups: [], links: emptyLinks(), pair: f.pair, home: null, params: { ...f.params },
     };
     doc.units.push(nf);
@@ -1009,11 +1037,15 @@ export function useDocument() {
     p.flipX = !p.flipX;
   }
   const isOdd = (p) => p.orientation === 90 || p.orientation === 270;
-  // 화면 기준 좌우 반전 — 90/270° 회전 상태면 로컬 축이 바뀌어 있으므로 로컬 상하 미러를 적용
+  // 화면 기준 좌우 반전 — §262: withGeomOp(워처 raw 복사 차단) + orientation 스코프 링크는
+  // 멤버 **각자 상태 기준** 미러(rotate와 동일 확산 문법) + 짝 동기
   function flipUnit() {
     if (!active.value) return;
-    mirrorScreen(active.value.params, 'h'); // §261: 짝 동기 공용 경로
-    syncFlipToMates(new Set([active.value.id]), 'h');
+    withGeomOp(() => {
+      const ids = expandLinkByScope([active.value.id], 'orientation');
+      for (const u of doc.units) if (ids.has(u.id) && u.type !== 'frame') mirrorScreen(u.params, 'h');
+      syncFlipToMates(ids, 'h');
+    });
   }
   // 스와치: 선택 유닛(없으면 활성)에 fill 적용 — 링크 확산은 color 스코프가 켜진 링크만
   function setFill(color) {
@@ -1218,11 +1250,14 @@ export function useDocument() {
   function syncFlipToMates(doneIds, axis) {
     for (const m of pairMates(doneIds)) mirrorScreen(m.params, axis);
   }
-  // 화면 기준 상하 반전 — 90/270° 회전 상태면 로컬 좌우 미러가 화면 상하 미러
+  // 화면 기준 상하 반전 — §262: flipUnit과 동일 문법 (withGeomOp + 링크 각자 미러 + 짝 동기)
   function flipUnitV() {
     if (!active.value) return;
-    mirrorScreen(active.value.params, 'v'); // §261: 잠금 폐기 — 짝 동기
-    syncFlipToMates(new Set([active.value.id]), 'v');
+    withGeomOp(() => {
+      const ids = expandLinkByScope([active.value.id], 'orientation');
+      for (const u of doc.units) if (ids.has(u.id) && u.type !== 'frame') mirrorScreen(u.params, 'v');
+      syncFlipToMates(ids, 'v');
+    });
   }
   // 선택 전체 플립 (통합 바운딩박스 기준): 각 유닛을 화면축 미러 + 위치를 bbox 중심 대칭으로 재배치
   function flipSelected(axis) {

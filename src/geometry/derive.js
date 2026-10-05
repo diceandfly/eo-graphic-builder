@@ -22,15 +22,18 @@ export function deriveUnit(p) {
   const columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
     gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction,
-    // §255: offset은 부호 그대로 — flipX의 표시 미러는 direction 스왑만으로 완성됨
-    // (StoL = 캐노니컬 좌표 미러 구조라, 같은 φ의 미러가 곧 화면 전체 미러. φ까지 뒤집으면 이중 반전)
     offset: p.offset ?? 0,
+    // §262: offsetType — 'step'(기본) = 부분 칸을 온전 슬롯으로(유닛 밖 연장 → 렌더 클립) /
+    // 'flow' = 눌린 부분 칸 (종전)
+    mode: p.offsetType === 'flow' ? 'flow' : 'step',
   });
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
     a: p.a, b: p.b, threads: p.threads, threadDir,
   });
-  return { localW, localH, D, columns, unit };
+  // clip: step 가상 경계가 유닛 밖으로 나갈 때만 렌더가 클립 창을 씌움
+  const clip = columns.some((c) => c.L < -1e-6 || c.R > localW + 1e-6);
+  return { localW, localH, D, columns, unit, clip };
 }
 
 // §204·§205: 회전(orientation)·반전(flipX) 통합 판정 단일 소스 — 유닛 박스의 정규화 좌표

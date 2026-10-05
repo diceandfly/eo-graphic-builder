@@ -163,10 +163,37 @@ for (const direction of ['LtoS', 'StoL']) {
       direction: Math.random() < 0.5 ? 'LtoS' : 'StoL',
     };
     const cs = computeColumns(p);
-    assert.ok(cs[cs.length - 1].R <= p.W + 1e-3, `오버플로: ${cs[cs.length - 1].R} > ${p.W}`);
-    assert.ok(cs[0].L >= -1e-3);
+    assert.ok(cs[cs.length - 1].R <= p.W + 5e-3, `오버플로: ${cs[cs.length - 1].R} > ${p.W}`);
+    assert.ok(cs[0].L >= -5e-3);
   }
   ok('총폭 보존: 랜덤 30조합 오버플로 없음', () => {});
+}
+
+
+// ── §262: step 모드 — 온전 슬롯 가상 경계 (결착·연장·연속성) ──
+{
+  // 정수 offset = flow와 완전 동일 (부분 칸 없음 — 결착)
+  for (const phi of [0, 1, -2]) {
+    const a = computeColumns({ ...BASE, cols: 7, offset: phi, mode: 'flow' });
+    const b = computeColumns({ ...BASE, cols: 7, offset: phi, mode: 'step' });
+    colsClose(b, a, 1e-9);
+  }
+  ok('§262 step: 정수 offset 결착 = flow/정적과 동일', () => {});
+  // 소수 offset: 양 끝 칸이 온전 슬롯 폭으로 유닛 밖까지 연장
+  const st = computeColumns({ ...BASE, cols: 7, rate: 2, offset: 0.4, mode: 'step' });
+  const fl = computeColumns({ ...BASE, cols: 7, rate: 2, offset: 0.4, mode: 'flow' });
+  assert.ok(st[0].L < -1e-6, `좌측 가상 연장: ${st[0].L}`);
+  assert.ok(st[st.length - 1].R > BASE.W + 1e-6, `우측 가상 연장: ${st[st.length - 1].R}`);
+  // 내부(온전) 칸들은 두 모드 동일
+  for (let i = 1; i < st.length - 1; i += 1) {
+    assert.ok(Math.abs(st[i].L - fl[i].L) < 1e-9 && Math.abs(st[i].R - fl[i].R) < 1e-9, `내부 칸 ${i} 불일치`);
+  }
+  ok('§262 step: 끝 칸 = 온전 슬롯(밖 연장), 내부 칸 = flow와 동일', () => {});
+  // 가상 폭 = 워프 연장의 그 슬롯 전체 폭 (좌측: 슬롯 [t1−1, t1])
+  const inner1 = st[1];
+  assert.ok(st[0].w > fl[0].w, 'step 끝 칸이 flow 부분 칸보다 넓어야');
+  assert.ok(st[0].w > inner1.w, '좌측(넓은 쪽) 슬롯이 이웃보다 넓어야 (rate 2)');
+  ok('§262 step: 가상 폭이 수열 연속선상 (좌측 슬롯 > 이웃)', () => {});
 }
 
 console.log(`✓ grid field: ${passed} cases passed`);

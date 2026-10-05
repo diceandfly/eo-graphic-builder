@@ -100,6 +100,7 @@ export function lerpParams(a, b, t) {
   }
   for (const k in b) {
     if (k === 'rate' || k === 'direction') continue; // §229: 위에서 결합 처리
+    if (k === 'offsetType') { out[k] = a[k] ?? b[k]; continue; } // §262: 보간 정책 — from 모드로 전 구간 재생
     const av = a[k];
     const bv = b[k];
     if (av === bv) { out[k] = av; continue; }
@@ -140,7 +141,7 @@ export function samplePose(fromF, fromUnits, toF, toUnits, t) {
       const hard = Object.keys(b.params).filter((k) => {
         const av = a.params[k];
         const bv = b.params[k];
-        if (av === bv || k === 'rate' || k === 'direction') return false; // 압축은 부호 보간 처리
+        if (av === bv || k === 'rate' || k === 'direction' || k === 'offsetType') return false; // 압축·정책 키 제외 (§229·§262)
         if (DISCRETE_KEYS.has(k)) return true; // §255: cols는 연속 보간으로 전환 — 디졸브 대상 제외
         if (lerpHex(av, bv, 0.5)) return false;
         const an = typeof av === 'boolean' ? NaN : Number(av);

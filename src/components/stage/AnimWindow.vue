@@ -5,6 +5,7 @@ import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
+import { scaleCursor } from '../../ui/cursors.js'; // §262: 그립 호버 = 바운딩박스 스케일 커서
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
 // 엣지 소속 파라미터(duration·곡선)는 와이어 중앙 컨트롤이 담당(§220 확정) — 여기선 재생만.
@@ -354,7 +355,7 @@ const totalLabel = computed(() => {
           </svg>
         </div>
         <!-- §248: 크기 조절 그립 = **화면(프리뷰) 우하단** — 리사이즈가 곧 화면 스케일이라 화면에 귀속 -->
-        <div class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+        <div class="sizeGrip" :style="{ cursor: scaleCursor('se') }" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
           <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
         </div>
       </div>
@@ -444,7 +445,7 @@ const totalLabel = computed(() => {
       Select a frame and click its ▶ badge → Make keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
     <!-- §248: 빈 상태 전용 그립 (화면이 없을 땐 창 우하단 유지) — 화면이 있으면 프리뷰 쪽 그립 사용 -->
-    <div v-if="!pose" class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+    <div v-if="!pose" class="sizeGrip" :style="{ cursor: scaleCursor('se') }" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
       <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
     </div>
   </div>
@@ -498,16 +499,15 @@ const totalLabel = computed(() => {
   }
 }
 .pvWrap:hover .pvPlay { opacity: 1; }
-// §226·§248·§257: 화면 우하단 크기 조절 그립 — **호버 시에만 표시** (사용자 확정: 평소 숨김)
+// §226·§248·§257·§262: 화면 우하단 크기 조절 그립 — 호버 시에만, **연하게** (커서 = cursorScale)
 .sizeGrip {
   position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px;
-  cursor: nwse-resize;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s;
   svg { width: 12px; height: 12px; fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: square; }
-  &:hover svg { stroke: var(--accent); }
+  &:hover { opacity: 0.95; svg { stroke: var(--accent); } }
 }
-.pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.85; } /* 프리뷰 그립 + 빈 상태 그립 */
+.pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.5; } /* §262: 평시 호버 = 연하게 */
 /* §260·§261: 플레이바 — 메인 패널 슬라이더(.rg)와 동일 문법: 2px 트랙 + 정사각 썸.
    썸은 --thumb-size(8px)보다 한 단계 큰 10px 정사각 (사용자 확정: 동일~조금 큰) */
 .scrub {

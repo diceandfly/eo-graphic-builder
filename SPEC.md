@@ -2071,3 +2071,14 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **부호 결합 보간 = 로그 기준** (anim.js §229 개정): (rate−1)·부호 → **ln(rate)·부호** — |·| 쿠스프로 50%에서 변화율이 꺾이던 "툭" 체감 제거(지수 필드의 정칙 좌표). 연속성 테스트: 스텝 정밀화 수렴(9.00→1.80px)으로 증명.
 5. **핑퐁 끝 반동 샤프트 틱** — 0폭 수렴 부분 칸의 고정 두께 스트로크가 1~2px로 깜빡이던 것: **0.75px 미만 부분 칸 드랍**(정적 극압축의 실제 가는 칸(len=1)은 보존 — 회귀 유지).
 6. Select chain → **Select all frames in chain**. 플레이바 썸 = 10px 정사각(.rg 문법, --thumb-size+2). 매뉴얼 양어 갱신. grid-field 18케이스.
+
+## 262. 2026-10-06 — step 모드 구현·플립 뭉갬 회귀 수술·키프레임 네이밍·그립 터치
+
+1. **§261 회귀(교차 디자인 뭉갬·유닛1 디졸브) 수술** — 원인 2중: ①미러 워처가 orientation·flipX를 **raw 복사**로 전파(멀티선택/orientation 스코프 링크) — 유닛마다 다른 방위(교차 디자인)를 활성값으로 뭉갬("상상상상상") ②§261에서 페어 가드가 사라지며 애니 중에도 노출 + K1쪽 미전파로 짝 불일치 = 디졸브. 수술: **워처에서 두 키 전파 금지**(전파는 rotate/flip 함수의 멤버-각자 연산만) + flipUnit/flipUnitV를 withGeomOp로 감싸고 rotate와 동일하게 orientation 스코프 링크 확산(각자 mirrorScreen) + 짝 동기.
+2. **offset 타입 = step | flow 토글** (offsetType, 기본 **step** — 사용자 확정): step = 부분 칸을 **온전 슬롯 가상 경계**(워프 g의 도메인 밖 자연 연장)로 내보내고 렌더가 유닛 경계로 클립 — 온전한 샤프트가 잘리며 진입/퇴장, 정수 offset마다 결착. 경계 수학 = flow와 동일(내부 칸 일치 — 테스트). cols 성장 끝단도 동일 정책(결정A ②). 드랍 기준 = **가시 폭** 0.75px.
+   - 렌더: UnitGraphic 유닛 바디를 중첩 svg 뷰포트로(클립 필요 시만 overflow hidden — export 직렬화 동일 경로).
+   - 패널: Compression 묶음에 "offset mode" 토글(표시 조건 = offset 행과 동일 ∨ flow). grid 링크/스포이드 범주 편입.
+   - 엔진: offsetType = 보간 정책 — from 모드로 전 구간 재생, 디졸브 제외. **짝 자동 동기**(워처에서 pair 전파 — 모드 불일치 = 정의 불가 방지).
+   - 테스트 3건(21): 정수 결착 = flow 동일·끝 칸 가상 연장+내부 일치·가상 폭 수열 연속성.
+3. **키프레임 네이밍** — Make keyframe/opt-드래그 복제 시 "Base K<n>": 원본 무접미 → K1, 사본 = 계보 내 최대+1 (실측: Alpha → Alpha K1 / Alpha K2).
+4. **애니창 그립** — 표시 투명도 0.85→0.5(직접 호버 시 0.95), 호버 커서 = cursorScale(바운딩박스와 동일 에셋).
