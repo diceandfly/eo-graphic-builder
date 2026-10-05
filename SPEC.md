@@ -2031,3 +2031,15 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **패널 조건부 행** — Compression 아래 Offset 슬라이더(±4, 0 스냅), `v-if = 애니 모드 ∨ 값≠0`(사용자 확정). doc.animOn reactive 신설(setAnimMode 연동), App→ControlPanel prop. 실측: 3상태(숨김/애니 표시/비애니 ≠0 유지→0 소멸) 통과.
 5. **애니 보간 전환** — cols 디졸브·다단계 폐기 → 연속 lerp(부분 칸 렌더), rows(프레임 가이드)도 연속(frameGrid 자체 반올림이라 거동 불변). 이산키(threads 등) 디졸브 유지. node 실측: cols 6→12 @0.5 = 9 단일 아이템, offset 0→2 = 1, threads 차이 = 디졸브 2아이템.
    다음 = ③ Blend 컴포넌트화.
+
+## 257. 2026-10-05 — 애니창 디테일 7건 + 챔퍼 코너 시스템 + 연결 가드
+
+1. **화면 양쪽 1px의 정체 = 프리뷰 자체의 좌우 보더선** — 좌우만 제거(상·하단 유지). 
+2. **크기 그립 = 호버 표시** (idle opacity 0 — 프리뷰/빈 창 호버 시 0.85).
+3. **화면 좌우 패딩 5px** (§254 3 + 2). previewH = winW − 12.
+4. **포맷 순서 = WebM · JSON · GIF · MP4**, MP4 선택 시 투명 토글 비활성(title 안내).
+5. **연결 가드** — 노드 연결은 키프레임끼리만: 미페어 프레임이 끼면 실패 + "Not a keyframe — use Make keyframe (▶ badge) on both frames first" (실측: 엣지 불변·토스트).
+6. **챔퍼 코너 시스템** — `mixins.scss @mixin chamfer($c)`: 좌상·우하 사선 컷(EO 심볼 사선 문법, clip-path — 사선변 보더는 면 컷). **chamfer-1(10px)** = 메인 패널(.side)·애니 창·노드 타이밍 팝업(edgeMenu)·프리셋창 / **chamfer-2(5px)** = 툴바(FloatingBar)·우클릭 팝업(ctxMenu·pairMenu)·옵션 팝업(popup-menu 믹스인 일괄).
+7. **재생/익스포트 중 편집 정책** — 재생 중 편집 = **라이브 반영**(키프레임 수정이 즉시 프리뷰에 — 의도된 기능. duration 라이브 반영·엣지 교체 시 자동 정지·잠금 키 원복은 기존 가드). 유일한 실위험 = **익스포트 중 편집**(프레임 루프에 섞여 들어감) → 진행 중 "Exporting — leave the document untouched" 안내 상시 표시로 대비.
+8. 토글 바 패딩 통일 — §251의 접힘 전용 하단 3px 폐기(펼침 10px과 달라 토글 위치가 튀던 원인). 양 상태 11px 실측 동일.
+   (offset 리네임·"스텝 결착형" 신형 offset은 §258에서 — 사용자 보류)

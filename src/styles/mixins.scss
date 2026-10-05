@@ -56,10 +56,23 @@
 /// 사용처는 위치(앵커)만 지정: .menu { @include popup-menu; position…; }
 /// 위계: menuTitle(팝업명) → menuRow(행 — 필드 행은 rowLabel 좌/컨트롤 우, 체크 행은 체크+텍스트)
 ///       → sect(구획 경계) → menuNote(보조 설명). 새 팝업은 반드시 이 문법으로.
+/// §257: 챔퍼 코너 — 좌상·우하만 사선 컷 (브랜드 EO 심볼의 사선 문법).
+/// chamfer-1(10px) = 큰 창(메인패널·애니창·노드 타이밍 팝업·프리셋창),
+/// chamfer-2(5px) = 툴바·우클릭/옵션 팝업 (기존 사용성에 영향 없는 소폭).
+/// clip-path 특성상 사선 모서리의 보더 선은 잘림(면 컷만) — 의도된 룩.
+@mixin chamfer($c) {
+  clip-path: polygon(
+    #{$c} 0, 100% 0,
+    100% calc(100% - #{$c}), calc(100% - #{$c}) 100%,
+    0 100%, 0 #{$c}
+  );
+}
+
 @mixin popup-menu {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  @include chamfer(5px); // §257: chamfer-2
   padding: var(--window-pad-y) var(--panel-pad); // §219: 창과 동일 토큰 (팝업 개별값 9/11 폐기)
   display: flex;
   flex-direction: column;

@@ -156,6 +156,7 @@ function onPlacePatternAt(item, cx, cy) {
   /* §215·§217: 최대 높이 = 성능 인디케이터 아래 갭까지 — 하단(12+42+12=66) + 상단(66+13+12=91) = 157 */
   max-height: calc(100% - 157px);
   box-sizing: border-box; overflow: hidden;
+  @include chamfer(10px); // §257: chamfer-1 — 프리셋창
   padding: var(--window-pad-y) var(--panel-pad); // §213·§219
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
 }

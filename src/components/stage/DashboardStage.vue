@@ -1773,7 +1773,12 @@ onBeforeUnmount(() => {
           :dimmed="!animMode"
           :selected-ids="doc.selectedIds"
           :show-badges="view.showAnimBadges !== false"
-          @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
+          @connect="(f, t) => { // §257: 연결 = 키프레임끼리만 — 미페어 프레임은 실패 + 안내
+            const a = doc.units.find((x) => x.id === f);
+            const b = doc.units.find((x) => x.id === t);
+            if (a?.pair == null || b?.pair == null) { toast('Not a keyframe — use Make keyframe (▶ badge) on both frames first'); return; }
+            const e = props.actions.connectAnim(f, t);
+            if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
           @edge-select="(e) => { props.actions.setSelection([]); animEdgeSel = edgeKey(e); }"
@@ -2185,10 +2190,12 @@ onBeforeUnmount(() => {
   /* §244: 툴바 래퍼 z26과 동급 유지 (DOM 후순위라 위에 그려짐) + 애니 창(z25) 위 */
   position: absolute; z-index: 26;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  @include chamfer(5px); // §257: chamfer-2 — 우클릭 팝업
   padding: 4px; display: flex; flex-direction: column;
 }
 .edgeMenu {
   @include popup-menu;
+  @include chamfer(10px); // §257: chamfer-1 — 노드 타이밍 팝업 (큰 창 급)
   position: fixed; z-index: 11;
 }
 .durWrap { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); display: inline-flex; align-items: center; gap: 4px; }

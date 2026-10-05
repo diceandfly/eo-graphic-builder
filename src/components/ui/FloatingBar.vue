@@ -12,6 +12,7 @@
 .fbar {
   display: flex; align-items: center; gap: 2px;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  @include chamfer(5px); // §257: chamfer-2 — 툴바
   padding: var(--sp-1);
   :deep(.sep) { width: 1px; height: 18px; background: var(--line); margin: 0 var(--sp-1); }
 }

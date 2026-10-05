@@ -181,6 +181,10 @@ async function doExport() {
   }
   exporting.value = true;
   exportPct.value = 0;
+  // §257: 재생/익스포트 중 편집 정책 — 재생 중 편집 = 라이브 반영(의도), 익스포트 중 편집 =
+  // 결과물에 섞여 들어감 → 진행 중 안내문 상시 표시 (유일한 실제 위험 시나리오)
+  const EXPORT_NOTE = 'Exporting — leave the document untouched until it finishes';
+  exportMsg.value = EXPORT_NOTE;
   try {
     const W0 = pose.value.W;
     const H0 = pose.value.H;
@@ -287,6 +291,7 @@ async function doExport() {
   } finally {
     exporting.value = false;
     p.value = 0;
+    if (exportMsg.value === EXPORT_NOTE) exportMsg.value = ''; // 폴백 안내(MP4→WebM 등)는 유지
   }
 }
 
@@ -295,10 +300,10 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
-// §254: 화면 좌우 패딩 = **3px 통일** (§250 1px/§251 3px 분화 폐기 — 사용자 확정: 숨김 상태 값으로)
+// §257: 화면 좌우 패딩 = 5px (§254 3px + 2 — 사용자 확정). 내부 폭 = winW − 창보더2 − 10
 const previewH = computed(() => {
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round((winW.value - 8) * ratio);
+  return Math.round((winW.value - 12) * ratio);
 });
 // §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
 const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.42))));
@@ -377,10 +382,10 @@ const totalLabel = computed(() => {
         <div class="sectHead">Export</div>
         <div class="optRow">
           <span class="optLabel">Transparent bg</span>
-          <!-- §251: 상시 활성 — GIF 외 포맷은 익스포트 시 안내 후 배경 유지 (disabled 게이트 폐기) -->
+          <!-- §251: 상시 활성 (GIF 외는 익스포트 시 안내) · §257: MP4 선택 시에만 비활성 (사용자 확정) -->
           <input
-            type="checkbox" v-model="exportCfg.alpha"
-            title="Drop the frame background — applies to GIF (binary alpha); video keeps the background"
+            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format === 'mp4'"
+            :title="exportCfg.format === 'mp4' ? 'MP4 cannot carry alpha' : 'Drop the frame background — applies to GIF (binary alpha)'"
           />
         </div>
         <div class="optRow">
@@ -409,11 +414,12 @@ const totalLabel = computed(() => {
         </div>
         <div class="optRow">
           <span class="optLabel">Format</span>
+          <!-- §257: 순서 = WebM · JSON · GIF · MP4 (사용자 확정) -->
           <div class="segMini">
             <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
-            <button :class="{ on: exportCfg.format === 'mp4' }" @click="exportCfg.format = 'mp4'">MP4</button>
-            <button :class="{ on: exportCfg.format === 'gif' }" @click="exportCfg.format = 'gif'">GIF</button>
             <button :class="{ on: exportCfg.format === 'json' }" @click="exportCfg.format = 'json'">JSON</button>
+            <button :class="{ on: exportCfg.format === 'gif' }" @click="exportCfg.format = 'gif'">GIF</button>
+            <button :class="{ on: exportCfg.format === 'mp4' }" @click="exportCfg.format = 'mp4'">MP4</button>
           </div>
         </div>
         <div class="exRow">
@@ -452,10 +458,10 @@ const totalLabel = computed(() => {
   box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  @include chamfer(10px); // §257: chamfer-1 — 애니 창
   display: flex; flex-direction: column; gap: 10px;
 }
-/* §251·§254: 접힘 — 하단 패딩 3px (하단엔 접기 토글 상주). 좌우는 상태 무관 3px 통일 */
-.animWin.collapsed { padding-bottom: 3px; }
+/* (§251의 접힘 전용 하단 3px 폐기 — §257: 토글 바 패딩이 상태별로 달라지던 원인. 전 상태 공통 패딩) */
 .title {
   /* L2 창 타이틀 (§218 전역 사다리) — §226: 드래그 = 창 이동 */
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
@@ -469,12 +475,13 @@ const totalLabel = computed(() => {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-/* §227: 클릭 = 재생/정지 · §254: 좌우 3px 패딩 통일 */
-.pvWrap { position: relative; cursor: pointer; margin: 0 calc(3px - var(--panel-pad)); }
+/* §227: 클릭 = 재생/정지 · §257: 좌우 5px 패딩 (§254 3px + 2) */
+.pvWrap { position: relative; cursor: pointer; margin: 0 calc(5px - var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
-  border: 1px solid var(--line); border-radius: var(--radius);
+  /* §257: 좌우 1px 선의 정체 = 프리뷰 자체 보더 — 좌우만 제거 (상/하단 보더 유지) */
+  border: 1px solid var(--line); border-left: none; border-right: none; border-radius: 0;
 }
 /* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
 .pvPlay {
@@ -489,14 +496,16 @@ const totalLabel = computed(() => {
   }
 }
 .pvWrap:hover .pvPlay { opacity: 1; }
-// §226·§248·§250: 화면 우하단 크기 조절 그립 — 가시성 강화 (텍스트색·확대, 호버 = 액센트)
+// §226·§248·§257: 화면 우하단 크기 조절 그립 — **호버 시에만 표시** (사용자 확정: 평소 숨김)
 .sizeGrip {
   position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px;
   cursor: nwse-resize;
   display: flex; align-items: center; justify-content: center;
-  svg { width: 12px; height: 12px; fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: square; opacity: 0.85; }
-  &:hover svg { stroke: var(--accent); opacity: 1; }
+  opacity: 0; transition: opacity 0.12s;
+  svg { width: 12px; height: 12px; fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: square; }
+  &:hover svg { stroke: var(--accent); }
 }
+.pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.85; } /* 프리뷰 그립 + 빈 상태 그립 */
 .scrub {
   width: 100%; margin: 0; accent-color: var(--accent);
 }

@@ -313,6 +313,7 @@ const stageActions = {
   padding: var(--window-pad-y) var(--panel-pad) 16px; // §213: 창 패딩 토큰화·축소
 
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  @include chamfer(10px); // §257: chamfer-1 — 메인 패널
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
   &::-webkit-scrollbar { width: 4px; }
