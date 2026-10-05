@@ -142,16 +142,19 @@ function onNodeDown(f, e) {
         <path v-for="(d, i) in ICONS.animation" :key="i" :d="d" />
       </g>
     </g>
-    <!-- 프레임 노드: 좌(입력)·우(출력) — §237: 비활성 모드엔 완전 숨김 (사용자 확정) -->
-    <g v-for="f in dimmed ? [] : frames" :key="'an' + f.id">
+    <!-- 프레임 노드: 좌(입력)·우(출력) — §237: 비활성 모드엔 숨김, §244: **연결된 노드만 회색 잔존**
+         (와이어가 어디서 시작·끝나는지 비애니 모드에서도 읽히도록 — 조작은 불가) -->
+    <g v-for="f in frames" :key="'an' + f.id">
       <circle
-        class="node left" :class="{ on: connectedL.has(f.id), target: !!drag && drag.fromId !== f.id }"
+        v-if="!dimmed || connectedL.has(f.id)"
+        class="node left" :class="{ dim: dimmed, on: !dimmed && connectedL.has(f.id), target: !dimmed && !!drag && drag.fromId !== f.id }"
         :cx="f.x" :cy="f.y + f.params.H / 2" :r="pxs(6)"
       />
       <circle
-        class="node right" :class="{ on: connectedR.has(f.id) }"
+        v-if="!dimmed || connectedR.has(f.id)"
+        class="node right" :class="{ dim: dimmed, on: !dimmed && connectedR.has(f.id) }"
         :cx="f.x + f.params.W" :cy="f.y + f.params.H / 2" :r="pxs(6)"
-        @pointerdown.stop.prevent="onNodeDown(f, $event)"
+        @pointerdown.stop.prevent="(ev) => { if (!dimmed) onNodeDown(f, ev); }"
       />
     </g>
   </g>
@@ -194,6 +197,8 @@ function onNodeDown(f, e) {
   &.on { fill: var(--accent); stroke: var(--accent); }
   &.target { stroke: var(--accent); } // 드래그 중: 드롭 가능 노드 안내
   &.left { cursor: default; }
+  // §244: 비애니 모드 — 연결된 노드만 회색 잔존 (와이어.dim과 같은 문법, 조작 불가)
+  &.dim { fill: var(--dim); stroke: var(--dim); pointer-events: none; cursor: default; }
 }
 .pairBadge {
   circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }

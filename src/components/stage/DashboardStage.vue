@@ -563,14 +563,8 @@ function onPairContext(f, cx, cy) {
   const r = el.value.getBoundingClientRect();
   ctxMenu.value = { x: cx - r.left, y: cy - r.top, u: f };
 }
-// §235: 페어 해제 — 페어·소속·연결 정리 후 일반 프레임 복귀 (삭제 차단 해제)
-function onUnpairFrame() {
-  const r = props.actions.unpairFrame(ctxMenu.value.u.id);
-  if (r) toast(`Unpaired "${r.name}" — ${r.units} unit${r.units === 1 ? '' : 's'} released`);
-  closeCtx();
-}
-// §243: 페어 인디케이터 좌클릭 = 페어 전용 미니 팝업 — Unpair를 우클릭 ctx에만 숨기지 않고
-// 인디케이터 자체에 노출 (다른 우클릭 표면엔 없는 항목이라 ctx 단독으론 비직관적 — 사용자 지적)
+// §243: 페어 인디케이터 좌클릭 = 페어 전용 미니 팝업 — §244: 언페어는 뱃지 팝업으로 **단일화**
+// (ctx 팝업의 Unpair 항목 제거 — 다른 우클릭 표면엔 없는 항목이라 비직관적, 사용자 확정)
 const pairMenu = ref(null); // { x, y, f } — 스테이지 로컬 px
 function onPairClick(f, cx, cy) {
   if (!props.doc.selectedIds.includes(f.id)) {
@@ -1637,8 +1631,9 @@ onBeforeUnmount(() => {
             :seam-width="seamW"
           />
           <!-- 패스스루 (§92): 일반 커서 = 프레임 무시, 프레임 모드 = 유닛 무시 (그리기/스포이드 모드는 전부 활성) -->
+          <!-- §244: 프레임 히트 = hitFrame — 유닛 우선 모드에서도 호버 시 그룹(BBox) 커서 -->
           <rect
-            class="hit"
+            class="hit" :class="{ hitFrame: u.type === 'frame' }"
             :width="u.params.W" :height="u.params.H"
             fill="transparent"
             :style="{ pointerEvents: hitPointerEvents(u) }"
@@ -1933,12 +1928,7 @@ onBeforeUnmount(() => {
         :disabled="!canRegisterPattern"
         @click="onRegisterPattern"
       ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.patternAdd" :key="d" :d="d" /></svg>Register pattern preset</button>
-      <!-- §235: 페어 해제 — 페어 키프레임 프레임에서만 표시 -->
-      <button
-        v-if="ctxMenu.u?.type === 'frame' && ctxMenu.u?.pair != null"
-        class="ctxItem"
-        @click="onUnpairFrame"
-      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Unpair keyframe</button>
+      <!-- (§235의 Unpair 항목은 §244에서 페어 뱃지 클릭 팝업으로 단일화 — 다른 우클릭 표면과 구성 통일) -->
       <div class="ctxSep" />
       <!-- §152: ⌘C와 동일하게 내부 클립보드도 채움 (라벨 패리티) -->
       <button class="ctxItem" @click="actions.copyActive(); onCopySvg(); closeCtx()"><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.duplicate" :key="d" :d="d" /></svg>Copy as SVG (⌘C)</button>
@@ -1990,6 +1980,11 @@ onBeforeUnmount(() => {
   cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default; /* §240: 바운딩박스 (현재) */
   /* cursor: url('../../assets/cursor/cursorBlock.svg') 0 0, default;  대체 1 */
   /* cursor: url('../../assets/cursor/cursorWhite.svg') 0 0, default;  대체 2 */
+}
+/* §244: 유닛 우선 모드에서도 프레임 선택 유효범위(프레임 히트 — 유닛이 덮지 않은 몸체) 호버 = 그룹 커서.
+   SVG 히트는 최상위 요소 기준이라 유닛 위에선 유닛 커서, 프레임 빈 영역에선 BBox가 자연 분기됨 */
+.stage.unitsel:not(.panning) .hit.hitFrame {
+  cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default;
 }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -2048,7 +2043,8 @@ onBeforeUnmount(() => {
 }
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
 .ctxMenu {
-  position: absolute; z-index: 10;
+  /* §244: 툴바 래퍼 z26과 동급 유지 (DOM 후순위라 위에 그려짐) + 애니 창(z25) 위 */
+  position: absolute; z-index: 26;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 4px; display: flex; flex-direction: column;
 }

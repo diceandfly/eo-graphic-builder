@@ -16,7 +16,18 @@ const props = defineProps({
   toUnits: { type: Array, default: () => [] },
 });
 
-const FPS = 30; // §220: 30fps 기본 (시뮬 전용 — 성능 가드)
+// §244: fps 옵션(30/24) — 재생·익스포트 공통 (§220의 30 고정 해제). cycles = 익스포트 반복 회수.
+const fps = ref(Number(localStorage.getItem('eo.animFps')) === 24 ? 24 : 30);
+watch(fps, (v) => localStorage.setItem('eo.animFps', String(v)));
+const cycles = ref((() => {
+  const v = Number(localStorage.getItem('eo.animCycles'));
+  return Number.isInteger(v) && v >= 1 && v <= 8 ? v : 1;
+})());
+watch(cycles, (v) => {
+  if (!Number.isInteger(v) || v < 1) cycles.value = 1;
+  else if (v > 8) cycles.value = 8;
+  else localStorage.setItem('eo.animCycles', String(v));
+});
 
 // §226: 창 크기 — 우하단 그립(상시 표시)으로 조절. 비율은 임의가 아니라 **보고 있는 프레임 비율 고정**:
 // 폭만 저장하고 프리뷰 높이는 프레임 W:H에서 파생된다.
@@ -32,7 +43,7 @@ const pos = ref((() => {
 const rootEl = ref(null);
 // §227: 컨트롤이 아닌 모든 영역 드래그 = 창 이동 (5px 임계 — 프리뷰는 임계 미만이면 클릭 = 재생 토글)
 function onWinDown(e) {
-  if (e.target.closest('input, button, .scrub, .loopSeg, .sizeGrip')) return;
+  if (e.target.closest('input, button, .scrub, .segMini, .cycWrap, .sizeGrip')) return;
   const host = rootEl.value?.parentElement;
   const wr = rootEl.value.getBoundingClientRect();
   const hr = host.getBoundingClientRect();
@@ -85,7 +96,7 @@ function tick(now) {
   const dt = now - last;
   last = now;
   acc += dt;
-  const step = 1000 / FPS;
+  const step = 1000 / fps.value;
   if (acc < step) return;
   const adv = (acc / (props.edge?.duration ?? 1000)) * dir;
   acc = 0;
@@ -141,7 +152,7 @@ async function exportWebm() {
     canvas.width = cw;
     canvas.height = ch;
     const ctx = canvas.getContext('2d');
-    const stream = canvas.captureStream(FPS);
+    const stream = canvas.captureStream(fps.value);
     const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
     const chunks = [];
@@ -162,18 +173,26 @@ async function exportWebm() {
         img.src = url;
       });
     };
-    await drawAt(0);
-    rec.start();
+    // §244: 반복 회수 — once = 1패스, cycle = cycles패스, pingpong 1회 = **왕복**(2패스)
     const dur = props.edge.duration;
+    const legs = loopMode.value === 'once' ? 1 : loopMode.value === 'loop' ? cycles.value : cycles.value * 2;
+    const total = dur * legs;
+    const tAt = (ms) => {
+      const leg = Math.min(legs - 1, Math.floor(ms / dur));
+      const local = Math.min(1, (ms - leg * dur) / dur);
+      return loopMode.value === 'pingpong' && leg % 2 === 1 ? 1 - local : local;
+    };
+    await drawAt(tAt(0));
+    rec.start();
     const t0 = performance.now();
     let now = 0;
-    while (now < dur) {
-      await drawAt(Math.min(1, now / dur));
-      exportPct.value = Math.round((now / dur) * 100);
-      await new Promise((r) => setTimeout(r, 1000 / FPS));
+    while (now < total) {
+      await drawAt(tAt(now));
+      exportPct.value = Math.round((now / total) * 100);
+      await new Promise((r) => setTimeout(r, 1000 / fps.value));
       now = performance.now() - t0;
     }
-    await drawAt(1);
+    await drawAt(loopMode.value === 'pingpong' ? 0 : 1); // 핑퐁은 출발점 복귀로 종료
     exportPct.value = 100;
     await new Promise((r) => setTimeout(r, 150));
     rec.stop();
@@ -239,13 +258,20 @@ const previewH = computed(() => {
           <button :class="{ on: loopMode === 'once' }" @click="loopMode = 'once'">once</button>
         </div>
       </div>
-      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) -->
+      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) · §244: fps(30/24)·반복 회수 -->
       <div class="exRow">
         <button class="exBtn" :disabled="exporting" @click="exportWebm">
           {{ exporting ? `Exporting… ${exportPct}%` : 'Export WebM' }}
         </button>
+        <div class="segMini" title="Frame rate — playback & export">
+          <button :class="{ on: fps === 30 }" @click="fps = 30">30</button>
+          <button :class="{ on: fps === 24 }" @click="fps = 24">24</button>
+        </div>
+        <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
+          ×<input class="cycIn" type="number" min="1" max="8" v-model.number="cycles" :disabled="loopMode === 'once'" />
+        </label>
       </div>
-      <div class="menuNote">30fps simulation — edge timing via the wire control · more export formats soon</div>
+      <div class="menuNote">{{ fps }}fps simulation — edge timing via the wire control · ×n = export cycles</div>
     </template>
     <div v-else class="empty">
       Opt-drag a frame to make a paired keyframe, then drag its right node onto the copy's left node — the connection plays here
@@ -310,7 +336,7 @@ const previewH = computed(() => {
   font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums;
   flex: 1;
 }
-.loopSeg {
+.segMini { // §244: loopSeg → 공용 (fps 세그도 동일 문법)
   display: flex; border: 1px solid var(--line); border-radius: var(--radius);
   button {
     border: none; background: none; padding: 0 8px; height: 19px;
@@ -321,7 +347,19 @@ const previewH = computed(() => {
     &.on { @include active-outline-inset; }
   }
 }
-.exRow { display: flex; }
+.exRow { display: flex; gap: 6px; align-items: center; }
+// §244: 익스포트 반복 회수 — ×n (once 모드에선 비활성)
+.cycWrap {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
+}
+.cycIn {
+  @include text-field;
+  width: 28px; height: 21px; padding: 0 2px; text-align: center;
+  -moz-appearance: textfield; appearance: textfield;
+  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &:disabled { color: var(--disabled); }
+}
 .exBtn {
   @include bordered-control; // §216 버튼 단일 규격
   flex: 1; height: 21px; display: inline-flex; align-items: center; justify-content: center;

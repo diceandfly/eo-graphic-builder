@@ -48,11 +48,12 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
 }
 .managerCorner button:hover .eoSym polygon { fill: var(--accent); }
 .managerCorner button.active .eoSym polygon { fill: var(--accent); }
-/* §243: 애니메이션 버튼 호버 — 재생 삼각형이 오른쪽으로 톡톡 튕기는 루프 (후보 C "미세 바운스").
+/* §244: 애니메이션 버튼 — **모드 활성 중** 재생 삼각형이 오른쪽으로 톡톡 튕기는 루프
+   (후보 C "미세 바운스" — 호버 트리거는 §243에서 활성 트리거로 정정, 사용자 확정).
    후보 B "재생 진행"(슬라이드+되감기)은 git 이력 §241 참조. */
 @keyframes animPlayNudge {
   0%, 60%, 100% { transform: translateX(0); }
   30% { transform: translateX(2.5px); }
 }
-.animHover:hover :deep(svg) { animation: animPlayNudge 0.8s ease-in-out infinite; }
+.animHover.active :deep(svg) { animation: animPlayNudge 0.8s ease-in-out infinite; }
 </style>
