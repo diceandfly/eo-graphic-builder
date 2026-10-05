@@ -109,13 +109,18 @@ function dockPt(u, side) {
 }
 const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
 const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
+// §281: 샤프트 축의 화면 길이가 노드 2개(인셋 28×2)를 담지 못하면 자동 숨김 — 옵션 없는 물리 규칙
 const dockNodeUnits = computed(() =>
-  props.doc.units.filter((u) => u.type !== 'frame' && props.doc.selectedIds.includes(u.id))
+  props.doc.units.filter((u) => {
+    if (u.type === 'frame' || !props.doc.selectedIds.includes(u.id)) return false;
+    const p = u.params;
+    const axisLen = (p.orientation === 90 || p.orientation === 270 ? p.H : p.W) * vp.scale;
+    return axisLen >= 72;
+  })
 );
-const oppSide = (s) => (s === 'right' ? 'left' : 'right');
-// 드래그 중 타깃 = **다른 선택 유닛**의 반대쪽 노드만
-const dockTargetOf = (u, side) =>
-  !!dockDrag.value && dockDrag.value.fromId !== u.id && side === oppSide(dockDrag.value.side);
+// §281: 드래그 중 타깃 = 다른 선택 유닛의 **양쪽 노드 모두** — 같은쪽 노드에 놓아도 결착
+// (반대쪽 한정이 "드래그는 되는데 연결이 안 됨" 무반응의 원인. 방향은 드래그 시작 쪽이 결정)
+const dockTargetOf = (u) => !!dockDrag.value && dockDrag.value.fromId !== u.id;
 function onDockNodeDown(u, side) {
   const [x1, y1] = dockPt(u, side);
   dockDrag.value = { fromId: u.id, side, x1, y1, x: x1, y: y1 };
@@ -130,12 +135,14 @@ function onDockNodeDown(u, side) {
     if (!d) return;
     const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
     let hit = null;
-    let best = 14 / vp.scale; // 애니 노드와 동일 드롭 반경
-    for (const t of dockNodeUnits.value) {
-      if (t.id === d.fromId) continue;
-      const [nx, ny] = dockPt(t, oppSide(d.side)); // 표시 위치 = 히트 위치
-      const dist = Math.hypot(wx - nx, wy - ny);
-      if (dist < best) { best = dist; hit = t; }
+    let best = 18 / vp.scale; // §281: 반경 14→18 (노드 소형화 보정)
+    const others = dockNodeUnits.value.filter((t) => t.id !== d.fromId);
+    for (const t of others) {
+      for (const side of ['left', 'right']) { // §281: 양쪽 노드 모두 수용
+        const [nx, ny] = dockPt(t, side);
+        const dist = Math.hypot(wx - nx, wy - ny);
+        if (dist < best) { best = dist; hit = t; }
+      }
     }
     if (hit) {
       const ok = d.side === 'right'
@@ -144,6 +151,8 @@ function onDockNodeDown(u, side) {
       if (!ok) toast('Cannot dock — this would close a loop');
     } else if (props.actions.disconnectDock(d.fromId, d.side)) {
       toast('Undocked');
+    } else if (!others.length) {
+      toast('Select both units first — then drag a node onto the other unit\'s node'); // §281: 무반응 방지 안내
     }
   };
   window.addEventListener('pointermove', mv);
@@ -1823,7 +1832,7 @@ onBeforeUnmount(() => {
               v-for="side in ['left', 'right']" :key="side"
               class="dockNode"
               :class="{
-                target: dockTargetOf(u, side),
+                target: dockTargetOf(u),
                 docked: side === 'left' ? dockedLeft.has(u.id) : dockedRight.has(u.id),
               }"
               :cx="dockPt(u, side)[0]" :cy="dockPt(u, side)[1]" :r="pxs(5)"
@@ -2234,16 +2243,17 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
-/* §280: 도킹 노드 — 원형(선택 유닛 한정 — 모드/대상으로 애니 노드와 분리), 결착 = 솔리드 */
+/* §280: 도킹 노드 — 원형(선택 유닛 한정 — 모드/대상으로 애니 노드와 분리), 결착 = 솔리드
+   §281: 색 = --link (도크 배지와 동일 의미색) — 바운딩박스 컨트롤(액센트)과 구분 */
 .dockNode {
-  fill: var(--panel); stroke: var(--accent);
+  fill: var(--panel); stroke: var(--link);
   stroke-width: 1.5; vector-effect: non-scaling-stroke;
   cursor: crosshair;
-  &.docked { fill: var(--accent); }
+  &.docked { fill: var(--link); }
   &.target, &:hover { stroke-width: 2.5; }
 }
 .dockWire {
-  stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3;
+  stroke: var(--link); stroke-width: 1.5; stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
 /* §279: LINK 칩 호버 하이라이트 — 애니 오버레이의 딤드 네온 문법(§254) 재사용 */
