@@ -200,18 +200,20 @@ const frameLabels = computed(() => {
     const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
     return { f, label, w: label.length * 6.8 + 20 }; // w = 히트 패드와 동일한 화면 px 근사
   };
-  const es = fs.map(entry);
+  // §242: 겹침 = 숨김 대신 **윗줄 스태거(최대 3줄)** — 저배율 군집에서도 긴 이름이 사라지지 않음.
+  // 우선순위(선택 > z 상위)가 0줄을 차지하고, 겹치는 라벨은 한 줄씩 위로. 3줄 초과만 숨김.
+  const es = fs.reverse().map(entry); // reverse: 선택(정렬 끝) → 첫 순위, 그다음 z 상위
   const out = [];
-  for (let i = 0; i < es.length; i++) {
-    const a = es[i];
-    let hidden = false;
-    for (let j = i + 1; j < es.length; j++) {
-      const b = es[j];
+  for (const a of es) {
+    const clash = (row) => out.some((b) => {
+      if (b.row !== row) return false;
       const dxs = (a.f.x - b.f.x) * vp.scale;
       const dys = (a.f.y - b.f.y) * vp.scale;
-      if (dxs < b.w && dxs > -a.w && Math.abs(dys) < 22) { hidden = true; break; }
-    }
-    if (!hidden) out.push(a);
+      return Math.abs(dys) < 18 && dxs < b.w && dxs > -a.w;
+    });
+    let row = 0;
+    while (row <= 2 && clash(row)) row += 1;
+    if (row <= 2) out.push({ ...a, row });
   }
   return out;
 });
@@ -1653,11 +1655,11 @@ onBeforeUnmount(() => {
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
         <g
-          v-for="{ f, label, w } in frameLabels"
+          v-for="{ f, label, w, row } in frameLabels"
           :key="'fl' + f.id"
           class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
-          :transform="`translate(${f.x} ${f.y})`"
+          :transform="`translate(${f.x} ${f.y - pxs(row * 16)})`"
           @pointerdown.stop="onUnitDown(f, $event)"
           @dblclick.stop="startFrameNameEdit(f)"
           @contextmenu.prevent.stop
