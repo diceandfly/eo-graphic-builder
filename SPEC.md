@@ -1874,3 +1874,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 코드 생성 데이터URI 커서 폐기 → **src/assets/cursor/ 디자인 에셋 4종**: cursorDefault(기본 화살표) · cursorBlock(블록 뱃지) · cursorBoundingBox(바운딩박스 뱃지) · cursorWhite(화이트 반전).
 - **일괄 정규화**: 화살표 높이 22px 공통 축척으로 각 SVG에 width/height 부여 — Default 16.35×22 / Block 19.69×28.15 / BBox 26.77×33.01 / White 16.34×22(자체 1/10 좌표계 환산). **핫스팟 = 좌상단 (0 0) 공통**(팁이 뷰박스 원점).
 - 적용: 유닛 우선 = cursorDefault, 그룹(프레임) 우선 = **cursorBlock(테스트 1)** — BoundingBox/White는 주석 한 줄 교체로 스왑(DashboardStage §238 블록). vite 인라인(4KB 미만)으로 데이터URI 번들 — 실측: 크기 속성·핫스팟·모드별 전환 확인.
+
+## 239. 2026-10-05 — 체인 하이라이트 오염 수정 (활성 프레임 difference 아웃라인)
+
+- 증상: 활성(선택) 키프레임 쪽 체인 하이라이트만 탁하게 보임 — 원인은 체인 라인 **위에** 그려지는 활성 프레임 아웃라인(화이트 difference 블렌드)이 액센트를 어둡게 섞는 것.
+- 해결: **애니 모드에선 활성 프레임 아웃라인 비표시** — 체인 볼드 하이라이트가 그 역할을 대신 (일반 모드 동작 불변).

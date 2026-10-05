@@ -1671,8 +1671,9 @@ onBeforeUnmount(() => {
           <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ label }}</text>
         </g>
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
+        <!-- §239: 애니 모드에선 비표시 — difference 블렌드가 체인 하이라이트(액센트)를 어둡게 오염 -->
         <rect
-          v-if="activeFrameRect"
+          v-if="activeFrameRect && !animMode"
           class="activeFrameOutline"
           :x="activeFrameRect.x" :y="activeFrameRect.y"
           :width="activeFrameRect.w" :height="activeFrameRect.h"
