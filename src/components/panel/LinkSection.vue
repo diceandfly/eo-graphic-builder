@@ -53,14 +53,8 @@ function rowToggle(cat) {
   <section>
     <h2 class="secH">Link<button class="foldTg" @click="toggleFold"><svg viewBox="0 0 24 24"><path :d="folded ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
     <template v-if="!folded">
-    <!-- 단일 링크 멤버: 이 유닛만 링크에서 빼기 -->
-    <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
-      Unlink this unit
-    </button>
-    <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
-      {{ linked ? 'Unlink parameters' : 'Link parameters' }}
-    </button>
-    <!-- §265: 범주 토글 행 — "선택끼리 이 범주 통일(linked) / 각자(solo)" -->
+    <!-- §265·§267: 범주 토글 칩 — 컴팩트(내용 폭·랩 배치). linked = 전체 하이라이트,
+         mixed = 보더 하이라이트 없이 상태 텍스트만 강조 (사용자 확정) -->
     <div v-if="rowsVisible && !single" class="catRows">
       <button
         v-for="cat in CATS" :key="cat"
@@ -72,6 +66,13 @@ function rowToggle(cat) {
         <span class="catState">{{ catState(cat) === 'on' ? 'linked' : catState(cat) === 'mixed' ? 'mixed' : 'solo' }}</span>
       </button>
     </div>
+    <!-- §267: Link/Unlink 숏컷 = 섹션 하단으로 -->
+    <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
+      Unlink this unit
+    </button>
+    <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
+      {{ linked ? 'Unlink parameters' : 'Link parameters' }}
+    </button>
     </template>
   </section>
 </template>
@@ -90,7 +91,7 @@ section h2 {
   &:hover svg { stroke: var(--accent); }
 }
 .ghost {
-  width: 100%; margin-top: 2px; padding: 0 12px; height: 21px; /* §219: 컨트롤 공통 높이 */
+  width: 100%; margin-top: 0; padding: 0 12px; height: 21px; /* §219: 컨트롤 공통 높이 */
   border: 1px solid var(--line); background: none; color: var(--text);
   font-family: inherit; font-size: var(--fs-xs); letter-spacing: var(--ls-base); /* §214: 캡스 해제 */
   text-transform: capitalize; /* §216: 이니셜 캡 = 전 단어 */
@@ -98,17 +99,18 @@ section h2 {
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
-/* §265: 범주 토글 행 — 좌 라벨(L5) / 우 상태 뱃지. on = 액센트 */
-.catRows { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+/* §265·§267: 범주 토글 칩 — 내용 폭 랩 배치(100% 행 폐기). on = 전체 액센트,
+   mixed = 보더·이름은 기본, 상태 텍스트만 액센트 */
+.catRows { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
 .catTg {
   @include bordered-control;
   height: 21px; padding: 0 8px;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
   color: var(--faint);
   .catName { text-transform: capitalize; }
   .catState { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); }
   &.on { border-color: var(--accent); color: var(--accent); }
-  &.mixed .catState { color: var(--dim); font-style: normal; }
+  &.mixed .catState { color: var(--accent); }
   &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>

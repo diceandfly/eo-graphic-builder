@@ -51,7 +51,7 @@ function onKey(e) {
 </template>
 
 <style scoped lang="scss">
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; } /* §266: 행 리듬 10→8 */
+.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; } /* §266·§267: 행 리듬 10→8→6 */
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); text-transform: capitalize; } /* §216: 이니셜 캡 = 전 단어 */
 input {
   @include text-field;

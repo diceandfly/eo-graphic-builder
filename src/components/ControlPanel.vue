@@ -433,6 +433,34 @@ function setStrokeColor(c) {
 
     <template v-if="!isFrame">
     <section>
+      <h2 class="secH">Shape<button class="foldTg" :class="{ isFolded: fold.shape }" @click="toggleFold('shape')"><svg viewBox="0 0 24 24"><path :d="fold.shape ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <Slider
+        label="shaft size" v-model="p.dPct"
+        :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
+        prefix="Unit height ×" suffix="%" :mixed="mixed('dPct')"
+      />
+      <Slider
+        label="thread top width" :model-value="aPct"
+        :min="A_MIN * 100" :max="A_MAX * 100" :step="1" :arrow-step="5"
+        suffix="%" :mixed="mixed('a')"
+        @update:model-value="(v) => emit('setA', v / 100)"
+      />
+      <Slider
+        label="thread bottom width" :model-value="bottomPct"
+        :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1" :arrow-step="5"
+        suffix="%" :mixed="mixed('b')"
+        @update:model-value="(v) => emit('setB', 1 - v / 100)"
+      />
+      <Toggle
+        label="thread sides" v-model="p.threads"
+        :options="[
+          { value: 'both', label: 'double' },
+          { value: 'one', label: 'single' },
+        ]"
+      />
+    </section>
+
+    <section>
       <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <Slider
         label="cols" v-model="p.cols"
@@ -480,7 +508,7 @@ function setStrokeColor(c) {
              cols 생산·offset 흐름이 compression과 같은 쪽(with)인지 반대쪽(counter)인지 -->
         <Toggle
           label="cols grow direction" :model-value="p.grow ?? 'r'"
-          :options="[{ value: 'r', label: 'with' }, { value: 'l', label: 'counter' }]"
+          :options="[{ value: 'r', label: '+' }, { value: 'l', label: '−' }]"
           @update:model-value="(v) => { p.grow = v; }"
         />
         <!-- §262: step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
@@ -491,40 +519,13 @@ function setStrokeColor(c) {
         />
         <Slider
           label="offset" v-model="p.offset"
-          :min="-8" :max="8" :step="0.01" :arrow-step="0.1" :decimals="2"
+          :min="-12" :max="12" :step="0.01" :arrow-step="1" :decimals="2"
           :snap-to="0" :snap-radius="0.08"
           :mixed="mixed('offset')"
         />
       </div>
     </section>
 
-    <section>
-      <h2 class="secH">Shape<button class="foldTg" :class="{ isFolded: fold.shape }" @click="toggleFold('shape')"><svg viewBox="0 0 24 24"><path :d="fold.shape ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
-      <Slider
-        label="shaft size" v-model="p.dPct"
-        :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
-        prefix="Unit height ×" suffix="%" :mixed="mixed('dPct')"
-      />
-      <Slider
-        label="thread top width" :model-value="aPct"
-        :min="A_MIN * 100" :max="A_MAX * 100" :step="1" :arrow-step="5"
-        suffix="%" :mixed="mixed('a')"
-        @update:model-value="(v) => emit('setA', v / 100)"
-      />
-      <Slider
-        label="thread bottom width" :model-value="bottomPct"
-        :min="Math.round((1 - B_MAX) * 100)" :max="100" :step="1" :arrow-step="5"
-        suffix="%" :mixed="mixed('b')"
-        @update:model-value="(v) => emit('setB', 1 - v / 100)"
-      />
-      <Toggle
-        label="thread sides" v-model="p.threads"
-        :options="[
-          { value: 'both', label: 'double' },
-          { value: 'one', label: 'single' },
-        ]"
-      />
-    </section>
     </template>
 
     <!-- §264: 다중 링크 행 UI — 그룹 번호 목록/범주 지정은 App(문서 전역) 경유 -->

@@ -2120,3 +2120,11 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **행 리듬 10→8px** (NumberField·Toggle·Slider 공통, offsetSet gap 6) — 서브타이틀 하 파라미터 밀도 상향.
 5. **± 칩 기호 확대** (15px semibold).
 6. (답변) grow를 compression ± 부호에 자동 결속하는 안은 §261의 50% 튐(부호 보간 중 끝단 스왑)을 재도입하므로 불가 — 절충 = 라벨을 with/counter(또는 +/−)로 "compression 기준 상대" 의미 유지.
+
+## 267. 2026-10-06 — 링크 섹션 컴팩트·패널 순서 SIZE/SHAPE/GRID/ANIMATION·grow ± 표기·미세 조정
+
+1. **링크 섹션 컴팩트화** — 범주 토글 = 내용 폭 **랩 칩**(100% 행 폐기), Link/Unlink 숏컷 = 섹션 하단 이동. 상태 문법: linked = 전체 액센트 / **mixed = 보더·이름 기본, 상태 텍스트만 액센트** / solo = 기본.
+2. **유닛 패널 순서 = SIZE → SHAPE → GRID → ANIMATION → LINK** (SIZE·SHAPE = 저빈도 컨트롤 상단 — 사용자 확정).
+3. **grow 표기 = + | −** (§266 답변의 절충 적용 — compression 부호 체계와 동일 기호, 의미는 상대(with/counter) 그대로. 자동 결속 아님).
+4. **Offset: 화살표 스텝 1 · 범위 ±12**.
+5. **행 리듬 8→6px** (전 컨트롤 공통).
