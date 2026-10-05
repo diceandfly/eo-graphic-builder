@@ -1094,7 +1094,7 @@ function centerIn(u, f) {
   });
 }
 
-// §287. 도크 커스텀 거터 — fixed/auto + 짝 키프레임 복제
+// §290. 도크 거터 보정(comp) — 평균±px + 짝 키프레임 복제
 {
   const api = fresh();
   const f = api.createFrame(0, 0, 3000, 1400);
@@ -1108,20 +1108,20 @@ function centerIn(u, f) {
   await sleep(30);
   api.connectDock(u1.id, u2.id);
   await sleep(30);
-  api.setDockGap(u1.id, u2.id, 77);
+  api.setDockComp(u1.id, u2.id, 67);
   await sleep(30);
-  ok('§287: fixed 거터 = 재정렬 + 짝 엣지에 gap 복제', () => {
-    assert.ok(Math.abs(u2.x - (u1.x + 960 + 77)) < 1e-6, `u2.x=${u2.x}`);
+  ok('§290: 거터 보정 = 평균+comp 재정렬 + 짝 엣지에 복제', () => {
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 10 + 67)) < 1e-6, `u2.x=${u2.x}`);
     const me = api.doc.docks.find((e) => e.from === m1.id && e.to === m2.id);
-    assert.equal(me?.gap, 77);
+    assert.equal(me?.comp, 67);
     assert.ok(Math.abs(m2.x - (m1.x + 960 + 77)) < 1e-6, `m2.x=${m2.x}`);
   });
-  api.setDockGap(u1.id, u2.id, null);
+  api.setDockComp(u1.id, u2.id, 0);
   await sleep(30);
-  ok('§287: auto 복귀 = 평균 거터 + 짝 gap 해제', () => {
+  ok('§290: 보정 0 = 평균 복귀 + 짝 comp 키 제거', () => {
     assert.ok(Math.abs(u2.x - (u1.x + 960 + 10)) < 1e-6, `u2.x=${u2.x}`);
     const me = api.doc.docks.find((e) => e.from === m1.id && e.to === m2.id);
-    assert.ok(me && me.gap === undefined);
+    assert.ok(me && me.comp === undefined);
   });
 }
 

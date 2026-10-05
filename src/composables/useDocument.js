@@ -141,7 +141,7 @@ export function dockBridgeGuides(units, docks, visibleIds = null) {
     const b = byId.get(e.to);
     if (!a || !b || a.type === 'frame' || b.type === 'frame') continue;
     const { pa, pb } = dockBridgeEnds(a, b);
-    out.push({ pts: [pa[0], pa[1], pb[1], pb[0]] });
+    out.push({ pts: [pa[0], pa[1], pb[1], pb[0]] }); // §290: 표시 = 그리드 컬러 60% 면 덮기 (테두리/십자 폐기)
   }
   return out;
 }
@@ -1079,12 +1079,13 @@ export function useDocument() {
     if (changed) syncPairDocks(touched);
     return changed;
   }
-  // §287: 도크 거터 커스텀 — null = 자동(평균) 복귀. 짝 키프레임에도 동반 복제.
-  function setDockGap(fromId, toId, gap) {
+  // §290: 도크 거터 보정 — 자동 평균에 더하는 ±px (0 = 키 제거). 짝 키프레임에도 동반 복제.
+  function setDockComp(fromId, toId, comp) {
     const e = doc.docks.find((x) => x.from === fromId && x.to === toId);
     if (!e) return false;
-    if (gap == null) delete e.gap;
-    else e.gap = clamp(Number(gap) || 0, 0, 10000);
+    const v = clamp(Number(comp) || 0, -10000, 10000);
+    if (v === 0) delete e.comp;
+    else e.comp = v;
     relayoutDocks();
     syncPairDocks([fromId, toId]);
     return true;
@@ -1127,11 +1128,11 @@ export function useDocument() {
           const b = doc.units.find((u) => u.id === e.to);
           const ma = byHomePair.get(`${h}:${a.pair}`);
           const mb = byHomePair.get(`${h}:${b.pair}`);
-          return ma && mb ? { from: ma.id, to: mb.id, gap: e.gap } : null; // §287: 커스텀 거터 동반
+          return ma && mb ? { from: ma.id, to: mb.id, comp: e.comp } : null; // §290: 거터 보정 동반
         })
         .filter(Boolean);
-      const want = new Map(desired.map((e) => [`${e.from}-${e.to}`, e.gap]));
-      // 이 키프레임의 계보 내 기존 엣지 중 소스에 없는 것 제거 + 없는 것 추가 + gap 동기 (§287)
+      const want = new Map(desired.map((e) => [`${e.from}-${e.to}`, e.comp]));
+      // 이 키프레임의 계보 내 기존 엣지 중 소스에 없는 것 제거 + 없는 것 추가 + comp 동기 (§290)
       doc.docks = doc.docks.filter((e) => !(hIds.has(e.from) && hIds.has(e.to)) || want.has(`${e.from}-${e.to}`));
       const have = new Set();
       for (const e of doc.docks) {
@@ -1139,13 +1140,13 @@ export function useDocument() {
         have.add(k);
         if (hIds.has(e.from) && hIds.has(e.to) && want.has(k)) {
           const g = want.get(k);
-          if (g == null) delete e.gap;
-          else e.gap = g;
+          if (g == null) delete e.comp;
+          else e.comp = g;
         }
       }
       for (const e of desired) {
         if (have.has(`${e.from}-${e.to}`)) continue;
-        doc.docks.push(e.gap == null ? { from: e.from, to: e.to } : { from: e.from, to: e.to, gap: e.gap });
+        doc.docks.push(e.comp == null ? { from: e.from, to: e.to } : { from: e.from, to: e.to, comp: e.comp });
       }
     }
     relayoutDocks();
@@ -1191,8 +1192,8 @@ export function useDocument() {
           const L = Math.hypot(aNear[0] - aFar[0], aNear[1] - aFar[1]) || 1;
           const dir = [(aNear[0] - aFar[0]) / L, (aNear[1] - aFar[1]) / L]; // a → b 방향
           const bNear = d2(eb.r, ca) <= d2(eb.l, ca) ? eb.r : eb.l;       // b의 a쪽 끝
-          // §287: 커스텀 거터 — e.gap(px) 지정 시 고정, 아니면 양쪽 gutterPx 평균(자동)
-          const g = Number.isFinite(e.gap) ? e.gap : ((a.params.gutterPx ?? 0) + (b.params.gutterPx ?? 0)) / 2;
+          // §287 → §290: 거터 = 양쪽 gutterPx 평균(자동) + 보정값 e.comp(px, ±) — 고정 모드 폐기
+          const g = Math.max(0, ((a.params.gutterPx ?? 0) + (b.params.gutterPx ?? 0)) / 2 + (Number(e.comp) || 0));
           const dx = aNear[0] + dir[0] * g - bNear[0];
           const dy = aNear[1] + dir[1] * g - bNear[1];
           if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) { b.x += dx; b.y += dy; }
@@ -2095,7 +2096,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
     duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
-    connectDock, disconnectDock, undockUnit, setDockGap, dockMates, dockedIdSet, dockAxesParallel, // §278·§282·§283·§287: 도킹
+    connectDock, disconnectDock, undockUnit, setDockComp, dockMates, dockedIdSet, dockAxesParallel, // §278·§282·§283·§290: 도킹
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

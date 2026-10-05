@@ -146,23 +146,14 @@ function onUndockFromBadge() {
   closeDockMenu();
   if (u && props.actions.undockUnit(u.id)) toast(`Undocked — ${u.name}`);
 }
-// §287: 팝업의 결착별 거터 행 — auto(양쪽 평균) | fixed(커스텀 px)
+// §290: 팝업의 결착별 거터 **보정** 행 — 자동 평균에 더하는 ±px 단일 필드 (auto|fixed 모드 폐기)
 const dockMenuEdges = computed(() => {
   const u = dockMenu.value?.u;
   if (!u) return [];
   return props.doc.docks
     .filter((e) => e.from === u.id || e.to === u.id)
-    .map((e) => {
-      const pid = e.from === u.id ? e.to : e.from;
-      const p = props.doc.units.find((x) => x.id === pid);
-      const auto = ((u.params.gutterPx ?? 0) + (p?.params.gutterPx ?? 0)) / 2;
-      const fixed = Number.isFinite(e.gap);
-      return { e, partner: p?.name ?? '?', fixed, eff: fixed ? e.gap : Math.round(auto * 100) / 100 };
-    });
+    .map((e) => ({ e, comp: Number(e.comp) || 0 }));
 });
-function setDockGapMode(row, fixed) {
-  props.actions.setDockGap(row.e.from, row.e.to, fixed ? row.eff : null);
-}
 // §283: 노드 활성 조건 (사용자 확정) — ① 줌 ≥ 15% (자동 숨김 임계) ② 유닛 **2개 이상** 선택
 // ③ 전원 샤프트 축 평행(역평행 포함). 단일 유닛 노드 폐기 — 해제는 도크 배지 팝업(Undock)으로.
 const dockNodeUnits = computed(() => {
@@ -1900,7 +1891,7 @@ onBeforeUnmount(() => {
           :fill="bp.fill"
           :stroke="seamW > 0 ? bp.fill : 'none'" :stroke-width="seamW"
         />
-        <!-- §289: 브리지 그리드 가이드 — 유닛 그리드와 동일 문법 (선택 결착 유닛의 가이드 표시 시) -->
+        <!-- §289·§290: 브리지 그리드 표시 = 그리드 컬러 60% 면으로 덮기 (사용자 확정 — 테두리/십자 폐기) -->
         <polygon
           v-for="(gq, gi) in stageBridgeGuides" :key="'dg' + gi"
           class="dockBridgeGuide"
@@ -2272,18 +2263,13 @@ onBeforeUnmount(() => {
       @pointerdown.stop
       @contextmenu.prevent
     >
-      <!-- §288: 결착별 거터 — ctx 행 문법(아이콘+라벨 좌 / 컨트롤 우)으로 통일, 상대 이름 표기 폐기 -->
+      <!-- §288 → §290: Gutter Compensation — 자동 평균에 더하는 ±px 단일 필드 (화살표 1px) -->
       <div v-for="(row, ri) in dockMenuEdges" :key="row.e.from + '-' + row.e.to" class="dockGapRow">
         <svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>
-        <span class="dockGapLabel" :title="`Gutter to ${row.partner}`">Gutter{{ dockMenuEdges.length > 1 ? ' ' + (ri + 1) : '' }}</span>
-        <div class="segMini">
-          <button :class="{ on: !row.fixed }" @click="setDockGapMode(row, false)">auto</button>
-          <button :class="{ on: row.fixed }" @click="setDockGapMode(row, true)">fixed</button>
-        </div>
+        <span class="dockGapLabel">Gutter compensation{{ dockMenuEdges.length > 1 ? ' ' + (ri + 1) : '' }}</span>
         <StepField
-          v-if="row.fixed"
-          :model-value="row.eff" :min="0" :max="2000" :step="1"
-          @update:model-value="(v) => props.actions.setDockGap(row.e.from, row.e.to, v)"
+          :model-value="row.comp" :min="-2000" :max="2000" :step="1" suffix="px"
+          @update:model-value="(v) => props.actions.setDockComp(row.e.from, row.e.to, v)"
         />
       </div><!-- §289: 구분선 폐기 (사용자 확정) -->
       <button
@@ -2404,11 +2390,10 @@ onBeforeUnmount(() => {
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
 .dockBridge { vector-effect: non-scaling-stroke; stroke-linejoin: miter; } /* §287: 유닛 seam과 동일 문법 */
-/* §289: 브리지 그리드 가이드 — UnitGraphic .guides와 동일 문법 */
+/* §289·§290: 브리지 그리드 표시 — 그리드 컬러 60% 면 덮기 (사용자 확정) */
 .dockBridgeGuide {
-  fill: none; stroke: var(--unit-guide, var(--guide));
-  stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6;
-  pointer-events: none;
+  fill: var(--unit-guide, var(--guide)); opacity: 0.6;
+  stroke: none; pointer-events: none;
 }
 /* §287·§288: 도크 팝업의 결착별 거터 행 — ctxItem 행 문법(패딩 6px 10px·아이콘 gap 8) 정렬 */
 .dockGapRow {
@@ -2416,19 +2401,8 @@ onBeforeUnmount(() => {
   padding: 3px 10px;
   .dockGapLabel {
     font-size: var(--fs-sm); letter-spacing: var(--ls-base); color: var(--text); /* §218: L4 — ctxItem 동급 */
-    white-space: nowrap; margin-right: var(--sp-group);
-  }
-  /* ctxMenu는 popup-menu 믹스인 비사용 — 세그 스타일 로컬 복제 (믹스인 .segMini와 동일 문법) */
-  .segMini {
-    margin-left: auto;
-    display: flex; border: 1px solid var(--line); border-radius: var(--radius);
-    button {
-      border: none; background: none; padding: 0 9px; height: 19px;
-      display: inline-flex; align-items: center;
-      font-size: var(--fs-xs); color: var(--faint); font-family: inherit; cursor: pointer;
-      &:not(:last-child) { border-right: 1px solid var(--line); }
-      &.on { @include active-outline-inset; }
-    }
+    white-space: nowrap; margin-right: auto; /* §290: 필드 우측 정렬 */
+    &::first-letter { text-transform: uppercase; }
   }
 }
 /* §279 → §284: LINK 칩 호버 하이라이트 = 유닛 그리드 색 + 두꺼운 스트로크 (사용자 확정 —

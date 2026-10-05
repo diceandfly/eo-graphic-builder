@@ -2284,3 +2284,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - **유닛 그리드 on이면 브리지도 그리드 표시**: dockBridgeEnds 코어 분리 → dockBridgeGuides(연장·겹침 보정 없는 순수 경계 사각형, 결착 양끝 중 한쪽이라도 선택돼 가이드가 보일 때) — UnitGraphic .guides와 동일 문법(--unit-guide 1px non-scaling·opacity 0.6). E2E 렌더 확인.
 - 도크 팝업의 Gutter 행 ↔ Undock 사이 구분선 폐기 (사용자 확정).
+
+## 290. 2026-10-06 — 브리지 그리드 표시 = 60% 면 덮기 · Gutter Compensation(보정) UI
+
+- **브리지 그리드 표시 최종형(사용자 3차 수렴)**: 테두리+십자 안 → **그리드 컬러 60% 면으로 브리지를 덮기**. (§289의 폴리곤 아웃라인이 SVG 기본 fill로 올블랙 노출된 중간 상태 포함해 전면 교체.)
+- **거터 UI 재설계**: auto|fixed 모드 폐기 → **Gutter Compensation** 단일 필드(±px, 화살표 1px, px 서픽스) = 자동 평균에 더하는 보정값(e.comp, 0 = 키 제거). 자동 추적을 유지한 채 미세 조정 — 사용성 우위(사용자 제안). setDockComp, 짝 복제 동반. 테스트 2건 갱신(92케이스).
+- 복구 기록: 검증 중 마퀴 오조작으로 이동한 유닛 2기를 넛지 스크립트로 원좌표 복원 (undo 스택 리로드 소실 — 이후 검증은 복원 절차 포함으로 전환).
