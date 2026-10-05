@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { saveFileAs } from '../../utils/saveFile.js';
+import { zipStore } from '../../utils/zipStore.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
@@ -28,6 +29,14 @@ watch(cycles, (v) => {
   else if (v > 8) cycles.value = 8;
   else localStorage.setItem('eo.animCycles', String(v));
 });
+// §247: 익스포트 옵션 묶음 — format(WebM|PNG 시퀀스) · scale(0.5/1/2× — 1920 캡도 배율 동승) ·
+// alpha(배경 투명 — PNG 전용: WebM 실시간 녹화는 알파 비보존) · hold(끝 프레임 유지 ms, 루프 호흡)
+const exportCfg = reactive({ format: 'webm', scale: 1, alpha: false, hold: 0 });
+try { Object.assign(exportCfg, JSON.parse(localStorage.getItem('eo.animExport') || '{}')); } catch { /* 기본값 유지 */ }
+watch(exportCfg, (v) => localStorage.setItem('eo.animExport', JSON.stringify(v)));
+// §247: 옵션 접기 — 재생화면 바로 아래 토글, 프리뷰 제외 전부 숨김
+const optsOpen = ref(localStorage.getItem('eo.animOptsOpen') !== '0');
+watch(optsOpen, (v) => localStorage.setItem('eo.animOptsOpen', v ? '1' : '0'));
 
 // §226: 창 크기 — 우하단 그립(상시 표시)으로 조절. 비율은 임의가 아니라 **보고 있는 프레임 비율 고정**:
 // 폭만 저장하고 프리뷰 높이는 프레임 W:H에서 파생된다.
@@ -131,12 +140,16 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
-// ── §233: 익스포트 — v1 WebM (MediaRecorder 실시간 캡처, 포맷 추가 예정 전제의 구성) ──
-// 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터 → captureStream(30) 녹화.
-// 영상 길이 = 엣지 duration (한 사이클), 최대 변 1920px 캡.
+// ── §233·§247: 익스포트 — WebM(MediaRecorder 실시간 녹화) / PNG 시퀀스(ZIP) 공용 엔진 ──
+// 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터. 옵션: 배율(0.5/1/2× — 1920 캡 동승) ·
+// 배경 투명(PNG 전용) · 끝 프레임 홀드(ms). 파일명 = `From→To_1000ms` 규칙 (§247 사용자 확정).
 const exporting = ref(false);
 const exportPct = ref(0);
-async function exportWebm() {
+const fileBase = computed(() => {
+  const nm = (u) => (u?.name || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
+  return `${nm(props.fromFrame)}→${nm(props.toFrame)}_${props.edge?.duration ?? 0}ms`;
+});
+async function doExport() {
   if (!props.edge || !pose.value || exporting.value) return;
   stop();
   exporting.value = true;
@@ -144,19 +157,15 @@ async function exportWebm() {
   try {
     const W0 = pose.value.W;
     const H0 = pose.value.H;
-    const sc = Math.min(1, 1920 / Math.max(W0, H0));
-    const cw = Math.max(2, Math.round(W0 * sc));
-    const ch = Math.max(2, Math.round(H0 * sc));
+    // §247: 배율 — 캡도 배율에 동승 (0.5×=960 · 1×=1920 · 2×=3840)
+    const k = exportCfg.scale * Math.min(1, 1920 / Math.max(W0, H0));
+    const cw = Math.max(2, Math.round(W0 * k));
+    const ch = Math.max(2, Math.round(H0 * k));
     const canvas = document.createElement('canvas');
     canvas.width = cw;
     canvas.height = ch;
     const ctx = canvas.getContext('2d');
-    const stream = canvas.captureStream(fps.value);
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
-    const chunks = [];
-    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    const done = new Promise((res) => { rec.onstop = res; });
+    const alpha = exportCfg.format === 'png' && exportCfg.alpha; // §247: 투명 = PNG 전용
     const drawAt = async (t) => {
       p.value = t;
       await nextTick();
@@ -164,10 +173,15 @@ async function exportWebm() {
       clone.setAttribute('width', W0);
       clone.setAttribute('height', H0);
       clone.removeAttribute('style');
+      if (alpha) {
+        const bg = clone.querySelector('rect'); // 첫 rect = 프레임 배경
+        bg.setAttribute('fill', 'none');
+        bg.setAttribute('stroke', 'none');
+      }
       const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' }));
       await new Promise((res, rej) => {
         const img = new Image();
-        img.onload = () => { ctx.drawImage(img, 0, 0, cw, ch); URL.revokeObjectURL(url); res(); };
+        img.onload = () => { ctx.clearRect(0, 0, cw, ch); ctx.drawImage(img, 0, 0, cw, ch); URL.revokeObjectURL(url); res(); };
         img.onerror = rej;
         img.src = url;
       });
@@ -176,27 +190,56 @@ async function exportWebm() {
     const dur = props.edge.duration;
     const legs = loopMode.value === 'loop' ? cycles.value : cycles.value * 2;
     const total = dur * legs;
+    const hold = Math.max(0, Number(exportCfg.hold) || 0); // §247: 끝 프레임 유지
+    const endT = loopMode.value === 'pingpong' ? 0 : 1;    // 핑퐁은 출발점 복귀로 종료
     const tAt = (ms) => {
       const leg = Math.min(legs - 1, Math.floor(ms / dur));
       const local = Math.min(1, (ms - leg * dur) / dur);
       return loopMode.value === 'pingpong' && leg % 2 === 1 ? 1 - local : local;
     };
-    await drawAt(tAt(0));
-    rec.start();
-    const t0 = performance.now();
-    let now = 0;
-    while (now < total) {
-      await drawAt(tAt(now));
-      exportPct.value = Math.round((now / total) * 100);
-      await new Promise((r) => setTimeout(r, 1000 / fps.value));
-      now = performance.now() - t0;
+    if (exportCfg.format === 'png') {
+      // §247: PNG 시퀀스 — 비실시간 프레임 루프 → ZIP(store) 한 파일로 저장
+      const frameMs = 1000 / fps.value;
+      const n = Math.max(2, Math.round(total / frameMs));
+      const holdN = Math.round(hold / frameMs);
+      const files = [];
+      const grab = async () => new Uint8Array(await (await new Promise((r) => canvas.toBlob(r, 'image/png'))).arrayBuffer());
+      for (let i = 0; i < n; i += 1) {
+        await drawAt(tAt(i * frameMs));
+        files.push({ name: `seq_${String(i).padStart(4, '0')}.png`, data: await grab() });
+        exportPct.value = Math.round((i / (n + holdN + 1)) * 100);
+      }
+      await drawAt(endT);
+      const endData = await grab();
+      files.push({ name: `seq_${String(n).padStart(4, '0')}.png`, data: endData });
+      for (let h = 1; h <= holdN; h += 1) files.push({ name: `seq_${String(n + h).padStart(4, '0')}.png`, data: endData });
+      exportPct.value = 100;
+      await saveFileAs(zipStore(files), `${fileBase.value}_seq.zip`, 'export');
+    } else {
+      const stream = canvas.captureStream(fps.value);
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      const done = new Promise((res) => { rec.onstop = res; });
+      await drawAt(tAt(0));
+      rec.start();
+      const t0 = performance.now();
+      let now = 0;
+      while (now < total) {
+        await drawAt(tAt(now));
+        exportPct.value = Math.round((now / (total + hold)) * 100);
+        await new Promise((r) => setTimeout(r, 1000 / fps.value));
+        now = performance.now() - t0;
+      }
+      await drawAt(endT);
+      if (hold) await new Promise((r) => setTimeout(r, hold)); // 끝 프레임 정지 화면을 hold만큼 녹화
+      exportPct.value = 100;
+      await new Promise((r) => setTimeout(r, 150));
+      rec.stop();
+      await done;
+      await saveFileAs(new Blob(chunks, { type: 'video/webm' }), `${fileBase.value}.webm`, 'export');
     }
-    await drawAt(loopMode.value === 'pingpong' ? 0 : 1); // 핑퐁은 출발점 복귀로 종료
-    exportPct.value = 100;
-    await new Promise((r) => setTimeout(r, 150));
-    rec.stop();
-    await done;
-    saveFileAs(new Blob(chunks, { type: 'video/webm' }), `eo-animation_${cw}x${ch}.webm`, 'export');
   } finally {
     exporting.value = false;
     p.value = 0;
@@ -242,34 +285,71 @@ const previewH = computed(() => {
           </svg>
         </div>
       </div>
-      <!-- 스크러버 + 트랜스포트 -->
-      <input
-        class="scrub" type="range" min="0" max="1000" :value="Math.round(p * 1000)"
-        @input="(e) => { stop(); p = Number(e.target.value) / 1000; }"
-      />
-      <div class="row">
-        <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
-        <span class="time">{{ timeLabel }}</span>
-        <!-- §233: pingpong · cycle, 기본 pingpong (§246: once 폐기) · 반복 회수 = 루프 행으로 이동 -->
-        <div class="segMini loopSeg">
-          <button :class="{ on: loopMode === 'pingpong' }" @click="loopMode = 'pingpong'">pingpong</button>
-          <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">cycle</button>
+      <!-- §247: 옵션 접기 토글 — 재생화면 바로 아래, 프리뷰 제외 전부 보기/숨기기 -->
+      <button class="optTg" :title="optsOpen ? 'Hide options' : 'Show options'" @click="optsOpen = !optsOpen">
+        <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
+      </button>
+      <template v-if="optsOpen">
+        <!-- ── 재생 그룹: 스크러버 · 시간 · 루프 모드 · 반복 · 프레임레이트 ── -->
+        <input
+          class="scrub" type="range" min="0" max="1000" :value="Math.round(p * 1000)"
+          @input="(e) => { stop(); p = Number(e.target.value) / 1000; }"
+        />
+        <div class="row">
+          <!-- §227: 재생/정지 = 프리뷰 클릭 (별도 버튼 폐기) -->
+          <span class="time">{{ timeLabel }}</span>
+          <!-- §233: pingpong · cycle, 기본 pingpong (§246: once 폐기) -->
+          <div class="segMini loopSeg">
+            <button :class="{ on: loopMode === 'pingpong' }" @click="loopMode = 'pingpong'">pingpong</button>
+            <button :class="{ on: loopMode === 'loop' }" @click="loopMode = 'loop'">cycle</button>
+          </div>
+          <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
+            ×<input class="numIn cycIn" type="number" min="1" max="8" v-model.number="cycles" />
+          </label>
         </div>
-        <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
-          ×<input class="cycIn" type="number" min="1" max="8" v-model.number="cycles" />
-        </label>
-      </div>
-      <!-- §233: 익스포트 — v1 WebM (포맷 추가 예정 자리) · §244: fps(30/24) -->
-      <div class="exRow">
-        <button class="exBtn" :disabled="exporting" @click="exportWebm">
-          {{ exporting ? `Exporting… ${exportPct}%` : 'Export WebM' }}
-        </button>
-        <div class="segMini" title="Frame rate — playback & export">
-          <button :class="{ on: fps === 30 }" @click="fps = 30">30fps</button>
-          <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
+        <div class="optRow">
+          <span class="optLabel">Frame rate</span>
+          <div class="segMini">
+            <button :class="{ on: fps === 30 }" @click="fps = 30">30fps</button>
+            <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
+          </div>
         </div>
-      </div>
-      <div class="menuNote">Timing per connection — wire ≡ control · ×n cycles apply to export</div>
+        <!-- ── §247: 익스포트 그룹 — 포맷 · 배율 · 투명 · 끝 프레임 홀드 · 저장 ── -->
+        <div class="sectHead">Export</div>
+        <div class="optRow">
+          <span class="optLabel">Format</span>
+          <div class="segMini">
+            <button :class="{ on: exportCfg.format === 'webm' }" @click="exportCfg.format = 'webm'">WebM</button>
+            <button :class="{ on: exportCfg.format === 'png' }" @click="exportCfg.format = 'png'">PNG seq</button>
+          </div>
+        </div>
+        <div class="optRow">
+          <span class="optLabel">Scale</span>
+          <div class="segMini">
+            <button :class="{ on: exportCfg.scale === 0.5 }" @click="exportCfg.scale = 0.5">0.5×</button>
+            <button :class="{ on: exportCfg.scale === 1 }" @click="exportCfg.scale = 1">1×</button>
+            <button :class="{ on: exportCfg.scale === 2 }" @click="exportCfg.scale = 2">2×</button>
+          </div>
+        </div>
+        <div class="optRow">
+          <span class="optLabel">Transparent bg</span>
+          <!-- §247: PNG 전용 — WebM 실시간 녹화는 알파 비보존 -->
+          <input
+            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format !== 'png'"
+            :title="exportCfg.format === 'png' ? 'Drop the frame background (alpha PNG)' : 'PNG sequence only'"
+          />
+        </div>
+        <div class="optRow">
+          <span class="optLabel">End hold (ms)</span>
+          <input class="numIn holdIn" type="number" min="0" max="5000" step="100" v-model.number="exportCfg.hold" />
+        </div>
+        <div class="exRow">
+          <button class="exBtn" :disabled="exporting" @click="doExport">
+            {{ exporting ? `Exporting… ${exportPct}%` : exportCfg.format === 'png' ? 'Export PNG sequence' : 'Export WebM' }}
+          </button>
+        </div>
+        <div class="menuNote">Saved as {{ fileBase }} — timing per connection via the wire ≡ control</div>
+      </template>
     </template>
     <!-- §245: 페어링 진입점 변경 — opt-드래그 복제 폐기, 뱃지 팝업(Make paired keyframe)으로 -->
     <div v-else class="empty">
@@ -352,12 +432,33 @@ const previewH = computed(() => {
   display: inline-flex; align-items: center; gap: 2px;
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
 }
-.cycIn {
+// §247: 공용 숫자 입력 (반복 ×n · 끝 프레임 홀드)
+.numIn {
   @include text-field;
   width: 28px; height: 21px; padding: 0 2px; text-align: center;
   -moz-appearance: textfield; appearance: textfield;
   &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   &:disabled { color: var(--disabled); }
+}
+.holdIn { width: 48px; }
+// §247: 옵션 접기 토글 — 프리뷰 하단 슬림 셰브론 (풀폭)
+.optTg {
+  border: none; background: none; cursor: pointer; padding: 0;
+  height: 12px; margin: -4px 0; display: flex; align-items: center; justify-content: center;
+  svg { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
+  &:hover svg { stroke: var(--accent); }
+}
+// §247: 옵션 행 — L5 라벨 + 우측 컨트롤 (메인 패널 행 문법)
+.optRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.optLabel {
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
+  &::first-letter { text-transform: uppercase; }
+}
+// §247: 섹션 헤드 — L3 (액센트 캡스, 메인 패널 SIZE/STYLE 문법)
+.sectHead {
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--accent);
+  text-transform: uppercase; letter-spacing: var(--ls-caps);
+  margin-top: 2px;
 }
 .exBtn {
   @include bordered-control; // §216 버튼 단일 규격

@@ -73,6 +73,14 @@ const chainIds = computed(() => {
   }
   return ids;
 });
+// §247: 하이라이트 3단계 체계 (사용자 승인 하이브리드) —
+//  대기(비활성 체인·미연결): 중립 회백 / 컨텍스트(활성 체인): 가는 액센트 / 포커스(선택 엣지): 볼드 액센트.
+//  모드를 켠다고 전부 액센트가 되지 않음 — "지금 편집 중인 애니"만 밝다.
+const inChain = (e) => chainIds.value.has(e.from) && chainIds.value.has(e.to);
+const isSelEdge = (e) => !props.dimmed && props.selectedEdge && edgeKey(props.selectedEdge) === edgeKey(e);
+const focusIds = computed(() =>
+  (!props.dimmed && props.selectedEdge ? new Set([props.selectedEdge.from, props.selectedEdge.to]) : new Set())
+);
 
 // ── 노드 드래그: 우측 노드에서 시작 → 좌측 노드에 드롭 = 연결 / 빈 곳 = 해제 ──
 const drag = ref(null); // { fromId, x1, y1, x, y }
@@ -108,19 +116,19 @@ function onNodeDown(f, e) {
 
 <template>
   <g class="animOverlay">
-    <!-- §234: 활성 체인 하이라이트 — 체인 소속 프레임 전부 볼드 스트로크 -->
+    <!-- §234·§247: 체인 하이라이트 — 컨텍스트(체인 전체) = 가는 액센트, 포커스(선택 엣지 양끝) = 볼드 -->
     <rect
       v-for="f in frames.filter((x) => chainIds.has(x.id))" :key="'ch' + f.id"
-      class="chainHi"
+      class="chainHi" :class="{ focus: focusIds.has(f.id) }"
       :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
     />
-    <!-- 연결 와이어 + 중앙 페어 아이콘 (엣지 파라미터 컨트롤 자리 — Phase C) -->
+    <!-- 연결 와이어 + 중앙 컨트롤 — §247: 대기 체인은 중립 회백, 활성 체인만 액센트 -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
-      <path class="wire" :class="{ sel: !dimmed && selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e), dim: dimmed }" :d="w.d" />
+      <path class="wire" :class="{ sel: isSelEdge(w.e), chain: !dimmed && !isSelEdge(w.e) && inChain(w.e), dim: dimmed }" :d="w.d" />
       <!-- §224·§237: 와이어 중앙 컨트롤 — 비활성 모드에선 완전 숨김 (회색 잔존 = 와이어·페어 마크만) -->
       <g
         v-if="!dimmed"
-        class="pairBadge" :class="{ sel: selectedEdge && edgeKey(selectedEdge) === edgeKey(w.e) }"
+        class="pairBadge" :class="{ sel: isSelEdge(w.e), chain: inChain(w.e) }"
         :transform="`translate(${w.mx} ${w.my})`"
         @pointerdown.stop.prevent="(ev) => emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
@@ -153,12 +161,14 @@ function onNodeDown(f, e) {
     <g v-for="f in frames" :key="'an' + f.id">
       <circle
         v-if="!dimmed || connectedL.has(f.id)"
-        class="node left" :class="{ dim: dimmed, on: !dimmed && connectedL.has(f.id), target: !dimmed && !!drag && drag.fromId !== f.id }"
+        class="node left"
+        :class="{ dim: dimmed, on: !dimmed && connectedL.has(f.id), chain: !dimmed && chainIds.has(f.id), target: !dimmed && !!drag && drag.fromId !== f.id }"
         :cx="f.x" :cy="f.y + f.params.H / 2" :r="pxs(6)"
       />
       <circle
         v-if="!dimmed || connectedR.has(f.id)"
-        class="node right" :class="{ dim: dimmed, on: !dimmed && connectedR.has(f.id) }"
+        class="node right"
+        :class="{ dim: dimmed, on: !dimmed && connectedR.has(f.id), chain: !dimmed && chainIds.has(f.id) }"
         :cx="f.x + f.params.W" :cy="f.y + f.params.H / 2" :r="pxs(6)"
         @pointerdown.stop.prevent="(ev) => { if (!dimmed) onNodeDown(f, ev); }"
       />
@@ -167,17 +177,20 @@ function onNodeDown(f, e) {
 </template>
 
 <style scoped lang="scss">
-// §234: 활성 체인 프레임 — 볼드 액센트 아웃라인 (화면 고정 2.5px)
+// §234·§247: 체인 프레임 아웃라인 — 컨텍스트 = 가는 액센트(1.5), 포커스(선택 엣지 양끝) = 볼드(2.5)
 .chainHi {
-  fill: none; stroke: var(--accent); stroke-width: 2.5;
+  fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.85;
   vector-effect: non-scaling-stroke; pointer-events: none;
+  &.focus { stroke-width: 2.5; opacity: 1; }
 }
+// §247: 와이어 3단계 — 대기(중립 회백) → 체인(액센트 1.5) → 선택(액센트 2.5)
 .wire {
-  fill: none; stroke: var(--accent); stroke-width: 1.5;
+  fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5;
   vector-effect: non-scaling-stroke; opacity: 0.9;
 }
-.wire.sel { stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
-.wire.temp { stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
+.wire.chain { stroke: var(--accent); }
+.wire.sel { stroke: var(--accent); stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
+.wire.temp { stroke: var(--accent); stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
 // §228·§237: 애니 모드 밖 — 회색 잔존 = **와이어·페어 마크만** (노드·와이어 컨트롤은 완전 숨김)
 .wire.dim { stroke: var(--dim); opacity: 0.85; pointer-events: none; }
 // §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
@@ -198,22 +211,27 @@ function onNodeDown(f, e) {
   &.ghost:hover .bg { stroke-dasharray: none; }
 }
 .node {
-  // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색, 호버/활성 = 액센트
+  // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색 — §247: 활성 체인 소속만 액센트 (대기 = 중립 필)
   fill: var(--panel); stroke: color-mix(in srgb, var(--text) 60%, var(--faint));
   stroke-width: 1.5; vector-effect: non-scaling-stroke;
   cursor: crosshair;
   &:hover { stroke: var(--accent); }
-  &.on { fill: var(--accent); stroke: var(--accent); }
+  &.on { fill: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); }
+  &.chain { stroke: var(--accent); }
+  &.chain.on { fill: var(--accent); stroke: var(--accent); }
   &.target { stroke: var(--accent); } // 드래그 중: 드롭 가능 노드 안내
   &.left { cursor: default; }
   // §244: 비애니 모드 — 연결된 노드만 회색 잔존 (와이어.dim과 같은 문법, 조작 불가)
   &.dim { fill: var(--dim); stroke: var(--dim); pointer-events: none; cursor: default; }
 }
 .pairBadge {
-  circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
+  // §247: 대기 체인의 와이어 컨트롤도 중립 — 활성 체인만 액센트
+  circle { fill: var(--panel); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  path { fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
   cursor: pointer; // §224: 클릭 = 엣지 파라미터 팝업
-  &.sel circle { fill: var(--accent); }
+  &.chain circle { stroke: var(--accent); }
+  &.chain path { stroke: var(--accent); }
+  &.sel circle { fill: var(--accent); stroke: var(--accent); }
   &.sel path { stroke: var(--bg); }
 }
 </style>
