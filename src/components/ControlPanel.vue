@@ -602,15 +602,15 @@ section:has(.foldTg.isFolded) > :not(.secH):not(.secHead) { display: none; }
   font-size: 15px; font-weight: var(--fw-semibold); line-height: 1; /* §266: ± 기호 가독 확대 */
   &:hover { color: var(--accent); border-color: var(--accent); }
 }
-.compSet { margin-bottom: 10px; }
+.compSet { margin-bottom: var(--sp-group); } /* §271 */
 /* §263: offset 묶음 — 압축 칩과 간격 분리(상단 gap) + 내부 행 간격 */
-.offsetSet { margin: 4px 0 8px; display: flex; flex-direction: column; gap: 6px; } /* §266 */
-.compSet :deep(.row) { margin-bottom: 6px; }
+.offsetSet { margin: var(--sp-1) 0 var(--sp-group); display: flex; flex-direction: column; gap: var(--sp-row); } /* §271 */
+.compSet :deep(.row) { margin-bottom: var(--sp-row); } /* §271 */
 .compSet :deep(.chips) { margin-bottom: 0; }
 // §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).
 // 버튼 세로폭은 Toggle 세그와 동일(§140) — 늘어난 만큼 하단 마진에서 상쇄해 행간 유지.
 .secHead {
-  display: flex; align-items: center; gap: 8px; /* §265: between 폐기 — 단위/each = 타이틀 옆, 셰브론 = 행 끝(auto) */
+  display: flex; align-items: center; gap: var(--sp-group); /* §265·§271 */
   height: 21px; margin-bottom: 4px;
   h2 { margin: 0; }
 }
@@ -664,7 +664,7 @@ section:has(.foldTg.isFolded) > :not(.secH):not(.secHead) { display: none; }
     &.on + button { border-left-color: var(--accent); }
   }
 }
-.strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; } /* §138 */
+.strokeRow { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: var(--sp-group); } /* §271 */
 // §134·§135·§142: comp dir/sym 인라인 미니 세그 — Toggle .seg와 동일 문법 (활성 = active-outline-inset).
 // §142: 텍스트 대신 스트로크 화살표 아이콘(→ / ↔), 두 버튼 동일 폭·기존 높이(19px+보더) 유지
 .modeSeg {

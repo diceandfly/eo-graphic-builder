@@ -76,7 +76,7 @@
   padding: var(--window-pad-y) var(--panel-pad); // §219: 창과 동일 토큰 (팝업 개별값 9/11 폐기)
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-group); /* §271: 팝업 행 간 = 묶음 간격 (패널과 동일 사다리) */
   z-index: 11; // §216: 프리셋창(z9) 위로 — 팝업·툴팁은 항시 창을 덮는다
 
   .menuTitle {

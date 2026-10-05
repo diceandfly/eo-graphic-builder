@@ -2147,3 +2147,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 270. 2026-10-06 — Shift+마퀴 = 합산 선택
 
 - 피그마식 additive 마퀴: 시작 시 선택 스냅샷을 보관하고, Shift가 눌린 동안 마퀴 교차분과 **합산**(실시간). Shift+빈 곳 제자리 클릭은 선택 유지(해제 안 함). 종전엔 마퀴가 항상 선택을 대체(미구현 기능이었음).
+
+## 271. 2026-10-06 — 간격 토큰 사다리 확립 (row < group < win < section)
+
+- **수직 리듬 4단 사다리** (`tokens/spacing.css`): `--sp-row` 6(컨트롤 행) < `--sp-group` 8(묶음·칩 행 뒤·헤더 내·팝업 행) < `--sp-win` 10(창 블록 스택) < `--sp-section` 26(섹션 간 — 22→26 확대, 사용자 확정). 새 간격은 사다리에서 고르고 새 토큰 발명 금지(README 갱신).
+- **적용 전수**: 컨트롤(Slider·NumberField·Toggle·ChipRow) 행 리듬 / ControlPanel(compSet·offsetSet·strokeRow·secHead) / LinkSection(catRows) / AnimWindow(루트 스택·row·optRow·titleRow) / PresetGridBrowser(헤더·toolRow·그리드) / ColorField 피커 열 / popup-menu 믹스인(팝업 행 간 — sp-3→sp-group 의미 통일, 툴바·코너 팝업 전체 상속) / ManualOverlay hr = 섹션 리듬 연결.
+- 고유값 유지(경계 규칙 5): 칩 내부 패딩(5/9px)·칩 간 gap(5~6px)·exRow/headBtns 6px·도움말 문서 타이포(h2/h3 독서 리듬). 창 패딩은 기존 --panel-pad/--window-pad-y 그대로.
+- 실측: 섹션 갭 26px ×4, 토큰 라이브 확인. 스타일 관리 단일 지점 = spacing.css 한 파일.

@@ -158,7 +158,7 @@ watch(open, (o) => {
   position: fixed; z-index: 30; /* §110: overflow 클리핑 회피 — 좌표는 toggleOpen에서 칩 기준 계산 */
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: var(--sp-group); /* §271 */
 }
 .recentRow { display: flex; gap: 6px; }
 .recentNote { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); white-space: nowrap; }

@@ -322,7 +322,7 @@ function onFile(e) {
 // 호스트 플로팅 패널을 세로로 꽉 채움 — 그리드만 스크롤, 헤더/IO는 고정
 .browser { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .secHead {
-  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  display: flex; justify-content: space-between; align-items: center; gap: var(--sp-win); /* §271 */
   margin-bottom: 12px;
   h2 {
     /* §218: L2 창 타이틀 — 전역 사다리 (팝업 menuTitle과 동일 스타일) */
@@ -339,7 +339,7 @@ function onFile(e) {
   margin: 0 0 10px;
 }
 .fileHead { margin: 12px 0 8px; }
-.toolRow { display: flex; gap: 6px; margin-bottom: 10px; align-items: stretch; }
+.toolRow { display: flex; gap: 6px; margin-bottom: var(--sp-win); align-items: stretch; } /* §271 */
 .pSearch {
   @include text-field; // §218: L4 입력 (text-field 기본 fs-sm)
   flex: 1; min-width: 0; box-sizing: border-box;
@@ -364,7 +364,7 @@ function onFile(e) {
   padding: 16px 12px; text-align: center;
   &::first-letter { text-transform: uppercase; } /* §215: 본문·안내문도 이니셜 캡 (가독) */
 }
-.pGrid { position: relative; display: grid; gap: 10px; } /* §215: insertLine 기준 좌표 */
+.pGrid { position: relative; display: grid; gap: var(--sp-win); } /* §215·§271 */
 // §215: 정렬 삽입 라인 — 카드 왼쪽 갭(10px) 중앙의 2px 세로 라인
 .insertLine {
   position: absolute; width: 2px; border-radius: 1px;

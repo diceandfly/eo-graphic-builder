@@ -489,7 +489,7 @@ const totalLabel = computed(() => {
   padding: var(--window-pad-y) var(--panel-pad);
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   @include chamfer(7.5px); // §259: chamfer-1(7.5px) — 애니 창
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex; flex-direction: column; gap: var(--sp-win); /* §271: 창 블록 리듬 */
 }
 /* (§251의 접힘 전용 하단 3px 폐기 — §257: 토글 바 패딩이 상태별로 달라지던 원인. 전 상태 공통 패딩) */
 .title {
@@ -500,7 +500,7 @@ const totalLabel = computed(() => {
   flex-shrink: 0;
 }
 /* §252: 타이틀 우측 재생 구간명 — "풀 Neon 와이어 = 프리뷰 구간" 공식의 텍스트 짝 */
-.titleRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.titleRow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-win); min-width: 0; }
 .segName {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
@@ -549,7 +549,7 @@ const totalLabel = computed(() => {
   &::-moz-range-track { height: 2px; background: var(--line); }
   &::-moz-range-thumb { width: 10px; height: 10px; background: var(--accent); border: none; border-radius: var(--radius); }
 }
-.row { display: flex; align-items: center; gap: 8px; }
+.row { display: flex; align-items: center; gap: var(--sp-group); } /* §271 */
 .time {
   font-size: var(--fs-xs); color: var(--dim); font-variant-numeric: tabular-nums;
   flex: 1;
@@ -591,7 +591,7 @@ const totalLabel = computed(() => {
   &:hover { color: var(--accent); svg { stroke: var(--accent); } }
 }
 // §247: 옵션 행 — L5 라벨 + 우측 컨트롤 (메인 패널 행 문법)
-.optRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.optRow { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-group); } /* §271 */
 .optLabel {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
   &::first-letter { text-transform: uppercase; }

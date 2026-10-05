@@ -25,7 +25,7 @@ const isActive = (v) => Math.abs(props.modelValue - v) < props.tol;
 </template>
 
 <style scoped lang="scss">
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } /* §138 */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--sp-group); } /* §271: 칩 행 뒤 = 묶음 간격 */
 .chip {
   @include bordered-control;
   padding: 0 9px; min-width: 34px;

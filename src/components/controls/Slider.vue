@@ -101,8 +101,8 @@ function bump(d) {
 </template>
 
 <style scoped lang="scss">
-.row { margin-bottom: 6px; } /* §138·§267: 패널 행 리듬 → 6px */
-.head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.row { margin-bottom: var(--sp-row); } /* §271: 행 리듬 토큰 */
+.head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-row); }
 .label { font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); text-transform: capitalize; } /* §216: 이니셜 캡 = 전 단어 */
 .auxSlot { margin-left: auto; margin-right: 8px; display: flex; align-items: center; }
 .prefix {

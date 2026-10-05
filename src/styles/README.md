@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **토큰** | `tokens/colors.css` | 브랜드 네임드 컬러(1층: EO NEON·WORLD GREEN·HORIZON BLUE·SPACE BLACK·VOID GREY·HALO WHITE) → 시맨틱(2층: bg/panel/line/text/faint/accent/danger/link/guide…) | 색을 바꿀 때. **값만** 고친다. 컴포넌트에 색 리터럴 금지 |
 | | `tokens/typography.css` | 폰트 소스(@import)·`--font-sans`·크기 위계(fs-2xs/xs/sm/md)·자간(ls-base/wide/caps)·굵기 | 폰트 교체 / 위계 조정 |
-| | `tokens/spacing.css` | 레이아웃 층위 간격(sp-1~6, sp-section, panel-pad) | 여백 리듬 조정 |
+| | `tokens/spacing.css` | 레이아웃 층위 간격 — **수직 리듬 사다리(§271): `--sp-row`(6, 컨트롤 행) < `--sp-group`(8, 묶음·칩 행 뒤·팝업 행) < `--sp-win`(10, 창 블록) < `--sp-section`(26, 섹션)** + sp-1/3/6·panel-pad·window-pad-y. 창(메인·프리셋·애니·도움말)과 툴바 팝업이 전부 이 사다리 공유 | 여백 리듬 조정 — 새 간격은 사다리에서 고르고, 새 토큰 발명 금지 |
 | | `tokens/sizes.css` | 컴포넌트 치수(btn/icon/thumb/check/swatch/panel-w/zoom-w)·`--radius` | 버튼 크기·라운딩 정책 |
 | | `tokens/motion.css` | 툴팁 지연·토스트 시간 | 타이밍 감각 |
 | **레시피** | `mixins.scss` | 패널 보더형 컨트롤 룩(`bordered-control`·`active-filled`·`active-outline(-inset)`·`text-field`) | 패널 컨트롤(칩·seg·ghost·입력칸)의 공통 룩 |

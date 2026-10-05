@@ -189,7 +189,7 @@ function onDimDown(e) {
     font-family: inherit; font-size: var(--fs-xs);
     background: var(--hover-bg); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
   }
-  :deep(hr) { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+  :deep(hr) { border: none; border-top: 1px solid var(--line); margin: var(--sp-section) 0; } /* §271 */
   :deep(table) {
     width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: var(--fs-sm); /* §218: L4 본문 */
   }

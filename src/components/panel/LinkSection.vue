@@ -101,7 +101,7 @@ section h2 {
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
 /* §265·§267: 범주 토글 칩 — 내용 폭 랩 배치(100% 행 폐기). on = 전체 액센트,
    mixed = 보더·이름은 기본, 상태 텍스트만 액센트 */
-.catRows { margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } /* §267: 행당 2칩 (완전 랩은 과축약 — 사용자 정정) */
+.catRows { margin-bottom: var(--sp-group); display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } /* §267·§271 */
 .catTg {
   @include bordered-control;
   height: 21px; padding: 0 8px;
