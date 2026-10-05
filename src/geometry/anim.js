@@ -106,7 +106,9 @@ export function lerpParams(a, b, t) {
     const an = typeof av === 'boolean' ? NaN : Number(av);
     const bn = typeof bv === 'boolean' ? NaN : Number(bv);
     if (Number.isFinite(an) && Number.isFinite(bn)) {
-      out[k] = k === 'cols' || k === 'rows' ? Math.round(lerp(an, bn, t)) : lerp(an, bn, t);
+      // §255: cols = 연속 보간 (부분 칸 렌더 — 디졸브/다단계 스텝 폐기). rows(프레임 가이드)도
+      // 연속 — frameGrid가 자체 반올림하므로 거동 불변.
+      out[k] = lerp(an, bn, t);
     } else {
       out[k] = t < 0.5 ? av : bv;
     }
@@ -136,7 +138,7 @@ export function samplePose(fromF, fromUnits, toF, toUnits, t) {
         const av = a.params[k];
         const bv = b.params[k];
         if (av === bv || k === 'rate' || k === 'direction') return false; // 압축은 부호 보간 처리
-        if (k === 'cols' || DISCRETE_KEYS.has(k)) return true;
+        if (DISCRETE_KEYS.has(k)) return true; // §255: cols는 연속 보간으로 전환 — 디졸브 대상 제외
         if (lerpHex(av, bv, 0.5)) return false;
         const an = typeof av === 'boolean' ? NaN : Number(av);
         const bn = typeof bv === 'boolean' ? NaN : Number(bv);

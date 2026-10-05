@@ -286,6 +286,7 @@ const stageActions = {
         :selected="selectedUnits"
         :group="selectedGroup"
         :link-scope="linkScope"
+        :anim="docApi.doc.animOn"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"

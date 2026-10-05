@@ -22,6 +22,7 @@ export function createParams(overrides = {}) {
     g: 0.2,
     rate: 2, // 2:1 칩 = UI 표기 +1.67x (compression 슬라이더 환산값)
     direction: 'LtoS',
+    offset: 0, // §255: 칸 위상 (소수·± 허용, 랩 순환 — 컨베이어 흐름. 패널 표시는 조건부)
     // Shape
     dPct: 35,
     a: 0.4,
@@ -122,6 +123,8 @@ function migrateUnit(u, legacyScopes = {}) {
       delete u.params.drawMode;
     }
   }
+  // §255: offset 백필 — 구 유닛 문서는 키 자체가 없음 (0 = 외형 불변)
+  if (u.type !== 'frame' && u.params && u.params.offset == null) u.params.offset = 0;
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   // §220: linkId 단일 + linkScopes 플래그 → 범주형 links로 이관
@@ -176,6 +179,7 @@ export function useDocument() {
     keyId: null, // 정렬 기준(키 오브젝트) — 멀티선택 중 재클릭으로 지정
     groupNames: savedGroupNames, // gid → 이름 (Group-N)
     animEdges: savedAnimEdges, // §220: 키프레임 연결 [{ from, to, duration, curve, ... }] — Phase B+
+    animOn: false, // §255: 애니 모드 플래그 (reactive — 패널의 조건부 표시용. 영속 안 함)
   });
   recalcCounters();
   function recalcCounters() {
@@ -244,7 +248,7 @@ export function useDocument() {
   const SCOPE_KEYS = {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
-    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'],
+    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset'], // §255: offset = grid 범주
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
@@ -260,7 +264,7 @@ export function useDocument() {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'],
     grid: [
-      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction'], // 유닛
+      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset'], // 유닛 (§255: offset)
       ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
     ],
     shape: [
@@ -392,7 +396,7 @@ export function useDocument() {
   // 보간 불가 키(orientation·flipX·threads·threadDir·gutterMode·direction)는 페어 유닛에서 편집 차단.
   let animGuard = false;
   let animRevertTick = false; // 원복 자체가 워처를 재점화하는 1회분 무시 (핑퐁 차단)
-  function setAnimMode(on) { animGuard = !!on; }
+  function setAnimMode(on) { animGuard = !!on; doc.animOn = !!on; } // §255: 패널 조건부 표시 연동
   // §229: direction 제외 — 압축 부호는 rate와 결합해 연속 보간되므로 잠글 필요도, 잠그면 오히려
   // 슬라이더가 0을 지날 때 편집이 반쯤 원복되는 부작용만 있음.
   const ANIM_LOCKED = ['orientation', 'flipX', 'threads', 'threadDir', 'gutterMode'];

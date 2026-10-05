@@ -22,6 +22,9 @@ export function deriveUnit(p) {
   const columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
     gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction,
+    // §255: offset은 부호 그대로 — flipX의 표시 미러는 direction 스왑만으로 완성됨
+    // (StoL = 캐노니컬 좌표 미러 구조라, 같은 φ의 미러가 곧 화면 전체 미러. φ까지 뒤집으면 이중 반전)
+    offset: p.offset ?? 0,
   });
   const unit = buildUnit({
     columns, W: localW, H: localH, D,

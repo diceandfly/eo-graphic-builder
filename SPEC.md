@@ -2022,3 +2022,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 애니: cols·offset = 연속 보간으로 전환(cols 디졸브 폐기), direction은 기존 부호 결합 보간 유지.
 
 **단계**: ① 순수 경계함수(gridField) + L1~L5·회귀 테스트 → ② 유닛 렌더 통합 + offset 파라미터/패널/애니 보간 → ③ Blend 컴포넌트화.
+
+## 256. 2026-10-05 — 연속 그리드 필드 ①·②: 경계함수+공리 테스트·유닛 offset·cols 연속 보간
+
+1. **computeColumns 일반화** (`geometry/layout.js`, 동일 시그니처+offset) — §255 모델 구현: 인덱스 공간 경계(양끝+컷 k−frac(φ)) × 지수 누적 워프(r→1 선형 극한) × 컷 거터 스케일 min(1, 양옆 칸 길이)(칸 생성/소멸 무점프). StoL = 캐노니컬 좌표 미러. MIN_COL_W 가드 = 칸 길이 비례.
+2. **공리 테스트** (`tests/grid-field.mjs`, npm test 편입 — 15케이스): 정수·φ0 구 구현 일치(fixed 양방향·proportional LtoS, 1e-6), L2 랜덤 40조합 거울, L3 랩 주기, L1 연속성(컷 생성 경계 무점프), L4 성장 끝단=좁은 쪽, 오버플로 가드 랜덤 30. proportional+StoL = 거울 재정의(구 구현 비대칭 — 의도 변경).
+3. **유닛 offset 파라미터** — createParams 기본 0, 구 문서 백필, grid 링크/스포이드 범주 편입, derive 전달(flipX는 direction 스왑만 — φ 부호 불변: StoL 미러 구조가 곧 표시 미러).
+4. **패널 조건부 행** — Compression 아래 Offset 슬라이더(±4, 0 스냅), `v-if = 애니 모드 ∨ 값≠0`(사용자 확정). doc.animOn reactive 신설(setAnimMode 연동), App→ControlPanel prop. 실측: 3상태(숨김/애니 표시/비애니 ≠0 유지→0 소멸) 통과.
+5. **애니 보간 전환** — cols 디졸브·다단계 폐기 → 연속 lerp(부분 칸 렌더), rows(프레임 가이드)도 연속(frameGrid 자체 반올림이라 거동 불변). 이산키(threads 등) 디졸브 유지. node 실측: cols 6→12 @0.5 = 9 단일 아이템, offset 0→2 = 1, threads 차이 = 디졸브 2아이템.
+   다음 = ③ Blend 컴포넌트화.

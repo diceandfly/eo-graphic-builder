@@ -25,6 +25,7 @@ const props = defineProps({
   selected: { type: Array, default: () => [] }, // 선택된 유닛들
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
+  anim: Boolean,         // §255: 애니 모드 — offset 행 조건부 표시용
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
@@ -448,6 +449,15 @@ function setStrokeColor(c) {
           @update:model-value="setComp"
         />
         <ChipRow v-model="p.rate" />
+        <!-- §255: offset(칸 위상, 랩 순환) — 조건부 표시: 애니 모드이거나 값≠0 (사용자 확정).
+             정적 소음은 줄이되, 0이 아닌 값은 스스로를 드러내 숨은 상태값 방지 -->
+        <Slider
+          v-if="anim || (p.offset ?? 0) !== 0"
+          label="offset" v-model="p.offset"
+          :min="-4" :max="4" :step="0.01" :arrow-step="0.1" :decimals="2"
+          :snap-to="0" :snap-radius="0.05"
+          :mixed="mixed('offset')"
+        />
       </div>
       <Toggle
         label="gutter mode" v-model="p.gutterMode"
