@@ -81,7 +81,8 @@ export function dockShaftEnd(unit, side) {
 // 두 유닛이 자연스런 거터와 함께 한 축으로 이어져 보이게). 양쪽 샤프트 단면을 취해 중간에서
 // 접합 — 반쪽씩 각 유닛의 fill (두께가 다르면 사다리꼴 보간, 보통은 shape 링크로 동일).
 // 끝은 유닛 안쪽으로 1px 연장 — 접합선 안티앨리어싱 틈 차단 (§200 문법).
-export function dockBridgePolys(a, b) {
+// 공통 코어 — 양 유닛의 "서로를 향한" 샤프트 단면 쌍 (상·하 대응 정렬 포함)
+function dockBridgeEnds(a, b) {
   const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
   const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
   const na = { l: dockNodePoint(a, 'left'), r: dockNodePoint(a, 'right') };
@@ -93,6 +94,11 @@ export function dockBridgePolys(a, b) {
   const pa = dockShaftEnd(a, sa);
   let pb = dockShaftEnd(b, sb);
   if (d2(pa[0], pb[0]) + d2(pa[1], pb[1]) > d2(pa[0], pb[1]) + d2(pa[1], pb[0])) pb = [pb[1], pb[0]]; // 상·하 대응 (역평행)
+  return { pa, pb };
+}
+export function dockBridgePolys(a, b) {
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const { pa, pb } = dockBridgeEnds(a, b);
   const ma = mid(pa[0], pa[1]);
   const mb = mid(pb[0], pb[1]);
   const L = Math.hypot(mb[0] - ma[0], mb[1] - ma[1]) || 1;
@@ -121,6 +127,21 @@ export function dockBridges(units, docks) {
     const b = byId.get(e.to);
     if (!a || !b || a.type === 'frame' || b.type === 'frame') continue;
     out.push(...dockBridgePolys(a, b));
+  }
+  return out;
+}
+// §289: 브리지 가이드 사각형 — 유닛 그리드가 켜져 있을 때 브리지 경계를 그리드 문법으로 표시
+// (연장·겹침 보정 없는 순수 경계. visibleIds = 가이드가 보이는 유닛 — 한쪽이라도 포함되면 표시)
+export function dockBridgeGuides(units, docks, visibleIds = null) {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const out = [];
+  for (const e of docks ?? []) {
+    if (visibleIds && !visibleIds.has(e.from) && !visibleIds.has(e.to)) continue;
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || a.type === 'frame' || b.type === 'frame') continue;
+    const { pa, pb } = dockBridgeEnds(a, b);
+    out.push({ pts: [pa[0], pa[1], pb[1], pb[0]] });
   }
   return out;
 }

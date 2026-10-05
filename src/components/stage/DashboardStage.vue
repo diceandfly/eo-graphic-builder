@@ -18,7 +18,7 @@ import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
-import { dockNodePoint, dockBridges } from '../../composables/useDocument.js';
+import { dockNodePoint, dockBridges, dockBridgeGuides } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -110,6 +110,11 @@ function dockPt(u, side) {
 }
 // §284: 도크 브리지 — 공유 헬퍼 (익스포트·애니패널 프리뷰와 동일 소스)
 const stageBridges = computed(() => dockBridges(props.doc.units, props.doc.docks));
+// §289: 유닛 그리드 on + 결착 유닛의 가이드가 보일 때 브리지 경계도 그리드 문법으로
+const stageBridgeGuides = computed(() => {
+  if (!showGuides.value || !props.doc.docks.length) return [];
+  return dockBridgeGuides(props.doc.units, props.doc.docks, new Set(props.doc.selectedIds));
+});
 // §285: 도크 배지 표시 대상 = 선택된 결착 유닛 + **같은 도크 체인의 상대들** (사용자 확정)
 const dockBadgeIds = computed(() => {
   const ids = new Set(props.doc.selectedIds.filter((id) => dockedIdSet.value.has(id)));
@@ -1895,6 +1900,12 @@ onBeforeUnmount(() => {
           :fill="bp.fill"
           :stroke="seamW > 0 ? bp.fill : 'none'" :stroke-width="seamW"
         />
+        <!-- §289: 브리지 그리드 가이드 — 유닛 그리드와 동일 문법 (선택 결착 유닛의 가이드 표시 시) -->
+        <polygon
+          v-for="(gq, gi) in stageBridgeGuides" :key="'dg' + gi"
+          class="dockBridgeGuide"
+          :points="gq.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
+        />
         <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스·그룹 표시 토글 적용) -->
         <template v-if="showBBox && view.showGroups">
           <rect
@@ -2274,8 +2285,7 @@ onBeforeUnmount(() => {
           :model-value="row.eff" :min="0" :max="2000" :step="1"
           @update:model-value="(v) => props.actions.setDockGap(row.e.from, row.e.to, v)"
         />
-      </div>
-      <div class="ctxSep" />
+      </div><!-- §289: 구분선 폐기 (사용자 확정) -->
       <button
         class="ctxItem"
         @click="onUndockFromBadge"
@@ -2394,6 +2404,12 @@ onBeforeUnmount(() => {
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
 .dockBridge { vector-effect: non-scaling-stroke; stroke-linejoin: miter; } /* §287: 유닛 seam과 동일 문법 */
+/* §289: 브리지 그리드 가이드 — UnitGraphic .guides와 동일 문법 */
+.dockBridgeGuide {
+  fill: none; stroke: var(--unit-guide, var(--guide));
+  stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.6;
+  pointer-events: none;
+}
 /* §287·§288: 도크 팝업의 결착별 거터 행 — ctxItem 행 문법(패딩 6px 10px·아이콘 gap 8) 정렬 */
 .dockGapRow {
   display: flex; align-items: center; gap: 8px;

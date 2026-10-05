@@ -2279,3 +2279,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - 거터 행 = ctx 행 문법으로 재정렬: 사슬 아이콘 + "Gutter" 라벨(L4, ctxItem 동급) 좌 / auto|fixed 세그 + 필드 우, **상대 유닛 이름 표기 폐기**(사용자: 구림), Undock 위에 구분선(ctxSep). 체인 중간 유닛(결착 2개)은 Gutter 1·2로 구분.
 - 노드 인셋 24→20px 추가 미세 조정. ("노드 안 보임" 리포트는 착각으로 사용자 철회 — §283 2유닛 게이트 정상 동작)
+
+## 289. 2026-10-06 — 브리지 그리드 가이드 · 도크 팝업 구분선 폐기
+
+- **유닛 그리드 on이면 브리지도 그리드 표시**: dockBridgeEnds 코어 분리 → dockBridgeGuides(연장·겹침 보정 없는 순수 경계 사각형, 결착 양끝 중 한쪽이라도 선택돼 가이드가 보일 때) — UnitGraphic .guides와 동일 문법(--unit-guide 1px non-scaling·opacity 0.6). E2E 렌더 확인.
+- 도크 팝업의 Gutter 행 ↔ Undock 사이 구분선 폐기 (사용자 확정).
