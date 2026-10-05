@@ -303,6 +303,13 @@ const previewH = computed(() => {
 });
 // §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
 const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.65))));
+// §252: 출력 총 길이 = duration × 반복 + 홀드 — Cycles/End hold 합성 결과를 숫자로 보여줘 혼동 제거
+const totalLabel = computed(() => {
+  if (!props.edge) return '';
+  const legs = loopMode.value === 'loop' ? cycles.value : cycles.value * 2;
+  const t = (props.edge.duration * legs + Math.max(0, Number(exportCfg.hold) || 0)) / 1000;
+  return `${Math.round(t * 10) / 10}s`;
+});
 </script>
 
 <template>
@@ -313,8 +320,11 @@ const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.valu
     :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
     @pointerdown.stop="onWinDown" @wheel.stop @contextmenu.stop.prevent
   >
-    <!-- §251: 접기 토글은 창 하단으로 이동 (타이틀 우측 취소 — 사용자 확정) -->
-    <h2 class="title" title="Drag to move">Animation Preview</h2>
+    <!-- §251: 접기 토글은 창 하단 · §252: 타이틀 우측 = 재생 구간명 (풀 Neon 와이어 = 이 구간) -->
+    <div class="titleRow">
+      <h2 class="title" title="Drag to move">Animation Preview</h2>
+      <span v-if="pose" class="segName" :title="`${fromFrame?.name} → ${toFrame?.name}`">{{ fromFrame?.name }} → {{ toFrame?.name }}</span>
+    </div>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
       <div class="pvWrap">
@@ -407,9 +417,9 @@ const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.valu
           </div>
         </div>
         <div class="exRow">
-          <!-- §250: 버튼 라벨은 포맷에 반응하지 않음 — 그냥 Export (사용자 확정) -->
+          <!-- §250: 라벨은 포맷 비반응 · §252: 총 길이 병기 (duration × cycles + hold) -->
           <button class="exBtn" :disabled="exporting" @click="doExport">
-            {{ exporting ? `Exporting… ${exportPct}%` : 'Export' }}
+            {{ exporting ? `Exporting… ${exportPct}%` : `Export · ${totalLabel}` }}
           </button>
         </div>
         <!-- §251: 설명문 삭제 — 폴백/투명 안내 등 1회성 메시지만 조건 표시 -->
@@ -452,6 +462,13 @@ const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.valu
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
   letter-spacing: 0; margin: 0; text-transform: capitalize;
   cursor: move; user-select: none; -webkit-user-select: none;
+  flex-shrink: 0;
+}
+/* §252: 타이틀 우측 재생 구간명 — "풀 Neon 와이어 = 프리뷰 구간" 공식의 텍스트 짝 */
+.titleRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.segName {
+  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 /* §227: 클릭 = 재생/정지 · §250: 좌우 1px 패딩 (보더라인 느낌 — 사용자 확정) */
 .pvWrap { position: relative; cursor: pointer; margin: 0 calc(1px - var(--panel-pad)); }

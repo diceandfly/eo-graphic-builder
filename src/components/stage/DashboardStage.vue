@@ -227,8 +227,8 @@ const animSelFrames = computed(() => {
   const fs = props.doc.units.filter((u) => u.type === 'frame' && props.doc.selectedIds.includes(u.id));
   return fs.some((f) => f.pair != null) ? fs : [];
 });
-// §251: 체인 선택 이동 그립 — 핸들 없는 페어/체인 선택에서 "잡을 곳"(사용자 1안 채택):
-// 선택 프레임 합집합 bbox(2개 이상이면 점선 테두리도) 상단 중앙의 ✥ 칩 = 드래그로 전체 이동
+// §251·§252: 체인 선택 이동 — 그립 폐기(사용자 정정): 합집합 bbox **점선 영역 내 클릭 = 전체 이동**.
+// (유닛 편집은 바깥 클릭으로 선택 해제 후 — 사용자 확정)
 const animSelBounds = computed(() => {
   const fs = animSelFrames.value;
   if (!fs.length) return null;
@@ -239,7 +239,7 @@ const animSelBounds = computed(() => {
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 });
-function onChainGripDown(e) {
+function onChainAreaDown(e) {
   if (e.button !== 0) return;
   const targets = props.doc.units.filter((x) => props.doc.selectedIds.includes(x.id));
   const frames = targets.filter((t) => t.type === 'frame');
@@ -1754,6 +1754,14 @@ onBeforeUnmount(() => {
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- §252: 체인 선택 이동 히트 — 합집합 영역 내 아무 곳이나 드래그 = 전체 이동.
+             유닛 히트 **위**·애니 노드/와이어 **아래** 삽입: 선택 중 유닛 편집은 차단, 애니 조작은 유지 -->
+        <rect
+          v-if="animSelBounds && animSelFrames.length >= 2"
+          class="chainSelHit"
+          :x="animSelBounds.x" :y="animSelBounds.y" :width="animSelBounds.w" :height="animSelBounds.h"
+          @pointerdown.stop.prevent="onChainAreaDown"
+        />
         <!-- §223: 애니메이션 오버레이 — 프레임 노드 + 키프레임 와이어 (Phase B) -->
         <AnimOverlay
           v-if="animOverlayOn"
@@ -1768,6 +1776,7 @@ onBeforeUnmount(() => {
           @connect="(f, t) => { const e = props.actions.connectAnim(f, t); if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
           @edge-click="onEdgeClick"
+          @edge-select="(e) => { props.actions.setSelection([]); animEdgeSel = edgeKey(e); }"
           @pair-context="onPairContext"
           @pair-click="onPairClick"
         />
@@ -1814,24 +1823,12 @@ onBeforeUnmount(() => {
           class="pairSel"
           :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
         />
-        <!-- §251: 체인 선택 이동 그립 — 합집합 bbox(멀티 = 점선) + 상단 중앙 ✥ 칩 (드래그 = 전체 이동) -->
-        <template v-if="animSelBounds">
-          <rect
-            v-if="animSelFrames.length >= 2"
-            class="chainSelBox"
-            :x="animSelBounds.x" :y="animSelBounds.y" :width="animSelBounds.w" :height="animSelBounds.h"
-          />
-          <g
-            class="chainGrip"
-            :transform="`translate(${animSelBounds.x + animSelBounds.w / 2} ${animSelBounds.y - pxs(18)})`"
-            @pointerdown.stop.prevent="onChainGripDown"
-          >
-            <circle :r="pxs(11)" />
-            <g :transform="`translate(${-pxs(7)} ${-pxs(7)}) scale(${pxs(14) / 24})`">
-              <path v-for="(d, i) in ICONS.move" :key="i" :d="d" />
-            </g>
-          </g>
-        </template>
+        <!-- §252: 체인 선택 — 합집합 점선 테두리 (멀티 선택 시, 그립은 §251에서 폐기) -->
+        <rect
+          v-if="animSelBounds && animSelFrames.length >= 2"
+          class="chainSelBox"
+          :x="animSelBounds.x" :y="animSelBounds.y" :width="animSelBounds.w" :height="animSelBounds.h"
+        />
         <!-- 멀티선택/그룹: 통합 바운딩 박스 + 리사이즈 핸들 — §245: 애니 모드 숨김은 **페어 프레임**
              포함 시에만 (미페어 프레임은 애니 모드에서도 일반 bbox = 비애니 모드와 동일 문법) -->
         <GroupOverlay
@@ -2130,18 +2127,12 @@ onBeforeUnmount(() => {
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
 /* §245: 애니 모드 선택 페어 프레임 — 핸들 없는 선택 아웃라인 (이동 피드백 전용) */
 .pairSel { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
-/* §251: 체인 선택 — 합집합 점선 테두리 + 상단 ✥ 이동 그립 (페어 뱃지와 동일 칩 문법) */
+/* §251·§252: 체인 선택 — 합집합 점선 테두리(표시) + 영역 전체 이동 히트 (그립 폐기) */
 .chainSelBox {
   fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 5 4;
   vector-effect: non-scaling-stroke; pointer-events: none; opacity: 0.8;
 }
-.chainGrip {
-  cursor: move;
-  circle { fill: var(--panel); stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
-  &:hover circle { fill: var(--accent); }
-  &:hover path { stroke: var(--bg); }
-}
+.chainSelHit { fill: transparent; cursor: move; }
 // 활성 프레임 아웃라인 (§134·§135) — 흰색 + difference 블렌드: 캔버스 색 무관 가시.
 // §135: 오프셋 제거·1px·저오파시티로 은은하게
 .activeFrameOutline {

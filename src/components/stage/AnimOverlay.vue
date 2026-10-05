@@ -16,7 +16,7 @@ const props = defineProps({
   selectedIds: { type: Array, default: () => [] }, // §245: 선택 미페어 프레임 = 고스트 뱃지 (페어링 진입점)
   showBadges: { type: Boolean, default: true }, // §250: 페어 ▶ 뱃지 표시 토글 (바운딩박스 팝업)
 });
-const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'pairContext', 'pairClick']);
+const emit = defineEmits(['connect', 'disconnect', 'edgeClick', 'edgeSelect', 'pairContext', 'pairClick']);
 const edgeKey = (e) => `${e.from}-${e.to}`;
 
 const pxs = (n) => n / props.scale;
@@ -127,6 +127,12 @@ function onNodeDown(f, e) {
     <!-- 연결 와이어 + 중앙 컨트롤 — §247: 대기 체인은 중립 회백, 활성 체인만 액센트 -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
       <path class="wire" :class="{ sel: isSelEdge(w.e), chain: !dimmed && !isSelEdge(w.e) && inChain(w.e), dim: dimmed }" :d="w.d" />
+      <!-- §252: 와이어 라인 자체 클릭 = 그 연결 선택(체인 활성) — 보이지 않는 넓은 히트 (사용자 확정 4안) -->
+      <path
+        v-if="!dimmed"
+        class="wireHit" :d="w.d"
+        @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) emit('edgeSelect', w.e); }"
+      />
       <!-- §224·§237: 와이어 중앙 컨트롤 — 비활성 모드에선 완전 숨김 (회색 잔존 = 와이어·페어 마크만) -->
       <g
         v-if="!dimmed"
@@ -179,20 +185,28 @@ function onNodeDown(f, e) {
 </template>
 
 <style scoped lang="scss">
-// §234·§247: 체인 프레임 아웃라인 — 컨텍스트 = 가는 액센트(1.5), 포커스(선택 엣지 양끝) = 볼드(2.5)
+// §252: 컨텍스트(활성 체인) 색 = **어두운 노랑** — Builder Neon을 패널과 절반 섞어 톤 다운 (사용자 확정 4안).
+// 공식: 풀 Neon = 클릭한 대상(선택 프레임·선택 연결 = 프리뷰 재생 구간), 어두운 노랑 = 그 체인의 나머지.
+$ctx-yellow: color-mix(in srgb, var(--accent) 50%, var(--panel));
+// §234·§247·§252: 체인 프레임 아웃라인 — 컨텍스트 = 어두운 노랑(1.5), 포커스(선택 엣지 양끝) = Neon 볼드(2.5)
 .chainHi {
-  fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0.85;
+  fill: none; stroke: #{$ctx-yellow}; stroke-width: 1.5;
   vector-effect: non-scaling-stroke; pointer-events: none;
-  &.focus { stroke-width: 2.5; opacity: 1; }
+  &.focus { stroke: var(--accent); stroke-width: 2.5; }
 }
-// §247: 와이어 3단계 — 대기(중립 회백) → 체인(액센트 1.5) → 선택(액센트 2.5)
+// §247·§252: 와이어 3단계 — 대기(중립 회백) → 체인(어두운 노랑) → 선택(Neon 볼드 = 재생 구간)
 .wire {
   fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5;
   vector-effect: non-scaling-stroke; opacity: 0.9;
 }
-.wire.chain { stroke: var(--accent); }
+.wire.chain { stroke: #{$ctx-yellow}; }
 .wire.sel { stroke: var(--accent); stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
 .wire.temp { stroke: var(--accent); stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
+// §252: 와이어 히트 — 라인 주변 10px 투명 스트로크, 클릭 = 연결 선택
+.wireHit {
+  fill: none; stroke: transparent; stroke-width: 10;
+  vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer;
+}
 // §228·§237: 애니 모드 밖 — 회색 잔존 = **와이어·페어 마크만** (노드·와이어 컨트롤은 완전 숨김)
 .wire.dim { stroke: var(--dim); opacity: 0.85; pointer-events: none; }
 // §231·§233: 페어 인디케이터 — 재생 삼각형 (프레임 우상단). 와이어 컨트롤(모래시계)과 글리프 구별.
@@ -219,8 +233,9 @@ function onNodeDown(f, e) {
   cursor: crosshair;
   &:hover { stroke: var(--accent); }
   &.on { fill: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); }
-  &.chain { stroke: var(--accent); }
-  &.chain.on { fill: var(--accent); stroke: var(--accent); }
+  // §252: 활성 체인 노드 = 어두운 노랑 (풀 Neon은 선택 대상 전용)
+  &.chain { stroke: #{$ctx-yellow}; }
+  &.chain.on { fill: #{$ctx-yellow}; stroke: #{$ctx-yellow}; }
   &.target { stroke: var(--accent); } // 드래그 중: 드롭 가능 노드 안내
   &.left { cursor: default; }
   // §244: 비애니 모드 — 연결된 노드만 회색 잔존 (와이어.dim과 같은 문법, 조작 불가)
@@ -231,8 +246,8 @@ function onNodeDown(f, e) {
   circle { fill: var(--panel); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
   path { fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
   cursor: pointer; // §224: 클릭 = 엣지 파라미터 팝업
-  &.chain circle { stroke: var(--accent); }
-  &.chain path { stroke: var(--accent); }
+  &.chain circle { stroke: #{$ctx-yellow}; } // §252: 체인 컨텍스트 = 어두운 노랑
+  &.chain path { stroke: #{$ctx-yellow}; }
   &.sel circle { fill: var(--accent); stroke: var(--accent); }
   &.sel path { stroke: var(--bg); }
 }
