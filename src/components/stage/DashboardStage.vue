@@ -2160,7 +2160,7 @@ onBeforeUnmount(() => {
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체
 .frameNameInput {
   @include text-field;
-  position: absolute; z-index: 20;
+  position: absolute; z-index: var(--z-inline-edit); /* §272 */
   width: 140px; padding: 2px 6px;
   font-size: var(--fs-xs); border-color: var(--accent); background: var(--panel);
 }
@@ -2195,15 +2195,15 @@ onBeforeUnmount(() => {
 .marquee { fill: var(--accent-alpha); stroke: var(--accent); stroke-width: 1; }
 .ctxMenu {
   /* §244: 툴바 래퍼 z26과 동급 유지 (DOM 후순위라 위에 그려짐) + 애니 창(z25) 위 */
-  position: absolute; z-index: 26;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  @include chamfer(5px); // §257: chamfer-2 — 우클릭 팝업
-  padding: 4px; display: flex; flex-direction: column;
+  position: absolute; z-index: var(--z-popover); /* §272 */
+  @include window-surface;
+  @include chamfer(var(--chamfer-2)); // §257·§272
+  padding: var(--sp-1); display: flex; flex-direction: column; /* §272 */
 }
 .edgeMenu {
   @include popup-menu;
-  @include chamfer(7.5px); // §259: chamfer-1(7.5px) — 노드 타이밍 팝업
-  position: fixed; z-index: 11;
+  @include chamfer(var(--chamfer-1)); // §259·§272
+  position: fixed; z-index: var(--z-popup); /* §272 */
 }
 .durWrap { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); display: inline-flex; align-items: center; gap: 4px; }
 .durInput {

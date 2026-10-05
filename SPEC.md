@@ -2154,3 +2154,10 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **적용 전수**: 컨트롤(Slider·NumberField·Toggle·ChipRow) 행 리듬 / ControlPanel(compSet·offsetSet·strokeRow·secHead) / LinkSection(catRows) / AnimWindow(루트 스택·row·optRow·titleRow) / PresetGridBrowser(헤더·toolRow·그리드) / ColorField 피커 열 / popup-menu 믹스인(팝업 행 간 — sp-3→sp-group 의미 통일, 툴바·코너 팝업 전체 상속) / ManualOverlay hr = 섹션 리듬 연결.
 - 고유값 유지(경계 규칙 5): 칩 내부 패딩(5/9px)·칩 간 gap(5~6px)·exRow/headBtns 6px·도움말 문서 타이포(h2/h3 독서 리듬). 창 패딩은 기존 --panel-pad/--window-pad-y 그대로.
 - 실측: 섹션 갭 26px ×4, 토큰 라이브 확인. 스타일 관리 단일 지점 = spacing.css 한 파일.
+
+## 272. 2026-10-06 — 표면 유형 분류 + 레이아웃 토큰 전수조사 (z 사다리·챔퍼 토큰·window-surface)
+
+- **표면 4유형 확립**(README 분류표): 대형 창(메인·프리셋 / chamfer-0 10px) · 중형 창(애니·도움말·노드 타이밍 / chamfer-1 7.5px) · 팝업(옵션 popup-menu·우클릭 ctx·툴팁 / chamfer-2 5px) · 플로팅 바(::before 서피스).
+- **tokens/layers.css 신설** — z 사다리: win-preset 9 < win-main 10 < popup 11 < inline-edit 20 < win-anim 25 < popover 26 < local-pop 30 < manual 40. 리터럴 z 전수 치환(13곳 — 로컬 스택 z1~2는 고유값 유지). 챔퍼 3단 토큰(sizes.css)으로 호출부 하드코딩 8곳 치환.
+- **@mixin window-surface** 신설(배경·보더·라운딩 단일 레시피) — 4창+ctxMenu+popup-menu 믹스인이 공유. 콤팩트 팝업 패딩 4px → --sp-1 통일(ctx·툴팁·프리셋 ctx).
+- 실측: 토큰 라이브(z·챔퍼), 메인 클립 10px·바 5px. 이제 겹침 순서/챔퍼/서피스 룩의 단일 지점 = tokens 2파일 + mixins 1레시피.

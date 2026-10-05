@@ -155,7 +155,7 @@ watch(open, (o) => {
   100% { border-color: var(--line); background: none; }
 }
 .pop {
-  position: fixed; z-index: 30; /* §110: overflow 클리핑 회피 — 좌표는 toggleOpen에서 칩 기준 계산 */
+  position: fixed; z-index: var(--z-local-pop); /* §110·§272 */
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 10px 12px;
   display: flex; flex-direction: column; gap: var(--sp-group); /* §271 */

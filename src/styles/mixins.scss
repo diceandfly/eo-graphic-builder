@@ -56,6 +56,13 @@
 /// 사용처는 위치(앵커)만 지정: .menu { @include popup-menu; position…; }
 /// 위계: menuTitle(팝업명) → menuRow(행 — 필드 행은 rowLabel 좌/컨트롤 우, 체크 행은 체크+텍스트)
 ///       → sect(구획 경계) → menuNote(보조 설명). 새 팝업은 반드시 이 문법으로.
+/// §272: 창/팝업 공통 서피스 — 배경·보더·라운딩 단일 레시피 (챔퍼는 유형별 토큰으로 호출부에서)
+@mixin window-surface {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
 /// §257: 챔퍼 코너 — 좌상·우하만 사선 컷 (브랜드 EO 심볼의 사선 문법).
 /// chamfer-1(10px) = 큰 창(메인패널·애니창·노드 타이밍 팝업·프리셋창),
 /// chamfer-2(5px) = 툴바·우클릭/옵션 팝업 (기존 사용성에 영향 없는 소폭).
@@ -69,15 +76,13 @@
 }
 
 @mixin popup-menu {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  @include chamfer(5px); // §257: chamfer-2
+  @include window-surface; // §272
+  @include chamfer(var(--chamfer-2)); // §257·§272
   padding: var(--window-pad-y) var(--panel-pad); // §219: 창과 동일 토큰 (팝업 개별값 9/11 폐기)
   display: flex;
   flex-direction: column;
   gap: var(--sp-group); /* §271: 팝업 행 간 = 묶음 간격 (패널과 동일 사다리) */
-  z-index: 11; // §216: 프리셋창(z9) 위로 — 팝업·툴팁은 항시 창을 덮는다
+  z-index: var(--z-popup); // §216·§272: 레이어 사다리
 
   .menuTitle {
     /* §218: L2 창·팝업 타이틀 — 전역 사다리 (창마다 다른 타이틀 스타일 금지) */

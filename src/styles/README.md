@@ -11,11 +11,25 @@
 | | `tokens/spacing.css` | 레이아웃 층위 간격 — **수직 리듬 사다리(§271): `--sp-row`(6, 컨트롤 행) < `--sp-group`(8, 묶음·칩 행 뒤·팝업 행) < `--sp-win`(10, 창 블록) < `--sp-section`(26, 섹션)** + sp-1/3/6·panel-pad·window-pad-y. 창(메인·프리셋·애니·도움말)과 툴바 팝업이 전부 이 사다리 공유 | 여백 리듬 조정 — 새 간격은 사다리에서 고르고, 새 토큰 발명 금지 |
 | | `tokens/sizes.css` | 컴포넌트 치수(btn/icon/thumb/check/swatch/panel-w/zoom-w)·`--radius` | 버튼 크기·라운딩 정책 |
 | | `tokens/motion.css` | 툴팁 지연·토스트 시간 | 타이밍 감각 |
+| | `tokens/layers.css` | **z-index 사다리(§272)**: win-preset 9 < win-main 10 < popup 11 < inline-edit 20 < win-anim 25 < popover 26 < local-pop 30 < manual 40. 새 표면은 여기서 고르고 리터럴 z 금지 (컴포넌트 내부 로컬 스택 z:1~2는 고유값 허용) | 겹침 순서 정책 |
 | **레시피** | `mixins.scss` | 패널 보더형 컨트롤 룩(`bordered-control`·`active-filled`·`active-outline(-inset)`·`text-field`) | 패널 컨트롤(칩·seg·ghost·입력칸)의 공통 룩 |
 | **전역** | `../style.css` | 리셋, body 기본, 네이티브 폼 요소(range/checkbox) 커스터마이즈 | 네이티브 요소 외형 |
 | **공용 컴포넌트** | `../components/ui/IconButton.vue` / `FloatingBar.vue` | 플로팅 바 버튼·컨테이너의 마크업+스타일 단일 출처 | 툴바/코너바/정렬바 버튼 디자인 |
 | **아이콘** | `../ui/icons.js` | 24vb 스트로크 패스 딕셔너리 | 아이콘 교체/추가 |
 | **컴포넌트 scoped** | 각 `.vue` `<style scoped lang="scss">` | 그 컴포넌트만의 레이아웃(배치·정렬·고유 패딩) | 레이아웃 변경 |
+
+## 표면(Surface) 유형 분류 (§272)
+
+모든 떠 있는 UI는 아래 4유형 중 하나 — 새 표면을 만들면 유형을 정하고 그 레시피를 따른다.
+
+| 유형 | 대상 | 레시피 |
+|---|---|---|
+| **대형 창** | 메인 패널(.side) · 프리셋창 | `@include window-surface` + `chamfer(var(--chamfer-0))` + `--window-pad-y/--panel-pad` + z = win-preset/win-main |
+| **중형 창** | 애니 시뮬레이터 · 도움말 · 노드 타이밍 팝업(edgeMenu) | window-surface + `chamfer(var(--chamfer-1))` + 동일 패딩 + z = win-anim/manual/popup |
+| **팝업** | 옵션 팝업(popup-menu 믹스인) · 우클릭 ctx(.ctxMenu — 콤팩트 패딩 `--sp-1`) · 네임 툴팁 | popup-menu 믹스인(= window-surface + chamfer-2 + z-popup) 또는 window-surface 직접 | 
+| **플로팅 바** | FloatingBar(.fbar) | 배경은 ::before(window-surface + chamfer-2, §258 — 본체 clip 금지) + 패딩 `--sp-1` |
+
+캔버스 위 SVG 오버레이는 별도(경계 규칙 6).
 
 ## 경계 규칙
 

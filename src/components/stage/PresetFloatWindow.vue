@@ -150,13 +150,13 @@ function onPlacePatternAt(item, cx, cy) {
 .presetFloat {
   position: absolute; right: var(--sp-6); bottom: calc(var(--sp-6) + 42px + var(--sp-6)); /* §217: 갭 토큰 통일 */
   /* §214: 캔버스 우클릭 메뉴(z10)·이름 편집(z20)이 창 위로 겹치도록 오더 하향 */
-  z-index: 9;
+  z-index: var(--z-win-preset); /* §272 */
   /* §224: width는 인라인(스테이지 실측 — 좌변 = 작업 툴바 좌변) */
   max-width: calc(100% - 2 * var(--sp-6));
   /* §215·§217: 최대 높이 = 성능 인디케이터 아래 갭까지 — 하단(12+42+12=66) + 상단(66+13+12=91) = 157 */
   max-height: calc(100% - 157px);
   box-sizing: border-box; overflow: hidden;
-  @include chamfer(10px); // §265: chamfer-0(10px) — 프리셋창
+  @include chamfer(var(--chamfer-0)); // §272: 대형 창
   padding: var(--window-pad-y) var(--panel-pad); // §213·§219
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
 }

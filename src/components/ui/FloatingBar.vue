@@ -18,7 +18,7 @@
   &::before {
     content: ''; position: absolute; inset: 0; z-index: -1; box-sizing: border-box;
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    @include chamfer(5px); // §257: chamfer-2 — 툴바
+    @include chamfer(var(--chamfer-2)); // §257·§272
   }
   :deep(.sep) { width: 1px; height: 18px; background: var(--line); margin: 0 var(--sp-1); }
 }

@@ -40,7 +40,7 @@ const emit = defineEmits(['togglePanel', 'toggleAnim']);
 </template>
 
 <style scoped lang="scss">
-.managerCorner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); z-index: 26; } /* §203: 우하단 · §260: 애니 창(z25) 위 */
+.managerCorner { position: absolute; right: var(--sp-6); bottom: var(--sp-6); z-index: var(--z-popover); } /* §203·§272 */
 // 솔리드 심볼 확정 (§106) — 필 밀도 광학 보정으로 13px 고정
 .eoSym {
   width: 13px; height: 13px;

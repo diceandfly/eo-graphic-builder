@@ -308,13 +308,13 @@ const stageActions = {
 .layout { display: flex; height: 100vh; background: var(--bg); position: relative; }
 // 플로팅 카드 패널 — 스테이지 위 오버레이: 주변 여백으로 캔버스가 그대로 비침 (§85)
 .side {
-  position: absolute; left: var(--sp-6); top: var(--sp-6); z-index: 10;
+  position: absolute; left: var(--sp-6); top: var(--sp-6); z-index: var(--z-win-main); /* §272 */
   width: var(--panel-w); overflow-y: auto;
   height: calc(100vh - 2 * var(--sp-6)); box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad) 16px; // §213: 창 패딩 토큰화·축소
 
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  @include chamfer(10px); // §265: chamfer-0 = 10px (15는 과함 — 사용자 확정) — 메인 패널
+  @include window-surface; /* §272 */
+  @include chamfer(var(--chamfer-0)); // §272: 대형 창
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
   &::-webkit-scrollbar { width: 4px; }

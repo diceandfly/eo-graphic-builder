@@ -430,7 +430,7 @@ function onFile(e) {
 .pMenu {
   position: fixed; z-index: 30;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 4px; display: flex; flex-direction: column;
+  padding: var(--sp-1); display: flex; flex-direction: column; /* §272 */
 }
 .pMenuItem {
   border: none; background: none; color: var(--text); cursor: pointer;

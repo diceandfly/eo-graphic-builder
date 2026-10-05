@@ -127,7 +127,7 @@ function onDimDown(e) {
 
 <style scoped lang="scss">
 .manualDim {
-  position: absolute; inset: 0; z-index: 40;
+  position: absolute; inset: 0; z-index: var(--z-manual); /* §272 */
   background: rgb(0 0 0 / 55%);
 }
 /* §164·§165: 앱 그리드 앵커 — 파일 바 "우측"에 --sp-6 간격, 상단 라인은 파일 바와 동일 (144px = 파일 바 폭) */
@@ -137,8 +137,8 @@ function onDimDown(e) {
   top: var(--sp-6);
   width: min(660px, calc(100% - var(--panel-w) - 4 * var(--sp-6) - 144px)); /* §163: 760→660 — 행당 글자 수 축소 */
   height: calc(100% - 2 * var(--sp-6));
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-  @include chamfer(7.5px); // §260: chamfer-1 — 도움말 창
+  @include window-surface; /* §272 */
+  @include chamfer(var(--chamfer-1)); // §272: 중형 창
   display: flex; flex-direction: column; overflow: hidden;
 }
 // §201: EN/KR 토글 — 닫기 버튼 왼쪽, 툴바 segMini와 동일 문법 (닫기 버튼과 같은 높이)

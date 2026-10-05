@@ -70,10 +70,10 @@ defineEmits(['click', 'contextmenu', 'dblclick']);
   /* 툴팁 — --tip-delay 후 표시 */
   .tip {
     position: absolute; bottom: calc(100% + 10px);
-    z-index: 11; /* §216: 프리셋창(z9) 위로 — 네임카드는 항시 창을 덮는다 */
+    z-index: var(--z-popup); /* §216·§272 */
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     color: var(--text); font-size: var(--fs-sm); letter-spacing: var(--ls-base); /* §218: L4 */
-    padding: 4px 8px; white-space: nowrap;
+    padding: var(--sp-1) 8px; white-space: nowrap; /* §272 */
     opacity: 0; pointer-events: none; transition: opacity var(--tip-fade);
     &::first-letter { text-transform: uppercase; } /* §215: 툴팁도 이니셜 캡 */
   }

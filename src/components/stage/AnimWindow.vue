@@ -484,11 +484,11 @@ const totalLabel = computed(() => {
   /* §225: 애니메이션 버튼(프리셋 바) 바로 위 — 우하단 앵커 (사용자 확정) */
   right: var(--sp-6);
   bottom: calc(var(--sp-6) + 42px + var(--sp-6));
-  z-index: 25; /* §231: 최상 오더 — 메인 패널(z10)·이름 편집(z20)도 덮음 (도움말 z40 아래) */
+  z-index: var(--z-win-anim); /* §231·§272 */
   box-sizing: border-box;
   padding: var(--window-pad-y) var(--panel-pad);
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  @include chamfer(7.5px); // §259: chamfer-1(7.5px) — 애니 창
+  @include window-surface; /* §272 */
+  @include chamfer(var(--chamfer-1)); // §272: 중형 창
   display: flex; flex-direction: column; gap: var(--sp-win); /* §271: 창 블록 리듬 */
 }
 /* (§251의 접힘 전용 하단 3px 폐기 — §257: 토글 바 패딩이 상태별로 달라지던 원인. 전 상태 공통 패딩) */

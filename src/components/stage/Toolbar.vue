@@ -270,7 +270,7 @@ function onPick(c) {
   transform: translateX(-50%);
   /* §216: transform이 스태킹 컨텍스트를 만들어 내부 팝업/툴팁 z11이 갇힘 — 래퍼째 끌어올림.
      §244: 애니메이션 창(z25)이 툴바 우클릭 팝업을 덮던 문제 — 래퍼 z26 (ctx 메뉴도 26 동행, 도움말 z40 아래) */
-  z-index: 26;
+  z-index: var(--z-popover); /* §272 */
   display: flex; align-items: center; gap: var(--sp-6); // 바-바 간격 = 패널↔바 간격과 동일 (--sp-6)
 }
 .chip {
