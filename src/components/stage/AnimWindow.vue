@@ -251,10 +251,10 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
+// §248: 화면 풀블리드 — 프리뷰가 좌우 패딩 없이 창 폭을 가득 채움
 const previewH = computed(() => {
-  const inner = winW.value - 24; // --panel-pad 좌우
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round(inner * ratio);
+  return Math.round(winW.value * ratio);
 });
 </script>
 
@@ -283,6 +283,10 @@ const previewH = computed(() => {
             <path v-if="!playing" d="M9.3 5.2 L20 12 L9.3 18.8 Z" />
             <g v-else><rect x="7" y="5.5" width="3.6" height="13" /><rect x="13.4" y="5.5" width="3.6" height="13" /></g>
           </svg>
+        </div>
+        <!-- §248: 크기 조절 그립 = **화면(프리뷰) 우하단** — 리사이즈가 곧 화면 스케일이라 화면에 귀속 -->
+        <div class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+          <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
         </div>
       </div>
       <!-- §247: 옵션 접기 토글 — 재생화면 바로 아래, 프리뷰 제외 전부 보기/숨기기 -->
@@ -355,8 +359,8 @@ const previewH = computed(() => {
     <div v-else class="empty">
       Select a frame and click its ▶ badge → Make paired keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
-    <!-- §226: 우하단 크기 조절 그립 — 상시 표시, 호버 시 액센트. 프레임 비율 고정 리사이즈 -->
-    <div class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+    <!-- §248: 빈 상태 전용 그립 (화면이 없을 땐 창 우하단 유지) — 화면이 있으면 프리뷰 쪽 그립 사용 -->
+    <div v-if="!pose" class="sizeGrip" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
       <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
     </div>
   </div>
@@ -380,11 +384,12 @@ const previewH = computed(() => {
   letter-spacing: 0; margin: 0; text-transform: capitalize;
   cursor: move; user-select: none; -webkit-user-select: none;
 }
-.pvWrap { position: relative; cursor: pointer; } /* §227: 클릭 = 재생/정지 */
+/* §227: 클릭 = 재생/정지 · §248: 화면 풀블리드 — 좌우 패딩 상쇄로 창 폭 가득 */
+.pvWrap { position: relative; cursor: pointer; margin: 0 calc(-1 * var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
-  border: 1px solid var(--line); border-radius: var(--radius);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); /* §248: 블리드 밴드 — 좌우 보더·라운딩 없음 */
 }
 /* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
 .pvPlay {
