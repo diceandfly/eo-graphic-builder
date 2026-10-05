@@ -1033,4 +1033,32 @@ function centerIn(u, f) {
   });
 }
 
+// §282. 도킹 기하 — 역평행(180°) = 서로를 향한 끝끼리 접착(겹침 금지) · 비평행 = 거부
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  u1.x = 0; u1.y = 0;
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x = 5000; u2.y = 0;
+  await sleep(30);
+  // 180° 회전(역평행) — 축은 평행, 로컬 좌/우 노드는 기하적으로 뒤집힘
+  u2.params.orientation = 180;
+  const r = api.connectDock(u1.id, u2.id);
+  ok('§282: 역평행 결착 = 현 배치 그대로 — u2가 u1 오른쪽에 접착 (겹침 없음)', () => {
+    assert.ok(r);
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 10)) < 1e-6, `u2.x=${u2.x}`);
+    assert.ok(Math.abs(u2.y - u1.y) < 1e-6, `u2.y=${u2.y}`);
+  });
+  const u3 = api.duplicateFrom(u1);
+  u3.x = 9000; u3.y = 0;
+  u3.params.orientation = 90; // 수직 축 — 비평행
+  await sleep(30);
+  ok('§282: 축 비평행 결착 거부', () => {
+    assert.equal(api.connectDock(u1.id, u3.id), null);
+    assert.equal(api.dockAxesParallel(u1, u2), true);
+    assert.equal(api.dockAxesParallel(u1, u3), false);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

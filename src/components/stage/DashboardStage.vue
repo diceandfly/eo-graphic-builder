@@ -110,14 +110,21 @@ function dockPt(u, side) {
 const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
 const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
 // §281: 샤프트 축의 화면 길이가 노드 2개(인셋 28×2)를 담지 못하면 자동 숨김 — 옵션 없는 물리 규칙
-const dockNodeUnits = computed(() =>
-  props.doc.units.filter((u) => {
+// §282: 다중 선택 시 **전원 샤프트 축 평행**(역평행 포함)일 때만 노드 활성 (사용자 확정 게이트)
+const dockNodeUnits = computed(() => {
+  const sel = props.doc.units.filter((u) => {
     if (u.type === 'frame' || !props.doc.selectedIds.includes(u.id)) return false;
     const p = u.params;
     const axisLen = (p.orientation === 90 || p.orientation === 270 ? p.H : p.W) * vp.scale;
     return axisLen >= 72;
-  })
-);
+  });
+  if (sel.length >= 2) {
+    for (let i = 1; i < sel.length; i += 1) {
+      if (!props.actions.dockAxesParallel(sel[0], sel[i])) return [];
+    }
+  }
+  return sel;
+});
 // §281: 드래그 중 타깃 = 다른 선택 유닛의 **양쪽 노드 모두** — 같은쪽 노드에 놓아도 결착
 // (반대쪽 한정이 "드래그는 되는데 연결이 안 됨" 무반응의 원인. 방향은 드래그 시작 쪽이 결정)
 const dockTargetOf = (u) => !!dockDrag.value && dockDrag.value.fromId !== u.id;
@@ -145,6 +152,12 @@ function onDockNodeDown(u, side) {
       }
     }
     if (hit) {
+      // §282: 에러 구분 — 축 비평행(게이트 밖 변동 대비) vs 사이클
+      const me = props.doc.units.find((x) => x.id === d.fromId);
+      if (me && !props.actions.dockAxesParallel(me, hit)) {
+        toast('Cannot dock — shaft axes are not parallel (rotate one unit first)');
+        return;
+      }
       const ok = d.side === 'right'
         ? props.actions.connectDock(d.fromId, hit.id)
         : props.actions.connectDock(hit.id, d.fromId); // 좌측에서 시작 = 역방향 결착
@@ -2244,9 +2257,9 @@ onBeforeUnmount(() => {
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
 /* §280: 도킹 노드 — 원형(선택 유닛 한정 — 모드/대상으로 애니 노드와 분리), 결착 = 솔리드
-   §281: 색 = --link (도크 배지와 동일 의미색) — 바운딩박스 컨트롤(액센트)과 구분 */
+   §282: 스트로크 = 화이트(--text) (사용자 확정 — §281 --link는 유닛색 위 가독 부족), 결착 필 = --link */
 .dockNode {
-  fill: var(--panel); stroke: var(--link);
+  fill: var(--panel); stroke: var(--text);
   stroke-width: 1.5; vector-effect: non-scaling-stroke;
   cursor: crosshair;
   &.docked { fill: var(--link); }

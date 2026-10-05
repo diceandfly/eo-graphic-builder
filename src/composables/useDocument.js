@@ -957,6 +957,7 @@ export function useDocument() {
     if (fromId === toId) return null;
     const uOf = (id) => doc.units.find((u) => u.id === id && u.type !== 'frame');
     if (!uOf(fromId) || !uOf(toId)) return null;
+    if (!dockAxesParallel(uOf(fromId), uOf(toId))) return null; // §282: 축 평행 필수 (UI 게이트의 API 가드)
     // 사이클 가드: to의 하류를 따라가 from에 닿으면 거부 (닫힌 고리 = 정렬 해 불능)
     let cur = toId;
     const seen = new Set();
@@ -976,14 +977,29 @@ export function useDocument() {
     doc.docks = doc.docks.filter((e) => (side === 'right' ? e.from !== unitId : e.to !== unitId));
     return doc.docks.length !== n;
   }
-  // 결착 정렬 집행 — 체인 순서(루트→하류)로 to 유닛을 평행이동: to.좌노드 = from.우노드 + 거터×축방향.
-  // 수치 변경(W·gutterPx·dPct 등)도 워처 경유로 실시간 재정렬. 평행이동뿐이라 각 유닛의
-  // orientation·파라미터는 불변 (사용자 확정: 도킹은 묶음이 아니라 접착).
+  // §282: 두 유닛의 샤프트 축 평행 판정 (역평행 = 180°·미러 조합도 평행으로 간주)
+  function dockAxesParallel(a, b) {
+    const dir = (u) => {
+      const [lx, ly] = dockNodePoint(u, 'left');
+      const [rx, ry] = dockNodePoint(u, 'right');
+      const L = Math.hypot(rx - lx, ry - ly) || 1;
+      return [(rx - lx) / L, (ry - ly) / L];
+    };
+    const [ax, ay] = dir(a);
+    const [bx, by] = dir(b);
+    return Math.abs(ax * by - ay * bx) < 1e-3; // 외적 ≈ 0 = 평행 (부호 무관)
+  }
+  // 결착 정렬 집행 — 체인 순서(루트→하류)로 to 유닛을 평행이동.
+  // §282: 접착 끝 = **현 배치 기준 "서로를 향한 끝"끼리** (로컬 좌/우 고정이 아님 — 180°·미러
+  // 역평행 조합에서 로컬 기준이 반대쪽 끝을 붙여 유닛이 겹치던 문제). "직렬로 놓은 그대로 잇는다".
+  // 평행이동뿐이라 각 유닛의 orientation·파라미터는 불변 (도킹 = 묶음이 아니라 접착).
   function relayoutDocks() {
     if (!doc.docks.length) return;
     const byId = new Map(doc.units.map((u) => [u.id, u]));
     const outByFrom = new Map(doc.docks.map((e) => [e.from, e]));
     const hasIn = new Set(doc.docks.map((e) => e.to));
+    const ends = (u) => ({ l: dockNodePoint(u, 'left'), r: dockNodePoint(u, 'right') });
+    const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
     for (const e0 of doc.docks) {
       if (hasIn.has(e0.from)) continue; // 루트 엣지만 시작점
       let e = e0;
@@ -993,13 +1009,18 @@ export function useDocument() {
         const a = byId.get(e.from);
         const b = byId.get(e.to);
         if (a && b) {
-          const [arx, ary] = dockNodePoint(a, 'right');
-          const [alx, aly] = dockNodePoint(a, 'left');
-          const L = Math.hypot(arx - alx, ary - aly) || 1;
+          const ea = ends(a);
+          const eb = ends(b);
+          const cb = [(eb.l[0] + eb.r[0]) / 2, (eb.l[1] + eb.r[1]) / 2];
+          const ca = [(ea.l[0] + ea.r[0]) / 2, (ea.l[1] + ea.r[1]) / 2];
+          const aNear = d2(ea.r, cb) <= d2(ea.l, cb) ? ea.r : ea.l; // a의 b쪽 끝
+          const aFar = aNear === ea.r ? ea.l : ea.r;
+          const L = Math.hypot(aNear[0] - aFar[0], aNear[1] - aFar[1]) || 1;
+          const dir = [(aNear[0] - aFar[0]) / L, (aNear[1] - aFar[1]) / L]; // a → b 방향
+          const bNear = d2(eb.r, ca) <= d2(eb.l, ca) ? eb.r : eb.l;       // b의 a쪽 끝
           const g = ((a.params.gutterPx ?? 0) + (b.params.gutterPx ?? 0)) / 2;
-          const [blx, bly] = dockNodePoint(b, 'left');
-          const dx = arx + ((arx - alx) / L) * g - blx;
-          const dy = ary + ((ary - aly) / L) * g - bly;
+          const dx = aNear[0] + dir[0] * g - bNear[0];
+          const dy = aNear[1] + dir[1] * g - bNear[1];
           if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) { b.x += dx; b.y += dy; }
         }
         e = outByFrom.get(e.to);
@@ -1900,7 +1921,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
     duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
-    connectDock, disconnectDock, dockMates, dockedIdSet, // §278: 도킹
+    connectDock, disconnectDock, dockMates, dockedIdSet, dockAxesParallel, // §278·§282: 도킹
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
