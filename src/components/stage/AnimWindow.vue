@@ -295,11 +295,10 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
-// §250: 화면 좌우 패딩 = 1px (보더라인 느낌) · §251: 접힘 상태는 3px (+2 — 사용자 확정)
+// §254: 화면 좌우 패딩 = **3px 통일** (§250 1px/§251 3px 분화 폐기 — 사용자 확정: 숨김 상태 값으로)
 const previewH = computed(() => {
-  const side = optsOpen.value ? 1 : 3;
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round((winW.value - 2 - side * 2) * ratio);
+  return Math.round((winW.value - 8) * ratio);
 });
 // §251: 재생/정지 글리프 = 화면 비례 (지름 ≈ 화면 높이 65%, 아이콘 ≈ 지름 46% — 유튜브류 사이즈감)
 const playD = computed(() => Math.max(48, Math.min(220, Math.round(previewH.value * 0.42))));
@@ -455,9 +454,8 @@ const totalLabel = computed(() => {
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
   display: flex; flex-direction: column; gap: 10px;
 }
-/* §250·§251: 접힘 — 좌우/하단 패딩 3px (+2, 사용자 확정). 하단엔 접기 토글이 상주 */
+/* §251·§254: 접힘 — 하단 패딩 3px (하단엔 접기 토글 상주). 좌우는 상태 무관 3px 통일 */
 .animWin.collapsed { padding-bottom: 3px; }
-.animWin.collapsed .pvWrap { margin: 0 calc(3px - var(--panel-pad)); }
 .title {
   /* L2 창 타이틀 (§218 전역 사다리) — §226: 드래그 = 창 이동 */
   font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text);
@@ -471,8 +469,8 @@ const totalLabel = computed(() => {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-/* §227: 클릭 = 재생/정지 · §250: 좌우 1px 패딩 (보더라인 느낌 — 사용자 확정) */
-.pvWrap { position: relative; cursor: pointer; margin: 0 calc(1px - var(--panel-pad)); }
+/* §227: 클릭 = 재생/정지 · §254: 좌우 3px 패딩 통일 */
+.pvWrap { position: relative; cursor: pointer; margin: 0 calc(3px - var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);

@@ -60,29 +60,18 @@ const markFrames = computed(() => {
   return frames.value.filter((f) => f.pair != null || (!props.dimmed && props.selectedIds.includes(f.id)));
 });
 
-// §234: 활성 체인 — 선택 엣지에서 연결을 따라 확장한 프레임 집합 (in/out ≤1이라 선형 체인)
-const chainIds = computed(() => {
-  if (!props.selectedEdge || props.dimmed) return new Set();
-  const ids = new Set([props.selectedEdge.from, props.selectedEdge.to]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const e of props.edges) {
-      const hasF = ids.has(e.from);
-      const hasT = ids.has(e.to);
-      if (hasF !== hasT) { ids.add(e.from); ids.add(e.to); grew = true; }
-    }
-  }
-  return ids;
-});
-// §247: 하이라이트 3단계 체계 (사용자 승인 하이브리드) —
-//  대기(비활성 체인·미연결): 중립 회백 / 컨텍스트(활성 체인): 가는 액센트 / 포커스(선택 엣지): 볼드 액센트.
-//  모드를 켠다고 전부 액센트가 되지 않음 — "지금 편집 중인 애니"만 밝다.
-const inChain = (e) => chainIds.value.has(e.from) && chainIds.value.has(e.to);
+// §254: 하이라이트 2단계 체계 (사용자 확정 — §247 3단계·§252 체인 컨텍스트 대체):
+//  기본 = **딤드 네온 전체**(모든 노드·와이어·컨트롤), 클릭한 대상만 **풀 Neon** —
+//  프레임 클릭 = 프레임 아웃라인+그 좌우 노드 / 와이어 클릭 = 라인+≡ 컨트롤+양끝 노드.
 const isSelEdge = (e) => !props.dimmed && props.selectedEdge && edgeKey(props.selectedEdge) === edgeKey(e);
-const focusIds = computed(() =>
-  (!props.dimmed && props.selectedEdge ? new Set([props.selectedEdge.from, props.selectedEdge.to]) : new Set())
-);
+// 노드 풀 Neon 조건: 소속 프레임이 선택됐거나, 선택 엣지가 그 노드에 꽂혀 있을 때
+const hotNode = (f, side) => {
+  if (props.dimmed) return false;
+  if (props.selectedIds.includes(f.id)) return true;
+  const e = props.selectedEdge;
+  if (!e) return false;
+  return side === 'right' ? e.from === f.id : e.to === f.id;
+};
 
 // ── 노드 드래그: 우측 노드에서 시작 → 좌측 노드에 드롭 = 연결 / 빈 곳 = 해제 ──
 const drag = ref(null); // { fromId, x1, y1, x, y }
@@ -118,15 +107,9 @@ function onNodeDown(f, e) {
 
 <template>
   <g class="animOverlay">
-    <!-- §234·§247: 체인 하이라이트 — 컨텍스트(체인 전체) = 가는 액센트, 포커스(선택 엣지 양끝) = 볼드 -->
-    <rect
-      v-for="f in frames.filter((x) => chainIds.has(x.id))" :key="'ch' + f.id"
-      class="chainHi" :class="{ focus: focusIds.has(f.id) }"
-      :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
-    />
-    <!-- 연결 와이어 + 중앙 컨트롤 — §247: 대기 체인은 중립 회백, 활성 체인만 액센트 -->
+    <!-- 연결 와이어 + 중앙 컨트롤 — §254: 기본 딤드 네온, 선택 엣지만 풀 Neon (체인 아웃라인 폐기) -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
-      <path class="wire" :class="{ sel: isSelEdge(w.e), chain: !dimmed && !isSelEdge(w.e) && inChain(w.e), dim: dimmed }" :d="w.d" />
+      <path class="wire" :class="{ sel: isSelEdge(w.e), dim: dimmed }" :d="w.d" />
       <!-- §252: 와이어 라인 자체 클릭 = 그 연결 선택(체인 활성) — 보이지 않는 넓은 히트 (사용자 확정 4안) -->
       <path
         v-if="!dimmed"
@@ -136,7 +119,7 @@ function onNodeDown(f, e) {
       <!-- §224·§237: 와이어 중앙 컨트롤 — 비활성 모드에선 완전 숨김 (회색 잔존 = 와이어·페어 마크만) -->
       <g
         v-if="!dimmed"
-        class="pairBadge" :class="{ sel: isSelEdge(w.e), chain: inChain(w.e) }"
+        class="pairBadge" :class="{ sel: isSelEdge(w.e) }"
         :transform="`translate(${w.mx} ${w.my})`"
         @pointerdown.stop.prevent="(ev) => emit('edgeClick', w.e, ev.clientX, ev.clientY)"
       >
@@ -170,13 +153,13 @@ function onNodeDown(f, e) {
       <circle
         v-if="!dimmed || connectedL.has(f.id)"
         class="node left"
-        :class="{ dim: dimmed, on: !dimmed && connectedL.has(f.id), chain: !dimmed && chainIds.has(f.id), target: !dimmed && !!drag && drag.fromId !== f.id }"
+        :class="{ dim: dimmed, on: !dimmed && connectedL.has(f.id), hot: hotNode(f, 'left'), target: !dimmed && !!drag && drag.fromId !== f.id }"
         :cx="f.x" :cy="f.y + f.params.H / 2" :r="pxs(6)"
       />
       <circle
         v-if="!dimmed || connectedR.has(f.id)"
         class="node right"
-        :class="{ dim: dimmed, on: !dimmed && connectedR.has(f.id), chain: !dimmed && chainIds.has(f.id) }"
+        :class="{ dim: dimmed, on: !dimmed && connectedR.has(f.id), hot: hotNode(f, 'right') }"
         :cx="f.x + f.params.W" :cy="f.y + f.params.H / 2" :r="pxs(6)"
         @pointerdown.stop.prevent="(ev) => { if (!dimmed) onNodeDown(f, ev); }"
       />
@@ -185,21 +168,13 @@ function onNodeDown(f, e) {
 </template>
 
 <style scoped lang="scss">
-// §252: 컨텍스트(활성 체인) 색 = **어두운 노랑** — Builder Neon을 패널과 절반 섞어 톤 다운 (사용자 확정 4안).
-// 공식: 풀 Neon = 클릭한 대상(선택 프레임·선택 연결 = 프리뷰 재생 구간), 어두운 노랑 = 그 체인의 나머지.
-$ctx-yellow: color-mix(in srgb, var(--accent) 50%, var(--panel));
-// §234·§247·§252: 체인 프레임 아웃라인 — 컨텍스트 = 어두운 노랑(1.5), 포커스(선택 엣지 양끝) = Neon 볼드(2.5)
-.chainHi {
-  fill: none; stroke: #{$ctx-yellow}; stroke-width: 1.5;
-  vector-effect: non-scaling-stroke; pointer-events: none;
-  &.focus { stroke: var(--accent); stroke-width: 2.5; }
-}
-// §247·§252: 와이어 3단계 — 대기(중립 회백) → 체인(어두운 노랑) → 선택(Neon 볼드 = 재생 구간)
+// §254: 하이라이트 2단계 (사용자 확정) — 기본 = **딤드 네온**(Builder Neon 50% + 패널), 클릭 대상 = 풀 Neon.
+$dim-neon: color-mix(in srgb, var(--accent) 50%, var(--panel));
+// §254: 와이어 — 기본 딤드 네온, 선택 엣지 = Neon 볼드(= 프리뷰 재생 구간 공식 §252)
 .wire {
-  fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5;
+  fill: none; stroke: #{$dim-neon}; stroke-width: 1.5;
   vector-effect: non-scaling-stroke; opacity: 0.9;
 }
-.wire.chain { stroke: #{$ctx-yellow}; }
 .wire.sel { stroke: var(--accent); stroke-width: 2.5; opacity: 1; } // §224: 선택 엣지 강조
 .wire.temp { stroke: var(--accent); stroke-dasharray: 5 4; opacity: 0.7; pointer-events: none; }
 // §252: 와이어 히트 — 라인 주변 10px 투명 스트로크, 클릭 = 연결 선택
@@ -227,28 +202,29 @@ $ctx-yellow: color-mix(in srgb, var(--accent) 50%, var(--panel));
   &.ghost:hover .bg { stroke-dasharray: none; }
 }
 .node {
-  // 프레임 라벨과 같은 가독 문법: 캔버스 위 중립색 — §247: 활성 체인 소속만 액센트 (대기 = 중립 필)
-  fill: var(--panel); stroke: color-mix(in srgb, var(--text) 60%, var(--faint));
+  // §254: 기본 = 딤드 네온 (전체 하이라이팅), 클릭 대상(.hot)만 풀 Neon
+  fill: var(--panel); stroke: #{$dim-neon};
   stroke-width: 1.5; vector-effect: non-scaling-stroke;
   cursor: crosshair;
   &:hover { stroke: var(--accent); }
-  &.on { fill: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); }
-  // §252: 활성 체인 노드 = 어두운 노랑 (풀 Neon은 선택 대상 전용)
-  &.chain { stroke: #{$ctx-yellow}; }
-  &.chain.on { fill: #{$ctx-yellow}; stroke: #{$ctx-yellow}; }
+  &.on { fill: #{$dim-neon}; stroke: #{$dim-neon}; }
+  // §254: 풀 Neon — 소속 프레임 선택 또는 선택 엣지의 양끝 노드
+  &.hot { stroke: var(--accent); }
+  &.hot.on { fill: var(--accent); stroke: var(--accent); }
   &.target { stroke: var(--accent); } // 드래그 중: 드롭 가능 노드 안내
   &.left { cursor: default; }
   // §244: 비애니 모드 — 연결된 노드만 회색 잔존 (와이어.dim과 같은 문법, 조작 불가)
   &.dim { fill: var(--dim); stroke: var(--dim); pointer-events: none; cursor: default; }
 }
 .pairBadge {
-  // §247: 대기 체인의 와이어 컨트롤도 중립 — 활성 체인만 액센트
-  circle { fill: var(--panel); stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  path { fill: none; stroke: color-mix(in srgb, var(--text) 55%, var(--faint)); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
+  // §254: 기본 = 딤드 네온, 선택 엣지의 컨트롤만 풀 Neon 반전
+  circle { fill: var(--panel); stroke: #{$dim-neon}; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  path { fill: none; stroke: #{$dim-neon}; stroke-width: 2; stroke-linejoin: miter; stroke-linecap: square; }
   cursor: pointer; // §224: 클릭 = 엣지 파라미터 팝업
-  &.chain circle { stroke: #{$ctx-yellow}; } // §252: 체인 컨텍스트 = 어두운 노랑
-  &.chain path { stroke: #{$ctx-yellow}; }
+  &:hover circle { stroke: var(--accent); }
+  &:hover path { stroke: var(--accent); }
   &.sel circle { fill: var(--accent); stroke: var(--accent); }
   &.sel path { stroke: var(--bg); }
+  &.sel:hover path { stroke: var(--bg); }
 }
 </style>

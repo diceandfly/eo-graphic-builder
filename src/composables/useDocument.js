@@ -216,6 +216,16 @@ export function useDocument() {
     const fids = new Set(doc.units.filter((u) => u.type === 'frame').map((u) => u.id));
     doc.animEdges = doc.animEdges.filter((e) => fids.has(e.from) && fids.has(e.to));
     for (const u of doc.units) if (u.home != null && !fids.has(u.home)) u.home = null; // §225
+    // §254: 계보(pair)에 프레임이 1개만 남으면 자동 페어 초기화 — 짝 잃은 키프레임은 일반 프레임 복귀
+    // (unpairFrame과 동일 정리를 인라인로 — 재귀 없이 일괄 스윕)
+    const pairCounts = {};
+    for (const u of doc.units) if (u.type === 'frame' && u.pair != null) pairCounts[u.pair] = (pairCounts[u.pair] || 0) + 1;
+    for (const f of doc.units) {
+      if (f.type !== 'frame' || f.pair == null || pairCounts[f.pair] >= 2) continue;
+      f.pair = null;
+      for (const u of doc.units) if (u.home === f.id) { u.pair = null; u.home = null; }
+      doc.animEdges = doc.animEdges.filter((e) => e.from !== f.id && e.to !== f.id);
+    }
   }
 
   // JSON 프로젝트 로드 (파일 열기) — meta.linkScopes는 구 포맷 이관용
@@ -814,6 +824,7 @@ export function useDocument() {
       }
     }
     doc.animEdges = doc.animEdges.filter((e) => e.from !== frameId && e.to !== frameId);
+    pruneMeta(); // §254: 남은 짝이 혼자가 되면 자동 초기화
     return { name: f.name, units: n };
   }
   // 키프레임 연결 — 우(from)→좌(to)만, 노드당 1연결(재연결 = 기존 이설, §220 사용자 확정).

@@ -732,7 +732,8 @@ function centerIn(u, f) {
     assert.equal(r.frame.pair, null);
     assert.ok(api.doc.units.every((u) => u.home !== r.frame.id));
     assert.equal(api.doc.animEdges.length, 0);
-    assert.ok(f.pair != null); // 파트너는 불변
+    assert.equal(f.pair, null); // §254: 계보에 1개만 남으면 파트너도 자동 초기화
+    assert.ok(api.doc.units.every((u) => u.home !== f.id)); // 파트너 소속 유닛도 해제
   });
   api.setAnimMode(true);
   api.setSelection([r.frame.id]);
@@ -788,6 +789,23 @@ function centerIn(u, f) {
     // u1 중심 = f 중심과 일치 → 회전 후에도 f 중심과 일치해야 함
     assert.equal(u1.x + u1.params.W / 2, f.x + f.params.W / 2);
     assert.equal(u1.y + u1.params.H / 2, f.y + f.params.H / 2);
+  });
+}
+
+
+// §254. 자동 페어 초기화 — 계보에 프레임이 1개만 남으면 (삭제 경로)
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1000);
+  const r = api.duplicatePairedFrame(f.id, 5000, 0);
+  api.connectAnim(f.id, r.frame.id);
+  const copyIds = [r.frame.id, ...api.doc.units.filter((u) => u.home === r.frame.id).map((u) => u.id)];
+  api.setSelection(copyIds);
+  api.deleteSelected();
+  ok('§254: 파트너 삭제 시 남은 프레임 자동 언페어', () => {
+    assert.equal(f.pair, null);
+    assert.equal(api.doc.animEdges.length, 0);
+    assert.ok(api.doc.units.every((u) => u.home !== f.id));
   });
 }
 
