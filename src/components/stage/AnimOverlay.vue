@@ -64,6 +64,25 @@ const markFrames = computed(() => {
 //  기본 = **딤드 네온 전체**(모든 노드·와이어·컨트롤), 클릭한 대상만 **풀 Neon** —
 //  프레임 클릭 = 프레임 아웃라인+그 좌우 노드 / 와이어 클릭 = 라인+≡ 컨트롤+양끝 노드.
 const isSelEdge = (e) => !props.dimmed && props.selectedEdge && edgeKey(props.selectedEdge) === edgeKey(e);
+// §263: 활성 체인 집합 복원 — 비선택 체인 프레임에 **딤드 네온 아웃라인**(체인 전체 가독, §254에서
+// 제거했던 것을 "선택 = 풀 Neon / 나머지 체인 = 딤드" 2단 문법으로 재도입)
+const chainIds = computed(() => {
+  if (!props.selectedEdge || props.dimmed) return new Set();
+  const ids = new Set([props.selectedEdge.from, props.selectedEdge.to]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const e of props.edges) {
+      const hasF = ids.has(e.from);
+      const hasT = ids.has(e.to);
+      if (hasF !== hasT) { ids.add(e.from); ids.add(e.to); grew = true; }
+    }
+  }
+  return ids;
+});
+const chainDimFrames = computed(() =>
+  frames.value.filter((f) => chainIds.value.has(f.id) && !props.selectedIds.includes(f.id))
+);
 // 노드 풀 Neon 조건: 소속 프레임이 선택됐거나, 선택 엣지가 그 노드에 꽂혀 있을 때
 const hotNode = (f, side) => {
   if (props.dimmed) return false;
@@ -107,7 +126,13 @@ function onNodeDown(f, e) {
 
 <template>
   <g class="animOverlay">
-    <!-- 연결 와이어 + 중앙 컨트롤 — §254: 기본 딤드 네온, 선택 엣지만 풀 Neon (체인 아웃라인 폐기) -->
+    <!-- §263: 체인 프레임 딤드 아웃라인 — 비선택 체인 멤버도 체인 소속이 보이게 (선택 = pairSel 풀 Neon) -->
+    <rect
+      v-for="f in chainDimFrames" :key="'cd' + f.id"
+      class="chainDim"
+      :x="f.x" :y="f.y" :width="f.params.W" :height="f.params.H"
+    />
+    <!-- 연결 와이어 + 중앙 컨트롤 — §254: 기본 딤드 네온, 선택 엣지만 풀 Neon -->
     <g v-for="w in edgeWires" :key="'aw' + w.e.from + '-' + w.e.to">
       <path class="wire" :class="{ sel: isSelEdge(w.e), dim: dimmed }" :d="w.d" />
       <!-- §252: 와이어 라인 자체 클릭 = 그 연결 선택(체인 활성) — 보이지 않는 넓은 히트 (사용자 확정 4안) -->
@@ -170,6 +195,11 @@ function onNodeDown(f, e) {
 <style scoped lang="scss">
 // §254: 하이라이트 2단계 (사용자 확정) — 기본 = **딤드 네온**(Builder Neon 50% + 패널), 클릭 대상 = 풀 Neon.
 $dim-neon: color-mix(in srgb, var(--accent) 50%, var(--panel));
+// §263: 체인 딤드 아웃라인 — pairSel(풀 Neon 2.5)과 같은 두께, 색만 딤드
+.chainDim {
+  fill: none; stroke: #{$dim-neon}; stroke-width: 2.5;
+  vector-effect: non-scaling-stroke; pointer-events: none;
+}
 // §254: 와이어 — 기본 딤드 네온, 선택 엣지 = Neon 볼드(= 프리뷰 재생 구간 공식 §252)
 .wire {
   fill: none; stroke: #{$dim-neon}; stroke-width: 1.5;

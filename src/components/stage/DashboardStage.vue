@@ -744,7 +744,8 @@ function onFrameQuick() {
   const preset = framePresetById(frameQuickCfg.preset);
   const fill = frameQuickCfg.fill || currentColor.value || null;
   if (preset) {
-    props.actions.createFrame(cx - preset.w / 2, cy - preset.h / 2, preset.w, preset.h, fill, { ...preset.grid });
+    const nf = props.actions.createFrame(cx - preset.w / 2, cy - preset.h / 2, preset.w, preset.h, fill, { ...preset.grid });
+    if (nf) nf.name = preset.label; // §263: SNS 프리셋 생성 = 프리셋 이름을 프레임 이름으로
   } else {
     const { w, h, margin, gutter } = frameQuickCfg;
     props.actions.createFrame(cx - w / 2, cy - h / 2, w, h, fill, { margin, gutterX: gutter, gutterY: gutter });
@@ -1303,10 +1304,12 @@ function onMove(e) {
     if (!bestY) gapY = findGapSnap('y', D, others, SNAP);
     let sdx = dx + (bestX ? bestX.d : gapX ? gapX.d : 0);
     let sdy = dy + (bestY ? bestY.d : gapY ? gapY.d : 0);
-    // 그리드 스냅: 엣지/등간격 스냅이 없는 축만 선택 bbox 좌상단을 격자에 양자화
+    // §263: 그리드 스냅 on = **그리드가 지배** (스마트 엣지/등간격보다 우선 — 사용자 확정
+    // "더 강하게". 종전엔 스마트가 없는 축만 격자에 붙어 체감이 약했음). 가이드도 생략.
     if (gridCfg.snap) {
-      if (!bestX && !gapX) sdx = dx + Math.round(minX / gridCfg.size) * gridCfg.size - minX;
-      if (!bestY && !gapY) sdy = dy + Math.round(minY / gridCfg.size) * gridCfg.size - minY;
+      sdx = dx + Math.round(minX / gridCfg.size) * gridCfg.size - minX;
+      sdy = dy + Math.round(minY / gridCfg.size) * gridCfg.size - minY;
+      bestX = null; bestY = null; gapX = null; gapY = null;
     }
     for (const t of drag.targets) {
       t.u.x = t.x0 + sdx;
@@ -2130,8 +2133,9 @@ onBeforeUnmount(() => {
   stroke-dasharray: 5 4; opacity: 0.7;
 }
 .keySel { fill: none; stroke: var(--accent); stroke-width: 5; vector-effect: non-scaling-stroke; opacity: 0.9; }
-/* §245: 애니 모드 선택 페어 프레임 — 핸들 없는 선택 아웃라인 (이동 피드백 전용) */
-.pairSel { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* §245: 애니 모드 선택 페어 프레임 — 핸들 없는 선택 아웃라인 (이동 피드백 전용)
+   §263: 1.5 → 2.5 — 체인 딤드(2.5)·기준 유닛(keySel 5)과의 두께 밸런스 */
+.pairSel { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 /* §251·§252: 체인 선택 — 합집합 점선 테두리(표시) + 영역 전체 이동 히트 (그립 폐기) */
 .chainSelBox {
   fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 5 4;

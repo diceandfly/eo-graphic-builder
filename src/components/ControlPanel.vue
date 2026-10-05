@@ -39,6 +39,11 @@ const mixed = (...keys) =>
 
 // 링크 멤버 1개만 선택 — "이 유닛만 해제" 버튼 표시 (§73) — §220: 범주형 links의 대표 lid 기준
 const singleLinked = computed(() => props.selected.length === 1 && primaryLid(props.selected[0]) != null);
+// §263: offset 묶음 표시 — 애니 모드 ∨ 비기본값(offset≠0 · flow · grow left)이면 스스로 드러남
+const offsetVis = computed(() => {
+  const pp = props.unit?.params ?? {};
+  return props.anim || (pp.offset ?? 0) !== 0 || pp.offsetType === 'flow' || pp.grow === 'l';
+});
 // 선택 전체가 이미 하나의 링크인지
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
@@ -449,21 +454,27 @@ function setStrokeColor(c) {
           @update:model-value="setComp"
         />
         <ChipRow v-model="p.rate" />
-        <!-- §255: offset(칸 위상, 랩 순환) — 조건부 표시: 애니 모드이거나 값≠0 (사용자 확정).
-             정적 소음은 줄이되, 0이 아닌 값은 스스로를 드러내 숨은 상태값 방지 -->
-        <Slider
-          v-if="anim || (p.offset ?? 0) !== 0"
-          label="offset" v-model="p.offset"
-          :min="-4" :max="4" :step="0.01" :arrow-step="0.1" :decimals="2"
-          :snap-to="0" :snap-radius="0.05"
-          :mixed="mixed('offset')"
-        />
-        <!-- §262: offset 모드 — step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
+      </div>
+      <!-- §255·§263: offset 묶음 — 조건부 표시(애니 모드 ∨ 비기본값), compSet와 간격 분리.
+           순서: mode → grow → offset (사용자 확정: 모드가 슬라이더 위) -->
+      <div v-if="offsetVis" class="offsetSet">
+        <!-- §262: step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
         <Toggle
-          v-if="anim || (p.offset ?? 0) !== 0 || p.offsetType === 'flow'"
           label="offset mode" :model-value="p.offsetType ?? 'step'"
           :options="[{ value: 'step', label: 'step' }, { value: 'flow', label: 'flow' }]"
           @update:model-value="(v) => { p.offsetType = v; }"
+        />
+        <!-- §263: 생산/흐름 끝단 — 유닛별 반전(교차 연출). flipX와 달리 나사산 형상은 유지 -->
+        <Toggle
+          label="grow direction" :model-value="p.grow ?? 'r'"
+          :options="[{ value: 'r', label: 'right' }, { value: 'l', label: 'left' }]"
+          @update:model-value="(v) => { p.grow = v; }"
+        />
+        <Slider
+          label="offset" v-model="p.offset"
+          :min="-8" :max="8" :step="0.01" :arrow-step="0.1" :decimals="2"
+          :snap-to="0" :snap-radius="0.08"
+          :mixed="mixed('offset')"
         />
       </div>
       <Toggle
@@ -567,6 +578,8 @@ section h2 {
 section > :last-child { margin-bottom: 0; }
 /* §138: 슬라이더+프리셋 칩 세트 — 내부 6px로 묶고 세트 단위 10px 리듬 */
 .compSet { margin-bottom: 10px; }
+/* §263: offset 묶음 — 압축 칩과 간격 분리(상단 gap) + 내부 행 간격 */
+.offsetSet { margin: 4px 0 10px; display: flex; flex-direction: column; gap: 8px; }
 .compSet :deep(.row) { margin-bottom: 6px; }
 .compSet :deep(.chips) { margin-bottom: 0; }
 // §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).

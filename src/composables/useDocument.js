@@ -24,6 +24,7 @@ export function createParams(overrides = {}) {
     direction: 'LtoS',
     offset: 0, // §255: 칸 위상 (소수·± 허용, 랩 순환 — 컨베이어 흐름. 패널 표시는 조건부)
     offsetType: 'step', // §262: 'step'(기본 — 온전 샤프트 결착 진입) | 'flow'(눌리며 통과)
+    grow: 'r', // §263: 생산/흐름 끝단 — 'r'(우측, 기본) | 'l'(좌측) — 유닛별 교차 연출용
     // Shape
     dPct: 35,
     a: 0.4,
@@ -127,6 +128,7 @@ function migrateUnit(u, legacyScopes = {}) {
   // §255: offset 백필 — 구 유닛 문서는 키 자체가 없음 (0 = 외형 불변)
   if (u.type !== 'frame' && u.params && u.params.offset == null) u.params.offset = 0;
   if (u.type !== 'frame' && u.params && u.params.offsetType == null) u.params.offsetType = 'step'; // §262
+  if (u.type !== 'frame' && u.params && u.params.grow == null) u.params.grow = 'r'; // §263
   if (!Array.isArray(u.groups)) u.groups = u.groupId ? [u.groupId] : [];
   delete u.groupId;
   // §220: linkId 단일 + linkScopes 플래그 → 범주형 links로 이관
@@ -250,7 +252,7 @@ export function useDocument() {
   const SCOPE_KEYS = {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
-    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType'], // §255·§262
+    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType', 'grow'], // §255·§262·§263
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
@@ -266,7 +268,7 @@ export function useDocument() {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'],
     grid: [
-      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType'], // 유닛 (§255·§262)
+      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType', 'grow'], // 유닛 (§255·§262·§263)
       ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
     ],
     shape: [
@@ -503,6 +505,9 @@ export function useDocument() {
           const curP = JSON.parse(now);
           if (prevP.offsetType !== curP.offsetType) {
             for (const m of pairMates(new Set([id]))) m.params.offsetType = curP.offsetType;
+          }
+          if (prevP.grow !== curP.grow) { // §263: grow도 짝 공유 (중간값 없는 기하 상태)
+            for (const m of pairMates(new Set([id]))) m.params.grow = curP.grow;
           }
         }
       }

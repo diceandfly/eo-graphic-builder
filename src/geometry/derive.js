@@ -12,26 +12,30 @@ export function deriveUnit(p) {
   const localW = odd ? p.H : p.W;
   const localH = odd ? p.W : p.H;
   const D = (localH * clamp(p.dPct, 0, D_PCT_MAX)) / 100;
-  // flipX(표시 계수): 저작 파라미터는 그대로 두고 렌더 시에만 방향·기울기를 반전
-  const direction = p.flipX
-    ? (p.direction === 'LtoS' ? 'StoL' : 'LtoS')
-    : p.direction;
+  // §263: flipX = **컬럼 좌표 미러 + 나사산 형상 미러(threadDir 스왑)** — 완전한 표시 미러.
+  // (§261의 "direction 스왑" 방식은 부호 모델에서 밀도만 뒤집고 생산 끝단·컷·offset 흐름을
+  //  안 뒤집어 flipX가 반쪽 미러가 됐었음 — 교차 유닛들의 cols 생산이 전부 같은 쪽으로 나오던 버그)
+  // §263: grow('r'|'l') = 유닛별 생산/흐름 끝단 선택 — 컬럼 좌표 미러만(형상은 유지).
+  // 둘이 겹치면 상쇄(XOR).
   const threadDir = p.flipX
     ? (p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR')
     : p.threadDir;
-  const columns = computeColumns({
+  let columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
-    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction,
+    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction: p.direction,
     offset: p.offset ?? 0,
     // §262: offsetType — 'step'(기본) = 부분 칸을 온전 슬롯으로(유닛 밖 연장 → 렌더 클립) /
     // 'flow' = 눌린 부분 칸 (종전)
     mode: p.offsetType === 'flow' ? 'flow' : 'step',
   });
+  if ((p.grow === 'l') !== !!p.flipX) {
+    columns = columns.map((c) => ({ L: localW - c.R, R: localW - c.L, w: c.w })).reverse();
+  }
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
     a: p.a, b: p.b, threads: p.threads, threadDir,
   });
-  // clip: step 가상 경계가 유닛 밖으로 나갈 때만 렌더가 클립 창을 씌움
+  // clip: step 가상 경계가 유닛 밖으로 나갈 때만 렌더가 클립 창을 씌움 (미러 반영 후 판정)
   const clip = columns.some((c) => c.L < -1e-6 || c.R > localW + 1e-6);
   return { localW, localH, D, columns, unit, clip };
 }

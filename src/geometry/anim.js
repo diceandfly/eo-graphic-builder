@@ -78,7 +78,7 @@ export function lerpHex(a, b, t) {
 
 // §226: 보간 불가 이산키 — 수치여도 중간값이 무의미(orientation 45° 등). 편집 차단(§220 표)의 엔진측 방어.
 const DISCRETE_KEYS = new Set([
-  'orientation', 'flipX', 'threads', 'threadDir', 'gutterMode',
+  'orientation', 'flipX', 'threads', 'threadDir', 'gutterMode', 'grow',
   'compModeX', 'compModeY', 'compOn', 'compLock', 'fillOn', 'strokeOn', 'gridOn', 'unitMode', 'showGuides',
 ]); // §229: direction은 rate와 결합한 부호 보간으로 이동 (컷 대상 아님)
 
