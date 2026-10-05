@@ -7,7 +7,8 @@ const f = (n) => n.toFixed(3);
 
 // params → 지오메트리 파생. Vue 의존성 0 — 렌더러와 export가 공유.
 // params.W/H는 캔버스(회전 반영) 치수, 지오메트리는 로컬(비회전) 좌표계에서 계산.
-export function deriveUnit(p) {
+// opts.threadMin (§274): threadMinPx 보정 오버라이드 — 애니 시뮬레이터의 "보정 끄기" 토글 경로
+export function deriveUnit(p, opts = {}) {
   const odd = p.orientation === 90 || p.orientation === 270;
   const localW = odd ? p.H : p.W;
   const localH = odd ? p.W : p.H;
@@ -39,6 +40,7 @@ export function deriveUnit(p) {
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
     a: p.a, b: p.b, threads: p.threads, threadDir,
+    threadMin: opts.threadMin ?? null,
   });
   // clip: step 가상 경계가 유닛 밖으로 나갈 때만 렌더가 클립 창을 씌움 (미러 반영 후 판정)
   const clip = columns.some((c) => c.L < -1e-6 || c.R > localW + 1e-6);

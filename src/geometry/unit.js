@@ -6,7 +6,8 @@ import { EPS, LIMITS } from './constants.js';
 // 'both': shaft 세로 중앙, 상/하 thread 밴드 대칭
 // 'one' : shaft가 캔버스 바닥에 접하고(shaftBot = H), 상단 밴드가 위쪽 전체를 차지
 // threadDir: 'LtoR' | 'RtoL' — RtoL이면 각 col 안에서 thread를 좌우 반전
-export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir = 'LtoR' }) {
+// threadMin: §274 — threadMinPx(§108) 오버라이드 (애니 시뮬레이터 토글용). null/undefined = 전역 LIMITS.
+export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir = 'LtoR', threadMin = null }) {
   const one = threads === 'one';
   const rtl = threadDir === 'RtoL';
   const shaftTop = one ? H - D : (H - D) / 2;
@@ -25,7 +26,7 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
 
   const threadsTop = [];
   const threadsBottom = [];
-  const minW = LIMITS.threadMinPx;  // 극한 압축 보정 — 문서 px 절대 하한 (§108)
+  const minW = threadMin ?? LIMITS.threadMinPx;  // 극한 압축 보정 — 문서 px 절대 하한 (§108)
   const blendEnd = 3 * minW;          // minW~3·minW 구간에서 사다리꼴 → 직사각형 모프
   const wantBottom = !one;
   if (h >= EPS) {

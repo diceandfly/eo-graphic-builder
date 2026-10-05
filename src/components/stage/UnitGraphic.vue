@@ -7,13 +7,14 @@ const props = defineProps({
   params: Object,
   showGuides: Boolean,
   seamWidth: { type: Number, default: 0 }, // 접합 봉합 스트로크 (화면 px, 0이면 없음)
+  threadMin: { type: Number, default: null }, // §274: threadMinPx 보정 오버라이드 (null = 전역 LIMITS)
 });
 const fill = computed(() => props.params.fill || BRAND_COLORS[0]);
 
 const f = (n) => n.toFixed(3);
 const pts = (poly) => poly.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
 
-const d = computed(() => deriveUnit(props.params));
+const d = computed(() => deriveUnit(props.params, { threadMin: props.threadMin }));
 const otf = computed(() =>
   orientationTransform(props.params.orientation, d.value.localW, d.value.localH) || undefined
 );

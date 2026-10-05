@@ -21,6 +21,11 @@ const props = defineProps({
 // §244: fps 옵션(30/24) — 재생·익스포트 공통 (§220의 30 고정 해제). cycles = 익스포트 반복 회수.
 const fps = ref(Number(localStorage.getItem('eo.animFps')) === 24 ? 24 : 30);
 watch(fps, (v) => localStorage.setItem('eo.animFps', String(v)));
+// §274: 스트로크(threadMinPx §108) 보정 토글 — off면 애니 프리뷰·익스포트에서 극한 압축 보정 없이
+// 스레드가 실제 폭 그대로 0까지 테이퍼 (끝 스레드가 일정 두께 유지하다 뚝 사라지는 현상 회피용).
+// 스테이지 렌더는 영향 없음 — 이 창의 렌더 경로(UnitGraphic threadMin)에만 적용.
+const strokeFix = ref(localStorage.getItem('eo.animStrokeFix') !== 'off');
+watch(strokeFix, (v) => localStorage.setItem('eo.animStrokeFix', v ? 'on' : 'off'));
 const cycles = ref((() => {
   const v = Number(localStorage.getItem('eo.animCycles'));
   return Number.isInteger(v) && v >= 1 && v <= 8 ? v : 1;
@@ -146,6 +151,7 @@ function loadSim(e) {
   simLoading = true;
   if (e.sim.loop === 'pingpong' || e.sim.loop === 'loop') loopMode.value = e.sim.loop;
   if (e.sim.fps === 24 || e.sim.fps === 30) fps.value = e.sim.fps;
+  if (typeof e.sim.strokeFix === 'boolean') strokeFix.value = e.sim.strokeFix; // §274
   if (Number.isInteger(e.sim.cycles)) cycles.value = e.sim.cycles;
   for (const k of ['format', 'scale', 'alpha', 'hold']) if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
   nextTick(() => { simLoading = false; });
@@ -153,12 +159,12 @@ function loadSim(e) {
 function saveSim() {
   if (simLoading || !props.edge) return;
   props.edge.sim = {
-    loop: loopMode.value, fps: fps.value, cycles: cycles.value,
+    loop: loopMode.value, fps: fps.value, cycles: cycles.value, strokeFix: strokeFix.value, // §274
     format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold,
   };
 }
 watch(loopMode, () => { dir = 1; p.value = Math.min(1, Math.max(0, p.value)); }); // §265: 모드 전환 즉시 정규화
-watch([loopMode, fps, cycles], saveSim);
+watch([loopMode, fps, cycles, strokeFix], saveSim);
 watch(exportCfg, saveSim);
 watch(() => props.edge, (e) => { stop(); p.value = 0; dir = 1; loadSim(e); }, { immediate: true });
 onBeforeUnmount(stop);
@@ -365,7 +371,7 @@ const totalLabel = computed(() => {
                0.5px 비치던 것 — 배경 rect를 viewBox 밖까지 1px 오버드로(루트 클립이 잘라줌, export 동일) -->
           <rect :x="-1" :y="-1" :width="pose.W + 2" :height="pose.H + 2" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
-            <UnitGraphic :params="it.params" :seam-width="0.75" />
+            <UnitGraphic :params="it.params" :seam-width="0.75" :thread-min="strokeFix ? null : 0" />
           </g>
         </svg>
         <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체)
@@ -406,6 +412,14 @@ const totalLabel = computed(() => {
           <div class="segMini">
             <button :class="{ on: fps === 30 }" @click="fps = 30">30fps</button>
             <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
+          </div>
+        </div>
+        <!-- §274: 스트로크 보정(threadMinPx §108) 토글 — off = 끝 스레드가 보정 없이 0까지 테이퍼 -->
+        <div class="optRow">
+          <span class="optLabel">Stroke fix</span>
+          <div class="segMini">
+            <button :class="{ on: strokeFix }" @click="strokeFix = true">on</button>
+            <button :class="{ on: !strokeFix }" @click="strokeFix = false">off</button>
           </div>
         </div>
         <!-- ── §247·§251: 익스포트 그룹 — 투명 · 배율 · 반복 · 홀드 · 포맷(맨 아래) · 저장 ── -->

@@ -2175,3 +2175,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - **grow 미동기의 진범 = 라이브 워처의 전파 대상 수집**: 워처가 `primaryLid`(LINK_CATS 첫 범주의 lid) **하나**의 멤버만 모아 전파했음 — 범주별 그룹이 다른 멀티 링크(예: size는 A-B, animation은 A-C)에서 뒤 범주 상대(C)가 통째로 누락. 수정 = **모든 범주 lid의 멤버 합집합**을 대상으로 모으고, 키별 실제 전파는 종전대로 filterByLinkScope(범주 멤버십)가 거른다. 테스트 2건 추가(전파 + 비멤버 차단, 75케이스).
 - **ANIMATION 섹션 순서**: offset → cols grow direction (§265 순서 교체, 사용자 확정).
+
+## 275. 2026-10-06 — 애니 시뮬레이터 Stroke fix 토글 (threadMinPx 보정 끄기)
+
+- **"끝 스레드가 일정 두께 유지하다 뚝" 현상의 원인 규명**: threadMinPx 보정(§108, 기본 1px, ZoomBadge "Thread min") — buildUnit이 폭<minW 스레드를 고정 minW 직사각형으로 치환 → 압축 좁은 쪽으로 밀리는 꼬리 스레드가 1px를 유지하다 극소칸 드랍(가시폭<0.75px)에서 소멸. 필드·클립 수학 자체는 연속.
+- **Stroke fix 토글**(애니창, Frame rate 아래): off = 이 창의 프리뷰·익스포트 렌더에서만 보정 제거(UnitGraphic `threadMin=0` → deriveUnit/buildUnit 오버라이드 경로 신설) — 스레드가 실제 폭 그대로 0까지 테이퍼. 스테이지·정적 export는 종전 보정 유지. 설정은 edge.sim 동반 저장 + localStorage(eo.animStrokeFix) 초기값. 수치 검증: on 최소폭 1.000px / off 0.005px, 컬럼 구성 동일.
+- 열린 제안(미구현): 보정 자체를 꼬리에서 자연 소멸시키는 len 비례 가드(minW×min(1,len)) — 정적 보정 유지 + 애니 연속성 양립안. 사용자 결정 대기.
