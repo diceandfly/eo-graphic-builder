@@ -42,6 +42,8 @@ const singleLinked = computed(() => props.selected.length === 1 && primaryLid(pr
 // §264: 섹션 접기 — 서브타이틀 우측 화살표 토글, 상태는 localStorage 영속
 const fold = reactive((() => { try { return JSON.parse(localStorage.getItem('eo.panelFold') || '{}'); } catch { return {}; } })());
 function toggleFold(k) { fold[k] = !fold[k]; localStorage.setItem('eo.panelFold', JSON.stringify(fold)); }
+// §296: 접기 상태는 프레임/유닛 선택이 **비공유** — 프레임은 'f_' 네임스페이스 키 (유닛 키는 종전 유지)
+const fkey = (k) => (isFrame.value ? 'f_' + k : k);
 // (§264: offset 조건부 표시 폐기 — ANIMATION 섹션 + 접기로 대체)
 // 선택 전체가 이미 하나의 링크인지
 const linked = computed(() => {
@@ -271,7 +273,7 @@ function setStrokeColor(c) {
             @click="eachMode = !eachMode"
           >each</button>
         </div>
-        <button class="foldTg foldEnd" :class="{ isFolded: fold.size }" @click="toggleFold('size')"><svg viewBox="0 0 24 24"><path :d="fold.size ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button>
+        <button class="foldTg foldEnd" :class="{ isFolded: fold[fkey('size')] }" @click="toggleFold(fkey('size'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('size')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button>
       </div>
       <NumberField
         :label="isFrame ? `width (${unitSuffix})` : 'width'" :model-value="toDisp(dispW)"
@@ -315,36 +317,11 @@ function setStrokeColor(c) {
       </template>
     </section>
 
-    <!-- 직사각형 전용: 렌더 스타일 — fill(면) / stroke(외곽선) 토글 (§75) -->
+    <!-- 직사각형 전용 (§296: 순서 = GRID → STYLE, 사용자 확정) -->
     <template v-if="isFrame">
+    <!-- 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산). on/off 옵션 폐기 — 상시 표시 (§131) -->
     <section>
-      <h2 class="secH">Style<button class="foldTg" :class="{ isFolded: fold.style }" @click="toggleFold('style')"><svg viewBox="0 0 24 24"><path :d="fold.style ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
-      <!-- §110: fill/stroke 독립 on·off — stroke on일 때만 색·두께 확장 옵션 -->
-      <Toggle
-        label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
-        @update:model-value="(v) => (p.fillOn = v === 'on')"
-      />
-      <Toggle
-        label="stroke" :model-value="p.strokeOn ? 'on' : 'off'" :options="ON_OFF"
-        @update:model-value="(v) => (p.strokeOn = v === 'on')"
-      />
-      <template v-if="p.strokeOn">
-        <!-- §133: width를 color 위로 -->
-        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" />
-        <div class="strokeRow">
-          <span class="rowLabel">stroke color</span>
-          <ColorField
-            :model-value="p.stroke" :recents="recentColors" side="right" :fallback="p.stroke"
-            @update:model-value="setStrokeColor"
-            @remove-recent="removeRecentColor"
-          />
-        </div>
-      </template>
-    </section>
-
-    <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산). on/off 옵션 폐기 — 상시 표시 (§131) -->
-    <section>
-      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold[fkey('grid')] }" @click="toggleFold(fkey('grid'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('grid')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <!-- §132 확정 순서: margin → gutter rows/cols → rows/cols → compression 블록 -->
       <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
       <Slider
@@ -421,11 +398,37 @@ function setStrokeColor(c) {
         />
       </template>
     </section>
+
+    <!-- 렌더 스타일 — fill(면) / stroke(외곽선) 토글 (§75) -->
+    <section>
+      <h2 class="secH">Style<button class="foldTg" :class="{ isFolded: fold[fkey('style')] }" @click="toggleFold(fkey('style'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('style')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <!-- §110: fill/stroke 독립 on·off — stroke on일 때만 색·두께 확장 옵션 -->
+      <Toggle
+        label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.fillOn = v === 'on')"
+      />
+      <Toggle
+        label="stroke" :model-value="p.strokeOn ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => (p.strokeOn = v === 'on')"
+      />
+      <template v-if="p.strokeOn">
+        <!-- §133: width를 color 위로 -->
+        <Slider label="stroke width" v-model="p.strokeW" :min="1" :max="100" :step="1" />
+        <div class="strokeRow">
+          <span class="rowLabel">stroke color</span>
+          <ColorField
+            :model-value="p.stroke" :recents="recentColors" side="right" :fallback="p.stroke"
+            @update:model-value="setStrokeColor"
+            @remove-recent="removeRecentColor"
+          />
+        </div>
+      </template>
+    </section>
     </template>
 
     <template v-if="!isFrame">
     <section>
-      <h2 class="secH">Shape<button class="foldTg" :class="{ isFolded: fold.shape }" @click="toggleFold('shape')"><svg viewBox="0 0 24 24"><path :d="fold.shape ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <h2 class="secH">Shape<button class="foldTg" :class="{ isFolded: fold[fkey('shape')] }" @click="toggleFold(fkey('shape'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('shape')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
@@ -453,7 +456,7 @@ function setStrokeColor(c) {
     </section>
 
     <section>
-      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold[fkey('grid')] }" @click="toggleFold(fkey('grid'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('grid')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <!-- §278: 용어 교체 — cols → threads (파라미터 키는 cols 유지) -->
       <Slider
         label="threads" v-model="p.cols"
@@ -485,7 +488,7 @@ function setStrokeColor(c) {
     </section>
     <!-- §264: ANIMATION 섹션 — offset 묶음 승격 (조건부 표시 폐기, 접기로 대체) -->
     <section>
-      <h2 class="secH">Animation<button class="foldTg" :class="{ isFolded: fold.anim }" @click="toggleFold('anim')"><svg viewBox="0 0 24 24"><path :d="fold.anim ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <h2 class="secH">Animation<button class="foldTg" :class="{ isFolded: fold[fkey('anim')] }" @click="toggleFold(fkey('anim'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('anim')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <div class="offsetSet">
         <!-- §274: 순서 = offset → grow (사용자 확정 — §265 순서 교체).
              §273: offset mode 토글 숨김 — step으로 통일 (flow 로직·데이터는 유지) -->

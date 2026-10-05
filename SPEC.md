@@ -2316,3 +2316,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - **§292 반쪽 적용의 원인 = flipX 라벨 공간 불일치**: dockedEnds 라벨은 dockNodePoint 기준(미러 **전** 로컬 u=0/1)인데 buildUnit 컬럼은 flipX 미러 **후** 공간 — flipX 유닛은 반대쪽 끝이 처리됐음. deriveUnit에서 flipX면 좌/우 라벨 스왑. 수치 검증: 비플립(우측 399.5~400.5)·플립(좌측 −0.5~0.5) 모두 마주 보는 경계 중심.
 - **회전 락 완화(사용자 확정)**: 결착 유닛의 **체인 전체가 조작 대상(선택+프레임 동반)에 포함되면 함께 회전 허용** — 단독 둘만 선택이든 큰 바운딩박스 포함이든. 상대 기하가 통째로 돌아 결착 정의 유지, 회전 후 재정렬 워처가 새 축으로 무결 재집행(수직 축 거터 10 보존 테스트). 체인이 쪼개지는 회전만 락(dockRotateBlocked). 단독 rotate(활성 1기)는 종전 락 + 안내문 갱신. 테스트 2건(94케이스), 매뉴얼 갱신.
+
+## 296. 2026-10-06 — 프레임 패널 순서 SIZE→GRID→STYLE · 접기 상태 프레임/유닛 분리
+
+- 프레임 선택 시 섹션 순서 = SIZE → GRID → STYLE (종전 STYLE→GRID — 사용자 확정).
+- 접기(fold) 상태 비공유: 프레임 섹션은 `f_` 네임스페이스 키(f_size·f_grid·f_style)로 저장 — 유닛 키(size·shape·grid·anim)는 종전 유지(마이그레이션 불요). fkey(k) 헬퍼 단일 경로.
+- 수술 중 회귀 1건 즉시 수선: Style 블록 이동 시 `<template v-if="isFrame">` 여는 태그가 딸려가 프레임 Grid 섹션이 가드 밖 노출 → 유닛 선택에서 margin undefined로 패널 마운트 크래시(블랙 스크린). 가드 복구 + dev 서버 재시작 포함 실검증(순서·f_grid 분리 저장·상호 불간섭 E2E).
