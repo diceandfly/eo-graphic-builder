@@ -2195,7 +2195,7 @@ onBeforeUnmount(() => {
 }
 .edgeMenu {
   @include popup-menu;
-  @include chamfer(5px); // §257·§258: 챔퍼 통일 5px — 노드 타이밍 팝업
+  @include chamfer(7.5px); // §259: chamfer-1(7.5px) — 노드 타이밍 팝업
   position: fixed; z-index: 11;
 }
 .durWrap { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); display: inline-flex; align-items: center; gap: 4px; }
