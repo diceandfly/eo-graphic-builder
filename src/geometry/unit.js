@@ -28,11 +28,14 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
   const minW0 = LIMITS.threadMinPx; // 극한 압축 보정 — 문서 px 절대 하한 (§108)
   const wantBottom = !one;
   if (h >= EPS) {
-    for (const { L, R, w, len = 1 } of columns) {
+    for (const [ci, { L, R, w, len = 1 }] of columns.entries()) {
       // §276: 가드 강도 = len(칸의 인덱스 공간 잔존 길이) 비례 — 경계를 빠져나가는 꼬리 칸은
       // 보정이 자연 소멸하며 0까지 테이퍼 (일정 두께 유지 후 뚝 사라지던 팝 제거).
       // 온전한 칸(len=1)은 종전 보정 그대로 (MIN_COL_W·거터 스케일과 같은 문법).
-      const minW = minW0 * Math.max(0, Math.min(1, len));
+      // §286: **끝 칸은 절반값** (사용자 확정) — 좁은 끝의 마지막 스레드가 더 가늘게 마감돼
+      // 1px 런의 끝이 부드러움. 넓은 끝 칸은 어차피 w ≫ minW라 영향 없음.
+      const endCell = ci === 0 || ci === columns.length - 1;
+      const minW = minW0 * (endCell ? 0.5 : 1) * Math.max(0, Math.min(1, len));
       const blendEnd = 3 * minW; // minW~3·minW 구간에서 사다리꼴 → 직사각형 모프
       if (w < minW) {
         // 극한 압축: 최소폭 직사각형으로 대체 (캔버스 안쪽으로 클램프) — 밑변은 cy까지

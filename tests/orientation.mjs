@@ -109,14 +109,18 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
     flipX: false, offset: 0, offsetType: 'step', grow: 'r',
   };
   const widthOf = (poly) => Math.max(...poly.map((pt) => pt[0])) - Math.min(...poly.map((pt) => pt[0]));
-  // 정적 회귀: 온전 칸(len=1)의 극세 스레드는 종전대로 threadMinPx(1px) 보장
+  // 정적 회귀: 온전 칸(len=1)의 극세 스레드 가드 — 내부 1px, §286: 끝 칸은 절반(0.5px)
   const d = deriveUnit(base);
+  const last = d.columns.length - 1;
   const fullTiny = d.columns
-    .map((c, i) => ({ c, th: widthOf(d.unit.threadsTop[i]) }))
-    .filter(({ c }) => (c.len ?? 1) >= 1 - 1e-9 && c.w < 1);
+    .map((c, i) => ({ c, i, th: widthOf(d.unit.threadsTop[i]) }))
+    .filter(({ c }) => (c.len ?? 1) >= 1 - 1e-9 && c.w < 0.5);
   assert.ok(fullTiny.length >= 3, '극압축 온전 극세 칸 존재');
-  for (const { th } of fullTiny) assert.ok(Math.abs(th - 1) < 1e-6, `온전 칸 가드 1px 유지 (${th})`);
-  ok('§276: 온전 칸(len=1) threadMin 가드 종전 유지', () => {});
+  for (const { i, th } of fullTiny) {
+    const want = i === 0 || i === last ? 0.5 : 1;
+    assert.ok(Math.abs(th - want) < 1e-6, `가드 폭 @${i}: ${th} (기대 ${want})`);
+  }
+  ok('§276·§286: threadMin 가드 — 내부 1px 유지 · 끝 칸 절반', () => {});
   // 연속성: 좁은 끝 꼬리의 가시 렌더 폭 — cols 스윕에서 프레임 간 점프 ≤ 0.3px (종전 ≈1px 팝)
   const tailVis = (p) => {
     const dv = deriveUnit(p);
