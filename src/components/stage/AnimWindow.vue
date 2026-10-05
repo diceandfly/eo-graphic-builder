@@ -251,10 +251,10 @@ const timeLabel = computed(() => {
   return `${((p.value * d) / 1000).toFixed(2)}s / ${(d / 1000).toFixed(2)}s`;
 });
 // §226: 프리뷰 높이 = 폭 × 프레임 비율 (창 리사이즈가 프레임 비율을 유지)
-// §248: 화면 풀블리드 — 프리뷰가 좌우 패딩 없이 창 폭을 가득 채움
+// §248·§249: 화면 = 좌우 4px 미니 패딩만 (풀블리드는 과했음 — 사용자 정정)
 const previewH = computed(() => {
   const ratio = pose.value ? pose.value.H / pose.value.W : 9 / 16;
-  return Math.round(winW.value * ratio);
+  return Math.round((winW.value - 8) * ratio);
 });
 </script>
 
@@ -266,7 +266,13 @@ const previewH = computed(() => {
     :style="{ width: winW + 'px', ...(pos ? { left: pos.x + 'px', top: pos.y + 'px', right: 'auto', bottom: 'auto' } : {}) }"
     @pointerdown.stop="onWinDown" @wheel.stop @contextmenu.stop.prevent
   >
-    <h2 class="title" title="Drag to move">Animation</h2>
+    <!-- §249: 옵션 접기 토글 = 타이틀바 우측 — 접힌 상태에서 하단 바 불필요 (사용자 확정) -->
+    <div class="titleRow">
+      <h2 class="title" title="Drag to move">Animation</h2>
+      <button v-if="pose" class="optTg" :title="optsOpen ? 'Hide options' : 'Show options'" @click="optsOpen = !optsOpen">
+        <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
+      </button>
+    </div>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
       <div class="pvWrap">
@@ -289,10 +295,6 @@ const previewH = computed(() => {
           <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
         </div>
       </div>
-      <!-- §247: 옵션 접기 토글 — 재생화면 바로 아래, 프리뷰 제외 전부 보기/숨기기 -->
-      <button class="optTg" :title="optsOpen ? 'Hide options' : 'Show options'" @click="optsOpen = !optsOpen">
-        <svg viewBox="0 0 24 24"><path :d="optsOpen ? 'M6 14.5 12 8.5 18 14.5' : 'M6 9.5 12 15.5 18 9.5'" /></svg>
-      </button>
       <template v-if="optsOpen">
         <!-- ── 재생 그룹: 스크러버 · 시간 · 루프 모드 · 반복 · 프레임레이트 ── -->
         <input
@@ -384,12 +386,12 @@ const previewH = computed(() => {
   letter-spacing: 0; margin: 0; text-transform: capitalize;
   cursor: move; user-select: none; -webkit-user-select: none;
 }
-/* §227: 클릭 = 재생/정지 · §248: 화면 풀블리드 — 좌우 패딩 상쇄로 창 폭 가득 */
-.pvWrap { position: relative; cursor: pointer; margin: 0 calc(-1 * var(--panel-pad)); }
+/* §227: 클릭 = 재생/정지 · §249: 좌우 4px 미니 패딩 (풀블리드 완화) */
+.pvWrap { position: relative; cursor: pointer; margin: 0 calc(4px - var(--panel-pad)); }
 .preview {
   width: 100%; display: block;
   background: var(--stage-bg);
-  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); /* §248: 블리드 밴드 — 좌우 보더·라운딩 없음 */
+  border: 1px solid var(--line); border-radius: var(--radius);
 }
 /* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
 .pvPlay {
@@ -446,10 +448,11 @@ const previewH = computed(() => {
   &:disabled { color: var(--disabled); }
 }
 .holdIn { width: 48px; }
-// §247: 옵션 접기 토글 — 프리뷰 하단 슬림 셰브론 (풀폭)
+// §247·§249: 옵션 접기 토글 — 타이틀바 우측 셰브론
+.titleRow { display: flex; align-items: center; justify-content: space-between; }
 .optTg {
   border: none; background: none; cursor: pointer; padding: 0;
-  height: 12px; margin: -4px 0; display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
   svg { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
   &:hover svg { stroke: var(--accent); }
 }
