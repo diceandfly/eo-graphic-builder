@@ -26,7 +26,6 @@ const props = defineProps({
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
   anim: Boolean,         // §255: 애니 모드 — offset 행 조건부 표시용
-  linkGroups: { type: Array, default: () => [] }, // §264: 전역 링크그룹 [{lid, n}]
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
@@ -266,8 +265,8 @@ function setStrokeColor(c) {
     <template v-if="unit">
     <section>
       <div class="secHead">
-        <h2 class="secH">Size<button class="foldTg" :class="{ isFolded: fold.size }" @click="toggleFold('size')"><svg viewBox="0 0 24 24"><path :d="fold.size ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
-        <div class="headBtns">
+        <h2 class="secH">Size</h2>
+        <div class="headBtns"><!-- §265: 단위/each 토글 = 서브타이틀 바로 옆, 셰브론 = 행 끝 -->
           <!-- rect 전용 px/cm 표기 토글 — SIZE·RATIO·GRID 표기에 공통 적용 (§75) -->
           <div v-if="isFrame" class="unitSeg">
             <button :class="{ on: !isCm }" @click="setUnitMode('px')">px</button>
@@ -280,6 +279,7 @@ function setStrokeColor(c) {
             @click="eachMode = !eachMode"
           >each</button>
         </div>
+        <button class="foldTg foldEnd" :class="{ isFolded: fold.size }" @click="toggleFold('size')"><svg viewBox="0 0 24 24"><path :d="fold.size ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button>
       </div>
       <NumberField
         :label="isFrame ? `width (${unitSuffix})` : 'width'" :model-value="toDisp(dispW)"
@@ -476,17 +476,18 @@ function setStrokeColor(c) {
     <section>
       <h2 class="secH">Animation<button class="foldTg" :class="{ isFolded: fold.anim }" @click="toggleFold('anim')"><svg viewBox="0 0 24 24"><path :d="fold.anim ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <div class="offsetSet">
+        <!-- §265: 순서 = grow → mode → offset (사용자 확정 213). grow = 논리 파라미터:
+             cols 생산·offset 흐름이 compression과 같은 쪽(with)인지 반대쪽(counter)인지 -->
+        <Toggle
+          label="cols grow direction" :model-value="p.grow ?? 'r'"
+          :options="[{ value: 'r', label: 'with' }, { value: 'l', label: 'counter' }]"
+          @update:model-value="(v) => { p.grow = v; }"
+        />
         <!-- §262: step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
         <Toggle
           label="offset mode" :model-value="p.offsetType ?? 'step'"
           :options="[{ value: 'step', label: 'step' }, { value: 'flow', label: 'flow' }]"
           @update:model-value="(v) => { p.offsetType = v; }"
-        />
-        <!-- §263: 생산/흐름 끝단 — 유닛별 반전(교차 연출). flipX와 달리 나사산 형상은 유지 -->
-        <Toggle
-          label="grow direction" :model-value="p.grow ?? 'r'"
-          :options="[{ value: 'r', label: 'right' }, { value: 'l', label: 'left' }]"
-          @update:model-value="(v) => { p.grow = v; }"
         />
         <Slider
           label="offset" v-model="p.offset"
@@ -533,7 +534,6 @@ function setStrokeColor(c) {
       :rows-visible="scopeChipsVisible"
       :single="singleLinked"
       :selected="selected"
-      :groups="linkGroups"
       @link="(scope) => emit('link', scope)"
       @set-cat-link="(cat, v) => emit('setCatLink', cat, v)"
       @unlink-one="emit('unlinkOne')"
@@ -589,7 +589,9 @@ section > :last-child { margin-bottom: 0; }
   svg { width: 12px; height: 12px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
   &:hover svg { stroke: var(--accent); }
 }
-section:has(> .secH .foldTg.isFolded) > :not(.secH) { display: none; }
+/* §265: 헤더가 래퍼(.secHead) 안에 있는 섹션(Size)도 커버 — 헤더류만 남기고 바디 숨김 */
+section:has(.foldTg.isFolded) > :not(.secH):not(.secHead) { display: none; }
+.foldEnd { margin-left: auto; }
 /* §264: 압축 ± 전환 칩 — ChipRow 칩과 동일 문법 */
 .pmChip {
   @include bordered-control;
@@ -606,7 +608,7 @@ section:has(> .secH .foldTg.isFolded) > :not(.secH) { display: none; }
 // §139·§140: 고정 높이 — each/px·cm 버튼 유무와 무관하게 헤더 총높이 25px(21+4) 불변 (밀림 방지).
 // 버튼 세로폭은 Toggle 세그와 동일(§140) — 늘어난 만큼 하단 마진에서 상쇄해 행간 유지.
 .secHead {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; align-items: center; gap: 8px; /* §265: between 폐기 — 단위/each = 타이틀 옆, 셰브론 = 행 끝(auto) */
   height: 21px; margin-bottom: 4px;
   h2 { margin: 0; }
 }

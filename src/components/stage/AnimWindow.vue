@@ -115,8 +115,12 @@ function tick(now) {
   if (loopMode.value === 'pingpong') {
     if (np >= 1) { np = 1; dir = -1; }
     else if (np <= 0) { np = 0; dir = 1; }
-  } else if (np >= 1) {
-    np = 0; // cycle: 처음으로 (§246: once 폐기)
+  } else {
+    // §265: cycle — 핑퐁에서 넘어온 dir=-1 잔존 시 p가 음수로 폭주하며 화면이 먹통이 되던 버그.
+    // cycle은 항상 전진.
+    dir = 1;
+    if (np >= 1) np = 0;
+    if (np < 0) np = 0;
   }
   p.value = np;
 }
@@ -153,6 +157,7 @@ function saveSim() {
     format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold,
   };
 }
+watch(loopMode, () => { dir = 1; p.value = Math.min(1, Math.max(0, p.value)); }); // §265: 모드 전환 즉시 정규화
 watch([loopMode, fps, cycles], saveSim);
 watch(exportCfg, saveSim);
 watch(() => props.edge, (e) => { stop(); p.value = 0; dir = 1; loadSim(e); }, { immediate: true });

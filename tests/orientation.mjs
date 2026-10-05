@@ -2,7 +2,7 @@
 // 과거 버그: localPointToCanvas가 flipX를 캔버스(회전 후) 미러로 계산해 90/270°+flipX 조합에서
 // 판정이 180° 어긋남 → "좌우반전했는데 앵커가 상하로 바뀌어 보이는" 이상현상.
 import { strict as assert } from 'node:assert';
-import { localPointToCanvas, canvasPointToLocal } from '../src/geometry/derive.js';
+import { localPointToCanvas, canvasPointToLocal, deriveUnit } from '../src/geometry/derive.js';
 
 let passed = 0;
 function ok(name, fn) {
@@ -75,6 +75,30 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
     }
   }
   ok('플립 연산: 화면 H/V 미러 = 상태 변환과 정확 일치 (16 시나리오 전수)', () => {});
+}
+
+
+// ── §265: grow = 형태 불변의 논리 파라미터 — 정적 레이아웃 동일, 생산 끝단만 반대 ──
+{
+  const base = {
+    W: 960, H: 800, orientation: 0, cols: 6, gutterMode: 'fixed', gutterPx: 10, g: 0.2,
+    rate: 2, direction: 'LtoS', dPct: 35, a: 0.4, b: 0, threads: 'both', threadDir: 'LtoR',
+    flipX: false, offset: 0, offsetType: 'step', grow: 'r',
+  };
+  const wsR = deriveUnit(base).columns.map((c) => c.w);
+  const wsL = deriveUnit({ ...base, grow: 'l' }).columns.map((c) => c.w);
+  assert.equal(wsR.length, wsL.length);
+  for (let i = 0; i < wsR.length; i += 1) assert.ok(Math.abs(wsR[i] - wsL[i]) < 1e-6, `정적 형태 변형 @${i}`);
+  ok('grow: 정적 레이아웃 불변 (r = l, 정수 cols·offset 0)', () => {});
+  const cr = deriveUnit({ ...base, cols: 6.4 }).columns;
+  const cl = deriveUnit({ ...base, cols: 6.4, grow: 'l' }).columns;
+  assert.ok(cr[cr.length - 1].R > base.W + 1e-6, 'grow r: 우측 연장');
+  assert.ok(Math.abs(cr[0].L) < 1e-6, 'grow r: 좌측 고정');
+  assert.ok(cl[0].L < -1e-6, 'grow l: 좌측 연장');
+  assert.ok(Math.abs(cl[cl.length - 1].R - base.W) < 1e-6, 'grow l: 우측 고정');
+  // 밀도 방향(넓→좁)은 양쪽 동일 — compression과 충돌 없음
+  assert.ok(cr[0].w > cr[cr.length - 2].w && cl[1].w > cl[cl.length - 1].w);
+  ok('grow: 부분 칸 끝단만 미러 — 밀도 방향 불변 (compression 독립)', () => {});
 }
 
 console.log(`✓ orientation: ${passed} cases passed`);

@@ -13,24 +13,29 @@ export function deriveUnit(p) {
   const localH = odd ? p.W : p.H;
   const D = (localH * clamp(p.dPct, 0, D_PCT_MAX)) / 100;
   // §263: flipX = **컬럼 좌표 미러 + 나사산 형상 미러(threadDir 스왑)** — 완전한 표시 미러.
-  // (§261의 "direction 스왑" 방식은 부호 모델에서 밀도만 뒤집고 생산 끝단·컷·offset 흐름을
-  //  안 뒤집어 flipX가 반쪽 미러가 됐었음 — 교차 유닛들의 cols 생산이 전부 같은 쪽으로 나오던 버그)
-  // §263: grow('r'|'l') = 유닛별 생산/흐름 끝단 선택 — 컬럼 좌표 미러만(형상은 유지).
-  // 둘이 겹치면 상쇄(XOR).
+  // §265: grow = **형태 불변의 논리 파라미터** (사용자 재정의) — 정적 레이아웃(압축 분포)은
+  // 그대로 두고, cols 생산·offset 흐름의 끝단만 compression과 같은 쪽/반대쪽으로 정한다.
+  // 구현: 반대쪽(l)이면 "필드를 뒤집어 계산한 결과를 좌표 미러" — 밀도는 이중 반전으로 원위치,
+  // 컷 사다리·부분 칸 끝단·흐름만 미러된다. (§263의 '절대 좌표 미러' 방식은 정적 형태까지
+  // 뒤집어 compression ±·orientation과 중복 충돌 — 폐기)
   const threadDir = p.flipX
     ? (p.threadDir === 'LtoR' ? 'RtoL' : 'LtoR')
     : p.threadDir;
+  const rev = p.grow === 'l';
+  const fieldDir = rev
+    ? (p.direction === 'LtoS' ? 'StoL' : 'LtoS')
+    : p.direction;
   let columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
-    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction: p.direction,
+    gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction: fieldDir,
     offset: p.offset ?? 0,
     // §262: offsetType — 'step'(기본) = 부분 칸을 온전 슬롯으로(유닛 밖 연장 → 렌더 클립) /
     // 'flow' = 눌린 부분 칸 (종전)
     mode: p.offsetType === 'flow' ? 'flow' : 'step',
   });
-  if ((p.grow === 'l') !== !!p.flipX) {
-    columns = columns.map((c) => ({ L: localW - c.R, R: localW - c.L, w: c.w })).reverse();
-  }
+  const mirrorCols = (cs) => cs.map((c) => ({ L: localW - c.R, R: localW - c.L, w: c.w })).reverse();
+  if (rev) columns = mirrorCols(columns);      // §265: 생산/흐름만 반대 끝 (밀도 원위치)
+  if (p.flipX) columns = mirrorCols(columns);  // §263: 표시 미러 (형상은 threadDir 스왑이 담당)
   const unit = buildUnit({
     columns, W: localW, H: localH, D,
     a: p.a, b: p.b, threads: p.threads, threadDir,

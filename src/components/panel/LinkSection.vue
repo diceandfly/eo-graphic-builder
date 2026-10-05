@@ -1,25 +1,22 @@
 <script setup>
 import { ref } from 'vue';
 
-// LINK 섹션 — §264: 다중 링크 그룹 UI (범주 행 × 그룹 번호 코인).
-// 각 범주(size/orientation/grid/shape/color/animation)가 **서로 다른 파트너 그룹**을 가질 수 있다 —
-// 행의 코인 클릭 → 옵션 칩(— / 그룹 번호들 / +New)에서 그 범주의 소속만 바꾼다.
-// 상단 Link/Unlink 버튼은 "전 범주 기본 스코프로 새 그룹" 숏컷으로 유지 (§68 문법 계승).
+// LINK 섹션 — §265: 범주별 **linked | solo** 원클릭 토글 (§264 번호 코인 UI 폐기 — 사용자:
+// "그룹 번호를 내가 고르는 건 과함". 멘탈 모델 = "선택된 유닛들끼리, 이 범주는 통일 / 이 범주는 각자").
+// 행 클릭: off → 선택 유닛들을 그 범주 한 그룹으로(선택 안에 기존 그룹이 있으면 합류, 없으면 새 그룹)
+//          on  → 그 범주 해제(각자). 그룹 id는 내부 자동 관리 — 번호 노출 없음.
 const props = defineProps({
   linked: Boolean,
   single: Boolean,       // 링크 멤버 1개만 선택 — "이 유닛만 해제" 모드 (§73)
   rowsVisible: Boolean,  // 유닛 전용 (프레임 혼합 선택이면 행 숨김 — 프레임 링크는 전체 동기)
   selected: { type: Array, default: () => [] },
-  groups: { type: Array, default: () => [] }, // [{ lid, n }] — 문서 전역, lid 오름차순 번호
 });
 const emit = defineEmits(['link', 'unlinkOne', 'setCatLink']);
 
-// §264: 패널 표기 순서 (orientation은 §205에서 칩 삭제됐었으나 행 UI로 복귀 — 명시 지정이 가능해짐)
 const CATS = ['size', 'orientation', 'grid', 'shape', 'color', 'animation'];
 // Link parameters 숏컷의 기본 스코프 (useDocument linkScopeDefault와 동일 값 유지)
 const DEFAULT_SCOPE = { size: true, orientation: false, grid: true, shape: true, color: false, animation: true };
 
-const open = ref(null); // 펼친 범주 행
 // §264: 섹션 접기 (ControlPanel과 동일 문법·저장 키 공유)
 const foldInit = (() => { try { return !!JSON.parse(localStorage.getItem('eo.panelFold') || '{}').link; } catch { return false; } })();
 const folded = ref(foldInit);
@@ -31,22 +28,24 @@ function toggleFold() {
     localStorage.setItem('eo.panelFold', JSON.stringify(f));
   } catch { /* 저장 실패 무시 */ }
 }
+
 const units = () => props.selected.filter((u) => u.type !== 'frame');
-// 행의 현재 값: 선택 전원이 같은 lid면 그 lid, 전원 null이면 null, 갈리면 'mixed'
-function catVal(cat) {
+// 행 상태: 'on'(전원 같은 그룹) | 'off'(전원 solo) | 'mixed'
+function catState(cat) {
   const us = units();
-  if (!us.length) return null;
+  if (!us.length) return 'off';
   const v = us[0].links?.[cat] ?? null;
-  return us.every((u) => (u.links?.[cat] ?? null) === v) ? v : 'mixed';
+  if (!us.every((u) => (u.links?.[cat] ?? null) === v)) return 'mixed';
+  return v == null ? 'off' : 'on';
 }
-const numOf = (lid) => props.groups.find((g) => g.lid === lid)?.n ?? '?';
-const coinLabel = (cat) => {
-  const v = catVal(cat);
-  return v === 'mixed' ? '—*' : v == null ? '—' : String(numOf(v));
-};
-function pick(cat, v) {
-  emit('setCatLink', cat, v);
-  open.value = null;
+function rowToggle(cat) {
+  if (catState(cat) === 'on') {
+    emit('setCatLink', cat, null); // 각자
+  } else {
+    // 선택 안에 이미 그 범주 그룹이 있으면 합류, 없으면 새 그룹
+    const lids = units().map((u) => u.links?.[cat]).filter((x) => x != null);
+    emit('setCatLink', cat, lids[0] ?? 'new');
+  }
 }
 </script>
 
@@ -61,26 +60,17 @@ function pick(cat, v) {
     <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
       {{ linked ? 'Unlink parameters' : 'Link parameters' }}
     </button>
-    <!-- §264: 범주 행 — 라벨 + 현재 그룹 코인. 클릭 = 그 범주의 그룹 선택지 펼침 -->
+    <!-- §265: 범주 토글 행 — "선택끼리 이 범주 통일(linked) / 각자(solo)" -->
     <div v-if="rowsVisible && !single" class="catRows">
-      <div v-for="cat in CATS" :key="cat" class="catRow">
-        <div class="catLine">
-          <span class="catLabel">{{ cat }}</span>
-          <button
-            class="coin" :class="{ on: catVal(cat) != null && catVal(cat) !== 'mixed', open: open === cat }"
-            @click="open = open === cat ? null : cat"
-          >{{ coinLabel(cat) }}</button>
-        </div>
-        <div v-if="open === cat" class="catOpts">
-          <button class="opt" :class="{ on: catVal(cat) == null }" @click="pick(cat, null)">—</button>
-          <button
-            v-for="g in groups" :key="g.lid"
-            class="opt" :class="{ on: catVal(cat) === g.lid }"
-            @click="pick(cat, g.lid)"
-          >{{ g.n }}</button>
-          <button v-if="selected.length >= 2" class="opt new" @click="pick(cat, 'new')">+ new</button>
-        </div>
-      </div>
+      <button
+        v-for="cat in CATS" :key="cat"
+        class="catTg" :class="{ on: catState(cat) === 'on', mixed: catState(cat) === 'mixed' }"
+        :title="catState(cat) === 'on' ? 'Linked — click to make each solo' : 'Solo — click to link selection'"
+        @click="rowToggle(cat)"
+      >
+        <span class="catName">{{ cat }}</span>
+        <span class="catState">{{ catState(cat) === 'on' ? 'linked' : catState(cat) === 'mixed' ? 'mixed' : 'solo' }}</span>
+      </button>
     </div>
     </template>
   </section>
@@ -108,26 +98,17 @@ section h2 {
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
 .ghost.linked { border-color: var(--accent); color: var(--accent); }
-/* §264: 범주 행 — L5 라벨 + 코인(그룹 번호 칩). 링크 배지 번호 문법과 동일 */
+/* §265: 범주 토글 행 — 좌 라벨(L5) / 우 상태 뱃지. on = 액센트 */
 .catRows { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.catLine { display: flex; align-items: center; justify-content: space-between; }
-.catLabel { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint); text-transform: capitalize; }
-.coin {
+.catTg {
   @include bordered-control;
-  min-width: 26px; height: 19px; padding: 0 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--faint); font-variant-numeric: tabular-nums;
+  height: 21px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  color: var(--faint);
+  .catName { text-transform: capitalize; }
+  .catState { font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); }
   &.on { border-color: var(--accent); color: var(--accent); }
-  &.open { background: var(--hover-bg); }
-}
-.catOpts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.opt {
-  @include bordered-control;
-  min-width: 24px; height: 19px; padding: 0 6px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--faint); font-variant-numeric: tabular-nums;
-  &.on { border-color: var(--accent); color: var(--accent); }
-  &.new { text-transform: lowercase; }
-  &:hover { color: var(--accent); border-color: var(--accent); }
+  &.mixed .catState { color: var(--dim); font-style: normal; }
+  &:hover { border-color: var(--accent); color: var(--accent); }
 }
 </style>

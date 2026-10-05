@@ -2101,3 +2101,13 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 4. **링크 범주 재편** — **animation 신설**: cols·grow·offsetType·offset (grid에서 분리 — "같은 그리드, 반전 애니" 조합. 사용자 확정). grid = gutterMode·gutterPx·g·rate·direction. 구 문서 백필: links.animation ← links.grid. 스포이드 범주 동반(프레임 grid cols는 프레임 줄로 이동). 기본 스코프 animation on.
 5. **다중 링크 그룹 UI** (§220 열린 과제 — 번호 코인 방식 구현): LinkSection = 범주 6행(size/orientation/grid/shape/color/animation) × 현재 그룹 **번호 코인** — 코인 클릭 → 옵션 칩(— 해제 / 기존 그룹 번호 / +new(선택≥2)). 전역 그룹 번호 = 문서 lid 오름차순 1..k(App linkGroupList — 주의: 스테이지 배지 번호는 선택-상대라 다를 수 있음, 추후 통일 검토). useDocument.setCategoryLink 단일 경로(cleanupLinks 공유). 기존 Link/Unlink 버튼 = "기본 스코프 새 그룹" 숏컷 유지, 스코프 칩 UI 폐기. 실측: 두 유닛 animation만 new → 코인 1, offset 동기·rate 독립.
 6. **패널 다이어트** — ①유닛 Ratio 칩 폐지(프레임 규격 칩 유지) ②압축 칩 끝 **± 칩**(rate 유지, direction만 반전) ③**섹션 접기**: SIZE/STYLE/GRID/ANIMATION/SHAPE/LINK 헤더 우측 셰브론(:has 바디 숨김, localStorage eo.panelFold) ④**ANIMATION 섹션 신설** — offset 묶음(mode/grow/offset) 승격, 조건부 표시 폐기(접기로 대체).
+
+## 265. 2026-10-06 — grow = 논리 파라미터 재정의·링크 UI 재단순화(linked/solo)·cycle 먹통·헤더 정비
+
+1. **chamfer-0 = 10px** (15 과함 — 메인 패널·프리셋창).
+2. **pingpong→cycle 실시간 전환 먹통 수정** — 핑퐁의 역방향(dir=-1) 잔존 상태로 cycle에 진입하면 p가 음수로 폭주(화면 소실, 모드 재진입 시에만 회복). cycle 분기 = 항상 전진(dir=1)+음수 가드, 모드 전환 watch에서 즉시 정규화.
+3. **grow 재정의** (사용자: "형태에 적용되지 않는 논리적 설정") — §263 절대 좌표 미러 폐기(compression ±·orientation과 중복 충돌). 신정의: **정적 레이아웃(밀도 분포) 불변**, cols 생산·offset 흐름 끝단만 compression과 같은 쪽(with)/반대쪽(counter). 구현 = 필드 반전 계산 후 좌표 미러(이중 반전으로 밀도 원위치). flipX와 독립 합성. node 검증+테스트 2건(orientation 5): 정적 r=l 완전 동일·끝단만 미러·밀도 방향 불변.
+4. **ANIMATION 섹션 순서 213** — Cols Grow Direction(**with | counter**) → Offset Mode → Offset.
+5. **SIZE 헤더 정비** — 셰브론이 h2 안(래퍼 때문에 :has 불발·위치 이상)이던 것: 단위/each 토글 = 타이틀 바로 옆, 셰브론 = 행 끝(margin auto), :has 규칙을 래퍼 포함형으로 교체. 실측 접기 작동.
+6. **링크 UI 재단순화** (§264 번호 코인 폐기 — 사용자: 그룹 수동 관리 과함): 범주 6행 = **[linked | solo] 원클릭 토글** — off→선택을 한 그룹으로(기존 그룹 있으면 합류, 없으면 새로), on→각자 해제. 그룹 id 완전 내부화(번호 비노출). "그리드·형태만 통일 + 애니 상수는 각자" = grid/shape linked + animation solo 두 클릭. 실측: 혼합 상태 표시·grid 토글 전환.
+7. 간격 패스 — secHead 좌측 정렬+gap 통일(8px), 신설 행들 기존 리듬(헤더 아래 12·행간 6~8) 정렬.
