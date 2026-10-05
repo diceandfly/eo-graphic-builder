@@ -925,4 +925,31 @@ function centerIn(u, f) {
   });
 }
 
+// §274. 멀티 링크 라이브 동기 — 범주별 그룹이 달라도 뒤 범주(animation) 상대에 전파
+// (종전: primaryLid 하나의 멤버만 모아 size 링크 상대에게만 전파 → grow 미동기)
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1); u2.x += 3000;
+  const u3 = api.duplicateFrom(u1); u3.x += 6000;
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u2.id], 'size', 'new');      // 앞 범주 링크 = u1-u2
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u3.id], 'animation', 'new'); // 뒤 범주 링크 = u1-u3
+  await sleep(30);
+  api.doc.selectedIds = [u1.id];
+  api.doc.activeId = u1.id;
+  u1.params.grow = 'l';
+  await sleep(30);
+  ok('§274: animation 링크 상대(비 primaryLid 그룹)에 grow 전파', () => {
+    assert.equal(u3.params.grow, 'l');
+  });
+  ok('§274: 범주 필터 유지 — size만 링크된 u2에는 grow 미전파', () => {
+    assert.equal(u2.params.grow, 'r');
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

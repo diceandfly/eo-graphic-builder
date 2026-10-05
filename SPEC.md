@@ -2170,3 +2170,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **압축 프리셋 칩 6열 그리드**: .compSet 칩 행 = repeat(6,1fr) 100% 폭 — 유닛 pitch compression은 11칩+± = 정확히 2행, 프레임 comp rows/cols도 동일 문법.
 - **이름 행 위계**: 사다리에 `--sp-head`(34) 추가 — 개체 이름 행→첫 섹션 간격을 섹션 간(26)보다 크게 (종전 16으로 역전돼 있었음).
 - **페어 번호 = 뷰포트 동시 가시 한정**: AnimOverlay pairIndex가 viewRect(DashboardStage 월드 사각형, 팬/줌 반응) 교차 프레임의 계보만 1..k 재부여. 가시 계보 <2면 번호 숨김은 종전 문법 그대로. 실측: 팬아웃 시 번호 0개(마크는 유지)→복귀 시 1..4 재부여.
+
+## 274. 2026-10-06 — 멀티 링크 라이브 동기 수술(primaryLid 누락) · ANIMATION 순서 offset→grow
+
+- **grow 미동기의 진범 = 라이브 워처의 전파 대상 수집**: 워처가 `primaryLid`(LINK_CATS 첫 범주의 lid) **하나**의 멤버만 모아 전파했음 — 범주별 그룹이 다른 멀티 링크(예: size는 A-B, animation은 A-C)에서 뒤 범주 상대(C)가 통째로 누락. 수정 = **모든 범주 lid의 멤버 합집합**을 대상으로 모으고, 키별 실제 전파는 종전대로 filterByLinkScope(범주 멤버십)가 거른다. 테스트 2건 추가(전파 + 비멤버 차단, 75케이스).
+- **ANIMATION 섹션 순서**: offset → cols grow direction (§265 순서 교체, 사용자 확정).

@@ -546,8 +546,15 @@ export function useDocument() {
       }
       const linkT = new Set();
       const me = doc.units.find((u) => u.id === id);
-      const myLid = me ? primaryLid(me) : null;
-      if (myLid != null) for (const lid of linkMemberIds(myLid)) linkT.add(lid);
+      // §274: 전파 대상 = **모든 범주 lid**의 멤버 합집합 — primaryLid(첫 범주) 하나만 쓰면
+      // 범주별 그룹이 다른 멀티 링크에서 뒤 범주(animation 등) 상대가 누락됨 (grow 미동기 원인).
+      // 키별 실제 전파 여부는 아래 filterByLinkScope가 범주 멤버십으로 거른다.
+      if (me?.links) {
+        for (const c of LINK_CATS) {
+          if (me.links[c] == null) continue;
+          for (const mid of linkMemberIds(me.links[c])) linkT.add(mid);
+        }
+      }
       selT.delete(id);
       linkT.delete(id);
       for (const t of selT) linkT.delete(t); // 선택에 포함된 유닛은 전체 패치 우선

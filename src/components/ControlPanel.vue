@@ -494,19 +494,19 @@ function setStrokeColor(c) {
     <section>
       <h2 class="secH">Animation<button class="foldTg" :class="{ isFolded: fold.anim }" @click="toggleFold('anim')"><svg viewBox="0 0 24 24"><path :d="fold.anim ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <div class="offsetSet">
-        <!-- §265: 순서 = grow → mode → offset (사용자 확정 213). grow = 논리 파라미터:
-             cols 생산·offset 흐름이 compression과 같은 쪽(with)인지 반대쪽(counter)인지 -->
-        <Toggle
-          label="cols grow direction" :model-value="p.grow ?? 'r'"
-          :options="[{ value: 'r', label: '+' }, { value: 'l', label: '−' }]"
-          @update:model-value="(v) => { p.grow = v; }"
-        />
-        <!-- §273: offset mode 토글 숨김 — step으로 통일 (flow 로직·데이터는 유지) -->
+        <!-- §274: 순서 = offset → grow (사용자 확정 — §265 순서 교체).
+             §273: offset mode 토글 숨김 — step으로 통일 (flow 로직·데이터는 유지) -->
         <Slider
           label="offset" v-model="p.offset"
           :min="-12" :max="12" :step="0.01" :arrow-step="1" :decimals="2"
           :snap-to="0" :snap-radius="0.08"
           :mixed="mixed('offset')"
+        />
+        <!-- grow = 논리 파라미터: cols 생산·offset 흐름이 compression과 같은 쪽(+)인지 반대쪽(−)인지 -->
+        <Toggle
+          label="cols grow direction" :model-value="p.grow ?? 'r'"
+          :options="[{ value: 'r', label: '+' }, { value: 'l', label: '−' }]"
+          @update:model-value="(v) => { p.grow = v; }"
         />
       </div>
     </section>
