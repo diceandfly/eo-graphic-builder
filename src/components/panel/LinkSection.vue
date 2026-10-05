@@ -38,10 +38,13 @@ function catState(cat) {
   if (!us.every((u) => (u.links?.[cat] ?? null) === v)) return 'mixed';
   return v == null ? 'off' : 'on';
 }
+// §278: 단일 선택 + solo 상태 = 결성 불가(상대 없음) — 칩 비활성
+const soloDisabled = (cat) => units().length < 2 && catState(cat) !== 'on';
 function rowToggle(cat) {
   if (catState(cat) === 'on') {
-    emit('setCatLink', cat, null); // 각자
+    emit('setCatLink', cat, null); // 각자 (단일 선택이면 그 유닛만 그룹 이탈)
   } else {
+    if (soloDisabled(cat)) return;
     // 선택 안에 이미 그 범주 그룹이 있으면 합류, 없으면 새 그룹
     const lids = units().map((u) => u.links?.[cat]).filter((x) => x != null);
     emit('setCatLink', cat, lids[0] ?? 'new');
@@ -54,12 +57,16 @@ function rowToggle(cat) {
     <h2 class="secH">Link<button class="foldTg" @click="toggleFold"><svg viewBox="0 0 24 24"><path :d="folded ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
     <template v-if="!folded">
     <!-- §265·§267: 범주 토글 칩 — 컴팩트(내용 폭·랩 배치). linked = 전체 하이라이트,
-         mixed = 보더 하이라이트 없이 상태 텍스트만 강조 (사용자 확정) -->
-    <div v-if="rowsVisible && !single" class="catRows">
+         mixed = 보더 하이라이트 없이 상태 텍스트만 강조 (사용자 확정)
+         §278: 단일 선택에서도 상시 표시 — linked 칩 클릭 = 그 범주만 이탈, solo 칩은 상태 표시만
+         (상대 없는 단독 결성은 무의미라 비활성) -->
+    <div v-if="rowsVisible" class="catRows">
       <button
         v-for="cat in CATS" :key="cat"
-        class="catTg" :class="{ on: catState(cat) === 'on', mixed: catState(cat) === 'mixed' }"
-        :title="catState(cat) === 'on' ? 'Linked — click to make each solo' : 'Solo — click to link selection'"
+        class="catTg" :class="{ on: catState(cat) === 'on', mixed: catState(cat) === 'mixed', dis: soloDisabled(cat) }"
+        :title="catState(cat) === 'on'
+          ? (units().length < 2 ? 'Linked — click to leave this group' : 'Linked — click to make each solo')
+          : soloDisabled(cat) ? 'Solo — select 2+ units to link' : 'Solo — click to link selection'"
         @click="rowToggle(cat)"
       >
         <span class="catName">{{ cat }}</span>
@@ -70,7 +77,7 @@ function rowToggle(cat) {
     <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
       Unlink this unit
     </button>
-    <button v-else class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
+    <button v-else-if="selected.length >= 2" class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
       {{ linked ? 'Unlink parameters' : 'Link parameters' }}
     </button>
     </template>
@@ -112,5 +119,6 @@ section h2 {
   &.on { border-color: var(--accent); color: var(--accent); }
   &.mixed .catState { color: var(--accent); }
   &:hover { border-color: var(--accent); color: var(--accent); }
+  &.dis { cursor: default; color: var(--disabled); &:hover { border-color: var(--line); color: var(--disabled); } } /* §278 */
 }
 </style>

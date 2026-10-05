@@ -2195,3 +2195,13 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 한 키프레임에서 링크를 걸면/바꾸면/해제하면 계보의 다른 키프레임 짝 유닛들도 같은 구조로 — **프레임별 분리 lid**(duplicatePairedFrame lidMap 관례)로 복제, 값은 짝 프레임 자체 기준 유닛으로 **그 프레임 안에서만** 통일(키프레임 간 값 차이 = 애니 재료, 불간섭). 멤버십이 이미 일치하면 lid 재사용(무교란).
 - 진입점 4곳 공통: setCategoryLink · toggleLinkSelected(결성/해제) · splitLinkSelected · unlinkUnit → syncPairLinks. §268 통일 로직은 unifyCatMembers로 단일화해 공유.
 - 테스트 3건(복제·값 통일·해제 동기, 78케이스).
+
+## 278. 2026-10-06 — 도킹(docking) 1차 + 링크 UI 정리 + 용어 교체 + 자잘 원복
+
+- **도킹 — 샤프트 노드 수동 결착 (사용자 설계 확정)**: 유닛 선택 시 샤프트 양끝에 **사각형 노드**(애니 노드 = 프레임·애니 모드·원형과 삼중 구분). 우노드 드래그 → 다른 유닛 좌노드 드롭 = 결착(문법 = 애니 와이어: 노드당 1연결·재드래그 이설·빈 곳 해제). 결착 = 샤프트 축 평행이동 정렬 + 사이 거터 = 양쪽 gutterPx **평균**, 직렬 체인(3·4연속+) 지원, **사이클 가드**.
+  - 지속성: 어느 멤버를 끌어도 **체인 전체 동반 이동**(드래그·방향키), 선택·파라미터는 유닛 개별(링크와 독립), **회전만 락**(반전 허용 — 축 불변), 거터·W 등 수치 변경은 워처로 **실시간 재정렬**.
+  - 모델: doc.docks[{from,to}] — 자동저장·undo·JSON IO·pruneMeta(유닛 소멸 시 정리) 편입. dockNodePoint(threads both=중앙, one=바닥 접지 보정, orientation/flipX는 localPointToCanvas 경유). 테스트 7건(정렬·평균 거터·직렬·사이클·실시간·동반·회전락, 85케이스). E2E 드래그 결착·undo 복원 실측.
+- **링크 인디케이터 폐기 → 도크 배지 승계**: 스테이지 사슬 배지가 결착 유닛 표시로 전환(뷰 옵션 라벨 "Show dock badges", 키 showLinks 저장 호환 유지). 번호·visibleLinkIds 로직 제거.
+- **LINK 섹션 단일 선택 상시 표시**: 칩 6종이 단일 유닛에서도 상태 표시 — linked 칩 클릭 = 그 범주만 이탈, solo 칩은 비활성(상대 없음). Link parameters 버튼은 2개 이상에서만.
+- **용어 교체(패널·매뉴얼)**: cols → **Threads** · pitch compression → **Thread Compression** · 프레임 compression → **Grid Compression** · cols grow direction → **Thread Driving Direction** (파라미터 키는 불변).
+- **자잘**: 애니 툴바 버튼 활성 = §260 네온 솔리드 삼각형 원복(§273 버튼 반전은 촌스러움 — 사용자). 페어 팝업 Select all frames in chain 숨김(점선 영역 드래그로 충분), Detach 아이콘 = 사슬+슬래시 신설(ICONS.detach — ▶ 오용 수정). Stroke fix는 §276에서 이미 철회 확인. 매뉴얼 도킹 절 추가(한/영).

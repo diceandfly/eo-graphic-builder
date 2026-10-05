@@ -56,6 +56,16 @@ export const primaryLid = (u) => {
   return null;
 };
 
+// §278: 도킹 노드 좌표 (캔버스 px) — 유닛 샤프트 중심선의 양 끝.
+// 로컬 v = 샤프트 중심 (both = 1/2, one = 바닥 접지라 1 − dPct/200), u = 0(좌) | 1(우).
+// orientation·flipX는 localPointToCanvas가 처리 — 회전 상태에서도 샤프트 실제 끝을 가리킨다.
+export function dockNodePoint(unit, side) {
+  const p = unit.params;
+  const v = p.threads === 'one' ? 1 - (p.dPct ?? 0) / 200 : 0.5;
+  const [cx, cy] = localPointToCanvas(p, side === 'right' ? 1 : 0, v);
+  return [unit.x + cx * p.W, unit.y + cy * p.H];
+}
+
 // 문서 모델: 스테이지 위 유닛 버전들 + 멀티선택 상태.
 // - activeId: 패널이 편집하는 유닛 (선택 해제 후에도 유지, 유닛 0개면 null)
 // - selectedIds: 바운딩박스/이동/일괄 편집 대상
@@ -167,12 +177,14 @@ export function useDocument() {
   let savedGroupNames = {};
   let savedLinkScopes = {}; // §220: 구 스키마 이관용 (런타임 상태 아님)
   let savedAnimEdges = [];
+  let savedDocks = [];
   try {
     const raw = JSON.parse(localStorage.getItem(DOC_KEY) || 'null');
     savedUnits = raw?.units ?? null;
     savedGroupNames = raw?.groupNames ?? {};
     savedLinkScopes = raw?.linkScopes ?? {};
     savedAnimEdges = raw?.animEdges ?? [];
+    savedDocks = raw?.docks ?? []; // §278
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
   const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map((u) => migrateUnit(u, savedLinkScopes));
@@ -190,6 +202,7 @@ export function useDocument() {
     keyId: null, // 정렬 기준(키 오브젝트) — 멀티선택 중 재클릭으로 지정
     groupNames: savedGroupNames, // gid → 이름 (Group-N)
     animEdges: savedAnimEdges, // §220: 키프레임 연결 [{ from, to, duration, curve, ... }] — Phase B+
+    docks: savedDocks, // §278: 도킹 [{ from, to }] — from 유닛 우측 샤프트 노드 → to 유닛 좌측 노드
     animOn: false, // §255: 애니 모드 플래그 (reactive — 패널의 조건부 표시용. 영속 안 함)
   });
   recalcCounters();
@@ -212,13 +225,13 @@ export function useDocument() {
   // 자동 저장 (500ms 디바운스) — 유닛 + 그룹 이름 + 애니메이션 엣지 (§220: version 2 — linkScopes 폐기)
   let saveTimer = null;
   watch(
-    () => JSON.stringify({ u: doc.units, g: doc.groupNames, a: doc.animEdges }),
+    () => JSON.stringify({ u: doc.units, g: doc.groupNames, a: doc.animEdges, k: doc.docks }),
     (snap) => {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
-        const { u, g, a } = JSON.parse(snap);
+        const { u, g, a, k } = JSON.parse(snap);
         localStorage.setItem(DOC_KEY, JSON.stringify({
-          version: 2, savedAt: Date.now(), units: u, groupNames: g, animEdges: a,
+          version: 2, savedAt: Date.now(), units: u, groupNames: g, animEdges: a, docks: k,
         }));
       }, 500);
     }
@@ -230,6 +243,8 @@ export function useDocument() {
     for (const k of Object.keys(doc.groupNames)) if (!gids.has(Number(k))) delete doc.groupNames[k];
     const fids = new Set(doc.units.filter((u) => u.type === 'frame').map((u) => u.id));
     doc.animEdges = doc.animEdges.filter((e) => fids.has(e.from) && fids.has(e.to));
+    const uids = new Set(doc.units.filter((u) => u.type !== 'frame').map((u) => u.id));
+    doc.docks = doc.docks.filter((e) => uids.has(e.from) && uids.has(e.to)); // §278
     for (const u of doc.units) if (u.home != null && !fids.has(u.home)) u.home = null; // §225
     // §254: 계보(pair)에 프레임이 1개만 남으면 자동 페어 초기화 — 짝 잃은 키프레임은 일반 프레임 복귀
     // (unpairFrame과 동일 정리를 인라인로 — 재귀 없이 일괄 스윕)
@@ -249,6 +264,7 @@ export function useDocument() {
     doc.units.splice(0, doc.units.length, ...units.map((u) => migrateUnit(u, meta.linkScopes ?? {})));
     doc.groupNames = meta.groupNames ?? {};
     doc.animEdges = meta.animEdges ?? [];
+    doc.docks = meta.docks ?? []; // §278
     doc.selectedIds = [];
     doc.activeId = units.length ? units[units.length - 1].id : null;
     recalcCounters();
@@ -590,7 +606,7 @@ export function useDocument() {
   // §103: registerHistoryExtra로 외부 상태(프리셋 라이브러리)도 같은 스택에 편입 가능
   let extraHist = null; // { get: () => serializable, set: (v) => void }
   const histSnap = () => JSON.stringify({
-    u: doc.units, g: doc.groupNames, a: doc.animEdges,
+    u: doc.units, g: doc.groupNames, a: doc.animEdges, k: doc.docks, // §278: 도킹 포함
     ...(extraHist ? { x: extraHist.get() } : {}),
   });
   const stack = [histSnap()];
@@ -623,11 +639,12 @@ export function useDocument() {
     // 활성 유닛 값으로 덮어쓰고 스택을 오염시키던 버그 차단 (분리 감지 없이 가드만)
     geomOp = true;
     try {
-      const { u, g, a, x } = JSON.parse(snap);
+      const { u, g, a, k, x } = JSON.parse(snap);
       if (extraHist && x !== undefined) extraHist.set(x);
       doc.units.splice(0, doc.units.length, ...u);
       doc.groupNames = g ?? {};
       doc.animEdges = a ?? [];
+      doc.docks = k ?? []; // §278
       doc.selectedIds = doc.selectedIds.filter((id) => doc.units.some((x) => x.id === id));
       if (!doc.units.find((x) => x.id === doc.activeId)) {
         doc.activeId = doc.units.length ? doc.units[doc.units.length - 1].id : null;
@@ -912,6 +929,99 @@ export function useDocument() {
     return doc.animEdges.length !== n;
   }
 
+  // ---- §278: 도킹(docking) — 샤프트 노드 수동 결착 ----
+  // 문법 = 애니 와이어와 동일(우→좌 · 노드당 1연결 · 재드래그 = 이설 · 빈 곳 드롭 = 해제)이되,
+  // 대상은 **유닛 + 비애니 모드** (프레임 + 애니 모드의 애니 노드와 혼동 원천 차단).
+  // 의미: 결착된 유닛들은 샤프트 축으로 정렬·접착(사이 거터 = 양쪽 gutterPx 평균), 함께 이동,
+  //       회전만 락 (orientation 외 파라미터·선택은 유닛 개별 — 링크와 독립).
+  const dockedIdSet = computed(() => {
+    const s = new Set();
+    for (const e of doc.docks) { s.add(e.from); s.add(e.to); }
+    return s;
+  });
+  // 도킹 인접 확장 — ids와 같은 결착 체인에 속한 유닛들 (ids 제외)
+  function dockMates(ids) {
+    const set = new Set(ids);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const e of doc.docks) {
+        const hf = set.has(e.from);
+        const ht = set.has(e.to);
+        if (hf !== ht) { set.add(e.from); set.add(e.to); grew = true; }
+      }
+    }
+    return doc.units.filter((u) => set.has(u.id) && !ids.includes(u.id));
+  }
+  function connectDock(fromId, toId) {
+    if (fromId === toId) return null;
+    const uOf = (id) => doc.units.find((u) => u.id === id && u.type !== 'frame');
+    if (!uOf(fromId) || !uOf(toId)) return null;
+    // 사이클 가드: to의 하류를 따라가 from에 닿으면 거부 (닫힌 고리 = 정렬 해 불능)
+    let cur = toId;
+    const seen = new Set();
+    while (cur != null && !seen.has(cur)) {
+      if (cur === fromId) return null;
+      seen.add(cur);
+      cur = doc.docks.find((e) => e.from === cur)?.to ?? null;
+    }
+    doc.docks = doc.docks.filter((e) => e.from !== fromId && e.to !== toId); // 노드당 1연결 — 재드래그 = 이설
+    const edge = { from: fromId, to: toId };
+    doc.docks.push(edge);
+    relayoutDocks();
+    return edge;
+  }
+  function disconnectDock(unitId, side = 'right') {
+    const n = doc.docks.length;
+    doc.docks = doc.docks.filter((e) => (side === 'right' ? e.from !== unitId : e.to !== unitId));
+    return doc.docks.length !== n;
+  }
+  // 결착 정렬 집행 — 체인 순서(루트→하류)로 to 유닛을 평행이동: to.좌노드 = from.우노드 + 거터×축방향.
+  // 수치 변경(W·gutterPx·dPct 등)도 워처 경유로 실시간 재정렬. 평행이동뿐이라 각 유닛의
+  // orientation·파라미터는 불변 (사용자 확정: 도킹은 묶음이 아니라 접착).
+  function relayoutDocks() {
+    if (!doc.docks.length) return;
+    const byId = new Map(doc.units.map((u) => [u.id, u]));
+    const outByFrom = new Map(doc.docks.map((e) => [e.from, e]));
+    const hasIn = new Set(doc.docks.map((e) => e.to));
+    for (const e0 of doc.docks) {
+      if (hasIn.has(e0.from)) continue; // 루트 엣지만 시작점
+      let e = e0;
+      const seen = new Set();
+      while (e && !seen.has(e)) {
+        seen.add(e);
+        const a = byId.get(e.from);
+        const b = byId.get(e.to);
+        if (a && b) {
+          const [arx, ary] = dockNodePoint(a, 'right');
+          const [alx, aly] = dockNodePoint(a, 'left');
+          const L = Math.hypot(arx - alx, ary - aly) || 1;
+          const g = ((a.params.gutterPx ?? 0) + (b.params.gutterPx ?? 0)) / 2;
+          const [blx, bly] = dockNodePoint(b, 'left');
+          const dx = arx + ((arx - alx) / L) * g - blx;
+          const dy = ary + ((ary - aly) / L) * g - bly;
+          if (Math.abs(dx) > 1e-6 || Math.abs(dy) > 1e-6) { b.x += dx; b.y += dy; }
+        }
+        e = outByFrom.get(e.to);
+      }
+    }
+  }
+  // 실시간 재정렬 — 결착 유닛의 위치·정렬 관련 수치만 감시 (전 문서 직렬화 회피)
+  watch(
+    () => {
+      if (!doc.docks.length) return '';
+      const ids = dockedIdSet.value;
+      return JSON.stringify([
+        doc.docks,
+        doc.units.filter((u) => ids.has(u.id)).map((u) => [
+          u.id, u.x, u.y, u.params.W, u.params.H, u.params.gutterPx,
+          u.params.dPct, u.params.threads, u.params.orientation, u.params.flipX,
+        ]),
+      ]);
+    },
+    () => relayoutDocks()
+  );
+
   function renameActive(name) {
     const t = name.trim();
     if (t && active.value) active.value.name = t;
@@ -962,10 +1072,11 @@ export function useDocument() {
     setSelection(copies.map((c) => c.id));
     return copies;
   }
-  // 선택 유닛 키보드 이동 (방향키 1px / Shift 10px)
+  // 선택 유닛 키보드 이동 (방향키 1px / Shift 10px) — §278: 도킹 체인 동반
   function nudgeSelected(dx, dy) {
+    const mates = new Set(dockMates(doc.selectedIds).map((u) => u.id));
     for (const u of doc.units) {
-      if (doc.selectedIds.includes(u.id)) {
+      if (doc.selectedIds.includes(u.id) || mates.has(u.id)) {
         u.x += dx;
         u.y += dy;
       }
@@ -1322,6 +1433,11 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
+    // §278: 도킹 중 회전 락 — 샤프트 축이 꺾이면 결착 정의가 무너짐 (반전은 축 불변이라 허용)
+    if (u.type !== 'frame' && dockedIdSet.value.has(u.id)) {
+      notify('Docked unit — rotation is locked while docked');
+      return;
+    }
     // §245: 프레임 회전 = 내부(기하 소속) 유닛 동반 (§261: 잠금 게이트 폐기 — 짝 동기로 대체)
     const carried = u.type === 'frame' ? frameOwnedUnits([u.id]) : [];
     // 링크 확산은 orientation 스코프가 켜진 링크만 (공용 헬퍼 경유)
@@ -1417,6 +1533,11 @@ export function useDocument() {
   function rotateSelected(dir) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
+    // §278: 도킹 중 회전 락 (단일 rotate와 동일 사유)
+    if (sel.some((u) => u.type !== 'frame' && dockedIdSet.value.has(u.id))) {
+      notify('Docked unit in selection — rotation is locked while docked');
+      return;
+    }
     // §245: 선택에 프레임이 있으면 내부(기하 소속) 유닛 동반 — bbox 기준은 선택만 (동반분은 같은 변환)
     const carried = frameOwnedUnits(sel.filter((u) => u.type === 'frame').map((u) => u.id))
       .filter((m) => !sel.includes(m)); // §261: 잠금 폐기 — 짝 동기
@@ -1766,6 +1887,7 @@ export function useDocument() {
     doc.keyId = null;
     doc.groupNames = {};
     doc.animEdges = [];
+    doc.docks = []; // §278
     nextPair = 1;
   }
 
@@ -1776,6 +1898,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
     duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
+    connectDock, disconnectDock, dockMates, dockedIdSet, // §278: 도킹
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

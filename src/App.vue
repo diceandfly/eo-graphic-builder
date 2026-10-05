@@ -151,6 +151,7 @@ function saveProject(scope = {}) {
     data.units = doc.units; // §220: 유닛이 범주형 links를 내장 (linkScopes 섹션 폐기)
     data.groupNames = doc.groupNames;
     data.animEdges = doc.animEdges;
+    data.docks = doc.docks; // §278
   }
   const prefsData = readJson('eo.prefs', {});
   if (scope.tools) {
@@ -168,7 +169,7 @@ async function openProject(file, scope = {}) {
   try {
     const data = JSON.parse(await file.text());
     if (scope.work !== false && Array.isArray(data.units)) {
-      docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes, animEdges: data.animEdges });
+      docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes, animEdges: data.animEdges, docks: data.docks });
     }
     // 카메라: 항상 마지막 저장 위치로 (v3 camera, v1·2 viewport 하위 호환)
     const cam = data.camera ?? data.viewport;

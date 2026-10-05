@@ -192,7 +192,7 @@ function resetGridDefaults() {
           </label>
           <label class="menuRow">
             <input type="checkbox" v-model="view.showLinks" />
-            <span>Show link badges</span>
+            <span>Show dock badges</span><!-- §278: 링크 배지 폐기 — 키(showLinks)는 저장 호환으로 유지 -->
           </label>
           <label class="menuRow">
             <input type="checkbox" v-model="view.showGroups" />

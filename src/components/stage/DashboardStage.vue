@@ -17,7 +17,7 @@ import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
-import { primaryLid } from '../../composables/useDocument.js';
+import { dockNodePoint } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -73,22 +73,53 @@ const groupOutlines = computed(() => {
     };
   });
 });
-// 현재 선택에 관련된 링크 그룹만 배지 표시
-const visibleLinkIds = computed(() => {
-  const set = new Set();
-  for (const u of props.doc.units) {
-    const lid = primaryLid(u); // §220: 범주형 links의 대표 lid
-    if (lid != null && props.doc.selectedIds.includes(u.id)) set.add(lid);
-  }
-  return set;
+// §278: 링크 배지 폐기(멀티 링크 전환으로 대표 lid 배지가 무의미 — 사용자 확정) →
+// 그 자리/아이콘을 **도크 배지**가 승계: 결착된 유닛 표시 (뷰 옵션 showLinks 키 재사용)
+const dockedIdSet = computed(() => {
+  const s = new Set();
+  for (const e of props.doc.docks) { s.add(e.from); s.add(e.to); }
+  return s;
 });
-// 링크 번호는 전역 누적이 아니라 "지금 보이는 링크들" 안에서 1..k로 그때그때 부여.
-// 링크가 하나뿐이면 숫자 없이 아이콘만 (§60).
-const linkIndex = computed(() => {
-  const ids = [...visibleLinkIds.value].sort((a, b) => a - b);
-  return Object.fromEntries(ids.map((id, i) => [id, i + 1]));
+// §278: 도킹 노드 — 표시 대상 = 선택/결착 유닛 (드래그 중엔 전 유닛이 타깃 후보)
+const dockDrag = ref(null); // { fromId, x1, y1, x, y }
+const dockPt = dockNodePoint;
+const dockedLeft = computed(() => new Set(props.doc.docks.map((e) => e.to)));
+const dockedRight = computed(() => new Set(props.doc.docks.map((e) => e.from)));
+const dockNodeUnits = computed(() => {
+  const units = props.doc.units.filter((u) => u.type !== 'frame');
+  if (dockDrag.value) return units;
+  return units.filter((u) => props.doc.selectedIds.includes(u.id) || dockedIdSet.value.has(u.id));
 });
-const showLinkNums = computed(() => visibleLinkIds.value.size >= 2);
+function onDockNodeDown(u) {
+  const [x1, y1] = dockNodePoint(u, 'right');
+  dockDrag.value = { fromId: u.id, x1, y1, x: x1, y: y1 };
+  const mv = (ev) => {
+    const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
+    if (dockDrag.value) { dockDrag.value.x = wx; dockDrag.value.y = wy; }
+  };
+  const up = (ev) => {
+    window.removeEventListener('pointermove', mv);
+    const d = dockDrag.value;
+    dockDrag.value = null;
+    if (!d) return;
+    const [wx, wy] = dropClientToWorld(ev.clientX, ev.clientY);
+    let hit = null;
+    let best = 14 / vp.scale; // 애니 노드와 동일 드롭 반경
+    for (const t of props.doc.units) {
+      if (t.type === 'frame' || t.id === d.fromId) continue;
+      const [nx, ny] = dockNodePoint(t, 'left');
+      const dist = Math.hypot(wx - nx, wy - ny);
+      if (dist < best) { best = dist; hit = t; }
+    }
+    if (hit) {
+      if (!props.actions.connectDock(d.fromId, hit.id)) toast('Cannot dock — this would close a loop');
+    } else if (props.actions.disconnectDock(d.fromId, 'right')) {
+      toast('Undocked');
+    }
+  };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up, { once: true });
+}
 
 const keyUnit = computed(() =>
   props.doc.keyId != null && props.doc.selectedIds.includes(props.doc.keyId)
@@ -248,6 +279,7 @@ function onChainAreaDown(e) {
     if (f.pair == null) continue;
     for (const o of props.actions.animOwnedUnits(f.id)) if (!targets.includes(o)) targets.push(o);
   }
+  for (const o of props.actions.dockMates(targets.map((t) => t.id))) if (!targets.includes(o)) targets.push(o); // §278
   beginDrag(e, { kind: 'move', targets: targets.map((t) => ({ u: t, x0: t.x, y0: t.y })) });
 }
 // §246: 프레임 2개 이상 선택 = 프레임 단위 조작 중 — 유닛 링크 배지 숨김
@@ -657,27 +689,7 @@ function onDeleteKeyframe() {
   toast(`Keyframe deleted — frame & ${ownedIds.length} unit${ownedIds.length === 1 ? '' : 's'} removed`);
   closePairMenu();
 }
-// §245: 체인 선택 — 연결(엣지)을 따라 확장한 프레임 전부 선택 (연결이 없으면 같은 계보의 페어).
-// 이동 시 소속 유닛은 §245 동반 규칙이 따라붙으므로 선택은 프레임만.
-function onSelectChain() {
-  const f = pairMenu.value.f;
-  const ids = new Set([f.id]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const ed of props.doc.animEdges) {
-      const hf = ids.has(ed.from);
-      const ht = ids.has(ed.to);
-      if (hf !== ht) { ids.add(ed.from); ids.add(ed.to); grew = true; }
-    }
-  }
-  if (ids.size === 1 && f.pair != null) {
-    for (const u of props.doc.units) if (u.type === 'frame' && u.pair === f.pair) ids.add(u.id);
-  }
-  props.actions.setSelection([...ids]);
-  props.doc.activeId = f.id;
-  closePairMenu();
-}
+// (§278: Select all frames in chain 폐기 — 체인 선택은 점선 합집합 영역 드래그(§252)로 충분, 사용자 확정)
 function onCtxAction(key) {
   if (key === 'front' || key === 'back') doOrder(key);
   else if (key === 'flip') doFlip('h');
@@ -1054,6 +1066,8 @@ function onUnitDown(u, e) {
       if (f.pair == null) continue;
       for (const o of props.actions.animOwnedUnits(f.id)) if (!targets.includes(o)) targets.push(o);
     }
+    // §278: 도킹 체인 동반 — 결착 유닛은 어느 멤버를 끌어도 체인 전체가 함께 이동
+    for (const o of props.actions.dockMates(targets.map((t) => t.id))) if (!targets.includes(o)) targets.push(o);
   }
   beginDrag(e, {
     kind: 'move',
@@ -1751,23 +1765,44 @@ onBeforeUnmount(() => {
             :x="g.x" :y="g.y" :width="g.w" :height="g.h"
           />
         </template>
-        <!-- 링크 배지 (선택 관련 링크만, 뷰 옵션으로 숨김 가능)
-             §246: 프레임 다중선택(체인 선택 등) 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
+        <!-- §278: 도크 배지 — 결착된 유닛 표시 (구 링크 배지 자리·아이콘 승계, 뷰 옵션으로 숨김 가능)
+             §246: 프레임 다중선택 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
         <g
-          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => primaryLid(x) != null && visibleLinkIds.has(primaryLid(x))) : []"
-          :key="'lk' + u.id"
+          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockedIdSet.has(x.id)) : []"
+          :key="'dk' + u.id"
           class="linkBadge"
           :transform="`translate(${u.x + u.params.W} ${u.y})`"
         >
-          <!-- §149: 아이콘 우변을 바운딩박스 오른쪽 끝(x=0)에 정렬 — 텍스트는 아이콘 왼쪽 4px 간격 -->
-          <text
-            v-if="showLinkNums"
-            :x="-pxs(17)" :y="-pxs(9)" :font-size="pxs(12)" text-anchor="end"
-          >{{ linkIndex[primaryLid(u)] }}</text>
           <g :transform="`translate(${-pxs(13)} ${-pxs(19)}) scale(${pxs(13) / 24})`">
             <path v-for="(d, pi) in ICONS.link" :key="pi" :d="d" />
           </g>
         </g>
+        <!-- §278: 도킹 노드 — 비애니 모드 + 선택 유닛의 샤프트 양끝 **사각형** 노드
+             (애니 노드 = 프레임·애니 모드·원형과 삼중 구분). 우측 노드 드래그 → 다른 유닛
+             좌측 노드에 드롭 = 결착 / 빈 곳 = 해제. 드래그 중엔 전 유닛 좌측 노드가 타깃 표시 -->
+        <template v-if="!animMode">
+          <g v-for="u in dockNodeUnits" :key="'dn' + u.id">
+            <rect
+              class="dockNode left"
+              :class="{ target: !!dockDrag && dockDrag.fromId !== u.id, docked: dockedLeft.has(u.id) }"
+              :x="dockPt(u, 'left')[0] - pxs(4)" :y="dockPt(u, 'left')[1] - pxs(4)"
+              :width="pxs(8)" :height="pxs(8)"
+            />
+            <rect
+              v-if="u.type !== 'frame'"
+              class="dockNode right"
+              :class="{ docked: dockedRight.has(u.id) }"
+              :x="dockPt(u, 'right')[0] - pxs(4)" :y="dockPt(u, 'right')[1] - pxs(4)"
+              :width="pxs(8)" :height="pxs(8)"
+              @pointerdown.stop.prevent="(ev) => { if (ev.button === 0) onDockNodeDown(u, ev); }"
+            />
+          </g>
+          <line
+            v-if="dockDrag"
+            class="dockWire"
+            :x1="dockDrag.x1" :y1="dockDrag.y1" :x2="dockDrag.x" :y2="dockDrag.y"
+          />
+        </template>
         <!-- §252: 체인 선택 이동 히트 — 합집합 영역 내 아무 곳이나 드래그 = 전체 이동.
              유닛 히트 **위**·애니 노드/와이어 **아래** 삽입: 선택 중 유닛 편집은 차단, 애니 조작은 유지 -->
         <rect
@@ -2089,14 +2124,11 @@ onBeforeUnmount(() => {
           class="ctxItem"
           @click="onDeleteKeyframe"
         ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.trash" :key="d" :d="d" /></svg>Delete keyframe</button>
+        <!-- §278: Detach 아이콘 = 사슬+슬래시 (▶ 오용 수정) · Select all frames in chain 항목 숨김 (사용자 확정) -->
         <button
           class="ctxItem"
           @click="onUnpairFromMark"
-        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Detach keyframe from chain</button>
-        <button
-          class="ctxItem"
-          @click="onSelectChain"
-        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.link" :key="d" :d="d" /></svg>Select all frames in chain</button><!-- §261: 명칭 명시화 -->
+        ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.detach" :key="d" :d="d" /></svg>Detach keyframe from chain</button>
       </template>
     </div>
     <!-- §208: 프레임 이름 인라인 편집 — 라벨 자리 오버레이 -->
@@ -2165,6 +2197,20 @@ onBeforeUnmount(() => {
   stroke-linecap: square; stroke-linejoin: miter;
 }
 .linkBadge text { fill: var(--link); font-family: inherit; font-weight: var(--fw-semibold); }
+/* §278: 도킹 노드 — 사각형(애니 원형 노드와 구분), 결착 상태 = 솔리드 */
+.dockNode {
+  fill: var(--panel); stroke: var(--accent);
+  stroke-width: 1.5; vector-effect: non-scaling-stroke;
+  cursor: crosshair;
+  &.docked { fill: var(--accent); }
+  &.left { cursor: default; }
+  &.left.target { stroke-width: 2.5; }
+  &.right:hover { stroke-width: 2.5; }
+}
+.dockWire {
+  stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke; pointer-events: none;
+}
 // §221: 프리셋 플로팅 창 스타일은 PresetFloatWindow.vue로 이동
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체
 .frameNameInput {

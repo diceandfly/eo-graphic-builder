@@ -377,7 +377,7 @@ function setStrokeColor(c) {
       <Slider label="cols" v-model="p.cols" :min="1" :max="12" :step="1" />
       <!-- 그리드 컴프레션 (§131): 유닛 컴프레션과 동일 부호 규약 (±2.5x, 0 균등) -->
       <Toggle
-        label="compression" :model-value="p.compOn ? 'on' : 'off'" :options="ON_OFF"
+        label="grid compression" :model-value="p.compOn ? 'on' : 'off'" :options="ON_OFF"
         @update:model-value="(v) => (p.compOn = v === 'on')"
       />
       <template v-if="p.compOn">
@@ -462,14 +462,15 @@ function setStrokeColor(c) {
 
     <section>
       <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <!-- §278: 용어 교체 — cols → threads (파라미터 키는 cols 유지) -->
       <Slider
-        label="cols" v-model="p.cols"
+        label="threads" v-model="p.cols"
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
         :mixed="mixed('cols')"
       />
       <div class="compSet">
         <Slider
-          label="pitch compression" :model-value="compVal"
+          label="thread compression" :model-value="compVal"
           :min="-COMP_SCALE" :max="COMP_SCALE" :step="0.01" :arrow-step="0.05" :decimals="2"
           :snap-to="0" :snap-radius="COMP_SNAP" suffix="x"
           :mixed="mixed('rate', 'direction')"
@@ -502,9 +503,9 @@ function setStrokeColor(c) {
           :snap-to="0" :snap-radius="0.08"
           :mixed="mixed('offset')"
         />
-        <!-- grow = 논리 파라미터: cols 생산·offset 흐름이 compression과 같은 쪽(+)인지 반대쪽(−)인지 -->
+        <!-- grow = 논리 파라미터: 스레드 생산·offset 흐름이 compression과 같은 쪽(+)인지 반대쪽(−)인지 -->
         <Toggle
-          label="cols grow direction" :model-value="p.grow ?? 'r'"
+          label="thread driving direction" :model-value="p.grow ?? 'r'"
           :options="[{ value: 'r', label: '+' }, { value: 'l', label: '−' }]"
           @update:model-value="(v) => { p.grow = v; }"
         />
@@ -514,8 +515,9 @@ function setStrokeColor(c) {
     </template>
 
     <!-- §264: 다중 링크 행 UI — 그룹 번호 목록/범주 지정은 App(문서 전역) 경유 -->
+    <!-- §278: 단일 유닛 선택에서도 상시 표시 (사용자 확정) — 프레임 단독은 종전대로 링크 시에만 -->
     <LinkSection
-      v-if="selected.length >= 2 || singleLinked"
+      v-if="selected.length >= 2 || singleLinked || (selected.length === 1 && scopeChipsVisible)"
       :linked="linked"
       :rows-visible="scopeChipsVisible"
       :single="singleLinked"

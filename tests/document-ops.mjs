@@ -982,4 +982,55 @@ function centerIn(u, f) {
   });
 }
 
+// §278. 도킹(docking) — 결착 정렬·거터 평균·실시간 재정렬·동반 이동·회전 락·사이클 가드
+{
+  const api = fresh();
+  const u1 = api.doc.units[0]; // 960×800, gutterPx 10
+  u1.x = 0; u1.y = 0;
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1);
+  u2.x = 5000; u2.y = 3000;
+  const u3 = api.duplicateFrom(u1);
+  u3.x = 9000; u3.y = -2000;
+  await sleep(30);
+  const e1 = api.connectDock(u1.id, u2.id);
+  ok('§278: 결착 = 샤프트 정렬 + 거터(평균) 접착', () => {
+    assert.ok(e1);
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 10)) < 1e-6, `u2.x=${u2.x}`);
+    assert.ok(Math.abs(u2.y - u1.y) < 1e-6, `u2.y=${u2.y}`);
+  });
+  api.connectDock(u2.id, u3.id); // 직렬 체인 u1→u2→u3
+  ok('§278: 직렬 도킹 — 3연속 체인 정렬', () => {
+    assert.ok(Math.abs(u3.x - (u2.x + 960 + 10)) < 1e-6, `u3.x=${u3.x}`);
+    assert.ok(Math.abs(u3.y - u1.y) < 1e-6);
+  });
+  ok('§278: 사이클 가드 — 꼬리→머리 결착 거부', () => {
+    assert.equal(api.connectDock(u3.id, u1.id), null);
+  });
+  api.doc.selectedIds = [u1.id];
+  api.doc.activeId = u1.id;
+  u1.params.gutterPx = 30; // §273: grid 링크 결성 없음 — 단독 변경
+  await sleep(30);
+  ok('§278: 거터 편집 실시간 재정렬 — 평균 (30+10)/2 = 20', () => {
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 20)) < 1e-6, `u2.x=${u2.x}`);
+  });
+  api.nudgeSelected(7, -3); // u1만 선택 — 체인 동반
+  await sleep(30);
+  ok('§278: 동반 이동 — 체인 전체가 함께', () => {
+    assert.ok(Math.abs(u1.x - 7) < 1e-6);
+    assert.ok(Math.abs(u2.x - (7 + 960 + 20)) < 1e-6, `u2.x=${u2.x}`);
+    assert.ok(Math.abs(u3.y - (-3)) < 1e-6, `u3.y=${u3.y}`);
+  });
+  const o0 = u2.params.orientation;
+  api.doc.selectedIds = [u2.id];
+  api.rotateSelected(1);
+  ok('§278: 도킹 중 회전 락', () => {
+    assert.equal(u2.params.orientation, o0);
+  });
+  ok('§278: 해제 — 우측 노드 기준', () => {
+    assert.ok(api.disconnectDock(u2.id, 'right'));
+    assert.equal(api.doc.docks.length, 1);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
