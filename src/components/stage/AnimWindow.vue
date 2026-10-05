@@ -5,8 +5,7 @@ import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
-import { scaleCursor } from '../../ui/cursors.js';
-const GRIP_CURSOR = scaleCursor('se'); // §263: 모듈 상수 — 재생 중 리렌더마다 스타일 패치가 커서를 재적용하며 흔들리던 것 완화
+import '../../ui/cursors.js'; // §264: 전역 커서 클래스(.curScale-se) 주입 — 인라인 스타일 커서 폐기
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
 // 엣지 소속 파라미터(duration·곡선)는 와이어 중앙 컨트롤이 담당(§220 확정) — 여기선 재생만.
@@ -134,7 +133,29 @@ function stop() {
   playing.value = false;
   cancelAnimationFrame(rafId);
 }
-watch(() => props.edge, () => { stop(); p.value = 0; dir = 1; });
+// §264: 시뮬레이터 설정 = **엣지(연결)에 저장** — 연결이 살아있는 동안 그 연결의 설정이 유지되고
+// (자동저장 포함 — animEdges에 동반 직렬화), 연결 삭제 시 함께 소멸. 전역(localStorage) 값은
+// "새 연결의 초기값" 역할로 유지.
+let simLoading = false;
+function loadSim(e) {
+  if (!e?.sim) return;
+  simLoading = true;
+  if (e.sim.loop === 'pingpong' || e.sim.loop === 'loop') loopMode.value = e.sim.loop;
+  if (e.sim.fps === 24 || e.sim.fps === 30) fps.value = e.sim.fps;
+  if (Number.isInteger(e.sim.cycles)) cycles.value = e.sim.cycles;
+  for (const k of ['format', 'scale', 'alpha', 'hold']) if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
+  nextTick(() => { simLoading = false; });
+}
+function saveSim() {
+  if (simLoading || !props.edge) return;
+  props.edge.sim = {
+    loop: loopMode.value, fps: fps.value, cycles: cycles.value,
+    format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold,
+  };
+}
+watch([loopMode, fps, cycles], saveSim);
+watch(exportCfg, saveSim);
+watch(() => props.edge, (e) => { stop(); p.value = 0; dir = 1; loadSim(e); }, { immediate: true });
 onBeforeUnmount(stop);
 
 const eased = computed(() => (props.edge ? bezierEase(props.edge.curve, p.value) : 0));
@@ -356,7 +377,7 @@ const totalLabel = computed(() => {
           </svg>
         </div>
         <!-- §248: 크기 조절 그립 = **화면(프리뷰) 우하단** — 리사이즈가 곧 화면 스케일이라 화면에 귀속 -->
-        <div class="sizeGrip" :style="{ cursor: GRIP_CURSOR }" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+        <div class="sizeGrip curScale-se" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
           <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
         </div>
       </div>
@@ -446,7 +467,7 @@ const totalLabel = computed(() => {
       Select a frame and click its ▶ badge → Make keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
     <!-- §248: 빈 상태 전용 그립 (화면이 없을 땐 창 우하단 유지) — 화면이 있으면 프리뷰 쪽 그립 사용 -->
-    <div v-if="!pose" class="sizeGrip" :style="{ cursor: GRIP_CURSOR }" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
+    <div v-if="!pose" class="sizeGrip curScale-se" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
       <svg viewBox="0 0 10 10"><path d="M9 1 1 9 M9 5 5 9" /></svg>
     </div>
   </div>

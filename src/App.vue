@@ -206,6 +206,12 @@ async function openProject(file, scope = {}) {
   }
 }
 
+// §264: 전역 링크그룹 목록 — lid 오름차순 1..k (패널 코인 번호의 단일 출처)
+const linkGroupList = computed(() => {
+  const set = new Set();
+  for (const u of doc.units) if (u.links) for (const c of LINK_CATS) if (u.links[c] != null) set.add(u.links[c]);
+  return [...set].sort((a, b) => a - b).map((lid, i) => ({ lid, n: i + 1 }));
+});
 function onLink(scope) {
   const r = docApi.toggleLinkSelected(scope);
   if (r && stageRef.value) {
@@ -287,6 +293,8 @@ const stageActions = {
         :group="selectedGroup"
         :link-scope="linkScope"
         :anim="docApi.doc.animOn"
+        :link-groups="linkGroupList"
+        @set-cat-link="(cat, v) => docApi.setCategoryLink(doc.selectedIds, cat, v)"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"
         @set-a="docApi.setA"
@@ -313,7 +321,7 @@ const stageActions = {
   padding: var(--window-pad-y) var(--panel-pad) 16px; // §213: 창 패딩 토큰화·축소
 
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
-  @include chamfer(7.5px); // §259: chamfer-1 = chamfer-2 × 1.5 — 메인 패널
+  @include chamfer(15px); // §264: chamfer-0(= chamfer-2 × 3) — 메인 패널 (가장 큰 단계, 사용자 확정)
   // 슬림 스크롤바 — 패널 톤에 맞춤
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
   &::-webkit-scrollbar { width: 4px; }

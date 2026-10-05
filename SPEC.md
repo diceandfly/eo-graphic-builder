@@ -2092,3 +2092,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 5. **체인 딤드 아웃라인 복원**(chainDim) — 비선택 체인 프레임 = 딤드 네온 2.5(체인 전체 가독), 선택 = pairSel 풀 Neon **1.5→2.5**(기준 유닛 keySel 5와 3단 밸런스).
 6. **SNS 퀵 프리셋 생성 = 프레임 이름을 프리셋 이름으로**.
 7. **그립 호버 안정화** — 커서 문자열 모듈 상수화(재생 중 리렌더의 스타일 재적용 완화) + 히트 22px 확대.
+
+## 264. 2026-10-06 — 다중 링크 그룹 UI·animation 범주·패널 다이어트(접기/±/ratio 폐지)·커서 클래스·엣지 시뮬 설정
+
+1. **커서 깜빡임 종결** — 인라인 :style 커서는 리렌더(재생 60fps)마다 스타일 패치로 재적용됨 → cursors.js가 **전역 CSS 클래스**(.curScale-*/.curRotate-*)를 1회 주입, 그립은 정적 클래스 사용.
+2. **chamfer-0(15px)** = 메인 패널·프리셋창 (chamfer-2 × 3).
+3. **시뮬레이터 설정 = 엣지에 저장**(edge.sim: loop·fps·cycles·format·scale·alpha·hold) — 연결이 살아있는 동안 유지(자동저장 동반 직렬화), 연결 삭제 시 소멸. 전역 localStorage 값 = 새 연결 초기값.
+4. **링크 범주 재편** — **animation 신설**: cols·grow·offsetType·offset (grid에서 분리 — "같은 그리드, 반전 애니" 조합. 사용자 확정). grid = gutterMode·gutterPx·g·rate·direction. 구 문서 백필: links.animation ← links.grid. 스포이드 범주 동반(프레임 grid cols는 프레임 줄로 이동). 기본 스코프 animation on.
+5. **다중 링크 그룹 UI** (§220 열린 과제 — 번호 코인 방식 구현): LinkSection = 범주 6행(size/orientation/grid/shape/color/animation) × 현재 그룹 **번호 코인** — 코인 클릭 → 옵션 칩(— 해제 / 기존 그룹 번호 / +new(선택≥2)). 전역 그룹 번호 = 문서 lid 오름차순 1..k(App linkGroupList — 주의: 스테이지 배지 번호는 선택-상대라 다를 수 있음, 추후 통일 검토). useDocument.setCategoryLink 단일 경로(cleanupLinks 공유). 기존 Link/Unlink 버튼 = "기본 스코프 새 그룹" 숏컷 유지, 스코프 칩 UI 폐기. 실측: 두 유닛 animation만 new → 코인 1, offset 동기·rate 독립.
+6. **패널 다이어트** — ①유닛 Ratio 칩 폐지(프레임 규격 칩 유지) ②압축 칩 끝 **± 칩**(rate 유지, direction만 반전) ③**섹션 접기**: SIZE/STYLE/GRID/ANIMATION/SHAPE/LINK 헤더 우측 셰브론(:has 바디 숨김, localStorage eo.panelFold) ④**ANIMATION 섹션 신설** — offset 묶음(mode/grow/offset) 승격, 조건부 표시 폐기(접기로 대체).

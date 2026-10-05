@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, reactive, onMounted, onBeforeUnmount } from 'vue';
 import Slider from './controls/Slider.vue';
 import NumberField from './controls/NumberField.vue';
 import Toggle from './controls/Toggle.vue';
@@ -26,10 +26,11 @@ const props = defineProps({
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
   anim: Boolean,         // §255: 애니 모드 — offset 행 조건부 표시용
+  linkGroups: { type: Array, default: () => [] }, // §264: 전역 링크그룹 [{lid, n}]
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
-  'renameGroup', 'linkScopeToggle', 'unlinkOne',
+  'renameGroup', 'linkScopeToggle', 'unlinkOne', 'setCatLink', // §264
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -39,11 +40,10 @@ const mixed = (...keys) =>
 
 // 링크 멤버 1개만 선택 — "이 유닛만 해제" 버튼 표시 (§73) — §220: 범주형 links의 대표 lid 기준
 const singleLinked = computed(() => props.selected.length === 1 && primaryLid(props.selected[0]) != null);
-// §263: offset 묶음 표시 — 애니 모드 ∨ 비기본값(offset≠0 · flow · grow left)이면 스스로 드러남
-const offsetVis = computed(() => {
-  const pp = props.unit?.params ?? {};
-  return props.anim || (pp.offset ?? 0) !== 0 || pp.offsetType === 'flow' || pp.grow === 'l';
-});
+// §264: 섹션 접기 — 서브타이틀 우측 화살표 토글, 상태는 localStorage 영속
+const fold = reactive((() => { try { return JSON.parse(localStorage.getItem('eo.panelFold') || '{}'); } catch { return {}; } })());
+function toggleFold(k) { fold[k] = !fold[k]; localStorage.setItem('eo.panelFold', JSON.stringify(fold)); }
+// (§264: offset 조건부 표시 폐기 — ANIMATION 섹션 + 접기로 대체)
 // 선택 전체가 이미 하나의 링크인지
 const linked = computed(() => {
   if (props.selected.length < 2) return false;
@@ -266,7 +266,7 @@ function setStrokeColor(c) {
     <template v-if="unit">
     <section>
       <div class="secHead">
-        <h2>Size</h2>
+        <h2 class="secH">Size<button class="foldTg" :class="{ isFolded: fold.size }" @click="toggleFold('size')"><svg viewBox="0 0 24 24"><path :d="fold.size ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
         <div class="headBtns">
           <!-- rect 전용 px/cm 표기 토글 — SIZE·RATIO·GRID 표기에 공통 적용 (§75) -->
           <div v-if="isFrame" class="unitSeg">
@@ -304,7 +304,8 @@ function setStrokeColor(c) {
           />
         </label>
       </div>
-      <div class="ratioHead">ratio</div>
+      <!-- §264: 유닛 Ratio 칩 폐지(패널 다이어트 — 사용자 확정). 프레임 규격 칩만 유지 -->
+      <div v-if="isFrame" class="ratioHead">ratio</div>
       <!-- 직사각형: px 모드 = 디지털 비율 / cm 모드 = 출판 규격 + dpi (단위 토글로 태그 스왑, §75) -->
       <template v-if="isFrame">
         <div v-if="!isCm" class="ratioRow">
@@ -320,19 +321,12 @@ function setStrokeColor(c) {
           >{{ pp.label }}</button>
         </div>
       </template>
-      <div v-else class="ratioRow">
-        <ChipRow
-          :model-value="aspect" :chips="allAspects" :tol="ASPECT_TOL"
-          @update:model-value="(v) => emit('setAspect', v, sizeEach)"
-        />
-        <!-- 커스텀 비율 + 버튼: 보류 (로직은 유지 — git 이력 §51) -->
-      </div>
     </section>
 
     <!-- 직사각형 전용: 렌더 스타일 — fill(면) / stroke(외곽선) 토글 (§75) -->
     <template v-if="isFrame">
     <section>
-      <h2>Style</h2>
+      <h2 class="secH">Style<button class="foldTg" :class="{ isFolded: fold.style }" @click="toggleFold('style')"><svg viewBox="0 0 24 24"><path :d="fold.style ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <!-- §110: fill/stroke 독립 on·off — stroke on일 때만 색·두께 확장 옵션 -->
       <Toggle
         label="fill" :model-value="p.fillOn ? 'on' : 'off'" :options="ON_OFF"
@@ -358,7 +352,7 @@ function setStrokeColor(c) {
 
     <!-- 직사각형 전용: 레이아웃 그리드 (내부 px 저장, 표기만 px/cm 환산). on/off 옵션 폐기 — 상시 표시 (§131) -->
     <section>
-      <h2>Grid</h2>
+      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <!-- §132 확정 순서: margin → gutter rows/cols → rows/cols → compression 블록 -->
       <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
       <Slider
@@ -439,7 +433,7 @@ function setStrokeColor(c) {
 
     <template v-if="!isFrame">
     <section>
-      <h2>Grid</h2>
+      <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold.grid }" @click="toggleFold('grid')"><svg viewBox="0 0 24 24"><path :d="fold.grid ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <Slider
         label="cols" v-model="p.cols"
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
@@ -453,11 +447,35 @@ function setStrokeColor(c) {
           :mixed="mixed('rate', 'direction')"
           @update:model-value="setComp"
         />
-        <ChipRow v-model="p.rate" />
+        <ChipRow v-model="p.rate">
+          <!-- §264: ± 전환 — 수치(rate) 유지한 채 압축 방향만 반전 -->
+          <button
+            class="pmChip" title="Flip compression direction (keep value)"
+            @click="p.direction = p.direction === 'StoL' ? 'LtoS' : 'StoL'"
+          >±</button>
+        </ChipRow>
       </div>
-      <!-- §255·§263: offset 묶음 — 조건부 표시(애니 모드 ∨ 비기본값), compSet와 간격 분리.
-           순서: mode → grow → offset (사용자 확정: 모드가 슬라이더 위) -->
-      <div v-if="offsetVis" class="offsetSet">
+      <Toggle
+        label="gutter mode" v-model="p.gutterMode"
+        :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
+      />
+      <Slider
+        v-if="p.gutterMode === 'fixed'"
+        label="gutter" v-model="p.gutterPx"
+        :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1" :arrow-step="5"
+        :mixed="mixed('gutterPx')"
+      />
+      <Slider
+        v-else
+        label="gutter" v-model="p.g"
+        :min="G_MIN" :max="G_MAX" :step="G_STEP" :decimals="3"
+        :mixed="mixed('g')"
+      />
+    </section>
+    <!-- §264: ANIMATION 섹션 — offset 묶음 승격 (조건부 표시 폐기, 접기로 대체) -->
+    <section>
+      <h2 class="secH">Animation<button class="foldTg" :class="{ isFolded: fold.anim }" @click="toggleFold('anim')"><svg viewBox="0 0 24 24"><path :d="fold.anim ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
+      <div class="offsetSet">
         <!-- §262: step(온전 샤프트 결착 진입, 기본) | flow(눌리며 통과) -->
         <Toggle
           label="offset mode" :model-value="p.offsetType ?? 'step'"
@@ -477,26 +495,10 @@ function setStrokeColor(c) {
           :mixed="mixed('offset')"
         />
       </div>
-      <Toggle
-        label="gutter mode" v-model="p.gutterMode"
-        :options="[{ value: 'fixed', label: 'fixed' }, { value: 'proportional', label: 'prop' }]"
-      />
-      <Slider
-        v-if="p.gutterMode === 'fixed'"
-        label="gutter" v-model="p.gutterPx"
-        :min="GUTTER_MIN" :max="Math.floor(Math.min(GUTTER_MAX, gutterMax))" :step="1" :arrow-step="5"
-        :mixed="mixed('gutterPx')"
-      />
-      <Slider
-        v-else
-        label="gutter" v-model="p.g"
-        :min="G_MIN" :max="G_MAX" :step="G_STEP" :decimals="3"
-        :mixed="mixed('g')"
-      />
     </section>
 
     <section>
-      <h2>Shape</h2>
+      <h2 class="secH">Shape<button class="foldTg" :class="{ isFolded: fold.shape }" @click="toggleFold('shape')"><svg viewBox="0 0 24 24"><path :d="fold.shape ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <Slider
         label="shaft size" v-model="p.dPct"
         :min="D_PCT_MIN" :max="D_PCT_MAX" :step="1" :arrow-step="5"
@@ -524,14 +526,16 @@ function setStrokeColor(c) {
     </section>
     </template>
 
+    <!-- §264: 다중 링크 행 UI — 그룹 번호 목록/범주 지정은 App(문서 전역) 경유 -->
     <LinkSection
       v-if="selected.length >= 2 || singleLinked"
       :linked="linked"
-      :link-scope="linkScope"
-      :chips-visible="scopeChipsVisible"
+      :rows-visible="scopeChipsVisible"
       :single="singleLinked"
+      :selected="selected"
+      :groups="linkGroups"
       @link="(scope) => emit('link', scope)"
-      @scope-toggle="(k) => emit('linkScopeToggle', k)"
+      @set-cat-link="(cat, v) => emit('setCatLink', cat, v)"
       @unlink-one="emit('unlinkOne')"
     />
     </template>
@@ -577,6 +581,23 @@ section h2 {
    (기존엔 SIZE만 개별 오버라이드로 0이라 26 vs 38px 불일치) */
 section > :last-child { margin-bottom: 0; }
 /* §138: 슬라이더+프리셋 칩 세트 — 내부 6px로 묶고 세트 단위 10px 리듬 */
+/* §264: 섹션 접기 — 헤더 우측 셰브론, :has로 바디 숨김 */
+.secH { display: flex; align-items: center; justify-content: space-between; }
+.foldTg {
+  border: none; background: none; cursor: pointer; padding: 0;
+  width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+  svg { width: 12px; height: 12px; fill: none; stroke: var(--faint); stroke-width: 2; stroke-linecap: square; }
+  &:hover svg { stroke: var(--accent); }
+}
+section:has(> .secH .foldTg.isFolded) > :not(.secH) { display: none; }
+/* §264: 압축 ± 전환 칩 — ChipRow 칩과 동일 문법 */
+.pmChip {
+  @include bordered-control;
+  padding: 0 9px; min-width: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--faint);
+  &:hover { color: var(--accent); border-color: var(--accent); }
+}
 .compSet { margin-bottom: 10px; }
 /* §263: offset 묶음 — 압축 칩과 간격 분리(상단 gap) + 내부 행 간격 */
 .offsetSet { margin: 4px 0 10px; display: flex; flex-direction: column; gap: 8px; }

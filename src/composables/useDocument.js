@@ -47,8 +47,8 @@ export function createParams(overrides = {}) {
 // unit.links = { size, orientation, grid, shape, color } — 범주별 링크그룹 id(없으면 null).
 // 구 스키마(unit.linkId 단일 + doc.linkScopes[lid] 플래그)를 대체: "스코프 off" = 그 범주 null.
 // unit.pair = 애니메이션 페어 id (동기화 없음 — 보간 대응 관계 전용, Phase B+).
-export const LINK_CATS = ['size', 'orientation', 'grid', 'shape', 'color'];
-export const emptyLinks = () => ({ size: null, orientation: null, grid: null, shape: null, color: null });
+export const LINK_CATS = ['size', 'orientation', 'grid', 'shape', 'color', 'animation']; // §264: animation 신설
+export const emptyLinks = () => ({ size: null, orientation: null, grid: null, shape: null, color: null, animation: null });
 // 대표 링크그룹 id — 배지 표시·그룹 소속 판정용 (현행 UI는 유닛당 한 그룹이 전 범주를 공유)
 export const primaryLid = (u) => {
   if (!u?.links) return null;
@@ -140,6 +140,8 @@ function migrateUnit(u, legacyScopes = {}) {
       for (const c of LINK_CATS) if (!sc || sc[c] !== false) u.links[c] = u.linkId;
     }
   }
+  // §264: animation 범주 신설 백필 — 종전엔 cols 등이 grid 소속이었으므로 grid 멤버십을 상속
+  if (u.links && u.links.animation === undefined) u.links.animation = u.links.grid ?? null;
   delete u.linkId;
   if (u.pair === undefined) u.pair = null; // §220: 애니메이션 페어 예약
   if (u.home === undefined) u.home = null; // §225: 키프레임 소속 (페어 복제 시 확정 — 겹친 키프레임에서도 소속 유지)
@@ -252,7 +254,9 @@ export function useDocument() {
   const SCOPE_KEYS = {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'], // 회전·반전 상태 (표시 계수 포함)
-    grid: ['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType', 'grow'], // §255·§262·§263
+    grid: ['gutterMode', 'gutterPx', 'g', 'rate', 'direction'],
+    // §264: 애니 재료(cols·grow·offsetType·offset)는 별도 범주 — "같은 그리드, 반전 애니" 조합 허용
+    animation: ['cols', 'grow', 'offsetType', 'offset'],
     shape: ['dPct', 'a', 'b', 'threads', 'threadDir'],
     color: ['fill'],
   };
@@ -260,7 +264,7 @@ export function useDocument() {
   const KEY_CAT = {};
   for (const [cat, keys] of Object.entries(SCOPE_KEYS)) for (const k of keys) KEY_CAT[k] = cat;
   // 기본: color·orientation은 off (사용자 확정 §62 — 개별성 유지가 더 흔한 사용례)
-  const linkScopeDefault = () => ({ size: true, orientation: false, grid: true, shape: true, color: false });
+  const linkScopeDefault = () => ({ size: true, orientation: false, grid: true, shape: true, color: false, animation: true });
   // 스포이드 전용 범주 매핑 (§133) — 링크 스코프(SCOPE_KEYS/KEY_CAT)와 분리 유지:
   // 프레임 키를 링크 범주에 편입하면 프레임 링크(전체 동기화, 미분류 키 = 항상 동기)가
   // 스코프 필터에 걸리므로, 흡수 경로에서만 확장한다. 적용은 종전대로 동일 타입 한정.
@@ -268,9 +272,10 @@ export function useDocument() {
     size: ['W', 'H'],
     orientation: ['orientation', 'flipX'],
     grid: [
-      ...['cols', 'gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'offset', 'offsetType', 'grow'], // 유닛 (§255·§262·§263)
-      ...['margin', 'rows', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
+      ...['gutterMode', 'gutterPx', 'g', 'rate', 'direction'], // 유닛
+      ...['margin', 'rows', 'cols', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임 (§264: cols — 유닛 cols는 animation 범주로 이동, 프레임 그리드 cols는 여기)
     ],
+    animation: ['cols', 'grow', 'offsetType', 'offset'], // §264
     shape: [
       ...['dPct', 'a', 'b', 'threads', 'threadDir'],       // 유닛 shape
       ...['fillOn', 'strokeOn', 'stroke', 'strokeW'],       // 프레임 style (§133: Shape/Style 겸용)
@@ -1190,6 +1195,16 @@ export function useDocument() {
       for (const c of LINK_CATS) if (u.links[c] != null && counts[u.links[c]] < 2) u.links[c] = null;
     }
   }
+  // §264: 범주별 링크그룹 직접 지정 — 다중 링크 UI(범주 행 × 그룹 번호)의 단일 경로.
+  // v: lid(기존 그룹 합류) | null(그 범주 해제) | 'new'(새 그룹 — 선택 2개 이상에서 의미)
+  function setCategoryLink(ids, cat, v) {
+    const lid = v === 'new' ? nextLink++ : v;
+    for (const u of doc.units) {
+      if (!ids.includes(u.id) || u.type === 'frame') continue;
+      u.links[cat] = lid;
+    }
+    cleanupLinks(); // 1멤버 그룹 자동 소멸 규칙 공유
+  }
   // dir: +1 시계 / -1 반시계. 캔버스 W/H 스왑 + orientation 90° 스텝.
   // 회전은 링크 멤버 각각에 자기 중심 기준으로 직접 적용
   // (미러 패치는 W/H만 복사해 위치가 어긋나므로 여기서 위치까지 보정.
@@ -1634,7 +1649,7 @@ export function useDocument() {
     duplicateActive, duplicateFrom, duplicateUnits, nudgeSelected, deleteSelected, createUnit, createUnitFrom,
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
-    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame,
+    duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,

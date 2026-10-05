@@ -20,6 +20,7 @@ const isActive = (v) => Math.abs(props.modelValue - v) < props.tol;
       :class="{ on: isActive(c.v) }"
       @click="$emit('update:modelValue', c.v)"
     >{{ c.label }}</button>
+    <slot /><!-- §264: 행 끝 추가 칩 자리 (예: 압축 ± 전환) -->
   </div>
 </template>
 

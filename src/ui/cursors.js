@@ -37,3 +37,14 @@ const scaleCache = Object.fromEntries(
 
 export const rotateCursor = (corner) => rotCache[corner] ?? rotCache.se;
 export const scaleCursor = (dir) => scaleCache[dir] ?? scaleCache.se;
+
+// §264: 전역 커서 클래스 — 인라인 :style 커서는 리렌더마다 스타일 패치가 커서를 재적용해
+// (재생 중 60fps) 깜빡임을 만든다. 정적 CSS 클래스는 패치 대상이 아니라 완전 안정.
+if (typeof document !== 'undefined') {
+  const el = document.createElement('style');
+  el.textContent =
+    Object.entries(scaleCache).map(([d, c]) => `.curScale-${d}{cursor:${c}}`).join('\n') +
+    '\n' +
+    Object.entries(rotCache).map(([d, c]) => `.curRotate-${d}{cursor:${c}}`).join('\n');
+  document.head.appendChild(el);
+}
