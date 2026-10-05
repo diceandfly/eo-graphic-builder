@@ -80,8 +80,7 @@ function rowToggle(cat) {
       Unlink this unit
     </button>
     <button v-else-if="selected.length >= 2" class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
-      {{ linked ? 'Unlink parameters' : 'Link parameters' }}
-    </button>
+      {{ linked ? 'Unlink all parameters' : 'Link all parameters' }}<!-- §284: 범주 칩과 구분되는 "전체" 명시 --></button>
     </template>
   </section>
 </template>

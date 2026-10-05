@@ -2248,3 +2248,13 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **(2) 페어 자동 복제(§277 사상, 트레이드오프 없음 확인 후 진행)**: connectDock/disconnectDock/undockUnit이 짝 키프레임의 counterpart 쌍으로 도크를 재구성(syncPairDocks — 제거 경로는 제거 **전** 양끝 캡처), duplicatePairedFrame도 소유 유닛 간 도크 동반 복제(uidMap). 유일한 부수효과 = 짝 프레임 유닛이 그 프레임 거터 기준 즉시 정렬(도크 의미상 필요). 테스트 3건(복제·전체 해제·복제 동반, 90케이스).
 - **(1)** 줌 팝업 미니맵 위 디바이드 라인 제거.
 - E2E: 단일 선택 노드 0 → 마퀴 2선택 결착 → 배지 팝업 Undock → undo 3회 원복.
+
+## 284. 2026-10-06 — 도크 브리지(샤프트 연장) = 도킹의 본래 목적 구현 + 다듬기 5건
+
+- **샤프트 브리지**: 결착 갭을 양쪽 샤프트 단면을 취한 폴리곤으로 메움 — 반쪽씩 각 유닛 fill(중간 접합), 두께 다르면 사다리꼴 보간(보통 shape 링크로 동일), 끝은 유닛 안쪽 1px 연장(§200 AA 문법), 역평행 상·하 대응 처리. 순수 헬퍼(dockShaftEnd·dockBridgePolys·dockBridges, useDocument 모듈) 단일 소스로 **스테이지 + 정적 SVG/PNG 익스포트(컴포지트) + 애니패널 프리뷰·익스포트**(§283 페어 복제 전제, 포즈 아이템 pair 매칭) 3곳 공유. 갭 애니 시 브리지가 자연 신축.
+- **(1)** 메인패널 버튼 라벨 = Link all parameters / Unlink all parameters (범주 칩과 "전체" 구분).
+- **(2)** 칩 호버 하이라이트 색 = 유닛 그리드(--unit-guide→--guide) + 3px 두께 (딤드 네온 폐기 — 선택 문법과 혼동).
+- **(4)** 같은 유닛의 반대 노드 드롭 = 전용 안내 토스트("Dock joins two units — drop on the other unit's node"), 해제 오폭 방지 최우선 판정.
+- **(5)** 미니맵 구분선 — §283 수정이 믹스인 .menu .sect 특이도에 밀려 미적용이었음 → .menu .sect.mmSect로 승급 (실측 border 0).
+- **(6)** 도크 배지 = 해당 유닛 **선택 시에만** 표시 (사용자 확정).
+- E2E: 결착 → 브리지 2폴리곤(각 유닛 fill) 렌더·배지 선택 한정·호버 guide 3px·라벨 확인 → undo 원복.

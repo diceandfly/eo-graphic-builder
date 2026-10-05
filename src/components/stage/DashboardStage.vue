@@ -17,7 +17,7 @@ import AnimOverlay from './AnimOverlay.vue';
 import AnimWindow from './AnimWindow.vue';
 import { CURVE_PRESETS } from '../../geometry/anim.js';
 import { readTokenMs } from '../../utils/cssToken.js';
-import { dockNodePoint } from '../../composables/useDocument.js';
+import { dockNodePoint, dockBridges } from '../../composables/useDocument.js';
 import { ICONS } from '../../ui/icons.js';
 import { frameGridLines } from '../../geometry/frameGrid.js';
 import { framePresetById } from '../../geometry/framePresets.js';
@@ -107,6 +107,8 @@ function dockPt(u, side) {
     ? [rx - d[0] * inset, ry - d[1] * inset]
     : [lx + d[0] * inset, ly + d[1] * inset];
 }
+// §284: 도크 브리지 — 공유 헬퍼 (익스포트·애니패널 프리뷰와 동일 소스)
+const stageBridges = computed(() => dockBridges(props.doc.units, props.doc.docks));
 // §283: 도크 배지 클릭 팝업 — 해제(Undock) 진입점 (페어 인디케이터 문법)
 const dockMenu = ref(null); // { x, y, u }
 function onDockBadgeClick(u, cx, cy) {
@@ -192,9 +194,17 @@ function onDockNodeDown(u, side) {
         if (dist < best) { best = dist; hit = t; }
       }
     }
+    // §284: 같은 유닛의 반대 노드에 드롭 = 흔한 실수 — 전용 안내 (해제로 오폭하지 않게 최우선 판정)
+    const me = props.doc.units.find((x) => x.id === d.fromId);
+    if (!hit && me) {
+      const [ox, oy] = dockPt(me, d.side === 'right' ? 'left' : 'right');
+      if (Math.hypot(wx - ox, wy - oy) < 18 / vp.scale) {
+        toast('Dock joins two units — drop on the other unit\'s node');
+        return;
+      }
+    }
     if (hit) {
       // §282: 에러 구분 — 축 비평행(게이트 밖 변동 대비) vs 사이클
-      const me = props.doc.units.find((x) => x.id === d.fromId);
       if (me && !props.actions.dockAxesParallel(me, hit)) {
         toast('Cannot dock — shaft axes are not parallel (rotate one unit first)');
         return;
@@ -1851,6 +1861,13 @@ onBeforeUnmount(() => {
             @contextmenu.prevent.stop="onUnitContext(u, $event)"
           />
         </g>
+        <!-- §284: 도크 브리지 — 결착 갭을 샤프트 연장으로 메움 (도킹의 본래 목적: 한 축으로 이어진 룩) -->
+        <polygon
+          v-for="(bp, bi) in stageBridges" :key="'db' + bi"
+          class="dockBridge"
+          :points="bp.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
+          :fill="bp.fill"
+        />
         <!-- 그룹 표시: 점선 아웃라인 (선택 시, 바운딩박스·그룹 표시 토글 적용) -->
         <template v-if="showBBox && view.showGroups">
           <rect
@@ -1862,7 +1879,7 @@ onBeforeUnmount(() => {
         <!-- §278 → §283: 도크 배지 = 페어 인디케이터 문법(원 안 글리프) + 클릭 = Undock 팝업
              §246: 프레임 다중선택 중엔 숨김 — 프레임 단위 조작 중 유닛 배지는 소음 -->
         <g
-          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockedIdSet.has(x.id)) : []"
+          v-for="u in view.showLinks && !multiFrameSel ? doc.units.filter((x) => dockedIdSet.has(x.id) && doc.selectedIds.includes(x.id)) : []"
           :key="'dk' + u.id"
           class="dockMark"
           :transform="`translate(${u.x + u.params.W - pxs(9)} ${u.y - pxs(12)})`"
@@ -2105,6 +2122,7 @@ onBeforeUnmount(() => {
       :edge="selEdge"
       :from-frame="animFrom" :to-frame="animTo"
       :from-units="animFromUnits" :to-units="animToUnits"
+      :docks="doc.docks"
     />
     <!-- §224: 와이어 중앙 컨트롤 팝업 — 엣지 소속 파라미터 (duration·곡선 프리셋) -->
     <div
@@ -2333,10 +2351,11 @@ onBeforeUnmount(() => {
   stroke: var(--link); stroke-width: 1.5; stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke; pointer-events: none;
 }
-/* §279: LINK 칩 호버 하이라이트 — 애니 오버레이의 딤드 네온 문법(§254) 재사용 */
+/* §279 → §284: LINK 칩 호버 하이라이트 = 유닛 그리드 색 + 두꺼운 스트로크 (사용자 확정 —
+   딤드 네온은 선택 문법과 혼동. 색은 그리드 커스텀(--unit-guide)을 따라감) */
 .hoverLinkHl {
-  fill: none; stroke: color-mix(in srgb, var(--accent) 50%, var(--panel));
-  stroke-width: 2.5; vector-effect: non-scaling-stroke; pointer-events: none;
+  fill: none; stroke: var(--unit-guide, var(--guide));
+  stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: none;
 }
 // §221: 프리셋 플로팅 창 스타일은 PresetFloatWindow.vue로 이동
 // §208: 프레임 이름 인라인 편집 인풋 — 라벨과 같은 화면 고정 크기/서체

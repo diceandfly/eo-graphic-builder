@@ -65,6 +65,60 @@ export function dockNodePoint(unit, side) {
   const [cx, cy] = localPointToCanvas(p, side === 'right' ? 1 : 0, v);
   return [unit.x + cx * p.W, unit.y + cy * p.H];
 }
+// §284: 샤프트 단면 — 그 축 끝에서의 샤프트 상·하 모서리 점 (캔버스 px)
+export function dockShaftEnd(unit, side) {
+  const p = unit.params;
+  const one = p.threads === 'one';
+  const d = (p.dPct ?? 0) / 100;
+  const vTop = one ? 1 - d : (1 - d) / 2;
+  const vBot = one ? 1 : (1 + d) / 2;
+  const u = side === 'right' ? 1 : 0;
+  const [tx, ty] = localPointToCanvas(p, u, vTop);
+  const [bx, by] = localPointToCanvas(p, u, vBot);
+  return [[unit.x + tx * p.W, unit.y + ty * p.H], [unit.x + bx * p.W, unit.y + by * p.H]];
+}
+// §284: 도크 브리지 — 결착 갭을 **샤프트 연장**으로 메우는 폴리곤 2개 (도킹의 본래 목적:
+// 두 유닛이 자연스런 거터와 함께 한 축으로 이어져 보이게). 양쪽 샤프트 단면을 취해 중간에서
+// 접합 — 반쪽씩 각 유닛의 fill (두께가 다르면 사다리꼴 보간, 보통은 shape 링크로 동일).
+// 끝은 유닛 안쪽으로 1px 연장 — 접합선 안티앨리어싱 틈 차단 (§200 문법).
+export function dockBridgePolys(a, b) {
+  const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const na = { l: dockNodePoint(a, 'left'), r: dockNodePoint(a, 'right') };
+  const nb = { l: dockNodePoint(b, 'left'), r: dockNodePoint(b, 'right') };
+  const ca = mid(na.l, na.r);
+  const cb = mid(nb.l, nb.r);
+  const sa = d2(na.r, cb) <= d2(na.l, cb) ? 'right' : 'left'; // 서로를 향한 끝 (§282와 동일 사상)
+  const sb = d2(nb.r, ca) <= d2(nb.l, ca) ? 'right' : 'left';
+  const pa = dockShaftEnd(a, sa);
+  let pb = dockShaftEnd(b, sb);
+  if (d2(pa[0], pb[0]) + d2(pa[1], pb[1]) > d2(pa[0], pb[1]) + d2(pa[1], pb[0])) pb = [pb[1], pb[0]]; // 상·하 대응 (역평행)
+  const ma = mid(pa[0], pa[1]);
+  const mb = mid(pb[0], pb[1]);
+  const L = Math.hypot(mb[0] - ma[0], mb[1] - ma[1]) || 1;
+  const dir = [(mb[0] - ma[0]) / L, (mb[1] - ma[1]) / L];
+  const ext = 1;
+  const paE = pa.map((pt) => [pt[0] - dir[0] * ext, pt[1] - dir[1] * ext]);
+  const pbE = pb.map((pt) => [pt[0] + dir[0] * ext, pt[1] + dir[1] * ext]);
+  const m0 = mid(pa[0], pb[0]);
+  const m1 = mid(pa[1], pb[1]);
+  return [
+    { pts: [paE[0], paE[1], m1, m0], fill: a.params.fill },
+    { pts: [m0, m1, pbE[1], pbE[0]], fill: b.params.fill },
+  ];
+}
+// 문서 단위 일괄 — 스테이지·익스포트 공용
+export function dockBridges(units, docks) {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const out = [];
+  for (const e of docks ?? []) {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || a.type === 'frame' || b.type === 'frame') continue;
+    out.push(...dockBridgePolys(a, b));
+  }
+  return out;
+}
 
 // 문서 모델: 스테이지 위 유닛 버전들 + 멀티선택 상태.
 // - activeId: 패널이 편집하는 유닛 (선택 해제 후에도 유지, 유닛 0개면 null)

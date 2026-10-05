@@ -5,6 +5,7 @@ import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
+import { dockBridgePolys } from '../../composables/useDocument.js';
 import '../../ui/cursors.js'; // §264: 전역 커서 클래스(.curScale-se) 주입 — 인라인 스타일 커서 폐기
 
 // §224: 애니메이션 창 (Phase C) — 시뮬레이션 재생 + 전역 재생 파라미터 (fps 30/24 · pingpong/cycle — §246: once 폐기).
@@ -16,6 +17,7 @@ const props = defineProps({
   toFrame: { default: null },
   fromUnits: { type: Array, default: () => [] },
   toUnits: { type: Array, default: () => [] },
+  docks: { type: Array, default: () => [] }, // §284: 도크 브리지 — 프리뷰·익스포트에 샤프트 연장 반영
 });
 
 // §244: fps 옵션(30/24) — 재생·익스포트 공통 (§220의 30 고정 해제). cycles = 익스포트 반복 회수.
@@ -170,6 +172,27 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
+// §284: 포즈의 도크 브리지 — 페어 계보로 아이템 매칭 (도크는 양 키프레임에 복제돼 있음 §283).
+// 디졸브 분리(p<pair>a/b) 시 같은 pair의 첫 아이템 기준.
+const poseBridges = computed(() => {
+  if (!pose.value || !props.docks.length) return [];
+  const byId = new Map(props.fromUnits.map((u) => [u.id, u]));
+  const fakeByPair = new Map();
+  for (const it of pose.value.items) {
+    const m = /^p(\d+)/.exec(it.key);
+    if (m && !fakeByPair.has(+m[1])) fakeByPair.set(+m[1], { x: it.dx, y: it.dy, type: 'unit', params: it.params });
+  }
+  const out = [];
+  for (const e of props.docks) {
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b || a.pair == null || b.pair == null) continue;
+    const fa2 = fakeByPair.get(a.pair);
+    const fb2 = fakeByPair.get(b.pair);
+    if (fa2 && fb2) out.push(...dockBridgePolys(fa2, fb2));
+  }
+  return out;
+});
 // ── §233·§247·§250: 익스포트 — WebM/MP4(실시간 녹화) · GIF(비실시간) · JSON(웹 모션 데이터) ──
 // 프리뷰 SVG(동일 렌더러)를 프레임마다 캔버스에 래스터. 파일명 = `From→To_1000ms` 규칙.
 const exporting = ref(false);
@@ -365,6 +388,12 @@ const totalLabel = computed(() => {
           <!-- §260: 양옆 1px 선의 진짜 정체 = 프레임 rect 가장자리 안티앨리어싱으로 svg 배경이
                0.5px 비치던 것 — 배경 rect를 viewBox 밖까지 1px 오버드로(루트 클립이 잘라줌, export 동일) -->
           <rect :x="-1" :y="-1" :width="pose.W + 2" :height="pose.H + 2" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
+          <!-- §284: 도크 브리지 — 샤프트 연장 (유닛 아래 레이어, 갭 애니에 동승) -->
+          <polygon
+            v-for="(bp, bi) in poseBridges" :key="'pb' + bi"
+            :points="bp.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
+            :fill="bp.fill"
+          />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
             <UnitGraphic :params="it.params" :seam-width="0.75" />
           </g>

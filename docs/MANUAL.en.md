@@ -233,7 +233,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - Select a group to rename it at the top of the panel
 
 ### {icon:link}Links — change shapes together
-- Select two or more units and press link parameters in the panel's **LINK** section; from then on, changing one unit changes the linked units with it
+- Select two or more units and pressing Link all parameters in the panel's **LINK** section; from then on, changing one unit changes the linked units with it
 - The chips (size · grid · shape · color · orientation) choose which properties stay in sync
 - Link states live in the panel's LINK section chips (shown even with a single unit selected)
 - **[Copied](#5-select-move-transform) units join the original's link.** To give the copies their own link: select just the copies and press any chip — they split off into a new link at that moment. The unlink parameters button removes only the selected units from the link
@@ -243,7 +243,8 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - Docked units **move together** (selection stays per-unit) and show the chain icon ({icon:link})
 - Chain 3, 4 or more units in series the same way; changing a gutter updates the gap live
 - While docked, **only rotation is locked** — flips and every other parameter stay per-unit
-- To undock, click the unit's chain badge ({icon:link}) and choose **Undock** — dropping a node on empty space works too
+- Docked units get a **shaft bridge** filling the gap, so the pair reads as one piece joined by a natural gutter (included in SVG/PNG export and animation)
+- To undock, select the docked unit and click its chain badge ({icon:link}), then **Undock** — dropping a node on empty space works too
 - Docking units inside a keyframe replicates the same dock to its paired keyframes
 
 ---

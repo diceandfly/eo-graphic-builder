@@ -309,8 +309,9 @@ function resetGridDefaults() {
 // §225: 미니맵 — 전체 오브젝트 분포 + 현재 뷰포트(액센트 직사각형)
 // §279: 좌우 5px 화면 패딩 (애니패널 .pvWrap 문법) — 팝업이 넓어져도 전폭 추종
 // §281: 하단도 동일 5px — 팝업 하단 패딩(--window-pad-y)과의 차액을 음수 마진으로 상쇄
-// §283: 위 디바이드 라인 제거 (사용자 확정 — 미니맵 보더가 이미 구획)
-.mmSect {
+// §283·§284: 위 디바이드 라인 제거 (사용자 확정 — 미니맵 보더가 이미 구획).
+// 선택자 = .menu .sect(믹스인)보다 높은 특이도 필수 — .mmSect 단독으론 밀려서 선이 남았음
+.menu .sect.mmSect {
   margin: 0 calc(5px - var(--panel-pad)) calc(5px - var(--window-pad-y));
   border-top: none; padding-top: 0;
 }

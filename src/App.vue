@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useDocument, LINK_CATS, primaryLid } from './composables/useDocument.js';
+import { useDocument, LINK_CATS, primaryLid, dockBridges } from './composables/useDocument.js';
 import { useViewport } from './composables/useViewport.js';
 import { usePresets } from './composables/usePresets.js';
 import { usePatterns } from './composables/usePatterns.js';
@@ -110,26 +110,30 @@ function selectionItems() {
   const frameIds = doc.units.filter((u) => ids.has(u.id) && u.type === 'frame').map((u) => u.id);
   if (frameIds.length) for (const o of docApi.frameOwnedUnits(frameIds)) ids.add(o.id);
   const sel = doc.units.filter((u) => ids.has(u.id));
-  if (sel.length > 1) return sel.map(exportItem);
-  return active.value ? [exportItem(active.value)] : [];
+  if (sel.length > 1) return { items: sel.map(exportItem), bridges: selectionBridges(ids) };
+  return { items: active.value ? [exportItem(active.value)] : [], bridges: [] };
+}
+// §284: 선택 내부 도크 브리지 — 양끝이 모두 선택(동반 포함)에 들어온 결착만
+function selectionBridges(ids) {
+  return dockBridges(doc.units, doc.docks.filter((e) => ids.has(e.from) && ids.has(e.to)));
 }
 function exportSvg() {
-  const items = selectionItems();
+  const { items, bridges } = selectionItems();
   if (!items.length) return;
-  if (items.length > 1) downloadCompositeSvg(items);
+  if (items.length > 1) downloadCompositeSvg(items, bridges);
   else downloadSvg(items[0]);
 }
 // 시스템 클립보드 복사 — SVG 텍스트(⌘C 겸용) / PNG 2x(⌘⇧C)
 async function copySelectionSvg() {
-  const items = selectionItems();
+  const { items, bridges } = selectionItems();
   if (!items.length) return false;
-  await copyTextToClipboard(buildSelectionSvg(items).svg);
+  await copyTextToClipboard(buildSelectionSvg(items, bridges).svg);
   return true;
 }
 async function copySelectionPng() {
-  const items = selectionItems();
+  const { items, bridges } = selectionItems();
   if (!items.length) return false;
-  const { svg, w, h } = buildSelectionSvg(items);
+  const { svg, w, h } = buildSelectionSvg(items, bridges);
   await copySvgAsPng(svg, w, h, 2);
   return true;
 }

@@ -49,7 +49,8 @@ export function buildSvgString(args) {
 
 // 다중 선택: 상대 배치를 보존한 컴포지트 SVG
 // items: [{ x, y, W, H, unit, orientation, fill }]
-export function buildCompositeSvgString(items) {
+// bridges (§284): 도크 브리지 폴리곤 [{ pts: [[x,y]×4], fill }] — 캔버스 절대좌표 (dockBridges 산출)
+export function buildCompositeSvgString(items, bridges = []) {
   const minX = Math.min(...items.map((i) => i.x));
   const minY = Math.min(...items.map((i) => i.y));
   const w = Math.max(...items.map((i) => i.x + i.W)) - minX;
@@ -57,15 +58,18 @@ export function buildCompositeSvgString(items) {
   const body = items
     .map((i) => `<g transform="translate(${f(i.x - minX)} ${f(i.y - minY)})">${objectBody(i)}</g>`)
     .join('');
+  const bridgeBody = bridges
+    .map((b) => `<polygon points="${b.pts.map(([x, y]) => `${f(x - minX)},${f(y - minY)}`).join(' ')}" fill="${b.fill}"/>`)
+    .join('');
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${f(w)}" height="${f(h)}" viewBox="0 0 ${f(w)} ${f(h)}">` +
-    body +
+    bridgeBody + body +
     `</svg>`
   );
 }
 
 // 선택 아이템들 → { svg, w, h } (단일 = 원본 크기, 다중 = 컴포지트 bbox)
-export function buildSelectionSvg(items) {
+export function buildSelectionSvg(items, bridges = []) {
   if (items.length === 1) {
     const i = items[0];
     return { svg: buildSvgString(i), w: i.W, h: i.H };
@@ -74,7 +78,7 @@ export function buildSelectionSvg(items) {
   const minY = Math.min(...items.map((i) => i.y));
   const w = Math.max(...items.map((i) => i.x + i.W)) - minX;
   const h = Math.max(...items.map((i) => i.y + i.H)) - minY;
-  return { svg: buildCompositeSvgString(items), w, h };
+  return { svg: buildCompositeSvgString(items, bridges), w, h };
 }
 
 function download(str, name) {
@@ -90,6 +94,6 @@ function download(str, name) {
 export function downloadSvg(args) {
   download(buildSvgString(args), `eo-unit-${args.W}x${args.H}.svg`);
 }
-export function downloadCompositeSvg(items) {
-  download(buildCompositeSvgString(items), `eo-composite-${items.length}units.svg`);
+export function downloadCompositeSvg(items, bridges = []) {
+  download(buildCompositeSvgString(items, bridges), `eo-composite-${items.length}units.svg`);
 }
