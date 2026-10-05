@@ -1868,3 +1868,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - §228의 "전부 회색 표시"를 축소(사용자 확정): 애니 모드 밖 회색 잔존 = **연결 와이어 + 페어 마크**만. **프레임 좌/우 노드·와이어 타이밍 컨트롤은 완전 숨김**.
 - 부수 수정: 오버레이 렌더 조건에 "페어 존재" 추가 — 엣지가 없어도(복제만 한 상태) 회색 페어 마크가 유지되도록 (`animOverlayOn`).
 - 실측: 모드 안 노드4·컨트롤1·마크2 ↔ 모드 밖 회색 와이어1·회색 마크2·노드0·컨트롤0. 도움말 KR/EN 갱신.
+
+## 238. 2026-10-05 — 커서 디자인 에셋 교체 (4종·일괄 축척·좌상단 핫스팟)
+
+- 코드 생성 데이터URI 커서 폐기 → **src/assets/cursor/ 디자인 에셋 4종**: cursorDefault(기본 화살표) · cursorBlock(블록 뱃지) · cursorBoundingBox(바운딩박스 뱃지) · cursorWhite(화이트 반전).
+- **일괄 정규화**: 화살표 높이 22px 공통 축척으로 각 SVG에 width/height 부여 — Default 16.35×22 / Block 19.69×28.15 / BBox 26.77×33.01 / White 16.34×22(자체 1/10 좌표계 환산). **핫스팟 = 좌상단 (0 0) 공통**(팁이 뷰박스 원점).
+- 적용: 유닛 우선 = cursorDefault, 그룹(프레임) 우선 = **cursorBlock(테스트 1)** — BoundingBox/White는 주석 한 줄 교체로 스왑(DashboardStage §238 블록). vite 인라인(4KB 미만)으로 데이터URI 번들 — 실측: 크기 속성·핫스팟·모드별 전환 확인.

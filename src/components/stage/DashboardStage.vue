@@ -1931,15 +1931,16 @@ onBeforeUnmount(() => {
 .stage.panning { cursor: grab; }
 .world { display: block; width: 100%; height: 100%; }
 .hit { cursor: default; }
-// §216~§219: 선택 커서 — 툴바 선택 아이콘과 같은 쉐입(스템 연장). 레이어 = 블랙 스트로크 > 화이트 스트로크 > 필
-// (네온은 실화면에서 가시성 낮아 화이트로 — 사용자 확정). 유닛 우선 = 블랙 필 / 프레임 우선 = 화이트 필.
-// 프레임 커서는 같은 필만 바꾸면 착시로 둔탁해져 **내부 2도형(화이트 스트로크+필)을 중심 기준 0.88 인셋**,
-// 외곽 블랙 스트로크는 4로 약간 두껍게 — 실루엣 크기는 유닛 커서와 동일. 핫스팟 = 화살촉 (6,2).
+// §238: 커서 = 디자인 에셋 4종 (src/assets/cursor/ — 코드 생성 데이터URI 폐기).
+// 일괄 정규화: 화살표 높이 22px 공통 축척(White는 자체 좌표계 환산), 핫스팟 = 좌상단 (0 0) 공통.
+// 기본 = cursorDefault. 그룹(프레임) 선택은 나머지 3종 테스트 — 아래 한 줄 교체로 스왑.
 .stage.unitsel:not(.panning), .stage.unitsel:not(.panning) .hit {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='none' stroke='black' stroke-width='3.6' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='black' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+  cursor: url('../../assets/cursor/cursorDefault.svg') 0 0, default;
 }
 .stage.framesel:not(.panning), .stage.framesel:not(.panning) .hit {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' fill='none' stroke='black' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M6 2L6 18.2 9.4 15.2 12.4 22 15.1 20.8 12.1 14.1 17 14.1Z' transform='translate(1.38 1.44) scale(0.88)' fill='white' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 2, default;
+  cursor: url('../../assets/cursor/cursorBlock.svg') 0 0, default; /* 테스트 1 (현재) */
+  /* cursor: url('../../assets/cursor/cursorBoundingBox.svg') 0 0, default;  테스트 2 */
+  /* cursor: url('../../assets/cursor/cursorWhite.svg') 0 0, default;        테스트 3 */
 }
 .gridbg { pointer-events: none; }
 .multiSel { fill: none; stroke: var(--accent); stroke-width: 1; vector-effect: non-scaling-stroke; }
