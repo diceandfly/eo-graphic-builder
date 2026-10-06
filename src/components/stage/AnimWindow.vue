@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { saveFileAs } from '../../utils/saveFile.js';
 import UnitGraphic from './UnitGraphic.vue';
+import StepField from '../controls/StepField.vue';
 import { frameAttrs } from '../../geometry/frameGrid.js';
 import { bezierEase, samplePose } from '../../geometry/anim.js';
 import { dockBridges, dockAttachedEnds } from '../../geometry/dock.js';
@@ -57,7 +58,7 @@ const pos = ref((() => {
 const rootEl = ref(null);
 // §227: 컨트롤이 아닌 모든 영역 드래그 = 창 이동 (5px 임계 — 프리뷰는 임계 미만이면 클릭 = 재생 토글)
 function onWinDown(e) {
-  if (e.target.closest('input, button, .scrub, .segMini, .cycWrap, .sizeGrip')) return;
+  if (e.target.closest('input, button, .scrub, .segMini, .sizeGrip')) return;
   const host = rootEl.value?.parentElement;
   const wr = rootEl.value.getBoundingClientRect();
   const hr = host.getBoundingClientRect();
@@ -481,19 +482,12 @@ const totalLabel = computed(() => {
         </div>
         <div class="optRow">
           <span class="optLabel">Cycles</span>
-          <label class="cycWrap" title="Cycles to export (pingpong cycle = round trip)">
-            ×<input
-              class="numIn cycIn" type="number" min="1" max="8" v-model.number="cycles"
-              @keydown.enter.stop.prevent="$event.target.blur()"
-            />
-          </label>
+          <!-- §300: 입력필드 = StepField(상시 화살표) — Cycles 1단위 -->
+          <StepField v-model="cycles" :min="1" :max="8" :step="1" />
         </div>
         <div class="optRow">
-          <span class="optLabel">End hold (ms)</span>
-          <input
-            class="numIn holdIn" type="number" min="0" max="5000" step="100" v-model.number="exportCfg.hold"
-            @keydown.enter.stop.prevent="$event.target.blur()"
-          />
+          <span class="optLabel">End hold</span><!-- §300: (ms) 라벨 제거 — 단위는 필드 안 -->
+          <StepField v-model="exportCfg.hold" :min="0" :max="5000" :step="100" suffix="ms" />
         </div>
         <div class="optRow">
           <span class="optLabel">Format</span>
@@ -620,20 +614,7 @@ const totalLabel = computed(() => {
   }
 }
 .exRow { display: flex; gap: 6px; align-items: center; }
-// §244: 익스포트 반복 회수 — ×n (§250: Export 섹션으로 이동)
-.cycWrap {
-  display: inline-flex; align-items: center; gap: 2px;
-  font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
-}
-// §247: 공용 숫자 입력 (반복 ×n · 끝 프레임 홀드) — §250: Enter = 커밋(blur)
-.numIn {
-  @include text-field;
-  width: 28px; height: 21px; padding: 0 2px; text-align: center;
-  -moz-appearance: textfield; appearance: textfield;
-  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  &:disabled { color: var(--disabled); }
-}
-.holdIn { width: 48px; }
+// (§300: Cycles·End hold = StepField로 교체 — cycWrap·numIn·holdIn 스타일 폐기)
 // §251: 옵션 접기 토글 — 창 하단 중앙 라벨+셰브론 (구 설명문 자리)
 .optTg {
   border: none; background: none; cursor: pointer; padding: 0;

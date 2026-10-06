@@ -2334,3 +2334,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 299. 2026-10-06 — 애니패널 익스포트 취소
 
 - **익스포트 중 Export 버튼 재클릭 = 취소** (사용자 확정): 버튼이 진행 중 `Cancel · N%`로 바뀌고(비활성 해제, 활성 보더 문법) 재클릭 시 파일 저장 없이 중단 + "Export canceled" 안내. GIF 프레임 루프·WebM/MP4 실시간 루프·끝 프레임 홀드(100ms 단위) 전 구간에서 플래그 검사, WebM/MP4는 레코더 정리(stop) 후 중단. ExportCanceled 예외로 통일(그 외 예외는 재던짐). E2E: 2s 익스포트 24% 지점 취소 → 즉시 복귀·저장 없음.
+
+## 300. 2026-10-06 — 애니패널 Cycles·End hold = StepField (상시 화살표)
+
+- Cycles = StepField 1단위(1~8, ×표기 폐기). End hold = 라벨에서 "(ms)" 제거, **필드 안 ms 서픽스** + 100단위 화살표(0~5000). 구 cycWrap·numIn·holdIn 커스텀 입력 스타일 폐기 — 패널 공용 StepField 단일 규격. E2E: 서픽스·100단위 증감 확인.
