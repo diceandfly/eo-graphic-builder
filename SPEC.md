@@ -2373,3 +2373,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **증상(사용자)**: 한 프레임의 링크그룹 A·B에서 각 1개씩 조절하면 오리엔테이션별 독자 앵커로 잘 붙는데, A·B를 **동시에 선택해 스케일**하면 (미선택 멤버의) 앵커 로직이 달라짐.
 - **원인**: 단일 리사이즈는 §205 공유 앵커(setLinkResizeAnchor — 잡은 핸들의 로컬 좌표)를 설정해 링크 전파가 멤버별 오리엔트에 맞는 "논리적 동일 앵커"에 고정되지만, **그룹 리사이즈(resizeg)는 앵커 미설정** → §303 전파가 로컬 원점(0,0) 고정으로 떨어짐.
 - **수선**: resizeg에도 단일과 동일 공식으로 공유 앵커 설정(활성 유닛 기준 canvasPointToLocal), 드래그 종료 시 해제. (재현 조건이 더 복잡했다면 알려주세요 — 이 수선은 단일/그룹 경로의 앵커 문법 통일입니다.)
+
+## 307. 2026-10-06 — 프레임 패널 라벨 정리: Row/Col Gutter · Row/Col Compression · Sync 토글
+
+- gutter rows/cols → **Row Gutter / Col Gutter**, comp rows/cols → **Row Compression / Col Compression** — 단수형 확정(축 속성 이름이라 단수가 자연스러움, 복수형 s는 영어로 어색).
+- comp lock rows-cols → **Sync Row & Col Compression** — "Lock Compression Ratio"는 비율 고정으로 오독 소지(실동작 = 양 축 값·모드 동기), "Link"는 링크 시스템과 용어 충돌이라 배제.

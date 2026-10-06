@@ -331,13 +331,13 @@ function setStrokeColor(c) {
         @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
       />
       <Slider
-        :label="`gutter rows (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
+        :label="`row gutter (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
       />
       <Slider
-        :label="`gutter cols (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
+        :label="`col gutter (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
@@ -353,7 +353,7 @@ function setStrokeColor(c) {
         <!-- §134: 축별 dir/sym — 별도 행 대신 슬라이더 라벨 옆 인라인 미니 세그 (UI 1행 절약) -->
         <div class="compSet">
           <Slider
-            label="comp rows" :model-value="p.compY"
+            label="row compression" :model-value="p.compY"
             :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
             :snap-to="0" :snap-radius="0.1" suffix="x"
             @update:model-value="(v) => setCompAxis('compY', v)"
@@ -373,7 +373,7 @@ function setStrokeColor(c) {
         </div>
         <div class="compSet">
           <Slider
-            label="comp cols" :model-value="p.compX"
+            label="col compression" :model-value="p.compX"
             :min="-FRAME_COMP_SCALE" :max="FRAME_COMP_SCALE" :step="0.01" :arrow-step="0.1" :decimals="2"
             :snap-to="0" :snap-radius="0.1" suffix="x"
             @update:model-value="(v) => setCompAxis('compX', v)"
@@ -393,7 +393,7 @@ function setStrokeColor(c) {
         </div>
         <!-- §132: 잠금 on = rows·cols 값+모드 동기화 (켜는 순간 rows 기준 통일) -->
         <Toggle
-          label="comp lock rows-cols" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"
+          label="sync row &amp; col compression" :model-value="p.compLock ? 'on' : 'off'" :options="ON_OFF"
           @update:model-value="setCompLock"
         />
       </template>
