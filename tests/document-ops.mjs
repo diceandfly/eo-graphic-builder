@@ -1236,4 +1236,55 @@ function centerIn(u, f) {
   });
 }
 
+// §304. 멀티선택 브로드캐스트 — 선택 전원의 링크그룹 합집합 동기 (키프레임 평행 그룹 포함)
+{
+  // 일반형: 서로 다른 두 링크그룹에서 1개씩 선택해 편집 → 양 그룹 전체 동기
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1); u2.x += 3000;
+  const u3 = api.duplicateFrom(u1); u3.x += 6000;
+  const u4 = api.duplicateFrom(u1); u4.x += 9000;
+  await sleep(30);
+  api.setCategoryLink([u1.id, u2.id], 'grid', 'new');
+  api.setCategoryLink([u3.id, u4.id], 'grid', 'new');
+  await sleep(30);
+  api.doc.selectedIds = [u1.id, u3.id];
+  api.doc.activeId = u1.id;
+  await sleep(30); // 워처의 activeId 전환 가드 통과 후 변이
+  u1.params.cols = 5;
+  await sleep(30);
+  ok('§304: 두 그룹에서 1개씩 선택 편집 = 양 그룹 전체 동기', () => {
+    assert.equal(u2.params.cols, 5); // 활성의 그룹
+    assert.equal(u3.params.cols, 5); // 선택 미러
+    assert.equal(u4.params.cols, 5); // 두번째 선택의 그룹 (수정 전엔 미동기)
+  });
+}
+{
+  // 키프레임형: K1·K2 평행 그룹에서 하나씩 선택해 편집 → 양 키프레임 그룹 동기
+  const api = fresh();
+  const f = api.createFrame(0, 0, 3000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  u1.x = f.x + 100;
+  const u2 = api.createUnit(f.x + 1500, u1.y);
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u2.id], 'grid', 'new');
+  api.duplicatePairedFrame(f.id, 8000, 0);
+  const m1 = api.doc.units.find((u) => u.pair === u1.pair && u.id !== u1.id);
+  const m2 = api.doc.units.find((u) => u.pair === u2.pair && u.id !== u2.id);
+  await sleep(30);
+  api.doc.selectedIds = [u1.id, m1.id];
+  api.doc.activeId = u1.id;
+  await sleep(30);
+  u1.params.cols = 7;
+  await sleep(30);
+  ok('§304: K1·K2 평행 그룹 각 1개 선택 편집 = 양 키프레임 그룹 동기', () => {
+    assert.equal(u2.params.cols, 7);
+    assert.equal(m1.params.cols, 7);
+    assert.equal(m2.params.cols, 7); // 두번째 키프레임의 링크 상대 (수정 전엔 미동기)
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

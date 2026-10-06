@@ -604,11 +604,15 @@ export function useDocument() {
       const me = doc.units.find((u) => u.id === id);
       // §274: 전파 대상 = **모든 범주 lid**의 멤버 합집합 — primaryLid(첫 범주) 하나만 쓰면
       // 범주별 그룹이 다른 멀티 링크에서 뒤 범주(animation 등) 상대가 누락됨 (grow 미동기 원인).
-      // 키별 실제 전파 여부는 아래 filterByLinkScope가 범주 멤버십으로 거른다.
-      if (me?.links) {
+      // §304: lid 수집을 활성 유닛만이 아니라 **선택 전원(senders)**으로 확장 — 서로 다른
+      // 링크그룹(예: 키프레임1·2의 평행 그룹)에서 하나씩 집어 함께 편집하면 각 그룹 전체가
+      // 동기되도록 (종전엔 활성 유닛의 그룹만 동기 — 사용자 리포트).
+      // 키별 실제 전파 여부는 아래 멤버별 필터가 senders의 범주 멤버십으로 거른다.
+      const senders = [me, ...doc.units.filter((u) => u.id !== id && selT.has(u.id))].filter((u) => u?.links);
+      for (const s of senders) {
         for (const c of LINK_CATS) {
-          if (me.links[c] == null) continue;
-          for (const mid of linkMemberIds(me.links[c])) linkT.add(mid);
+          if (s.links[c] == null) continue;
+          for (const mid of linkMemberIds(s.links[c])) linkT.add(mid);
         }
       }
       selT.delete(id);
@@ -628,8 +632,13 @@ export function useDocument() {
       for (const u of doc.units) {
         if (selT.has(u.id)) Object.assign(u.params, patch);
         else if (linkT.has(u.id)) {
-          // §220: 범주별 멤버십 필터 — 멤버가 그 범주를 공유할 때만 해당 키 전파
-          const lp = filterByLinkScope(patch, me, u);
+          // §220: 범주별 멤버십 필터 — §304: senders(활성+선택) 중 **누구든** 그 범주 lid를
+          // 공유하면 전파 (활성 단일 기준이던 것을 확장 — 선택 전원이 같은 패치를 받으므로 동치)
+          const lp = {};
+          for (const k in patch) {
+            const cat = KEY_CAT[k];
+            if (!cat || senders.some((s) => s.links[cat] != null && s.links[cat] === u.links[cat])) lp[k] = patch[k];
+          }
           if (Object.keys(lp).length) applyLinkPatch(u, lp, me.params);
         }
       }
