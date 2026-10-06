@@ -340,10 +340,15 @@ const frameLabels = computed(() => {
   // §222: 라벨 폭을 프레임 화면 폭에 맞춰 말줄임 — 저배율에서 긴 이름이 이웃 라벨 오클루전 필터에
   // 통째로 숨던 문제 해결 (숨기는 대신 잘라서라도 보여줌). 최소 4자+… 보장.
   const entry = (f) => {
-    const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 8) / 6.8));
+    // §314: K 배지 — 체인 파생 순번(§312)을 이름 **옆 별도 요소**로. 이름 말줄임과 무관하게 생존
+    // (말줄임 예산에서 배지 폭을 선공제 — "Fra… K2"처럼 배지가 끝까지 남는다)
+    const k = props.actions.frameKIndex(f);
+    const kw = k != null ? `K${k}`.length * 5.6 + 5 : 0;
+    const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 8 - kw) / 6.8));
     const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
-    // w = 히트 패드 포함 화면 px 근사(렌더용) / tw = 텍스트만 (충돌 판정용 — §243)
-    return { f, label, w: label.length * 6.8 + 20, tw: label.length * 6.8 };
+    // w = 히트 패드 포함 화면 px 근사(렌더용) / tw = 배지 포함 텍스트 (충돌 판정용 — §243)
+    const nw = label.length * 6.8; // 이름 텍스트만 — 배지 x 기준
+    return { f, label, k, nw, w: nw + kw + 20, tw: nw + kw };
   };
   // §242: 겹침 = 숨김 대신 **윗줄 스태거(최대 3줄)** — 저배율 군집에서도 긴 이름이 사라지지 않음.
   // 우선순위(선택 > z 상위)가 0줄을 차지하고, 겹치는 라벨은 한 줄씩 위로. 3줄 초과만 숨김.
@@ -1990,7 +1995,7 @@ onBeforeUnmount(() => {
              클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
              §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
         <g
-          v-for="{ f, label, w, row } in frameLabels"
+          v-for="{ f, label, k, nw, w, row } in frameLabels"
           :key="'fl' + f.id"
           class="frameLabelG"
           :class="{ sel: doc.selectedIds.includes(f.id) }"
@@ -2005,6 +2010,8 @@ onBeforeUnmount(() => {
             :width="pxs(w)" :height="pxs(24)"
           />
           <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ label }}</text>
+          <!-- §314: K 배지 — 그룹 마지막 요소(최상위 페인트), 선택 프레임 그룹은 정렬상 맨 위 -->
+          <text v-if="k != null" class="frameK" :x="pxs(nw + 5)" :y="-pxs(6)" :font-size="pxs(9)">K{{ k }}</text>
         </g>
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
         <!-- §239: 애니 모드에선 비표시 — difference 블렌드가 체인 하이라이트(액센트)를 어둡게 오염 -->
@@ -2448,6 +2455,13 @@ onBeforeUnmount(() => {
   }
   &:hover .frameLabel { fill: var(--text); }
   &.sel .frameLabel { fill: var(--accent); }
+  /* §314: K 배지 — 이름과 같은 후광, 한 단계 작게·흐리게 (파생 표기 위계). 선택 시 액센트 동반 */
+  .frameK {
+    fill: color-mix(in srgb, var(--text) 45%, var(--faint));
+    font-family: inherit; user-select: none; -webkit-user-select: none;
+    paint-order: stroke; stroke: var(--label-halo, var(--stage-bg)); stroke-width: 0.25em; stroke-linejoin: round;
+  }
+  &.sel .frameK { fill: var(--accent); }
 }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
