@@ -124,8 +124,8 @@ const dockBadgeIds = computed(() => {
 // §283: 도크 배지 클릭 팝업 — 해제(Undock) 진입점 (페어 인디케이터 문법)
 const dockMenu = ref(null); // { x, y, u }
 function onDockBadgeClick(u, cx, cy) {
-  const r = el.value.getBoundingClientRect();
-  dockMenu.value = { x: cx - r.left, y: cy - r.top, u };
+  const [wx, wy] = dropClientToWorld(cx, cy); // §308: 월드 앵커
+  dockMenu.value = { wx, wy, u };
 }
 const closeDockMenu = () => { dockMenu.value = null; };
 function closeDockMenuOutside(e) {
@@ -458,9 +458,13 @@ const selEdge = computed(() => {
   if (bySel) return bySel;
   return edges.find((e) => edgeKey(e) === animEdgeSel.value) ?? edges[0];
 });
+// §308: 노드계 팝업(타이밍·페어·도크)은 **월드 좌표 앵커** — 팬/줌해도 노드 옆에 고정 (사용자 확정).
+// 렌더 시점에 월드→스테이지 로컬로 환산 (vp 반응형이라 뷰포트 이동을 자동 추종)
+const worldToLocal = (wx, wy) => [wx * vp.scale + vp.x, wy * vp.scale + vp.y];
 function onEdgeClick(e, cx, cy) {
   animEdgeSel.value = edgeKey(e);
-  animEdgePopup.value = { x: cx, y: cy };
+  const [wx, wy] = dropClientToWorld(cx, cy);
+  animEdgePopup.value = { wx, wy };
 }
 function onEdgePopupOutside(e) {
   if (e.target instanceof Element && e.target.closest('.edgeMenu')) return;
@@ -761,8 +765,8 @@ function onPairClick(f, cx, cy) {
     props.actions.setSelection([f.id]);
     props.doc.activeId = f.id;
   }
-  const r = el.value.getBoundingClientRect();
-  pairMenu.value = { x: cx - r.left, y: cy - r.top, f };
+  const [wx, wy] = dropClientToWorld(cx, cy); // §308: 월드 앵커
+  pairMenu.value = { wx, wy, f };
 }
 function closePairMenu() { pairMenu.value = null; }
 function closePairMenuOutside(e) {
@@ -2154,7 +2158,7 @@ onBeforeUnmount(() => {
     <div
       v-if="animEdgePopup && selEdge"
       class="edgeMenu"
-      :style="{ left: animEdgePopup.x + 12 + 'px', top: animEdgePopup.y + 12 + 'px' }"
+      :style="{ left: worldToLocal(animEdgePopup.wx, animEdgePopup.wy)[0] + 12 + 'px', top: worldToLocal(animEdgePopup.wx, animEdgePopup.wy)[1] + 12 + 'px' }"
       @pointerdown.stop
     >
       <div class="menuTitle">Keyframe timing</div>
@@ -2256,7 +2260,7 @@ onBeforeUnmount(() => {
     <div
       v-if="dockMenu"
       class="ctxMenu pairMenu"
-      :style="{ left: dockMenu.x + 'px', top: dockMenu.y + 'px' }"
+      :style="{ left: worldToLocal(dockMenu.wx, dockMenu.wy)[0] + 'px', top: worldToLocal(dockMenu.wx, dockMenu.wy)[1] + 'px' }"
       @pointerdown.stop
       @contextmenu.prevent
     >
@@ -2281,7 +2285,7 @@ onBeforeUnmount(() => {
     <div
       v-if="pairMenu"
       class="ctxMenu pairMenu"
-      :style="{ left: pairMenu.x + 'px', top: pairMenu.y + 'px' }"
+      :style="{ left: worldToLocal(pairMenu.wx, pairMenu.wy)[0] + 'px', top: worldToLocal(pairMenu.wx, pairMenu.wy)[1] + 'px' }"
       @pointerdown.stop
       @contextmenu.prevent
     >

@@ -2378,3 +2378,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - gutter rows/cols → **Row Gutter / Col Gutter**, comp rows/cols → **Row Compression / Col Compression** — 단수형 확정(축 속성 이름이라 단수가 자연스러움, 복수형 s는 영어로 어색).
 - comp lock rows-cols → **Sync Row & Col Compression** — "Lock Compression Ratio"는 비율 고정으로 오독 소지(실동작 = 양 축 값·모드 동기), "Link"는 링크 시스템과 용어 충돌이라 배제.
+
+## 308. 2026-10-06 — 노드계 팝업 = 월드 좌표 앵커 (팬/줌 추종)
+
+- 타이밍(edgeMenu)·페어·도크 배지 팝업이 화면 고정 좌표라 뷰포트 이동 시 노드에서 떨어져 보이던 문제 → **월드 좌표 저장 + 렌더 시 월드→로컬 환산(worldToLocal, vp 반응형)**으로 노드 옆에 고정. 닫힘 로직(바깥 클릭·배타)은 불변. 유닛 우클릭 ctx는 포인터 기준 관례라 유지. E2E: 팬 시 배지·팝업 동일 델타 이동.
