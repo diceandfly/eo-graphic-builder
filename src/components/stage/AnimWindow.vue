@@ -255,8 +255,9 @@ const segLabel = computed(() => {
 });
 const fileBase = computed(() => {
   const clean = (s) => (s || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
-  // §320: 사이클 수를 말미에 *n으로 (사용자 확정) — 예: "Frame K1 → K2_2000ms*3"
-  return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms*${cycles.value}`;
+  // §320: 사이클 수 = 지속시간의 곱셈 표기 — 2 이상일 때만 "2000ms*3", 1이면 생략 (사용자 확정)
+  const cyc = cycles.value > 1 ? `*${cycles.value}` : '';
+  return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms${cyc}`;
 });
 // §250: JSON (웹 모션용) — 두 키프레임 + 타이밍을 재생 가능한 데이터로 직렬화 (렌더 독립)
 function motionJson() {

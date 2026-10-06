@@ -2463,4 +2463,4 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 ## 320. 2026-10-06 — 익스포트 파일명에 사이클 *n 접미
 
-- 애니 익스포트 파일명(fileBase) 말미에 사이클 수를 **\*n**으로 — `이름 K1 → K2_2000ms*3.gif` (전 포맷 공통, 사용자 확정). E2E: JSON 익스포트 suggestedName "Frame K1 → K2_2000ms*3.json" 실측.
+- 애니 익스포트 파일명(fileBase): 사이클 **2 이상일 때만** 지속시간 뒤 곱셈 표기 `*n` — `이름 K1 → K2_2000ms*3.gif`, 1이면 생략 (사용자 정정 반영). E2E: cycles 1 → "…_2000ms.json" / 2 → "…_2000ms*2.json" 실측.
