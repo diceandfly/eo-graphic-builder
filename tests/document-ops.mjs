@@ -1407,6 +1407,12 @@ function centerIn(u, f) {
     assert.deepEqual([f, r1.frame, r2.frame].map((x) => x.name), ['Hero', 'Hero', 'Hero']);
     assert.equal(api.displayName(r2.frame), 'Hero K3');
   });
+  // §315: 스테이지 라벨 인라인 편집 경로(renameUnit)도 동일 전파 — 활성 여부와 무관
+  api.renameUnit(r1.frame.id, 'Logo');
+  ok('§315: renameUnit(비활성 키프레임) = 체인 전체 전파', () => {
+    assert.deepEqual([f, r1.frame, r2.frame].map((x) => x.name), ['Logo', 'Logo', 'Logo']);
+  });
+  api.renameUnit(f.id, 'Hero'); // 후속 단언(Hero 기준) 복원
   // 중간 키프레임 삭제 → 뒤 순번 자연 재부여 (위치 배지)
   api.setSelection([r1.frame.id]);
   api.unpairFrame(r1.frame.id);

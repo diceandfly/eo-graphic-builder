@@ -1193,15 +1193,20 @@ export function useDocument() {
     () => relayoutDocks()
   );
 
-  function renameActive(name) {
-    const t = name.trim();
-    if (!t || !active.value) return;
-    const u = active.value;
+  // §315: 리네임 단일 경로 — 패널(renameActive)·스테이지 라벨 인라인 편집이 공유.
+  // (§312의 체인 전파가 패널 경로에만 있어 스테이지 더블클릭 리네임은 미동기던 버그 수선)
+  function renameUnit(id, name) {
+    const t = String(name ?? '').trim();
+    const u = doc.units.find((x) => x.id === id);
+    if (!t || !u) return;
     u.name = t;
     // §312: 키프레임 체인은 이름 공유 — 한 키프레임을 리네임하면 체인 전체에 전파
     if (u.type === 'frame' && u.pair != null) {
       for (const x of doc.units) if (x.type === 'frame' && x.pair === u.pair) x.name = t;
     }
+  }
+  function renameActive(name) {
+    if (active.value) renameUnit(active.value.id, name);
   }
   // §312: K<n> = 체인 내 생성 순서(문서 배열 순)에서 파생 — 저장 이름과 분리된 표기 요소.
   // 중간 키프레임 삭제 시 뒤 번호가 자연 재부여된다 (위치 배지 — 간극 유지 없음).
@@ -2159,7 +2164,7 @@ export function useDocument() {
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
     canForkSelected, forkLinkSelected, // §311
-    undo, redo, registerHistoryExtra, copyActive, pasteAt, renameActive,
+    undo, redo, registerHistoryExtra, copyActive, pasteAt, renameActive, renameUnit, // §315
     loadProject, absorbFrom, setNotifier,
     restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)
   };
