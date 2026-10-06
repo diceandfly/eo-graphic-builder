@@ -1406,11 +1406,13 @@ function onMove(e) {
       maxY = Math.max(maxY, t.y0 + dy + t.u.params.H);
     }
     // 프레임 셀렉 모드: 스냅 후보를 프레임으로 한정 — 유닛 엣지에 안 들러붙게 (§123)
+    // §298: 프레임을 끌고 있을 때도 동일 — 프레임 선택 이동은 **프레임끼리만** 스냅 (사용자 확정)
     // + 뷰포트 컬링(§126-1): 화면에 보이는 오브젝트만
     const vr = viewWorldRect();
+    const framesOnly = frameMode.value || drag.targets.some((t) => t.u.type === 'frame');
     const others = props.doc.units.filter(
       (u) => !drag.targets.some((t) => t.u === u)
-        && (!frameMode.value || u.type === 'frame')
+        && (!framesOnly || u.type === 'frame')
         && inView(u, vr)
     );
     const mineX = [minX, (minX + maxX) / 2, maxX];
@@ -1580,9 +1582,11 @@ function snapPointsOf(o) {
 function snapEdge(axis, pos, excludeUnits, SNAP) {
   let best = null;
   const vr = viewWorldRect(); // §126-1
+  // §298: 프레임을 조작 중이면(리사이즈 대상에 프레임 포함) 프레임끼리만 — 이동 스냅과 동일 규칙
+  const framesOnly = frameMode.value || excludeUnits.some((u) => u.type === 'frame');
   for (const o of props.doc.units) {
     if (excludeUnits.includes(o)) continue;
-    if (frameMode.value && o.type !== 'frame') continue; // 프레임 셀렉 모드: 프레임끼리만 (§123)
+    if (framesOnly && o.type !== 'frame') continue; // 프레임 셀렉 모드·프레임 조작: 프레임끼리만 (§123·§298)
     if (!inView(o, vr)) continue;
     const pts = snapPointsOf(o);
     const cands = axis === 'x' ? pts.ox : pts.oy;

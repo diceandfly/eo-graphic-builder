@@ -2326,3 +2326,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 297. 2026-10-06 — 페어 키프레임 프레임 회전 락
 
 - 페어링된 프레임(키프레임)은 **회전 락** + 토스트("Paired keyframe — rotation is locked (detach it from the chain first)") — W/H 스왑·방위 변경이 키프레임 보간 기하를 깨뜨리는 것 차단. rotate(단독)·rotateSelected(선택, 페어 프레임 포함 시 전체 차단) 양 경로 + 핸들 드래그도 동일 경로라 자동 커버. 테스트 1건(95케이스).
+
+## 298. 2026-10-06 — 프레임 조작 스마트 스냅 = 프레임끼리만
+
+- 프레임이 끌리거나(이동 drag.targets에 프레임 포함) 리사이즈 중이면 스마트 스냅 후보를 **프레임으로 한정** (사용자 확정) — 유닛 엣지에 들러붙지 않음. §123 프레임 셀렉 모드 한정과 OR 결합(framesOnly), 이동·리사이즈(snapEdge) 두 경로 동일 규칙. 프레임 드로우·유닛 조작 스냅은 종전 그대로.
