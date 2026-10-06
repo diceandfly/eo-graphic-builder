@@ -38,9 +38,16 @@ watch(cycles, (v) => {
 });
 // §247·§250: 익스포트 옵션 묶음 — format(WebM|MP4|GIF|JSON) · scale(0.5/1/2× — 1920 캡 동승) ·
 // alpha(배경 투명 — GIF 전용: 비디오 실시간 녹화는 알파 비보존) · hold(끝 프레임 유지 ms, 루프 호흡)
-const exportCfg = reactive({ format: 'webm', scale: 1, alpha: false, hold: 0, seam: true }); // §313: seam = 스트로크 보정
-try { Object.assign(exportCfg, JSON.parse(localStorage.getItem('eo.animExport') || '{}')); } catch { /* 기본값 유지 */ }
+// §313: seam = 스트로크 보정(Fill gaps) — §319: 기본 **off** · alpha 기본 = 포맷 종속(mp4 외 on)
+const exportCfg = reactive({ format: 'webm', scale: 1, alpha: true, hold: 0, seam: false, v: 2 });
+try {
+  const s = JSON.parse(localStorage.getItem('eo.animExport') || '{}');
+  // §319: v2 마이그레이션 — 구 저장분의 seam(자동 true)·alpha(자동 false)는 신규 기본으로 대체
+  if ((s.v ?? 1) < 2) { delete s.seam; delete s.alpha; }
+  Object.assign(exportCfg, s, { v: 2 });
+} catch { /* 기본값 유지 */ }
 if (!['webm', 'mp4', 'gif', 'json'].includes(exportCfg.format)) exportCfg.format = 'webm'; // §250: 구 'png' 이관
+if (exportCfg.format === 'mp4') exportCfg.alpha = false; // §319: mp4 = 알파 불가
 watch(exportCfg, (v) => localStorage.setItem('eo.animExport', JSON.stringify(v)));
 // §247·§249: 옵션 접기 — 타이틀바 우측 토글, 프리뷰 제외 전부 숨김
 const optsOpen = ref(localStorage.getItem('eo.animOptsOpen') !== '0');
@@ -153,15 +160,35 @@ function loadSim(e) {
   if (e.sim.loop === 'pingpong' || e.sim.loop === 'loop') loopMode.value = e.sim.loop;
   if (e.sim.fps === 24 || e.sim.fps === 30) fps.value = e.sim.fps;
   if (Number.isInteger(e.sim.cycles)) cycles.value = e.sim.cycles;
-  for (const k of ['format', 'scale', 'alpha', 'hold', 'seam']) if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
+  const legacy = (e.sim.v ?? 1) < 2; // §319: 구 엣지 저장분 — seam·alpha는 신규 기본으로
+  for (const k of ['format', 'scale', 'alpha', 'hold', 'seam']) {
+    if (legacy && (k === 'alpha' || k === 'seam')) continue;
+    if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
+  }
+  if (legacy) { exportCfg.seam = false; exportCfg.alpha = exportCfg.format !== 'mp4'; }
   nextTick(() => { simLoading = false; });
 }
 function saveSim() {
   if (simLoading || !props.edge) return;
   props.edge.sim = {
-    loop: loopMode.value, fps: fps.value, cycles: cycles.value,
+    loop: loopMode.value, fps: fps.value, cycles: cycles.value, v: 2, // §319
     format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold, seam: exportCfg.seam,
   };
+}
+// §319: 포맷 선택 = 알파 기본 동반 — WebM/JSON/GIF는 켜고, MP4는 끔(알파 불가).
+// 이후 사용자가 수동으로 바꾸는 건 자유 (다음 포맷 선택 때 다시 기본 적용).
+watch(() => exportCfg.format, (fmt, was) => {
+  if (simLoading || fmt === was) return;
+  exportCfg.alpha = fmt !== 'mp4';
+});
+// §319: MP4 상태에서 알파 토글 클릭 = 차단 + 안내 (비활성 회색 대신 — 사용자 확정)
+function onAlphaToggle(e) {
+  if (exportCfg.format === 'mp4') {
+    e.preventDefault();
+    exportMsg.value = 'MP4 cannot carry alpha — pick WebM or GIF for transparency';
+    return;
+  }
+  exportCfg.alpha = e.target.checked;
 }
 watch(loopMode, () => { dir = 1; p.value = Math.min(1, Math.max(0, p.value)); }); // §265: 모드 전환 즉시 정규화
 watch([loopMode, fps, cycles], saveSim);
@@ -287,7 +314,7 @@ async function doExport() {
     const ctx = canvas.getContext('2d', { willReadFrequently: exportCfg.format === 'gif' });
     const alpha = exportCfg.format === 'gif' && exportCfg.alpha; // §250: 투명 = GIF 전용
     // §251: GIF 외 포맷에서 투명 체크 시 — 배경 유지 안내 (체크박스 자체는 상시 활성)
-    if (exportCfg.alpha && exportCfg.format !== 'gif') exportMsg.value = 'Transparent bg applies to GIF only — background kept';
+    if (exportCfg.alpha && exportCfg.format !== 'gif') exportMsg.value = 'Transparent background applies to GIF only — background kept';
     // §315: Stroke fix 익스포트 강화 — 클론의 seam 속성(0.75 문서단위)은 래스터 배율 k에 깎여
     // 2560×1440에서 0.5px대로 떨어져 틈을 못 메우던 것 → 출력 디바이스px 고정으로 리라이트.
     // §316: 2px로도 부족 리포트 — 2560 기준 3px 비례 차등. §317: 여전히 미세 틈 리포트 →
@@ -529,10 +556,10 @@ const totalLabel = computed(() => {
           />
         </div>
         <div class="optRow">
-          <span class="optLabel">Transparent bg</span>
-          <!-- §251: 상시 활성 (GIF 외는 익스포트 시 안내) · §257: MP4 선택 시에만 비활성 (사용자 확정) -->
+          <span class="optLabel">Transparent Background</span><!-- §319: 생략 없는 풀 라벨 (사용자 확정) -->
+          <!-- §251: 상시 활성 (GIF 외는 익스포트 시 안내) · §319: MP4는 disabled 대신 클릭 차단+안내 -->
           <input
-            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format === 'mp4'"
+            type="checkbox" :checked="exportCfg.alpha" @click="onAlphaToggle"
             :title="exportCfg.format === 'mp4' ? 'MP4 cannot carry alpha' : 'Drop the frame background — applies to GIF (binary alpha)'"
           />
         </div>

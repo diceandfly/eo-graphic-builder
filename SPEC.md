@@ -2451,3 +2451,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 
 - **라벨**: 애니패널 익스포트 "Stroke fix" → **Fill gaps** (기능 직관 명칭 — 사용자 위임 선택. 동작 = 도형 접합부 헤어라인 틈을 동색 스트로크로 봉합). 내부 키(exportCfg.seam)·동작 불변.
 - **저장 다이얼로그 확장자 불일치 확인 (사용자 리포트: "원본은 json인데 mp4로?" 반복)**: 원인 = saveFileAs의 showSaveFilePicker types가 §183 워크스페이스용 **JSON 하드코딩** — mp4/webm/gif 저장 때도 "JSON file"을 선언해 OS가 매번 확장자 변경 확인을 띄움. 수선 = suggestedName 확장자에서 타입 유도(PICKER_TYPES: json·svg·png·gif·webm·mp4), 미등록 확장자는 types 생략(임의 저장 허용). 모든 saveFileAs 소비처(워크스페이스·프리셋·패턴·애니 익스포트) 공통 수혜.
+
+## 319. 2026-10-06 — 익스포트 기본값 정비: Fill gaps off · 포맷 종속 알파 · MP4 안내 · 풀 라벨
+
+- **Fill gaps 기본 off** (사용자 확정).
+- **Transparent Background 기본 = 포맷 종속**: 포맷 선택 시 WebM/JSON/GIF = **on**, MP4 = **off**(알파 불가) 자동 동반 — 이후 수동 변경 자유, 다음 포맷 선택 때 다시 기본 적용. simLoading 가드로 엣지 전환 시 저장값 우선.
+- **MP4 상태에서 알파 토글 클릭 = 차단 + 안내** ("MP4 cannot carry alpha — pick WebM or GIF for transparency") — disabled 회색 대신 클릭 반응형 (사용자 확정).
+- **라벨**: Transparent bg → **Transparent Background** (생략 없는 풀 라벨, 안내문도 동반 갱신).
+- **마이그레이션 v2**: 전역(eo.animExport)·엣지별(sim) 구 저장분의 seam(자동 true)·alpha(자동 false)는 무시하고 신규 기본 적용 — 기본값 변경이 기존 자동 저장값에 가려지는 것 방지.
+- E2E: 기본값(seam off·webm alpha on)·MP4 전환 off·MP4 클릭 차단+메시지·GIF/WebM 복귀 on·라벨 전부 실측.
