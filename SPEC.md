@@ -2446,3 +2446,8 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **Stroke fix 상향 (사용자: 3px에서도 미세 틈 잔존)**: 출력 디바이스px = `max(2.5, 4.5 × max(W,H)/2560)` — 2560 기준 4.5px (1.5×). 라이브 프리뷰 불변.
 - **복사/익스포트 도크샤프트 누락 (사용자 리포트)**: 직렬화(§284 bridges)는 정상 — 실원인 = **selectionItems가 도크 체인을 동반하지 않음**. 체인의 유닛 1개만 선택하고 우클릭(Copy as SVG/PNG·Export SVG 공통)하면 단일 경로로 떨어져 브리지·결착면 가드 없이 그 유닛만 출력되던 것. 수선 = selectionItems에 dockMates 체인 동반(이동 carryOf와 동일 문법) → 결착 상대 + 브리지 + 도킹면 threadMin까지 함께 출력. E2E: 도킹 유닛 1개 선택 ⌘C → 610px 컴포지트(유닛 2 + 브리지 폴리곤 2) 확인.
 - **K 순번 색 원복 (사용자 확정)**: §316 Bay Green 톤 폐기 — tspan이 라벨 fill 상속(이름과 완전 동일 스타일). E2E 동일 fill 확인.
+
+## 318. 2026-10-06 — Fill gaps 라벨 · 저장 픽커 타입 확장자 유도
+
+- **라벨**: 애니패널 익스포트 "Stroke fix" → **Fill gaps** (기능 직관 명칭 — 사용자 위임 선택. 동작 = 도형 접합부 헤어라인 틈을 동색 스트로크로 봉합). 내부 키(exportCfg.seam)·동작 불변.
+- **저장 다이얼로그 확장자 불일치 확인 (사용자 리포트: "원본은 json인데 mp4로?" 반복)**: 원인 = saveFileAs의 showSaveFilePicker types가 §183 워크스페이스용 **JSON 하드코딩** — mp4/webm/gif 저장 때도 "JSON file"을 선언해 OS가 매번 확장자 변경 확인을 띄움. 수선 = suggestedName 확장자에서 타입 유도(PICKER_TYPES: json·svg·png·gif·webm·mp4), 미등록 확장자는 types 생략(임의 저장 허용). 모든 saveFileAs 소비처(워크스페이스·프리셋·패턴·애니 익스포트) 공통 수혜.

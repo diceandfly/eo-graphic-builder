@@ -520,11 +520,12 @@ const totalLabel = computed(() => {
           <StepField v-model="exportCfg.hold" :min="0" :max="5000" :step="100" suffix="ms" />
         </div>
         <div class="optRow">
-          <span class="optLabel">Stroke fix</span>
-          <!-- §313: seam 스트로크 보정 (유닛 샤프트 + 도크 브리지 0.75px 동색 봉합) — 프리뷰·익스포트 공통 -->
+          <span class="optLabel">Fill gaps</span>
+          <!-- §313: seam 스트로크 보정 (유닛 샤프트 + 도크 브리지 동색 봉합) — 프리뷰·익스포트 공통
+               §318: 라벨 Stroke fix → Fill gaps (기능 직관 명칭 — 사용자 요청) -->
           <input
             type="checkbox" v-model="exportCfg.seam"
-            title="Seal shaft/thread & bridge junctions with a same-color 0.75px stroke"
+            title="Seal hairline gaps between shapes with a same-color stroke"
           />
         </div>
         <div class="optRow">
