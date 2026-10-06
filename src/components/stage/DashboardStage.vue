@@ -343,7 +343,7 @@ const frameLabels = computed(() => {
     // §316: 말줄임 예산 축소(-8 → -34) — 우상단 애니 뱃지 영역을 침범하기 전에 먼저 줄인다 (사용자 확정)
     const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 34) / 6.8));
     // §315: K 표기 = 라벨 **인라인**(스페이스 1칸) — 온전히 들어갈 때만, 말줄임 타이밍엔 동반 숨김.
-    // §316: K만 Bay Green 톤 tspan (기본 상태 한정 — 호버/선택은 라벨 전체가 종전 색)
+    // §317: K 색은 라벨과 동일 (§316 Bay Green 톤 폐기 — 사용자 원복 확정)
     const k = props.actions.frameKIndex(f);
     const kTxt = k != null && f.name.length + 1 + String(k).length + 1 <= maxChars ? ` K${k}` : '';
     const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
@@ -2450,11 +2450,9 @@ onBeforeUnmount(() => {
     stroke-width: 0.25em;
     stroke-linejoin: round;
   }
-  /* §316: K 순번 = Bay Green 톤다운(회색도는 이름과 비슷하게 --dim 혼합) — Day Blue는 링크/도크
-     배지(--link)와 의미 충돌이라 배제. 호버/선택은 종전처럼 라벨 전체 단색 */
-  .frameLabel .kSpan { fill: color-mix(in srgb, var(--world-green) 70%, var(--dim)); }
-  &:hover .frameLabel, &:hover .frameLabel .kSpan { fill: var(--text); }
-  &.sel .frameLabel, &.sel .frameLabel .kSpan { fill: var(--accent); }
+  /* §317: K 순번 색 원복 (사용자 확정 — §316 Bay Green 톤 폐기): tspan이 라벨 fill 상속 = 동일 스타일 */
+  &:hover .frameLabel { fill: var(--text); }
+  &.sel .frameLabel { fill: var(--accent); }
 }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치

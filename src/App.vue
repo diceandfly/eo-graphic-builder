@@ -105,6 +105,9 @@ function selectionItems() {
   const ids = new Set(doc.selectedIds);
   const frameIds = doc.units.filter((u) => ids.has(u.id) && u.type === 'frame').map((u) => u.id);
   if (frameIds.length) for (const o of docApi.frameOwnedUnits(frameIds)) ids.add(o.id);
+  // §317: 도크 체인 동반 — 이동(carryOf)과 동일 문법. 체인의 한 유닛만 선택·우클릭해도
+  // 결착 상대 + 브리지(도크샤프트)가 함께 출력된다 (copy SVG/PNG·export 공통, 사용자 확정).
+  for (const m of docApi.dockMates([...ids])) ids.add(m.id);
   const sel = doc.units.filter((u) => ids.has(u.id));
   if (sel.length > 1) {
     // §292: 도킹면 threadMin 경계 중심 — 양끝이 선택에 포함된 결착만 (브리지와 동일 규칙)

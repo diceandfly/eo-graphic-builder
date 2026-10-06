@@ -290,9 +290,9 @@ async function doExport() {
     if (exportCfg.alpha && exportCfg.format !== 'gif') exportMsg.value = 'Transparent bg applies to GIF only — background kept';
     // §315: Stroke fix 익스포트 강화 — 클론의 seam 속성(0.75 문서단위)은 래스터 배율 k에 깎여
     // 2560×1440에서 0.5px대로 떨어져 틈을 못 메우던 것 → 출력 디바이스px 고정으로 리라이트.
-    // §316: 2px로도 부족 리포트 — **2560 기준 3px, 프레임 크기 비례 차등**(소형은 2px 하한 보호).
-    // 라이브 프리뷰는 non-scaling 0.75 유지(화면 시각 무게 보존).
-    const seamOut = exportCfg.seam ? Math.max(2, (3 * Math.max(W0, H0)) / 2560) / k : 0;
+    // §316: 2px로도 부족 리포트 — 2560 기준 3px 비례 차등. §317: 여전히 미세 틈 리포트 →
+    // **2560 기준 4.5px**로 상향 (소형 하한 2.5px). 라이브 프리뷰는 non-scaling 0.75 유지.
+    const seamOut = exportCfg.seam ? Math.max(2.5, (4.5 * Math.max(W0, H0)) / 2560) / k : 0;
     const drawAt = async (t) => {
       p.value = t;
       await nextTick();
