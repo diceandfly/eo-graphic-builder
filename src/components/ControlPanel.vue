@@ -26,6 +26,7 @@ const props = defineProps({
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
   anim: Boolean,         // §255: 애니 모드 — offset 행 조건부 표시용
   canFork: Boolean,      // §311: 링크그룹 포크 가능 (App canForkSelected)
+  kIndex: { type: Number, default: null }, // §312: 키프레임 K 순번 (파생 배지 — 이름과 분리)
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
@@ -271,6 +272,8 @@ function setStrokeColor(c) {
         @blur="cancelRename"
       />
       <span v-else class="unitName" title="Click to rename" @click="startRename">{{ group ? group.name : unit.name }}</span>
+      <!-- §312: K 순번 배지 — 체인 공통 이름과 분리된 파생 표기 (리네임 대상 아님) -->
+      <span v-if="!group && kIndex != null" class="kBadge">K{{ kIndex }}</span>
     </div>
 
     <template v-if="unit">
@@ -589,6 +592,7 @@ function setStrokeColor(c) {
 .ratioRow :deep(.chips) { margin-bottom: 0; }
 .unitName { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text); cursor: text; } /* §218: L2 */
 .unitName:hover { color: var(--accent); }
+.kBadge { font-size: var(--fs-xs); letter-spacing: var(--ls-base); color: var(--dim); } /* §312: 파생 K 순번 */
 .nameInput {
   @include text-field;
   border-color: var(--accent); padding: 2px 6px; flex: 1;

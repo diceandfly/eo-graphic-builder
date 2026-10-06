@@ -193,6 +193,13 @@ export function useDocument() {
         if (u.type !== 'frame' && u.params && u.params.offset) u.params.offset = -u.params.offset;
       }
     }
+    // §312: v4 미만 — 키프레임 저장 이름 "Base K<n>" → 공통 base 이관 (K<n>은 파생 표기가 대체).
+    // 1회성 버전 게이트: 상시 스트립이면 사용자가 의도한 " K9"류 base까지 매 로드마다 깎인다.
+    if (savedUnits && (raw.version ?? 0) < 4) {
+      for (const u of savedUnits) {
+        if (u.type === 'frame' && u.pair != null && u.name) u.name = u.name.replace(/\sK\d+$/, '').trim() || u.name;
+      }
+    }
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
   const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map((u) => migrateUnit(u, savedLinkScopes));
@@ -239,7 +246,7 @@ export function useDocument() {
       saveTimer = setTimeout(() => {
         const { u, g, a, k } = JSON.parse(snap);
         localStorage.setItem(DOC_KEY, JSON.stringify({
-          version: 3, savedAt: Date.now(), units: u, groupNames: g, animEdges: a, docks: k, // §305: v3 = offset 부호 반전
+          version: 4, savedAt: Date.now(), units: u, groupNames: g, animEdges: a, docks: k, // §312: v4 = 키프레임 공통 이름
         }));
       }, 500);
     }
@@ -260,8 +267,7 @@ export function useDocument() {
     for (const u of doc.units) if (u.type === 'frame' && u.pair != null) pairCounts[u.pair] = (pairCounts[u.pair] || 0) + 1;
     for (const f of doc.units) {
       if (f.type !== 'frame' || f.pair == null || pairCounts[f.pair] >= 2) continue;
-      f.pair = null;
-      f.name = f.name.replace(/\sK\d+$/, ''); // §266: 키프레임 접미 자동 제거 (고아 초기화 경로)
+      f.pair = null; // §312: 이름은 그대로 — K<n>은 파생 표기라 pair 해제만으로 접미가 사라진다
       for (const u of doc.units) if (u.home === f.id) { u.pair = null; u.home = null; }
       doc.animEdges = doc.animEdges.filter((e) => e.from !== f.id && e.to !== f.id);
     }
@@ -875,17 +881,10 @@ export function useDocument() {
     if (!f) return null;
     const owned = frameOwnedUnits([frameId]);
     if (f.pair == null) f.pair = nextPair++;
-    // §262: 키프레임 네이밍 — "Base K<n>": 원본이 무접미면 K1 부여, 사본 = 체인(계보) 내 최대+1
-    const nm = f.name.match(/^(.*)\sK(\d+)$/);
-    const baseName = (nm ? nm[1] : f.name).trim() || 'Frame';
-    if (!nm) f.name = `${baseName} K1`;
-    let maxK = 0;
-    for (const u of doc.units) {
-      if (u.type !== 'frame' || u.pair !== f.pair) continue;
-      const mk = u.name.match(/\sK(\d+)$/);
-      if (mk) maxK = Math.max(maxK, Number(mk[1]));
-    }
-    const copyName = `${baseName} K${maxK + 1}`;
+    // §312: 키프레임 네이밍 개정 (§262 "Base K<n>" 저장 폐기, 사용자 확정) — 체인의 프레임들은
+    // **이름을 공유**(사본 = 원본과 같은 이름). K<n>은 저장 이름이 아니라 체인 내 생성 순서에서
+    // 파생되는 별도 표기 요소(frameKIndex/displayName) — 패널 K 배지·애니패널·파일명이 소비.
+    const copyName = f.name;
     for (const u of owned) {
       if (u.pair == null) u.pair = nextPair++;
       if (u.home == null) u.home = f.id; // §225: 원본 소속 확정
@@ -978,7 +977,7 @@ export function useDocument() {
       }
     }
     doc.animEdges = doc.animEdges.filter((e) => e.from !== frameId && e.to !== frameId);
-    f.name = f.name.replace(/\sK\d+$/, ''); // §266: 키프레임 접미 자동 제거
+    // §312: 이름 불변 — K<n>은 파생 표기라 pair 해제만으로 접미가 사라진다 (§266 스트립 폐기)
     pruneMeta(); // §254: 남은 짝이 혼자가 되면 자동 초기화
     return { name: f.name, units: n };
   }
@@ -1196,7 +1195,30 @@ export function useDocument() {
 
   function renameActive(name) {
     const t = name.trim();
-    if (t && active.value) active.value.name = t;
+    if (!t || !active.value) return;
+    const u = active.value;
+    u.name = t;
+    // §312: 키프레임 체인은 이름 공유 — 한 키프레임을 리네임하면 체인 전체에 전파
+    if (u.type === 'frame' && u.pair != null) {
+      for (const x of doc.units) if (x.type === 'frame' && x.pair === u.pair) x.name = t;
+    }
+  }
+  // §312: K<n> = 체인 내 생성 순서(문서 배열 순)에서 파생 — 저장 이름과 분리된 표기 요소.
+  // 중간 키프레임 삭제 시 뒤 번호가 자연 재부여된다 (위치 배지 — 간극 유지 없음).
+  function frameKIndex(u) {
+    if (!u || u.type !== 'frame' || u.pair == null) return null;
+    let k = 0;
+    for (const x of doc.units) {
+      if (x.type === 'frame' && x.pair === u.pair) {
+        k += 1;
+        if (x.id === u.id) return k;
+      }
+    }
+    return null;
+  }
+  function displayName(u) {
+    const k = frameKIndex(u);
+    return k == null ? (u?.name ?? '') : `${u.name} K${k}`;
   }
 
   function deleteSelected() {
@@ -2131,6 +2153,7 @@ export function useDocument() {
     createFrame, renameGroup, blendFrom, blendUnitsFrom, arrangeGrid, orderSelected,
     setLinkResizeAnchor, capturePattern, placePattern,
     duplicatePairedFrame, connectAnim, disconnectAnim, animOwnedUnits, setAnimMode, repairAnimHomes, unpairFrame, setCategoryLink,
+    frameKIndex, displayName, // §312
     connectDock, disconnectDock, undockUnit, setDockComp, dockMates, // §278·§283·§290: 도킹 (§294: 순수 기하는 geometry/dock.js)
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,

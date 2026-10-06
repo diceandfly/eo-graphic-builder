@@ -19,6 +19,8 @@ const props = defineProps({
   fromUnits: { type: Array, default: () => [] },
   toUnits: { type: Array, default: () => [] },
   docks: { type: Array, default: () => [] }, // §284: 도크 브리지 — 프리뷰·익스포트에 샤프트 연장 반영
+  kFrom: { default: null }, // §312: 체인 내 K 순번 (파생 표기 — frameKIndex)
+  kTo: { default: null },
 });
 
 // §244: fps 옵션(30/24) — 재생·익스포트 공통 (§220의 30 고정 해제). cycles = 익스포트 반복 회수.
@@ -173,6 +175,17 @@ const pose = computed(() => {
   return samplePose(props.fromFrame, props.fromUnits, props.toFrame, props.toUnits, eased.value);
 });
 const fa = computed(() => (pose.value ? frameAttrs(pose.value.frame) : null));
+// §312: 프리뷰 오버레이 잉크 — 프레임 fill 휘도로 화이트 ↔ Space Black 자동 스왑 (사용자 확정:
+// 색반전(difference)은 Builder Neon 위에서 브랜드 밖 색이 등장해 배제). fill이 없으면(스트로크만)
+// 배경이 패널 다크라 기본(--text 화이트) 유지 — null = 오버라이드 없음.
+const pvInk = computed(() => {
+  const f = fa.value?.fill;
+  if (!f || !/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(f)) return null;
+  const h = f.length === 4 ? f.slice(1).split('').map((c) => c + c).join('') : f.slice(1);
+  const n = parseInt(h, 16);
+  const lum = 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  return lum > 140 ? '#000000' : null; // 밝은 배경 = Space Black 잉크
+});
 // §284: 포즈의 도크 — 페어 계보로 아이템 매칭 (도크는 양 키프레임에 복제돼 있음 §283).
 // 디졸브 분리(p<pair>a/b) 시 같은 pair의 첫 아이템 기준. §292: 도킹면 정보(ends)도 동일 소스.
 const poseDockData = computed(() => {
@@ -203,9 +216,19 @@ const poseEndsFor = (key) => {
 const exporting = ref(false);
 const exportPct = ref(0);
 const exportMsg = ref(''); // §250: 폴백 안내 등 1회성 메시지 (menuNote 자리)
+// §312: 키프레임 공통 이름 표기 — "이름 K1 → K2" (이름은 체인 공유라 1회만). 혼재(구문서 리네임
+// 등으로 base가 다른 경우)는 각자 풀네임으로 폴백. 세그명·저장 파일명이 같은 규칙을 공유.
+const segLabel = computed(() => {
+  const a = props.fromFrame, b = props.toFrame;
+  if (!a || !b) return '';
+  const ka = props.kFrom != null ? ` K${props.kFrom}` : '';
+  const kb = props.kTo != null ? ` K${props.kTo}` : '';
+  if (a.name === b.name) return `${a.name}${ka} →${kb}`;
+  return `${a.name}${ka} → ${b.name}${kb}`;
+});
 const fileBase = computed(() => {
-  const nm = (u) => (u?.name || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
-  return `${nm(props.fromFrame)}→${nm(props.toFrame)}_${props.edge?.duration ?? 0}ms`;
+  const clean = (s) => (s || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
+  return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms`;
 });
 // §250: JSON (웹 모션용) — 두 키프레임 + 타이밍을 재생 가능한 데이터로 직렬화 (렌더 독립)
 function motionJson() {
@@ -403,11 +426,11 @@ const totalLabel = computed(() => {
     <!-- §251: 접기 토글은 창 하단 · §252: 타이틀 우측 = 재생 구간명 (풀 Neon 와이어 = 이 구간) -->
     <div class="titleRow">
       <h2 class="title" title="Drag to move">Animation Simulator</h2><!-- §260: 명칭 변경 -->
-      <span v-if="pose" class="segName" :title="`${fromFrame?.name} → ${toFrame?.name}`">{{ fromFrame?.name }} → {{ toFrame?.name }}</span>
+      <span v-if="pose" class="segName" :title="segLabel">{{ segLabel }}</span><!-- §312: 공통이름 K1 → K2 -->
     </div>
     <template v-if="pose">
       <!-- 프리뷰 — viewBox = 프레임(크롭/카메라): 바깥 유닛은 자동 클립 (§220 시뮬 클립) -->
-      <div class="pvWrap">
+      <div class="pvWrap" :style="pvInk ? { '--pv-ink': pvInk } : null">
         <svg class="preview" :viewBox="`0 0 ${pose.W} ${pose.H}`" :style="{ height: previewH + 'px' }">
           <!-- §260: 양옆 1px 선의 진짜 정체 = 프레임 rect 가장자리 안티앨리어싱으로 svg 배경이
                0.5px 비치던 것 — 배경 rect를 viewBox 밖까지 1px 오버드로(루트 클립이 잘라줌, export 동일) -->
@@ -521,7 +544,7 @@ const totalLabel = computed(() => {
     </template>
     <!-- §245·§250: 페어링 진입점 — 뱃지 팝업(Make keyframe) -->
     <div v-else class="empty">
-      Select a frame and click its ▶ badge → Make keyframe, then drag the right node onto the copy's left node — the connection plays here
+      Select a frame and click its ▶ badge → Make new keyframe, then drag the right node onto the copy's left node — the connection plays here
     </div>
     <!-- §248: 빈 상태 전용 그립 (화면이 없을 땐 창 우하단 유지) — 화면이 있으면 프리뷰 쪽 그립 사용 -->
     <div v-if="!pose" class="sizeGrip curScale-se" title="Drag to resize (frame ratio locked)" @pointerdown.stop="onSizeGripDown">
@@ -585,8 +608,9 @@ const totalLabel = computed(() => {
   position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; /* §263: 히트 확대 — 호버 이탈 깜빡임 완화 */
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity 0.12s;
-  svg { width: 12px; height: 12px; fill: none; stroke: var(--text); stroke-width: 1.6; stroke-linecap: square; }
-  &:hover { opacity: 0.95; svg { stroke: var(--accent); } }
+  /* §312: --pv-ink = 프리뷰 배경 휘도 스왑 잉크 (pvWrap에서만 세팅 — 패널 위 그립은 기본 유지) */
+  svg { width: 12px; height: 12px; fill: none; stroke: var(--pv-ink, var(--text)); stroke-width: 1.6; stroke-linecap: square; }
+  &:hover { opacity: 0.95; svg { stroke: var(--pv-ink, var(--accent)); } }
 }
 .pvWrap:hover .sizeGrip, .animWin:hover > .sizeGrip { opacity: 0.5; } /* §262: 평시 호버 = 연하게 */
 /* §260·§261: 플레이바 — 메인 패널 슬라이더(.rg)와 동일 문법: 2px 트랙 + 정사각 썸.

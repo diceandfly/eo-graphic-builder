@@ -149,7 +149,7 @@ const readJson = (key, fallback) => {
 };
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 function saveProject(scope = {}) {
-  const data = { version: 4, camera: { ...viewport.vp } }; // §305: v4 = offset 부호 반전
+  const data = { version: 5, camera: { ...viewport.vp } }; // §312: v5 = 키프레임 공통 이름 (K<n> 파생)
   // §200: 브랜드 팔레트 동봉 — 출력(인쇄) 워크플로용 CMYK/PANTONE 참조 + 파일에서 컬러 파트 즉시 식별
   data.colors = BRAND_PALETTE;
   if (scope.work !== false) {
@@ -178,6 +178,12 @@ async function openProject(file, scope = {}) {
       if ((data.version ?? 0) < 4) {
         for (const u of data.units) {
           if (u.type !== 'frame' && u.params && u.params.offset) u.params.offset = -u.params.offset;
+        }
+      }
+      // §312: v5 미만 — 키프레임 저장 이름 "Base K<n>" → 공통 base (K<n>은 파생 표기가 대체)
+      if ((data.version ?? 0) < 5) {
+        for (const u of data.units) {
+          if (u.type === 'frame' && u.pair != null && u.name) u.name = u.name.replace(/\sK\d+$/, '').trim() || u.name;
         }
       }
       docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes, animEdges: data.animEdges, docks: data.docks });
@@ -307,6 +313,7 @@ const stageActions = {
         :link-scope="linkScope"
         :anim="docApi.doc.animOn"
         :can-fork="canFork"
+        :k-index="docApi.frameKIndex(panelUnit)"
         @set-cat-link="(cat, v) => docApi.setCategoryLink(doc.selectedIds, cat, v)"
         @fork="onForkLink"
         @hover-cat="hoverLinkCat = $event"

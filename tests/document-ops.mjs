@@ -611,9 +611,12 @@ function centerIn(u, f) {
     assert.ok(u2.pair != null && c2.pair === u2.pair);
     assert.equal(c1.x - nf.x, u1.x - f.x);
     assert.equal(c1.y - nf.y, u1.y - f.y);
-    // §262: 키프레임 네이밍 — 원본 "Base K1", 사본 "Base K2" (체인 내 증가)
-    assert.ok(/ K1$/.test(f.name), f.name);
-    assert.equal(nf.name, f.name.replace(/ K1$/, ' K2'));
+    // §312: 키프레임 네이밍 — 체인은 이름 공유 (K<n>은 파생 표기, 저장 이름 미포함)
+    assert.equal(nf.name, f.name);
+    assert.ok(!/ K\d+$/.test(f.name), f.name);
+    assert.equal(api.frameKIndex(f), 1);
+    assert.equal(api.frameKIndex(nf), 2);
+    assert.equal(api.displayName(nf), `${nf.name} K2`);
   });
   ok('페어 복제: 파라미터 링크는 사본끼리 새 lid (키프레임 간 동기화 차단)', () => {
     assert.ok(primaryLid(c1) != null && primaryLid(c1) === primaryLid(c2));
@@ -1381,6 +1384,46 @@ function centerIn(u, f) {
     assert.equal(m(u1).links.grid, m(u2).links.grid);
     assert.notEqual(m(u1).links.grid, u1.links.grid); // 프레임별 분리 lid (§277)
     assert.notEqual(m(u3).links.grid, m(u1).links.grid); // 짝 셋째는 포크 그룹 밖
+  });
+}
+
+// §312. 키프레임 공통 이름 — K<n> 파생 표기 · 리네임 체인 전파 · 고아 복귀 시 이름 보존
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1200);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  await sleep(30);
+  const r1 = api.duplicatePairedFrame(f.id, 3000, 0);
+  const r2 = api.duplicatePairedFrame(f.id, 6000, 0);
+  ok('§312: 3연속 키프레임 = 이름 공유 + K1·K2·K3 파생 순번', () => {
+    assert.equal(r1.frame.name, f.name);
+    assert.equal(r2.frame.name, f.name);
+    assert.deepEqual([f, r1.frame, r2.frame].map((x) => api.frameKIndex(x)), [1, 2, 3]);
+  });
+  api.doc.activeId = f.id;
+  api.renameActive('Hero');
+  ok('§312: 키프레임 리네임 = 체인 전체 전파 (이름 공유)', () => {
+    assert.deepEqual([f, r1.frame, r2.frame].map((x) => x.name), ['Hero', 'Hero', 'Hero']);
+    assert.equal(api.displayName(r2.frame), 'Hero K3');
+  });
+  // 중간 키프레임 삭제 → 뒤 순번 자연 재부여 (위치 배지)
+  api.setSelection([r1.frame.id]);
+  api.unpairFrame(r1.frame.id);
+  api.deleteSelected();
+  ok('§312: 중간 키프레임 삭제 = K 순번 재부여 (저장 이름 불변)', () => {
+    assert.equal(api.frameKIndex(r2.frame), 2);
+    assert.equal(r2.frame.name, 'Hero');
+  });
+  // 남은 짝 하나를 더 지우면 마지막은 일반 프레임 복귀 — 이름 보존 + K 표기 소멸
+  api.setSelection([f.id]);
+  api.unpairFrame(f.id);
+  api.deleteSelected();
+  ok('§312: 고아 키프레임 자동 복귀 = 이름 보존 · K 표기만 소멸', () => {
+    assert.equal(r2.frame.pair, null);
+    assert.equal(r2.frame.name, 'Hero');
+    assert.equal(api.frameKIndex(r2.frame), null);
+    assert.equal(api.displayName(r2.frame), 'Hero');
   });
 }
 

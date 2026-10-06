@@ -1977,7 +1977,7 @@ onBeforeUnmount(() => {
           @connect="(f, t) => { // §257: 연결 = 키프레임끼리만 — 미페어 프레임은 실패 + 안내
             const a = doc.units.find((x) => x.id === f);
             const b = doc.units.find((x) => x.id === t);
-            if (a?.pair == null || b?.pair == null) { toast('Not a keyframe — use Make keyframe (▶ badge) on both frames first'); return; }
+            if (a?.pair == null || b?.pair == null) { toast('Not a keyframe — use Make new keyframe (▶ badge) on both frames first'); return; }
             const e = props.actions.connectAnim(f, t);
             if (e) { animEdgeSel = edgeKey(e); toast('Keyframes connected — ease in-out · 1s'); } }"
           @disconnect="(f, side) => { if (props.actions.disconnectAnim(f, side)) toast('Keyframe connection removed'); }"
@@ -2158,6 +2158,7 @@ onBeforeUnmount(() => {
       :edge="selEdge"
       :from-frame="animFrom" :to-frame="animTo"
       :from-units="animFromUnits" :to-units="animToUnits"
+      :k-from="actions.frameKIndex(animFrom)" :k-to="actions.frameKIndex(animTo)"
       :docks="doc.docks"
     />
     <!-- §224: 와이어 중앙 컨트롤 팝업 — 엣지 소속 파라미터 (duration·곡선 프리셋) -->
@@ -2299,7 +2300,7 @@ onBeforeUnmount(() => {
       <button
         class="ctxItem"
         @click="onMakePair"
-      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make keyframe</button><!-- §250: 명칭 단축 -->
+      ><svg class="ctxIco" viewBox="0 0 24 24"><path v-for="d in ICONS.animation" :key="d" :d="d" /></svg>Make new keyframe</button><!-- §312: 명칭 복원 (사용자 확정) -->
       <template v-if="pairMenu.f.pair != null">
         <button
           class="ctxItem"
