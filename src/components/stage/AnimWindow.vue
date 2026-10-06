@@ -255,10 +255,9 @@ const segLabel = computed(() => {
 });
 const fileBase = computed(() => {
   const clean = (s) => (s || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
-  // §320: 사이클 수 = 지속시간의 곱셈 표기 — 2 이상일 때만, 1이면 생략. 기호는 **×**(U+00D7):
-  // *는 픽커(Chrome)가 금지 문자로 _ 치환, 영문 x는 숫자와 구별이 안 됨 (사용자 정정 3회).
-  // ×는 →처럼 유니코드라 픽커를 그대로 통과한다.
-  const cyc = cycles.value > 1 ? `×${cycles.value}` : '';
+  // §320: 사이클 수 = 지속시간 뒤 **_×n** — 2 이상일 때만, 1이면 생략 ("2000ms_×3", 사용자 확정).
+  // *는 픽커(Chrome)가 금지 문자로 _ 치환, 영문 x는 숫자와 구별 불가 — ×(U+00D7)는 →처럼 통과.
+  const cyc = cycles.value > 1 ? `_×${cycles.value}` : '';
   return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms${cyc}`;
 });
 // §250: JSON (웹 모션용) — 두 키프레임 + 타이밍을 재생 가능한 데이터로 직렬화 (렌더 독립)
