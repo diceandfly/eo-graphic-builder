@@ -227,8 +227,17 @@ function motionJson() {
     ],
   };
 }
+// §299: 익스포트 중 버튼 재클릭 = 취소 — 프레임 루프마다 플래그 검사, 파일 저장 없이 중단
+let exportCancel = false;
+function onExportBtn() {
+  if (exporting.value) { exportCancel = true; return; }
+  doExport();
+}
+class ExportCanceled extends Error {}
+const throwIfCanceled = () => { if (exportCancel) throw new ExportCanceled(); };
 async function doExport() {
   if (!props.edge || !pose.value || exporting.value) return;
+  exportCancel = false;
   stop();
   exportMsg.value = '';
   if (exportCfg.format === 'json') {
@@ -299,6 +308,7 @@ async function doExport() {
         gif.writeFrame(index, cw, ch, { palette, delay: Math.round(delayMs), transparent: alpha, dispose: alpha ? 2 : -1 });
       };
       for (let i = 0; i < n; i += 1) {
+        throwIfCanceled(); // §299
         await drawAt(tAt(i * frameMs));
         addFrame(frameMs);
         exportPct.value = Math.round((i / (n + 1)) * 100);
@@ -331,21 +341,30 @@ async function doExport() {
       const t0 = performance.now();
       let now = 0;
       while (now < total) {
+        if (exportCancel) { rec.stop(); await done; throw new ExportCanceled(); } // §299: 레코더 정리 후 중단
         await drawAt(tAt(now));
         exportPct.value = Math.round((now / (total + hold)) * 100);
         await new Promise((r) => setTimeout(r, 1000 / fps.value));
         now = performance.now() - t0;
       }
       await drawAt(endT);
-      if (hold) await new Promise((r) => setTimeout(r, hold)); // 끝 프레임 정지 화면을 hold만큼 녹화
+      // 끝 프레임 정지 화면을 hold만큼 녹화 — §299: 홀드 중에도 취소 가능 (100ms 단위)
+      for (let w = 0; w < hold; w += 100) {
+        if (exportCancel) { rec.stop(); await done; throw new ExportCanceled(); }
+        await new Promise((r) => setTimeout(r, Math.min(100, hold - w)));
+      }
       exportPct.value = 100;
       await new Promise((r) => setTimeout(r, 150));
       rec.stop();
       await done;
       await saveFileAs(new Blob(chunks, { type: mime.split(';')[0] }), `${fileBase.value}.${ext}`, 'export');
     }
+  } catch (err) {
+    if (!(err instanceof ExportCanceled)) throw err;
+    exportMsg.value = 'Export canceled'; // §299
   } finally {
     exporting.value = false;
+    exportCancel = false;
     p.value = 0;
     if (exportMsg.value === EXPORT_NOTE) exportMsg.value = ''; // 폴백 안내(MP4→WebM 등)는 유지
   }
@@ -488,8 +507,9 @@ const totalLabel = computed(() => {
         </div>
         <div class="exRow">
           <!-- §250: 라벨은 포맷 비반응 · §252: 총 길이 병기 (duration × cycles + hold) -->
-          <button class="exBtn" :disabled="exporting" @click="doExport">
-            {{ exporting ? `Exporting… ${exportPct}%` : `Export · ${totalLabel}` }}
+          <!-- §299: 익스포트 중 = 활성 유지, 재클릭 = 취소 -->
+          <button class="exBtn" :class="{ canceling: exporting }" @click="onExportBtn">
+            {{ exporting ? `Cancel · ${exportPct}%` : `Export · ${totalLabel}` }}
           </button>
         </div>
         <!-- §251: 설명문 삭제 — 폴백/투명 안내 등 1회성 메시지만 조건 표시 -->
@@ -642,6 +662,7 @@ const totalLabel = computed(() => {
   flex: 1; height: 21px; display: inline-flex; align-items: center; justify-content: center;
   text-transform: capitalize;
   &:disabled { color: var(--faint); cursor: default; }
+  &.canceling { border-color: var(--accent); color: var(--accent); } /* §299: 진행 중 = 취소 버튼 (활성 보더 문법) */
 }
 .menuNote {
   font-size: var(--fs-2xs); letter-spacing: var(--ls-2xs); color: var(--faint);
