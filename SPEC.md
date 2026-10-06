@@ -2460,3 +2460,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **라벨**: Transparent bg → **Transparent Background** (생략 없는 풀 라벨, 안내문도 동반 갱신).
 - **마이그레이션 v2**: 전역(eo.animExport)·엣지별(sim) 구 저장분의 seam(자동 true)·alpha(자동 false)는 무시하고 신규 기본 적용 — 기본값 변경이 기존 자동 저장값에 가려지는 것 방지.
 - E2E: 기본값(seam off·webm alpha on)·MP4 전환 off·MP4 클릭 차단+메시지·GIF/WebM 복귀 on·라벨 전부 실측.
+
+## 320. 2026-10-06 — 익스포트 파일명에 사이클 *n 접미
+
+- 애니 익스포트 파일명(fileBase) 말미에 사이클 수를 **\*n**으로 — `이름 K1 → K2_2000ms*3.gif` (전 포맷 공통, 사용자 확정). E2E: JSON 익스포트 suggestedName "Frame K1 → K2_2000ms*3.json" 실측.

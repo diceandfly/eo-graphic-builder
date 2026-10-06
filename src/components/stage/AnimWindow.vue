@@ -255,7 +255,8 @@ const segLabel = computed(() => {
 });
 const fileBase = computed(() => {
   const clean = (s) => (s || 'Frame').replace(/[\\/:*?"<>|]/g, '-');
-  return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms`;
+  // §320: 사이클 수를 말미에 *n으로 (사용자 확정) — 예: "Frame K1 → K2_2000ms*3"
+  return `${clean(segLabel.value)}_${props.edge?.duration ?? 0}ms*${cycles.value}`;
 });
 // §250: JSON (웹 모션용) — 두 키프레임 + 타이밍을 재생 가능한 데이터로 직렬화 (렌더 독립)
 function motionJson() {
