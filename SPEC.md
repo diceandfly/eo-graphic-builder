@@ -2397,3 +2397,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **패널 라벨 단위 표기 제거**: width/height/margin(4방)/row·col gutter의 "(px)/(cm)" 서픽스 삭제 — 가독성 우선(단위는 SIZE 헤더 px/cm 세그가 담당). 단위를 필드 안에 넣는 안은 보류(사용자 고민 중).
 - **프레임 Ratio 칩 = 스트로크 활성 문법**: active-filled(네온 채움) → active-outline(네온 보더/텍스트) — 토글류와 통일(사용자 확정). ChipRow에 outline 변형 신설(압축 칩 등 기존 채움 문법 불변).
 - **익스포트 옵션 순서**: Transparent bg를 Format 바로 위로 (포맷 종속 옵션 인접 배치).
+
+## 311. 2026-10-06 — 링크 숏컷 통일 + 링크그룹 포크(Split into new group)
+
+- **라벨 통일**: "Unlink this unit" 분기 폐기 — 단일 링크 멤버 선택에서도 **Unlink all parameters**(동작 = 그 유닛만 전 범주 이탈, §73 의미 불변). 링크 상태 하이라이팅(.linked 액센트) 제거 — Link/Unlink 모두 동일 고스트 룩 (사용자 확정).
+- **포크 버튼 신설**: **Split into new group** (Unlink 아래, 같은 고스트 스타일·라벨은 §129 토스트 어휘와 일관 — 사용자 선택). 동작 = 선택분을 바깥 멤버와 절연하되 **내부 링크 관계는 그대로** 새 그룹으로. 외형 변화 없음(값 이미 동기) → 토스트 피드백.
+- **일반형 규칙 (멀티 링크 대응)**: (범주, lid) 단위로 "선택 내 **2개 이상** 공유 + **바깥 멤버 존재**"인 것만 새 lid로 재매핑. 구lid→신lid **맵 공유**로 범주 간 그룹 동일성 보존(size·grid가 같은 그룹이면 포크 후에도 같은 그룹). 선택 내 단독 멤버십은 불변(홀로 포크 = 1멤버 그룹 자동 소멸로 링크 소실이라 제외), 선택 = 그룹 전체인 lid도 불변(복제 무의미 — Unlink가 담당). 잔존 1멤버 그룹 자동 소멸·§277 페어 복제는 기존 규칙 공유.
+- **혼합 선택 = 그룹별 각각 분리 (A안, 사용자 확정)**: 그룹A·B의 서브셋을 동시 선택해 포크하면 A'·B'로 각각 분리 — "선택을 바깥과 절연하되 내부 구조 보존"이라는 단일 규칙.
+- **표시 시나리오 매트릭스 (질문 답변)**: ①단일·무링크 = 버튼 없음 ②단일·멤버 = Unlink만 ③복수·전원 solo = Link만 ④복수 = 그룹 전체 = Unlink만 ⑤복수 = 서브셋 = Unlink + Split ⑥혼합 = Link(합침) + Split(각각 분리) — 포크 가능 판정(canForkSelected)은 위 일반형 규칙과 동일 스캔.
+- 구현: useDocument forkTargets/canForkSelected/forkLinkSelected, App canFork·onForkLink, LinkSection forkable·fork. 테스트 6건(판정·동일성 보존·전체 선택 불가·혼합·단독 멤버십·페어 복제), 106케이스. 매뉴얼 링크 절 갱신(ko·en).

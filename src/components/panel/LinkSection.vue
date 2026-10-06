@@ -7,11 +7,12 @@ import { ref } from 'vue';
 //          on  → 그 범주 해제(각자). 그룹 id는 내부 자동 관리 — 번호 노출 없음.
 const props = defineProps({
   linked: Boolean,
-  single: Boolean,       // 링크 멤버 1개만 선택 — "이 유닛만 해제" 모드 (§73)
+  single: Boolean,       // 링크 멤버 1개만 선택 — 그 유닛만 전 범주 이탈 (§73·§311: 라벨은 통일)
   rowsVisible: Boolean,  // 유닛 전용 (프레임 혼합 선택이면 행 숨김 — 프레임 링크는 전체 동기)
+  forkable: Boolean,     // §311: 포크 가능 — 선택 내 2+ 공유 lid에 바깥 멤버가 있을 때
   selected: { type: Array, default: () => [] },
 });
-const emit = defineEmits(['link', 'unlinkOne', 'setCatLink', 'hoverCat']); // §279: hoverCat = 칩 호버 하이라이트
+const emit = defineEmits(['link', 'unlinkOne', 'fork', 'setCatLink', 'hoverCat']); // §279: hoverCat = 칩 호버 하이라이트
 
 const CATS = ['size', 'shape', 'grid', 'color', 'orientation', 'animation']; // §269: 메인 패널 섹션 순서와 정렬 (사용자 확정)
 // Link parameters 숏컷의 기본 스코프 (useDocument linkScopeDefault와 동일 값 유지)
@@ -75,12 +76,20 @@ function rowToggle(cat) {
         <span class="catState">{{ catState(cat) === 'on' ? 'linked' : catState(cat) === 'mixed' ? 'mixed' : 'solo' }}</span>
       </button>
     </div>
-    <!-- §267: Link/Unlink 숏컷 = 섹션 하단으로 -->
-    <button v-if="single" class="ghost linked" @click="emit('unlinkOne')">
-      Unlink this unit
+    <!-- §267: Link/Unlink 숏컷 = 섹션 하단으로
+         §311: "Unlink this unit" 분기 폐기 — 라벨은 Unlink all parameters로 통일(단일 선택 = 그
+         유닛만 전 범주 이탈), 링크 상태 하이라이팅 제거(Link와 동일 고스트 룩, 사용자 확정) -->
+    <button v-if="single" class="ghost" @click="emit('unlinkOne')">
+      Unlink all parameters
     </button>
-    <button v-else-if="selected.length >= 2" class="ghost" :class="{ linked }" @click="emit('link', { ...DEFAULT_SCOPE })">
+    <button v-else-if="selected.length >= 2" class="ghost" @click="emit('link', { ...DEFAULT_SCOPE })">
       {{ linked ? 'Unlink all parameters' : 'Link all parameters' }}<!-- §284: 범주 칩과 구분되는 "전체" 명시 --></button>
+    <!-- §311: 포크 — 선택분을 새 링크그룹으로 절연 (내부 동기 유지, 그룹별 각각 분리) -->
+    <button
+      v-if="forkable" class="ghost"
+      title="Detach selection from its link group(s) — selection stays linked together"
+      @click="emit('fork')"
+    >Split into new group</button>
     </template>
   </section>
 </template>
@@ -106,7 +115,7 @@ section h2 {
   cursor: pointer;
 }
 .ghost:hover { border-color: var(--accent); color: var(--accent); }
-.ghost.linked { border-color: var(--accent); color: var(--accent); }
+.ghost + .ghost { margin-top: 5px; } /* §311: 숏컷 2행(Unlink·Split) — catRows gap과 동일 리듬 */
 /* §265·§267: 범주 토글 칩 — 내용 폭 랩 배치(100% 행 폐기). on = 전체 액센트,
    mixed = 보더·이름은 기본, 상태 텍스트만 액센트 */
 .catRows { margin-bottom: var(--sp-group); display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } /* §267·§271 */

@@ -236,7 +236,7 @@ A frame is a board that holds and lays out units. Use it like an artboard.
 - Select two or more units and pressing Link all parameters in the panel's **LINK** section; from then on, changing one unit changes the linked units with it
 - The chips (size · grid · shape · color · orientation) choose which properties stay in sync
 - Link states live in the panel's LINK section chips (shown even with a single unit selected)
-- **[Copied](#5-select-move-transform) units join the original's link.** To give the copies their own link: select just the copies and press any chip — they split off into a new link at that moment. The unlink parameters button removes only the selected units from the link
+- **[Copied](#5-select-move-transform) units join the original's link.** To give the copies their own link, select just the copies and press **Split into new group** — they break away as a new link while staying in sync with each other (a mixed selection splits per link). The Unlink all parameters button removes only the selected units from their link
 
 ### {icon:link}Docking — joining units end to end
 - Select **two units whose shaft axes are parallel** and four round nodes appear on their shafts. Drag one node onto the other unit's node and the two units **snap together as placed, aligned on the shaft axis** — the gap between them is the average of both gutters (nodes stay hidden when axes aren't parallel or zoom is under 15%)

@@ -1473,6 +1473,42 @@ export function useDocument() {
     syncPairLinks(sel.map((u) => u.id)); // §277
     return { count: sel.length, lid };
   }
+  // §311: 포크 대상 스캔 — (범주, lid) 단위로 "선택 내 2개 이상 공유 + 바깥 멤버 존재"인 것만.
+  // 선택 내 1개뿐인 멤버십은 불변(홀로 포크 = 1멤버 그룹 → 자동 소멸로 링크 소실이라 제외),
+  // 선택 = 그룹 전체인 lid도 불변(복제가 무의미 — Unlink가 담당).
+  function forkTargets() {
+    const sel = doc.units.filter((u) => u.type !== 'frame' && doc.selectedIds.includes(u.id));
+    if (sel.length < 2) return { sel, targets: [] };
+    const selSet = new Set(sel.map((u) => u.id));
+    const targets = []; // { cat, lid }
+    for (const c of LINK_CATS) {
+      const counts = new Map();
+      for (const u of sel) { const l = u.links?.[c]; if (l != null) counts.set(l, (counts.get(l) || 0) + 1); }
+      for (const [lid, n] of counts) {
+        if (n < 2) continue;
+        if (doc.units.some((u) => u.type !== 'frame' && !selSet.has(u.id) && u.links?.[c] === lid)) targets.push({ cat: c, lid });
+      }
+    }
+    return { sel, targets };
+  }
+  const canForkSelected = () => forkTargets().targets.length > 0;
+  // §311: 링크그룹 포크 — 선택분을 바깥 멤버와 절연하되 내부 링크 관계는 그대로 새 그룹으로.
+  // 구lid→신lid 맵 공유 = 범주 간 그룹 동일성 보존(size·grid가 같은 그룹이면 포크 후에도 같은 그룹).
+  // 여러 그룹의 서브셋 혼합 선택이면 그룹별로 각각 분리(A안 — 사용자 확정). 값은 이미 동기라 외형 불변.
+  function forkLinkSelected() {
+    const { sel, targets } = forkTargets();
+    if (!targets.length) return null;
+    const map = new Map();
+    for (const t of targets) {
+      if (!map.has(t.lid)) map.set(t.lid, nextLink++);
+      const nl = map.get(t.lid);
+      for (const u of sel) if (u.links[t.cat] === t.lid) u.links[t.cat] = nl;
+    }
+    cleanupLinks(); // 바깥에 1명만 남은 원본 그룹은 자동 소멸 (§129 규칙 공유)
+    pruneMeta();
+    syncPairLinks(sel.map((u) => u.id)); // §277
+    return { count: sel.length, groups: map.size };
+  }
   // 단일 유닛을 자기 링크에서 제거 (나머지 멤버는 유지, 1개만 남으면 자동 해체)
   function unlinkUnit(id) {
     const u = doc.units.find((x) => x.id === id);
@@ -2099,6 +2135,7 @@ export function useDocument() {
     setSize, setAspect, setA, setB, rotate, rotateSelected, flipActive, flipUnit, flipUnitV, flipSelected, duplicateSelectedOffset, setFill, withGeomOp,
     normalizeSelected, outermost, groupMemberIds, expandGroups, groupSelected, ungroupSelected,
     toggleLinkSelected, linkMemberIds, unlinkUnit, splitLinkSelected,
+    canForkSelected, forkLinkSelected, // §311
     undo, redo, registerHistoryExtra, copyActive, pasteAt, renameActive,
     loadProject, absorbFrom, setNotifier,
     restoredMeta: savedMeta, // 자동저장 복원 정보 (시작 토스트용)

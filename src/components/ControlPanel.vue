@@ -25,11 +25,13 @@ const props = defineProps({
   group: Object,         // { gid, name } — 선택이 하나의 최외곽 그룹 전체일 때
   linkScope: Object,     // 링크 동기화 스코프 (null = 전체 on)
   anim: Boolean,         // §255: 애니 모드 — offset 행 조건부 표시용
+  canFork: Boolean,      // §311: 링크그룹 포크 가능 (App canForkSelected)
 });
 const emit = defineEmits([
   'setSize', 'setAspect', 'setA', 'setB', 'rename', 'link', 'fill',
   'renameGroup', 'linkScopeToggle', 'unlinkOne', 'setCatLink', // §264
   'hoverCat', // §279: 링크 칩 호버 → 스테이지 하이라이트
+  'fork', // §311: 선택분 → 새 링크그룹 절연
 ]);
 
 // 멀티선택에서 값이 갈리는 파라미터는 '—'(mixed)로 표기. 조작하면 전체에 통일 적용됨.
@@ -548,10 +550,12 @@ function setStrokeColor(c) {
       :linked="linked"
       :rows-visible="scopeChipsVisible"
       :single="singleLinked"
+      :forkable="canFork"
       :selected="selected"
       @link="(scope) => emit('link', scope)"
       @set-cat-link="(cat, v) => emit('setCatLink', cat, v)"
       @unlink-one="emit('unlinkOne')"
+      @fork="emit('fork')"
       @hover-cat="(c) => emit('hoverCat', c)"
     />
     </template>

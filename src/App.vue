@@ -238,6 +238,13 @@ function onUnlinkOne() {
   if (r) stageRef.value?.toast(`Unlinked "${r.name}" from its link group`);
 }
 
+// §311: 포크 — 선택분을 새 링크그룹으로 절연 (내부 동기 유지, 혼합 선택은 그룹별 각각)
+const canFork = computed(() => docApi.canForkSelected());
+function onForkLink() {
+  const r = docApi.forkLinkSelected();
+  if (r) stageRef.value?.toast(`Split ${r.count} units into ${r.groups > 1 ? `${r.groups} new link groups` : 'a new link group'}`);
+}
+
 docApi.setNotifier((msg) => stageRef.value?.toast(msg));
 
 // 프리셋·패턴 등록/삭제/이름변경도 ⌘Z 히스토리에 편입 (§103·§205)
@@ -299,7 +306,9 @@ const stageActions = {
         :group="selectedGroup"
         :link-scope="linkScope"
         :anim="docApi.doc.animOn"
+        :can-fork="canFork"
         @set-cat-link="(cat, v) => docApi.setCategoryLink(doc.selectedIds, cat, v)"
+        @fork="onForkLink"
         @hover-cat="hoverLinkCat = $event"
         @set-size="docApi.setSize"
         @set-aspect="docApi.setAspect"

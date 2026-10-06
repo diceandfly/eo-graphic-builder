@@ -1287,4 +1287,101 @@ function centerIn(u, f) {
   });
 }
 
+// §311. 링크그룹 포크 — 선택분을 새 그룹으로 절연 (내부 관계 보존, 혼합은 그룹별 각각)
+{
+  // 단일 그룹 서브셋: 범주 간 그룹 동일성(size·grid 같은 lid) 보존 + 바깥 멤버 그룹 유지
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1); u2.x += 3000;
+  const u3 = api.duplicateFrom(u1); u3.x += 6000;
+  const u4 = api.duplicateFrom(u1); u4.x += 9000;
+  await sleep(30);
+  api.doc.selectedIds = [u1.id, u2.id, u3.id, u4.id];
+  api.toggleLinkSelected(); // 기본 스코프 — size·grid 등이 같은 lid
+  await sleep(30);
+  const oldLid = u1.links.grid;
+  api.doc.selectedIds = [u1.id, u2.id];
+  ok('§311: 서브셋 선택 = 포크 가능 판정', () => assert.equal(api.canForkSelected(), true));
+  const r = api.forkLinkSelected();
+  ok('§311: 서브셋 포크 = 새 lid 공유 + 범주 간 동일성 보존 + 원본 그룹 유지', () => {
+    assert.equal(r.groups, 1);
+    assert.ok(u1.links.grid != null && u1.links.grid !== oldLid);
+    assert.equal(u1.links.grid, u2.links.grid);
+    assert.equal(u1.links.size, u1.links.grid); // 구lid→신lid 맵 공유
+    assert.equal(u3.links.grid, oldLid);        // 바깥 2멤버 잔존 — 그룹 유지
+    assert.equal(u4.links.grid, oldLid);
+  });
+  api.doc.selectedIds = [u1.id, u2.id, u3.id, u4.id];
+  ok('§311: 그룹 전체 선택 = 포크 불가 (복제 무의미 — Unlink가 담당)', () => {
+    // u1·u2(신그룹 전체)와 u3·u4(구그룹 전체) — 어느 lid도 바깥 멤버가 없음
+    assert.equal(api.canForkSelected(), false);
+    assert.equal(api.forkLinkSelected(), null);
+  });
+}
+{
+  // 혼합 선택(A안): 그룹별 각각 분리 + 홀로 남은 바깥 멤버는 자동 소멸(§129 규칙)
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const us = [u1];
+  for (let i = 1; i < 6; i += 1) { const u = api.duplicateFrom(u1); u.x += i * 3000; us.push(u); }
+  await sleep(30);
+  api.setCategoryLink([us[0].id, us[1].id, us[2].id], 'grid', 'new'); // 그룹 A
+  api.setCategoryLink([us[3].id, us[4].id, us[5].id], 'grid', 'new'); // 그룹 B
+  await sleep(30);
+  api.doc.selectedIds = [us[0].id, us[1].id, us[3].id, us[4].id];
+  const r = api.forkLinkSelected();
+  ok('§311: 혼합 포크 = 그룹별 각각 새 그룹 + 1멤버 잔존 그룹 자동 소멸', () => {
+    assert.equal(r.groups, 2);
+    assert.ok(us[0].links.grid != null);
+    assert.equal(us[0].links.grid, us[1].links.grid);
+    assert.ok(us[3].links.grid != null);
+    assert.equal(us[3].links.grid, us[4].links.grid);
+    assert.notEqual(us[0].links.grid, us[3].links.grid); // 그룹 구조 보존 (합치지 않음)
+    assert.equal(us[2].links.grid, null); // A 잔존 1멤버 — 소멸
+    assert.equal(us[5].links.grid, null); // B 잔존 1멤버 — 소멸
+  });
+  // 선택 내 1개뿐인 멤버십은 불변 — 홀로 포크하면 링크를 잃으므로 원 그룹에 남긴다
+  api.setCategoryLink([us[2].id, us[5].id], 'grid', 'new');          // 그룹 C
+  api.setCategoryLink([us[0].id, us[1].id, us[3].id], 'grid', 'new'); // 그룹 D (3멤버)
+  await sleep(30);
+  const keepLid = us[2].links.grid;
+  api.doc.selectedIds = [us[0].id, us[1].id, us[2].id];
+  const r2 = api.forkLinkSelected();
+  ok('§311: 선택 내 단독 멤버십은 불변 (원 그룹 유지)', () => {
+    assert.equal(r2.groups, 1); // D의 us[0]·us[1]만 재편 (us[2]는 C의 단독 선택 — 불변)
+    assert.ok(us[0].links.grid != null);
+    assert.equal(us[0].links.grid, us[1].links.grid);
+    assert.equal(us[2].links.grid, keepLid);
+    assert.equal(us[5].links.grid, keepLid);
+    assert.equal(us[3].links.grid, null); // D 잔존 1멤버 — 소멸
+  });
+}
+{
+  // 키프레임형: 포크도 §277 페어 복제 — K2 짝들이 별도 lid로 같은 구조를 가진다
+  const api = fresh();
+  const f = api.createFrame(0, 0, 4000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  u1.x = f.x + 100;
+  const u2 = api.createUnit(f.x + 1500, u1.y);
+  const u3 = api.createUnit(f.x + 2800, u1.y);
+  await sleep(30);
+  api.doc.activeId = u1.id;
+  api.setCategoryLink([u1.id, u2.id, u3.id], 'grid', 'new');
+  api.duplicatePairedFrame(f.id, 9000, 0);
+  const m = (u) => api.doc.units.find((x) => x.pair === u.pair && x.id !== u.id);
+  await sleep(30);
+  api.doc.selectedIds = [u1.id, u2.id];
+  api.forkLinkSelected();
+  await sleep(30);
+  ok('§311: 포크의 페어 복제 — K2 짝도 같은 구조(별도 lid)로 분리', () => {
+    assert.equal(u1.links.grid, u2.links.grid);
+    assert.equal(m(u1).links.grid, m(u2).links.grid);
+    assert.notEqual(m(u1).links.grid, u1.links.grid); // 프레임별 분리 lid (§277)
+    assert.notEqual(m(u3).links.grid, m(u1).links.grid); // 짝 셋째는 포크 그룹 밖
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);
