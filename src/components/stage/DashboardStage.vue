@@ -340,17 +340,16 @@ const frameLabels = computed(() => {
   // §222: 라벨 폭을 프레임 화면 폭에 맞춰 말줄임 — 저배율에서 긴 이름이 이웃 라벨 오클루전 필터에
   // 통째로 숨던 문제 해결 (숨기는 대신 잘라서라도 보여줌). 최소 4자+… 보장.
   const entry = (f) => {
-    const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 8) / 6.8));
-    // §315: K 표기 = 라벨 **인라인**(스페이스 1칸, 이름과 동일 스타일 — §314 별도 배지안 개정:
-    // 과소 크기·과대 간격·저배율 애니 뱃지 충돌). 온전히 들어갈 때만 붙이고, 말줄임이 필요한
-    // 타이밍엔 K도 함께 숨긴다 (사용자 확정).
+    // §316: 말줄임 예산 축소(-8 → -34) — 우상단 애니 뱃지 영역을 침범하기 전에 먼저 줄인다 (사용자 확정)
+    const maxChars = Math.max(5, Math.floor((f.params.W * vp.scale - 34) / 6.8));
+    // §315: K 표기 = 라벨 **인라인**(스페이스 1칸) — 온전히 들어갈 때만, 말줄임 타이밍엔 동반 숨김.
+    // §316: K만 Bay Green 톤 tspan (기본 상태 한정 — 호버/선택은 라벨 전체가 종전 색)
     const k = props.actions.frameKIndex(f);
-    const full = k != null ? `${f.name} K${k}` : f.name;
-    const label = full.length <= maxChars
-      ? full
-      : (f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name);
+    const kTxt = k != null && f.name.length + 1 + String(k).length + 1 <= maxChars ? ` K${k}` : '';
+    const label = f.name.length > maxChars ? `${f.name.slice(0, maxChars - 1)}…` : f.name;
     // w = 히트 패드 포함 화면 px 근사(렌더용) / tw = 텍스트만 (충돌 판정용 — §243)
-    return { f, label, w: label.length * 6.8 + 20, tw: label.length * 6.8 };
+    const tw = (label.length + kTxt.length) * 6.8;
+    return { f, label, kTxt, w: tw + 20, tw };
   };
   // §242: 겹침 = 숨김 대신 **윗줄 스태거(최대 3줄)** — 저배율 군집에서도 긴 이름이 사라지지 않음.
   // 우선순위(선택 > z 상위)가 0줄을 차지하고, 겹치는 라벨은 한 줄씩 위로. 3줄 초과만 숨김.
@@ -1965,6 +1964,27 @@ onBeforeUnmount(() => {
           :x="animSelBounds.x" :y="animSelBounds.y" :width="animSelBounds.w" :height="animSelBounds.h"
           @pointerdown.stop.prevent="onChainAreaDown"
         />
+        <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
+             클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
+             §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음)
+             §316: AnimOverlay **앞**으로 이동 — 애니 ▶ 뱃지·체인 숫자가 라벨에 가려지던 것 (뱃지 최상위) -->
+        <g
+          v-for="{ f, label, kTxt, w, row } in frameLabels"
+          :key="'fl' + f.id"
+          class="frameLabelG"
+          :class="{ sel: doc.selectedIds.includes(f.id) }"
+          :transform="`translate(${f.x} ${f.y - pxs(row * 16)})`"
+          @pointerdown.stop="onUnitDown(f, $event)"
+          @dblclick.stop="startFrameNameEdit(f)"
+          @contextmenu.prevent.stop="onUnitContext(f, $event)"
+        ><!-- §279: 라벨 우클릭 = 프레임 본체와 동일 ctx 팝업 -->
+          <rect
+            class="labelPad"
+            :x="-pxs(6)" :y="-pxs(22)"
+            :width="pxs(w)" :height="pxs(24)"
+          />
+          <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ label }}<tspan v-if="kTxt" class="kSpan">{{ kTxt }}</tspan></text><!-- §315·§316: K 인라인 (Bay Green 톤) -->
+        </g>
         <!-- §223: 애니메이션 오버레이 — 프레임 노드 + 키프레임 와이어 (Phase B) -->
         <AnimOverlay
           v-if="animOverlayOn"
@@ -1989,26 +2009,7 @@ onBeforeUnmount(() => {
           @pair-context="onPairContext"
           @pair-click="onPairClick"
         />
-        <!-- §201: 프레임 이름 라벨 (피그마식) — 좌상단 바깥, 화면 고정 크기.
-             클릭/드래그 = 유닛이 가득해도 프레임 우선 선택·이동 (핸들러는 프레임 공용 경로)
-             §204: 투명 히트 패드로 호버/클릭 영역 확장 (글리프 박스만으론 너무 좁음) -->
-        <g
-          v-for="{ f, label, w, row } in frameLabels"
-          :key="'fl' + f.id"
-          class="frameLabelG"
-          :class="{ sel: doc.selectedIds.includes(f.id) }"
-          :transform="`translate(${f.x} ${f.y - pxs(row * 16)})`"
-          @pointerdown.stop="onUnitDown(f, $event)"
-          @dblclick.stop="startFrameNameEdit(f)"
-          @contextmenu.prevent.stop="onUnitContext(f, $event)"
-        ><!-- §279: 라벨 우클릭 = 프레임 본체와 동일 ctx 팝업 -->
-          <rect
-            class="labelPad"
-            :x="-pxs(6)" :y="-pxs(22)"
-            :width="pxs(w)" :height="pxs(24)"
-          />
-          <text class="frameLabel" :x="0" :y="-pxs(6)" :font-size="pxs(11)">{{ label }}</text><!-- §315: K 인라인 -->
-        </g>
+        <!-- (§316: 프레임 라벨 블록은 AnimOverlay 앞으로 이동) -->
         <!-- 활성 프레임 표시 (§134): 바깥 아웃라인 — difference 블렌드로 밝은/어두운 배경 모두 가시 -->
         <!-- §239: 애니 모드에선 비표시 — difference 블렌드가 체인 하이라이트(액센트)를 어둡게 오염 -->
         <rect
@@ -2449,8 +2450,11 @@ onBeforeUnmount(() => {
     stroke-width: 0.25em;
     stroke-linejoin: round;
   }
-  &:hover .frameLabel { fill: var(--text); }
-  &.sel .frameLabel { fill: var(--accent); }
+  /* §316: K 순번 = Bay Green 톤다운(회색도는 이름과 비슷하게 --dim 혼합) — Day Blue는 링크/도크
+     배지(--link)와 의미 충돌이라 배제. 호버/선택은 종전처럼 라벨 전체 단색 */
+  .frameLabel .kSpan { fill: color-mix(in srgb, var(--world-green) 70%, var(--dim)); }
+  &:hover .frameLabel, &:hover .frameLabel .kSpan { fill: var(--text); }
+  &.sel .frameLabel, &.sel .frameLabel .kSpan { fill: var(--accent); }
 }
 .toast {
   // 패널이 오버레이(§85)라 50%는 창 중앙 — 하단 툴바와 동일 공식으로 캔버스 가용영역 중앙에 배치
