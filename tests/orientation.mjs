@@ -173,7 +173,8 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
     };
     let prev = rightC(0);
     let moved = 0;
-    for (let o = 0.01; o <= 0.7001; o += 0.01) {
+    // §305: 오프셋 부호 반전 — 동일 기하 스윕은 음수 방향 (+φ = 컴프레션 방향 흐름)
+    for (let o = -0.01; o >= -0.7001; o -= 0.01) {
       const c = rightC(+o.toFixed(3));
       assert.ok(c <= prev + 1e-6, `추종 단조성 위반 @${o}`);
       moved += prev - c;
@@ -182,6 +183,20 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
     assert.ok(moved > 1, `가드 이동량 ${moved.toFixed(2)}px — 경계 고정(멈춤) 의심`);
   }
   ok('§301: 도킹면 가드 = 칸 중심 추종 (애니 멈춤 제거)', () => {});
+}
+
+// ── §305: 오프셋 부호 = 드라이빙 디렉션과 일치 — φ 증가 = 컴프레션 방향(우) 이동 ──
+{
+  const base = {
+    W: 400, H: 200, orientation: 0, cols: 10, gutterMode: 'fixed', gutterPx: 2,
+    rate: 8, direction: 'LtoS', dPct: 35, a: 0.4, b: 1, threads: 'both', threadDir: 'LtoR',
+    flipX: false, offsetType: 'step', grow: 'r',
+  };
+  const cutAt = (off) => deriveUnit({ ...base, offset: off }).columns[1].L; // 첫 내부 경계
+  // φ가 커질수록 경계가 오른쪽(좁은 쪽 = 컴프레션 방향)으로 전진 — 구 의미론은 왼쪽
+  assert.ok(cutAt(0.11) > cutAt(0.10) + 1e-9, `+φ 전진 방향: ${cutAt(0.10)} → ${cutAt(0.11)}`);
+  assert.ok(cutAt(-0.11) < cutAt(-0.10) - 1e-9, `−φ 역방향: ${cutAt(-0.10)} → ${cutAt(-0.11)}`);
+  ok('§305: +offset = 컴프레션 방향 흐름 (드라이빙 ±와 일치)', () => {});
 }
 
 console.log(`✓ orientation: ${passed} cases passed`);

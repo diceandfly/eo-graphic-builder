@@ -176,6 +176,12 @@ export function useDocument() {
     savedLinkScopes = raw?.linkScopes ?? {};
     savedAnimEdges = raw?.animEdges ?? [];
     savedDocks = raw?.docks ?? []; // §278
+    // §305: 오프셋 부호 의미 반전 — v3 미만 저장분은 값을 부호 반전해 외형 보존
+    if (savedUnits && (raw.version ?? 0) < 3) {
+      for (const u of savedUnits) {
+        if (u.type !== 'frame' && u.params && u.params.offset) u.params.offset = -u.params.offset;
+      }
+    }
     if (savedUnits) savedMeta = { count: savedUnits.length, savedAt: raw.savedAt ?? null };
   } catch { savedUnits = null; }
   const initialUnits = (savedUnits ?? [{ id: 1, type: 'unit', name: 'Unit-1', x: 0, y: 0, params: createParams() }]).map((u) => migrateUnit(u, savedLinkScopes));
@@ -222,7 +228,7 @@ export function useDocument() {
       saveTimer = setTimeout(() => {
         const { u, g, a, k } = JSON.parse(snap);
         localStorage.setItem(DOC_KEY, JSON.stringify({
-          version: 2, savedAt: Date.now(), units: u, groupNames: g, animEdges: a, docks: k,
+          version: 3, savedAt: Date.now(), units: u, groupNames: g, animEdges: a, docks: k, // §305: v3 = offset 부호 반전
         }));
       }, 500);
     }

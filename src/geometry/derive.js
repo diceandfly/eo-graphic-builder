@@ -29,7 +29,11 @@ export function deriveUnit(p, opts = {}) {
   let columns = computeColumns({
     W: localW, cols: p.cols, gutterMode: p.gutterMode,
     gutterPx: p.gutterPx, g: p.g, rate: p.rate, direction: fieldDir,
-    offset: p.offset ?? 0,
+    // §305: 오프셋 부호 반전 — +φ = **드라이빙 디렉션(+)·컴프레션 방향으로 흐름** (사용자 확정:
+    // offset의 ±가 Thread Driving Direction의 ±와 일치하도록 기본 방향을 반전. grow 'l'은
+    // §265 미러가 흐름을 함께 뒤집어 "자기 필드 기준 자연 방향" 의미가 양쪽에서 유지된다).
+    // 구 문서는 로드 시 1회 부호 마이그레이션(§305) — 외형 불변.
+    offset: -(p.offset ?? 0),
     // §262: offsetType — 'step'(기본) = 부분 칸을 온전 슬롯으로(유닛 밖 연장 → 렌더 클립) /
     // 'flow' = 눌린 부분 칸 (종전)
     mode: p.offsetType === 'flow' ? 'flow' : 'step',

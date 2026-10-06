@@ -149,7 +149,7 @@ const readJson = (key, fallback) => {
 };
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
 function saveProject(scope = {}) {
-  const data = { version: 3, camera: { ...viewport.vp } };
+  const data = { version: 4, camera: { ...viewport.vp } }; // §305: v4 = offset 부호 반전
   // §200: 브랜드 팔레트 동봉 — 출력(인쇄) 워크플로용 CMYK/PANTONE 참조 + 파일에서 컬러 파트 즉시 식별
   data.colors = BRAND_PALETTE;
   if (scope.work !== false) {
@@ -174,6 +174,12 @@ async function openProject(file, scope = {}) {
   try {
     const data = JSON.parse(await file.text());
     if (scope.work !== false && Array.isArray(data.units)) {
+      // §305: v4 미만 파일은 오프셋 부호 반전 마이그레이션 — 외형 보존
+      if ((data.version ?? 0) < 4) {
+        for (const u of data.units) {
+          if (u.type !== 'frame' && u.params && u.params.offset) u.params.offset = -u.params.offset;
+        }
+      }
       docApi.loadProject(data.units, { groupNames: data.groupNames, linkScopes: data.linkScopes, animEdges: data.animEdges, docks: data.docks });
     }
     // 카메라: 항상 마지막 저장 위치로 (v3 camera, v1·2 viewport 하위 호환)

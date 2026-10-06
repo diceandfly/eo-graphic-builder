@@ -1319,6 +1319,14 @@ function onMove(e) {
   if (drag.kind === 'resizeg') {
     const { dir, b0, snaps } = drag;
     const symG = e.altKey ? 2 : 1; // Alt = 중심 대칭 스케일
+    // §306: 그룹 리사이즈도 링크 앵커 공유(§205) — 단일 리사이즈와 동일 문법. 미설정 시
+    // 링크 전파(applyLinkPatch)가 로컬 원점 고정으로 떨어져, A·B 두 그룹을 함께 스케일할 때
+    // 미선택 멤버의 오리엔테이션 앵커가 단일 조작 때와 달라지던 문제 (사용자 리포트)
+    if (activeUnit.value) {
+      const ax = e.altKey ? 0.5 : dir.includes('w') ? 1 : dir.includes('e') ? 0 : 0.5;
+      const ay = e.altKey ? 0.5 : dir.includes('n') ? 1 : dir.includes('s') ? 0 : 0.5;
+      props.actions.setLinkResizeAnchor(canvasPointToLocal(activeUnit.value.params, ax, ay));
+    }
     let W = b0.w, H = b0.h;
     if (dir.includes('e')) W = b0.w + dx * symG;
     if (dir.includes('w')) W = b0.w - dx * symG;
@@ -1718,6 +1726,7 @@ function onUp(e) {
       props.actions.setLinkResizeAnchor(null); // §205: 링크 앵커 공유 종료 → 기본(로컬 원점) 복귀
       props.actions.setSize({}); // W 변경에 따른 파생 제약 정리 (거터 클램프)
     } else if (drag.kind === 'resizeg') {
+      props.actions.setLinkResizeAnchor(null); // §306: 공유 앵커 종료 (단일 경로와 동일)
       props.actions.normalizeSelected();
     } else if (drag.kind === 'marquee') {
       const moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);

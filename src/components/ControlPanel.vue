@@ -457,9 +457,9 @@ function setStrokeColor(c) {
 
     <section>
       <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold[fkey('grid')] }" @click="toggleFold(fkey('grid'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('grid')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
-      <!-- §278: 용어 교체 — cols → threads (파라미터 키는 cols 유지) -->
+      <!-- §278: 용어 교체 — cols → threads · §305: Thread Amount (파라미터 키는 cols 유지) -->
       <Slider
-        label="threads" v-model="p.cols"
+        label="thread amount" v-model="p.cols"
         :min="COLS_MIN" :max="COLS_MAX" :step="1"
         :mixed="mixed('cols')"
       />
