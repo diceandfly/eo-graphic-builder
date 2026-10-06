@@ -38,7 +38,7 @@ watch(cycles, (v) => {
 });
 // §247·§250: 익스포트 옵션 묶음 — format(WebM|MP4|GIF|JSON) · scale(0.5/1/2× — 1920 캡 동승) ·
 // alpha(배경 투명 — GIF 전용: 비디오 실시간 녹화는 알파 비보존) · hold(끝 프레임 유지 ms, 루프 호흡)
-const exportCfg = reactive({ format: 'webm', scale: 1, alpha: false, hold: 0 });
+const exportCfg = reactive({ format: 'webm', scale: 1, alpha: false, hold: 0, seam: true }); // §313: seam = 스트로크 보정
 try { Object.assign(exportCfg, JSON.parse(localStorage.getItem('eo.animExport') || '{}')); } catch { /* 기본값 유지 */ }
 if (!['webm', 'mp4', 'gif', 'json'].includes(exportCfg.format)) exportCfg.format = 'webm'; // §250: 구 'png' 이관
 watch(exportCfg, (v) => localStorage.setItem('eo.animExport', JSON.stringify(v)));
@@ -153,14 +153,14 @@ function loadSim(e) {
   if (e.sim.loop === 'pingpong' || e.sim.loop === 'loop') loopMode.value = e.sim.loop;
   if (e.sim.fps === 24 || e.sim.fps === 30) fps.value = e.sim.fps;
   if (Number.isInteger(e.sim.cycles)) cycles.value = e.sim.cycles;
-  for (const k of ['format', 'scale', 'alpha', 'hold']) if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
+  for (const k of ['format', 'scale', 'alpha', 'hold', 'seam']) if (e.sim[k] !== undefined) exportCfg[k] = e.sim[k];
   nextTick(() => { simLoading = false; });
 }
 function saveSim() {
   if (simLoading || !props.edge) return;
   props.edge.sim = {
     loop: loopMode.value, fps: fps.value, cycles: cycles.value,
-    format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold,
+    format: exportCfg.format, scale: exportCfg.scale, alpha: exportCfg.alpha, hold: exportCfg.hold, seam: exportCfg.seam,
   };
 }
 watch(loopMode, () => { dir = 1; p.value = Math.min(1, Math.max(0, p.value)); }); // §265: 모드 전환 즉시 정규화
@@ -437,15 +437,16 @@ const totalLabel = computed(() => {
           <rect :x="-1" :y="-1" :width="pose.W + 2" :height="pose.H + 2" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
           <!-- §284: 도크 브리지 — 샤프트 연장 (유닛 아래 레이어, 갭 애니에 동승) -->
           <!-- §310: seam 동반 (§287 문법) — 유닛 샤프트는 seam-width 0.75로 실두께가 D+0.75라
-               브리지만 1px쯤 얇아 보이던 것. 같은 fill 스트로크로 동일 보정 (export 클론에도 승계) -->
+               브리지만 1px쯤 얇아 보이던 것. 같은 fill 스트로크로 동일 보정 (export 클론에도 승계)
+               §313: Stroke fix 토글 — 유닛 seam과 함께 on/off -->
           <polygon
             v-for="(bp, bi) in poseBridges" :key="'pb' + bi"
             class="dockBridge"
             :points="bp.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
-            :fill="bp.fill" :stroke="bp.fill" stroke-width="0.75"
+            :fill="bp.fill" :stroke="exportCfg.seam ? bp.fill : 'none'" :stroke-width="exportCfg.seam ? 0.75 : 0"
           />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
-            <UnitGraphic :params="it.params" :seam-width="0.75" :docked-ends="poseEndsFor(it.key)" />
+            <UnitGraphic :params="it.params" :seam-width="exportCfg.seam ? 0.75 : 0" :docked-ends="poseEndsFor(it.key)" /><!-- §313 -->
           </g>
         </svg>
         <!-- §228: 호버 시 중앙 재생/정지 안내 버튼 (클릭 판정은 프리뷰 전체)
@@ -507,6 +508,14 @@ const totalLabel = computed(() => {
         <div class="optRow">
           <span class="optLabel">End hold</span><!-- §300: (ms) 라벨 제거 — 단위는 필드 안 -->
           <StepField v-model="exportCfg.hold" :min="0" :max="5000" :step="100" suffix="ms" />
+        </div>
+        <div class="optRow">
+          <span class="optLabel">Stroke fix</span>
+          <!-- §313: seam 스트로크 보정 (유닛 샤프트 + 도크 브리지 0.75px 동색 봉합) — 프리뷰·익스포트 공통 -->
+          <input
+            type="checkbox" v-model="exportCfg.seam"
+            title="Seal shaft/thread & bridge junctions with a same-color 0.75px stroke"
+          />
         </div>
         <div class="optRow">
           <span class="optLabel">Transparent bg</span>

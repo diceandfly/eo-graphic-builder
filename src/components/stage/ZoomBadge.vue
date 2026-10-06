@@ -186,18 +186,18 @@ function resetGridDefaults() {
             <span class="rowLabel">Arrow nudge</span>
             <StepField :model-value="view.nudge" :min="1" :max="500" :step="1" @update:model-value="setNudge" />
           </label>
-          <!-- §250: 순서 재배열(기존 123 → 321) + 애니메이션 뱃지 토글 추가 -->
+          <!-- §250: 순서 재배열(기존 123 → 321) + 애니메이션 뱃지 토글 추가 — §313: 1234 → 1324 (사용자 확정) -->
           <label class="menuRow">
             <input type="checkbox" v-model="view.showSelName" />
             <span>Show selected unit name</span><!-- §279: 명칭 명시화 -->
           </label>
           <label class="menuRow">
-            <input type="checkbox" v-model="view.showLinks" />
-            <span>Show dock badges</span><!-- §278: 링크 배지 폐기 — 키(showLinks)는 저장 호환으로 유지 -->
-          </label>
-          <label class="menuRow">
             <input type="checkbox" v-model="view.showGroups" />
             <span>Show group outlines</span>
+          </label>
+          <label class="menuRow">
+            <input type="checkbox" v-model="view.showLinks" />
+            <span>Show dock badges</span><!-- §278: 링크 배지 폐기 — 키(showLinks)는 저장 호환으로 유지 -->
           </label>
           <label class="menuRow">
             <input type="checkbox" v-model="view.showAnimBadges" />

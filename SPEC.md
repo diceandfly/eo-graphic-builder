@@ -2415,3 +2415,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **프리뷰 크기 그립 휘도 잉크 (사용자 선택: 휘도 자동 스왑)**: 프레임 fill 휘도(>140) 기준 화이트 ↔ **Space Black** 자동 전환(--pv-ink, pvWrap 한정 — 패널 위 그립은 기본 유지). 색반전(difference)은 Builder Neon 위 비브랜드 색 등장으로 배제. 재생 글리프는 기존 Space Black 원판 백플레이트라 제외. fill 없음(스트로크만) = 패널 다크 배경 → 화이트 유지.
 - (§309-보류) 유닛 접합 0.5px 헤어라인의 A/B/C 보정안은 사용자 보류 — 익스포트에는 박히지 않는 화면 전용 아티팩트(§311 답신 실측)라 현상 유지.
 - 테스트 4건(이름 공유·K 파생, 리네임 전파, 중간 삭제 재부여, 고아 이름 보존) + §262 단언 개정, 110케이스. 매뉴얼 ko·en 갱신.
+
+## 313. 2026-10-06 — BBox 옵션 순서 1324 · 애니 익스포트 Stroke fix 토글 · 도크 노드 점검
+
+- **BBox 툴바 메뉴 순서**: Show selected unit name → **Show group outlines** → Show dock badges → Show animation badges (기존 1234 → 1324, 사용자 확정).
+- **애니패널 Export에 Stroke fix 토글** (Transparent bg 바로 위): seam 스트로크 보정(유닛 샤프트 0.75px 동색 봉합 §287 + 도크 브리지 동반 §310)을 on/off. 기본 on(종전 동작). 프리뷰가 곧 익스포트 원본이라 둘에 공통 적용. exportCfg.seam — localStorage + 엣지별 sim에 영속.
+- **도크 노드 "안 보임" 점검 (사용자 리포트)**: HEAD에서 재현 불가 — ①§283 조건 로직(dockAxesParallel) 오리엔테이션 4종×플립 전수 node 검증 통과 ②브라우저 렌더 경로 0°·90° 모두 노드 4개 표시 ③최근 3커밋(§310~312)에 도크 노드 관련 변경 없음 확인. 숨김이 정상인 기존 조건 3종: 애니 모드(§280 — 노드는 비애니 전용), 줌 < 15%(§283 자동 숨김), 선택 전원이 평행이 아닐 때. 사용자 재현 조건 회신 대기.
