@@ -47,7 +47,10 @@ export function buildUnit({ columns, W, H, D, a, b, threads = 'both', threadDir 
         // §292: 도킹된 면은 클램프 없이 **경계선 중심** 배치 (절반이 밖으로 — 렌더가 overflow 허용)
         const rect = (attachRight) => {
           if (dockedEnd) {
-            const cx0 = ci === 0 ? 0 : W;
+            // §301: 경계선 고정 → **칸 중심 추종** — 애니에서 가드가 흐름과 같은 속도로 퇴장
+            // (경계 고정은 빠져나가는 동안 정지 + 드랍 프레임에 간격 재배열 튐의 원인).
+            // 정적 결착 상태는 꼬리 칸 중심 ≈ 경계선이라 §292 룩 사실상 동일.
+            const cx0 = (L + R) / 2;
             return [cx0 - minW / 2, cx0 + minW / 2];
           }
           let x1, x2;

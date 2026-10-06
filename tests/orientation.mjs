@@ -155,10 +155,33 @@ const PTS = [[0, 0], [1, 0], [0, 1], [0.25, 0.7], [0.9, 0.1]];
   const d = deriveUnit(base, { dockedEnds: { left: false, right: true } });
   const last = d.unit.threadsTop.length - 1;
   const [lo, hi] = span(d.unit.threadsTop[last]);
-  assert.ok(Math.abs(lo - 399.5) < 1e-6 && Math.abs(hi - 400.5) < 1e-6, `도킹면 끝 스레드 ${lo}~${hi}`);
+  // §301: 가드 = 칸 중심 추종 — 정적 꼬리는 중심≈경계선 (서브픽셀 오차 허용)
+  assert.ok(Math.abs(lo - 399.5) < 0.02 && Math.abs(hi - 400.5) < 0.02, `도킹면 끝 스레드 ${lo}~${hi}`);
   const [l0, h0] = span(d.unit.threadsTop[0]); // 비도킹 반대쪽 끝 = 종전 규칙 유지
   assert.ok(h0 <= base.W + 1e-6 && l0 >= -1e-6, '비도킹 끝은 경계 내');
   ok('§292: 도킹면 끝 스레드 = 경계 중심 100% minW', () => {});
+  // §301: 애니 연속성 — 꿠리 가드가 흐름을 추종 (경계 고정이면 이동 0 = 멈춤 재발)
+  {
+    const rightC = (off) => {
+      const dv = deriveUnit({ ...base, offset: off }, { dockedEnds: { left: false, right: true } });
+      let best = -1e9;
+      for (const poly of dv.unit.threadsTop) {
+        const xs = poly.map((pt) => pt[0]);
+        best = Math.max(best, (Math.min(...xs) + Math.max(...xs)) / 2);
+      }
+      return best;
+    };
+    let prev = rightC(0);
+    let moved = 0;
+    for (let o = 0.01; o <= 0.7001; o += 0.01) {
+      const c = rightC(+o.toFixed(3));
+      assert.ok(c <= prev + 1e-6, `추종 단조성 위반 @${o}`);
+      moved += prev - c;
+      prev = c;
+    }
+    assert.ok(moved > 1, `가드 이동량 ${moved.toFixed(2)}px — 경계 고정(멈춤) 의심`);
+  }
+  ok('§301: 도킹면 가드 = 칸 중심 추종 (애니 멈춤 제거)', () => {});
 }
 
 console.log(`✓ orientation: ${passed} cases passed`);
