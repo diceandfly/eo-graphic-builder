@@ -2322,3 +2322,7 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - 프레임 선택 시 섹션 순서 = SIZE → GRID → STYLE (종전 STYLE→GRID — 사용자 확정).
 - 접기(fold) 상태 비공유: 프레임 섹션은 `f_` 네임스페이스 키(f_size·f_grid·f_style)로 저장 — 유닛 키(size·shape·grid·anim)는 종전 유지(마이그레이션 불요). fkey(k) 헬퍼 단일 경로.
 - 수술 중 회귀 1건 즉시 수선: Style 블록 이동 시 `<template v-if="isFrame">` 여는 태그가 딸려가 프레임 Grid 섹션이 가드 밖 노출 → 유닛 선택에서 margin undefined로 패널 마운트 크래시(블랙 스크린). 가드 복구 + dev 서버 재시작 포함 실검증(순서·f_grid 분리 저장·상호 불간섭 E2E).
+
+## 297. 2026-10-06 — 페어 키프레임 프레임 회전 락
+
+- 페어링된 프레임(키프레임)은 **회전 락** + 토스트("Paired keyframe — rotation is locked (detach it from the chain first)") — W/H 스왑·방위 변경이 키프레임 보간 기하를 깨뜨리는 것 차단. rotate(단독)·rotateSelected(선택, 페어 프레임 포함 시 전체 차단) 양 경로 + 핸들 드래그도 동일 경로라 자동 커버. 테스트 1건(95케이스).

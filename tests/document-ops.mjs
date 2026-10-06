@@ -1155,4 +1155,24 @@ function centerIn(u, f) {
   });
 }
 
+// §297. 페어 키프레임 프레임 = 회전 락
+{
+  const api = fresh();
+  const f = api.createFrame(0, 0, 2000, 1400);
+  const u1 = api.doc.units[0];
+  centerIn(u1, f);
+  api.duplicatePairedFrame(f.id, 5000, 0);
+  await sleep(30);
+  api.doc.selectedIds = [f.id];
+  api.doc.activeId = f.id;
+  const o0 = f.params.orientation;
+  const w0 = f.params.W;
+  api.rotateSelected(1);
+  api.rotate(1);
+  ok('§297: 페어 프레임 회전 락 (rotateSelected·rotate 양 경로)', () => {
+    assert.equal(f.params.orientation, o0);
+    assert.equal(f.params.W, w0);
+  });
+}
+
 console.log(`✓ document ops: ${passed} cases passed`);

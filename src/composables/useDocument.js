@@ -1539,6 +1539,11 @@ export function useDocument() {
   function rotate(dir) {
     const u = active.value;
     if (!u) return;
+    // §297: 페어 키프레임 프레임 = 회전 락 — W/H 스왑·방위 변경이 키프레임 보간 기하를 깨뜨림
+    if (u.type === 'frame' && u.pair != null) {
+      notify('Paired keyframe — rotation is locked (detach it from the chain first)');
+      return;
+    }
     // §278 → §295: 단독 회전은 체인 동반이 없으므로, 결착 유닛이면 락 (체인 전체 선택 회전은 허용)
     if (u.type !== 'frame' && dockedIdSet.value.has(u.id)) {
       notify('Docked unit — select the whole docked chain to rotate (or undock first)');
@@ -1639,6 +1644,11 @@ export function useDocument() {
   function rotateSelected(dir) {
     const sel = doc.units.filter((u) => doc.selectedIds.includes(u.id));
     if (!sel.length) return;
+    // §297: 페어 키프레임 프레임 포함 = 회전 락 (rotate 단독과 동일 사유·문구)
+    if (sel.some((u) => u.type === 'frame' && u.pair != null)) {
+      notify('Paired keyframe — rotation is locked (detach it from the chain first)');
+      return;
+    }
     // §245: 선택에 프레임이 있으면 내부(기하 소속) 유닛 동반 — bbox 기준은 선택만 (동반분은 같은 변환)
     const carried = frameOwnedUnits(sel.filter((u) => u.type === 'frame').map((u) => u.id))
       .filter((m) => !sel.includes(m)); // §261: 잠금 폐기 — 짝 동기
