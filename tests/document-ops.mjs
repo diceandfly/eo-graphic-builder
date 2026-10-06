@@ -619,8 +619,8 @@ function centerIn(u, f) {
   const e1 = api.connectAnim(f.id, nf.id);
   ok('애니 엣지: 연결 생성 (ease in-out · 1s 기본) + 자기 연결 무효', () => {
     assert.equal(api.doc.animEdges.length, 1);
-    assert.equal(e1.duration, 1000);
-    assert.deepEqual(e1.curve, [0.33, 0, 0.67, 1]); // §227 기본 Ease 33·33
+    assert.equal(e1.duration, 2000); // §302: 기본 2000ms
+    assert.deepEqual(e1.curve, [0, 0, 1, 1]); // §302: 기본 Linear (§227 Ease 33·33 교체)
     assert.equal(api.connectAnim(f.id, f.id), null);
   });
   const r2 = api.duplicatePairedFrame(nf.id, 5000, 0);

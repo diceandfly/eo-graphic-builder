@@ -914,7 +914,7 @@ export function useDocument() {
     const isFrame = (id) => doc.units.some((u) => u.id === id && u.type === 'frame');
     if (!isFrame(fromId) || !isFrame(toId)) return null;
     doc.animEdges = doc.animEdges.filter((e) => e.from !== fromId && e.to !== toId);
-    const edge = { from: fromId, to: toId, duration: 1000, curve: [0.33, 0, 0.67, 1] }; // §227: 기본 = Ease 33·33
+    const edge = { from: fromId, to: toId, duration: 2000, curve: [0, 0, 1, 1] }; // §302: 기본 = 2000ms · Linear (§227 Ease 33·33 교체)
     doc.animEdges.push(edge);
     repairAnimHomes(fromId, toId); // §228: 구 문서 소속 복구
     return edge;
