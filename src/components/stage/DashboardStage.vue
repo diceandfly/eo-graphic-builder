@@ -1584,8 +1584,8 @@ function snapPointsOf(o) {
     (!SNAP_GRID_MIN_SCREEN || Math.min(sw, sh) >= SNAP_GRID_MIN_SCREEN)
   ) {
     const gl = frameGridLines(o.params);
-    ox.push(o.x + gl.mx, o.x + o.params.W - gl.mx, ...gl.v.map((x) => o.x + x));
-    oy.push(o.y + gl.my, o.y + o.params.H - gl.my, ...gl.h.map((y) => o.y + y));
+    ox.push(o.x + gl.bx, o.x + gl.bx + gl.bw, ...gl.v.map((x) => o.x + x)); // §309: 비대칭 마진 박스
+    oy.push(o.y + gl.by, o.y + gl.by + gl.bh, ...gl.h.map((y) => o.y + y));
   }
   return { ox, oy };
 }

@@ -78,6 +78,12 @@ export function createFrameParams(overrides = {}) {
     // 내부 레이아웃 그리드 (가이드 전용 — export 미포함, px 단위)
     gridOn: true, // §131: on/off 옵션 폐기 — 상시 on (마이그레이션에서 강제)
     margin: 20,
+    // §309: 비대칭 마진 — on이면 T/R/B/L 개별 사용 (margin은 균일 모드 값으로 유지)
+    marginAsym: false,
+    marginT: 20,
+    marginR: 20,
+    marginB: 20,
+    marginL: 20,
     rows: 2,
     cols: 2,
     gutterX: 20,
@@ -112,7 +118,12 @@ function migrateUnit(u, legacyScopes = {}) {
   }
   // 구버전 frame: 이후 추가된 키를 기본값으로 보충 + drawMode(배타) → fillOn/strokeOn(독립) 이관 (§110)
   if (u.type === 'frame' && u.params) {
+    const hadAsym = 'marginT' in u.params; // §309: 구문서 4방 마진 백필 = 자기 margin 값
     u.params = { ...createFrameParams(), ...u.params };
+    if (!hadAsym) {
+      const m = u.params.margin;
+      u.params.marginT = m; u.params.marginR = m; u.params.marginB = m; u.params.marginL = m;
+    }
     u.params.gridOn = true; // §131: 그리드 on/off 폐기 — 구버전 off 저장분도 상시 on
     if (u.params.compMode) {
       // §134: 단일 compMode → 축별 이관
@@ -293,7 +304,7 @@ export function useDocument() {
     orientation: ['orientation', 'flipX'],
     grid: [
       ...['gutterMode', 'gutterPx', 'g', 'rate', 'direction', 'cols'], // 유닛 (§273: cols grid 복귀)
-      ...['margin', 'rows', 'cols', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임
+      ...['margin', 'marginAsym', 'marginT', 'marginR', 'marginB', 'marginL', 'rows', 'cols', 'gutterX', 'gutterY', 'compOn', 'compModeX', 'compModeY', 'compX', 'compY', 'compLock'], // 프레임 (§309)
     ],
     animation: ['grow', 'offsetType', 'offset'], // §264·§273
     shape: [

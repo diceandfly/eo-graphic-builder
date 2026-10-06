@@ -28,10 +28,16 @@ function compWeights(n, v, mode) {
 // 프레임 내부 레이아웃 그리드 라인 (로컬 px 좌표) — 렌더(FrameGraphic)와 스냅(이동) 공유
 export function frameGridLines(p) {
   const { W, H, margin, rows, cols, gutterX, gutterY } = p;
-  const mx = margin;
-  const my = margin;
-  const cw = W - 2 * mx;
-  const ch = H - 2 * my;
+  // §309: 비대칭 마진 — marginAsym on이면 T/R/B/L 개별(미정의는 margin 폴백), off면 균일
+  const asym = !!p.marginAsym;
+  const mL = asym ? (p.marginL ?? margin) : margin;
+  const mR = asym ? (p.marginR ?? margin) : margin;
+  const mT = asym ? (p.marginT ?? margin) : margin;
+  const mB = asym ? (p.marginB ?? margin) : margin;
+  const mx = mL;
+  const my = mT;
+  const cw = W - mL - mR;
+  const ch = H - mT - mB;
   const v = [];
   const h = [];
   if (cw > 0 && ch > 0) {
@@ -63,5 +69,6 @@ export function frameGridLines(p) {
       }
     }
   }
-  return { mx, my, v, h };
+  // §309: 콘텐츠 박스 동봉 — 소비자(렌더·스냅)가 대칭 가정(W−2mx) 없이 사용
+  return { mx, my, v, h, bx: mL, by: mT, bw: Math.max(0, cw), bh: Math.max(0, ch) };
 }

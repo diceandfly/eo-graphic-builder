@@ -204,6 +204,14 @@ function setCompChip(key, rate) {
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
 }
+// §309: 비대칭 마진 토글 — 켜는 순간 4방이 전부 균일값과 같으면(= 아직 커스텀 전) 현재 margin으로 시드
+function setMarginAsym(on) {
+  const q = p.value;
+  if (on && ['marginT', 'marginR', 'marginB', 'marginL'].every((k) => q[k] == null || q[k] === q.marginT)) {
+    q.marginT = q.margin; q.marginR = q.margin; q.marginB = q.margin; q.marginL = q.margin;
+  }
+  q.marginAsym = on;
+}
 // 단위 전환 — 각 단위의 그리드 기본값 적용 (px 20/20/20 ↔ cm 0.6/0.2/0.2, §76·§116)
 function setUnitMode(mode) {
   if (p.value.unitMode === mode) return;
@@ -324,11 +332,28 @@ function setStrokeColor(c) {
       <h2 class="secH">Grid<button class="foldTg" :class="{ isFolded: fold[fkey('grid')] }" @click="toggleFold(fkey('grid'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('grid')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button></h2>
       <!-- §132 확정 순서: margin → gutter rows/cols → rows/cols → compression 블록 -->
       <!-- 조절 범위: px = margin 0-200·gutter 0-100 / cm = margin 0-5·gutter 0-2 (§76) -->
+      <!-- §309: 비대칭 마진 — 교체형(A안): off = 균일 margin 1개 / on = T·R·B·L 4개로 교체
+           (두 UI 동시 노출로 인한 혼동 원천 제거 — Grid Compression의 on/off 확장 문법) -->
       <Slider
+        v-if="!p.marginAsym"
         :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
         :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
+      />
+      <template v-else>
+        <Slider
+          v-for="mk in [['marginT', 'top margin'], ['marginR', 'right margin'], ['marginB', 'bottom margin'], ['marginL', 'left margin']]"
+          :key="mk[0]"
+          :label="`${mk[1]} (${unitSuffix})`" :model-value="toDisp(p[mk[0]])"
+          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+          :arrow-step="isCm ? 0.01 : 5"
+          @update:model-value="(v) => setGridField(mk[0], v, 0, isCm ? 5 : 200)"
+        />
+      </template>
+      <Toggle
+        label="asymmetric margin" :model-value="p.marginAsym ? 'on' : 'off'" :options="ON_OFF"
+        @update:model-value="(v) => setMarginAsym(v === 'on')"
       />
       <Slider
         :label="`row gutter (${unitSuffix})`" :model-value="toDisp(p.gutterY)"

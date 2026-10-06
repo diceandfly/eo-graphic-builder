@@ -2382,3 +2382,9 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 ## 308. 2026-10-06 — 노드계 팝업 = 월드 좌표 앵커 (팬/줌 추종)
 
 - 타이밍(edgeMenu)·페어·도크 배지 팝업이 화면 고정 좌표라 뷰포트 이동 시 노드에서 떨어져 보이던 문제 → **월드 좌표 저장 + 렌더 시 월드→로컬 환산(worldToLocal, vp 반응형)**으로 노드 옆에 고정. 닫힘 로직(바깥 클릭·배타)은 불변. 유닛 우클릭 ctx는 포인터 기준 관례라 유지. E2E: 팬 시 배지·팝업 동일 델타 이동.
+
+## 309. 2026-10-06 — 프레임 비대칭 마진 (교체형 UI — A안 사용자 선택)
+
+- **데이터**: marginAsym(bool) + marginT/R/B/L(px) — off면 종전 margin 균일(수학·좌표 완전 호환), on이면 4방 개별. 구문서 마이그레이션 = 4방을 자기 margin 값으로 백필. 스포이드 grid 키 추가, 애니는 수치 키라 자동 보간(marginAsym 불일치는 기존 boolean 규칙대로 디졸브).
+- **지오메트리**: frameGridLines가 콘텐츠 박스(bx·by·bw·bh) 동봉 반환 — 렌더(FrameGraphic)·스냅 후보가 대칭 가정(W−2mx) 대신 박스 사용. 균일 모드 좌표는 구버전과 동일(수치 검증).
+- **UI (A안 = 교체형)**: Asymmetric Margin on/off 토글(마진 아래). off = margin 슬라이더 1개, on = Top/Right/Bottom/Left Margin 4개로 **교체**(동시 노출 없음 — 혼동 원천 제거, Grid Compression 확장 문법). 켜는 순간 4방 미커스텀이면 현재 margin으로 시드. E2E: 토글 전후 교체 확인.

@@ -22,12 +22,12 @@ const grid = computed(() => (props.showGrid ? frameGridLines(p.value) : null));
     <g v-if="grid" class="rgrid">
       <!-- 마진 프레임 -->
       <rect
-        :x="grid.mx" :y="grid.my"
-        :width="Math.max(0, p.W - 2 * grid.mx)" :height="Math.max(0, p.H - 2 * grid.my)"
+        :x="grid.bx" :y="grid.by"
+        :width="grid.bw" :height="grid.bh"
         fill="none"
       />
-      <line v-for="(x, i) in grid.v" :key="'v' + i" :x1="x" :y1="grid.my" :x2="x" :y2="p.H - grid.my" />
-      <line v-for="(y, i) in grid.h" :key="'h' + i" :x1="grid.mx" :y1="y" :x2="p.W - grid.mx" :y2="y" />
+      <line v-for="(x, i) in grid.v" :key="'v' + i" :x1="x" :y1="grid.by" :x2="x" :y2="grid.by + grid.bh" />
+      <line v-for="(y, i) in grid.h" :key="'h' + i" :x1="grid.bx" :y1="y" :x2="grid.bx + grid.bw" :y2="y" />
     </g>
   </g>
 </template>
