@@ -494,6 +494,11 @@ export function useDocument() {
     for (const [lid, ids] of changed) {
       const members = linkMemberIds(lid);
       if (!ids.size || ids.size >= members.length) continue; // 전 멤버 변경 = 동기 유지, 분리 불필요
+      // §303: **균일 변형이면 분화 대신 전파** (사용자 확정) — 링크 불변식은 "같은 변형"이 아니라
+      // "같은 값". 변경 멤버끼리 동기 대상 키의 결과값이 전부 동일하면(대칭 유지: 복수 선택
+      // bbox 리사이즈·도킹 듀오 조작 등) 그 값을 나머지 멤버에 전파하고 그룹을 유지한다.
+      // 값이 갈렸을 때만 종전대로 분화 + 토스트 피드백.
+      if (trySyncUniform(lid, ids, before)) continue;
       const subset = members.filter((id) => ids.has(id));
       // §220: 서브셋을 새 링크그룹으로 — 범주 멤버십 구성은 그대로 승계 (lid만 치환)
       const nl = subset.length >= 2 ? nextLink++ : null;
@@ -508,6 +513,50 @@ export function useDocument() {
       pruneMeta();
       notify(`Link split — ${split} edited unit${split > 1 ? 's' : ''} re-linked separately`);
     }
+  }
+  // §303: 균일 변형 판정 + 전파 — 변경 멤버들의 "동기 대상 변경 키"가 전부 같은 값으로 끝났으면
+  // (W/H는 로컬 치수 비교, 수치 허용오차 1e-6) 대표 값을 미변경 멤버에 전파하고 true.
+  // orientation·flipX가 섞이면 전파 금지(§262 raw 복사 금지) — 종전 분화 경로로 폴백.
+  function trySyncUniform(lid, ids, before) {
+    const cs = [...ids].map((id) => doc.units.find((u) => u.id === id)).filter(Boolean);
+    if (!cs.length) return false;
+    // 변경된 동기 대상 키 수집 (변경 멤버 전원 합집합)
+    const keys = new Set();
+    for (const c of cs) {
+      const prev = JSON.parse(before.get(c.id).json);
+      for (const k in c.params) {
+        if (c.params[k] === prev[k]) continue;
+        const cat = KEY_CAT[k];
+        if (!cat || c.links[cat] === lid) keys.add(k);
+      }
+    }
+    if (!keys.size) return false;
+    if (keys.has('orientation') || keys.has('flipX')) return false; // §262 가드
+    const eq = (a, b) => (typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) < 1e-6 : a === b);
+    const src = cs[0];
+    const [sw, sh] = localDims(src.params);
+    for (const c of cs.slice(1)) {
+      for (const k of keys) {
+        if (k === 'W' || k === 'H') {
+          const [cw, ch] = localDims(c.params);
+          if (!eq(sw, cw) || !eq(sh, ch)) return false;
+        } else if (!eq(src.params[k], c.params[k])) return false;
+      }
+    }
+    // 전파 — 결성 동기(§268)와 동일 경로: mirrorGuard + 범주 필터 + applyLinkPatch(로컬 치수·앵커)
+    const patch = {};
+    for (const k of keys) patch[k] = src.params[k];
+    mirrorGuard = true;
+    try {
+      for (const u of doc.units) {
+        if (ids.has(u.id) || !linkMemberIds(lid).includes(u.id)) continue;
+        const lp = filterByLinkScope(patch, src, u);
+        if (Object.keys(lp).length) applyLinkPatch(u, lp, src.params);
+      }
+    } finally {
+      mirrorGuard = false;
+    }
+    return true;
   }
   watch(
     () => (active.value ? [active.value.id, JSON.stringify(active.value.params)] : [null, null]),
@@ -1898,10 +1947,16 @@ export function useDocument() {
   // 블록 이동 시 프레임 소유 유닛 동반 목록 (§92 드래그 문법 — 어레인지·정렬·등간격 공용).
   // 이동 전 위치로 1회 판정, 별도 선택되어 자기 블록으로 움직이는 유닛은 이중 이동 방지 위해 제외.
   function carryOf(block) {
-    const fids = block.filter((u) => u.type === 'frame').map((u) => u.id);
-    if (!fids.length) return [];
     const selSet = new Set(doc.selectedIds);
-    return frameOwnedUnits(fids).filter((u) => !selSet.has(u.id));
+    const out = [];
+    const fids = block.filter((u) => u.type === 'frame').map((u) => u.id);
+    if (fids.length) out.push(...frameOwnedUnits(fids).filter((u) => !selSet.has(u.id)));
+    // §303: 도크 체인 동반 — 정렬/등간격/어레인지에서도 이동 드래그(§294)와 동일 문법.
+    // 미동반 시 재정렬 워처가 정렬 결과를 되돌려 "정렬이 안 먹는" 증상 (사용자 리포트)
+    for (const m of dockMates([...block, ...out].map((u) => u.id))) {
+      if (!selSet.has(m.id) && !out.includes(m)) out.push(m);
+    }
+    return out;
   }
 
   // 등간격 배치 — 3블록 이상, 양 끝 고정, 사이 간격 균등
@@ -1961,7 +2016,7 @@ export function useDocument() {
       if (!f) return;
       const refBox = { minX: f.x, minY: f.y, maxX: f.x + f.params.W, maxY: f.y + f.params.H };
       const [dx, dy] = alignDelta(refBox, bboxOf(blocks[0]), type);
-      for (const u of blocks[0]) {
+      for (const u of [...blocks[0], ...carryOf(blocks[0])]) { // §303: 도크 체인 동반
         u.x += dx;
         u.y += dy;
       }

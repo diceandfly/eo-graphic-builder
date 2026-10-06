@@ -406,7 +406,7 @@ function centerIn(u, f) {
   });
 }
 
-// 14. 링크 자동 분리 (§200): 지오메트리 조작이 링크 일부에만 발산을 만들면 서브셋을 새 링크로
+// 14. 링크 자동 분리 (§200 → §303 개정): 균일 변형은 분화 대신 전파 — 분화는 값이 갈릴 때만
 {
   const api = fresh();
   const u1 = api.doc.units[0];
@@ -416,24 +416,28 @@ function centerIn(u, f) {
   api.toggleLinkSelected();
   const lid0 = primaryLid(u1);
   assert.ok(lid0 != null && primaryLid(u3) === lid0);
-  // 3멤버 중 2개만 통합 스케일 → 발산 → 2개는 새 링크, 남은 1개는 자동 해체
+  // §303: 3멤버 중 2개만 통합 스케일 — 같은 배율(값 동일 유지) → 그룹 유지 + 나머지 전파
   api.setSelection([u1.id, u2.id]);
   api.setSize({ W: 5000 });
-  ok('링크 분리: 서브셋 스케일 = 서브셋끼리 새 링크', () => {
-    assert.ok(primaryLid(u1) != null && primaryLid(u1) === primaryLid(u2) && primaryLid(u1) !== lid0);
-    assert.equal(primaryLid(u3), null); // 잔여 1멤버 자동 소멸
+  ok('§303: 균일 서브셋 스케일 = 그룹 유지 + 미선택 멤버 전파', () => {
+    assert.equal(primaryLid(u1), lid0);
+    assert.equal(primaryLid(u2), lid0);
+    assert.equal(primaryLid(u3), lid0);
+    assert.ok(Math.abs(u3.params.W - u1.params.W) < 1e-6);
   });
-  // 2멤버 링크에서 1개만 발산 → 양쪽 모두 링크 해제 (1멤버 링크는 존재 불가)
+  // §303: 링크 밖 유닛과 묶어 1멤버만 스케일 — 단일 변경은 자명히 균일 → 그룹 유지 + 동기
   const u4 = api.createUnit(6000, 1000);
   const u5 = api.createUnit(6000, 2500);
   api.setSelection([u4.id, u5.id]);
   api.toggleLinkSelected();
+  const lid4 = primaryLid(u4);
   const u6 = api.createUnit(8000, 1000); // 링크 밖 동반 선택용
   api.setSelection([u4.id, u6.id]);
   api.setSize({ W: 7000 });
-  ok('링크 분리: 1개만 발산하면 전체 해제', () => {
-    assert.equal(primaryLid(u4), null);
-    assert.equal(primaryLid(u5), null);
+  ok('§303: 1멤버 지오메트리 조작 = 그룹 유지 + 동기 (핸들·패널 일관화)', () => {
+    assert.equal(primaryLid(u4), lid4);
+    assert.equal(primaryLid(u5), lid4);
+    assert.ok(Math.abs(u5.params.W - u4.params.W) < 1e-6);
   });
   // 링크 전체를 함께 조작하면 분리되지 않음
   const u7 = api.createUnit(10000, 1000);
@@ -1172,6 +1176,63 @@ function centerIn(u, f) {
   ok('§297: 페어 프레임 회전 락 (rotateSelected·rotate 양 경로)', () => {
     assert.equal(f.params.orientation, o0);
     assert.equal(f.params.W, w0);
+  });
+}
+
+// §303. 균일 변형 = 링크 유지+전파 / 비균일 = 분화+토스트 · 정렬의 도크 체인 동반
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1); u2.x += 3000;
+  const u3 = api.duplicateFrom(u1); u3.x += 6000;
+  await sleep(30);
+  api.setCategoryLink([u1.id, u2.id, u3.id], 'size', 'new');
+  await sleep(30);
+  const lid0 = u1.links.size;
+  // 균일: u1·u2만 같은 배율로 스케일 (그룹 bbox 리사이즈 시뮬레이션)
+  api.withGeomOp(() => {
+    for (const u of [u1, u2]) { u.params.W *= 2; u.params.H *= 2; }
+  });
+  await sleep(30);
+  ok('§303: 균일 변형 = 분화 없이 그룹 유지 + 미선택 멤버 전파', () => {
+    assert.equal(u1.links.size, lid0);
+    assert.equal(u2.links.size, lid0);
+    assert.equal(u3.links.size, lid0);
+    assert.equal(u3.params.W, 1920); // 전파됨
+  });
+  // 비균일: u1·u2가 서로 다른 값으로 → 분화 + 토스트
+  let msg = null;
+  api.setNotifier((m) => { msg = m; });
+  api.withGeomOp(() => {
+    u1.params.W = 500;
+    u2.params.W = 700;
+  });
+  await sleep(30);
+  ok('§303: 비균일 변형 = 분화 + 시스템 메시지', () => {
+    assert.notEqual(u1.links.size, lid0);
+    assert.equal(u1.links.size, u2.links.size);
+    assert.ok(u1.links.size !== u3.links.size);
+    assert.ok(String(msg).includes('Link split'));
+  });
+}
+{
+  const api = fresh();
+  const u1 = api.doc.units[0];
+  u1.x = 0; u1.y = 0;
+  api.doc.activeId = u1.id;
+  const u2 = api.duplicateFrom(u1); u2.x = 5000; u2.y = 0;
+  const u3 = api.duplicateFrom(u1); u3.x = 0; u3.y = 5000; // 정렬 상대
+  await sleep(30);
+  api.connectDock(u1.id, u2.id); // u2 → (970, 0)
+  await sleep(30);
+  api.doc.selectedIds = [u1.id, u3.id];
+  api.alignSelected('left'); // 두 블록 좌측 정렬 — u1 블록 이동 시 체인(u2) 동반
+  await sleep(30);
+  ok('§303: 정렬 = 도크 체인 동반 (재정렬 스냅백 없음)', () => {
+    assert.ok(Math.abs(u1.x - u3.x) < 1e-6);
+    assert.ok(Math.abs(u2.x - (u1.x + 960 + 10)) < 1e-6, `u2.x=${u2.x}`);
+    assert.equal(api.doc.docks.length, 1);
   });
 }
 
