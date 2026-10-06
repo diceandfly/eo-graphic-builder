@@ -128,7 +128,11 @@ function onDockBadgeClick(u, cx, cy) {
   dockMenu.value = { wx, wy, u };
 }
 const closeDockMenu = () => { dockMenu.value = null; };
+// §310: 팬 시작 pointerdown(휠클릭·스페이스 드래그)은 "바깥 클릭"이 아님 — 월드 앵커 팝업(§308)은
+// 뷰포트 이동을 따라다니므로 팬으로 닫지 않는다. 닫힘 = 다른 곳 클릭·팝업 자체 로직만 (사용자 확정).
+function isPanStart(e) { return e.button === 1 || spaceHeld.value; }
 function closeDockMenuOutside(e) {
+  if (isPanStart(e)) return;
   if (e.target instanceof Element && e.target.closest('.ctxMenu')) return;
   closeDockMenu();
 }
@@ -467,6 +471,7 @@ function onEdgeClick(e, cx, cy) {
   animEdgePopup.value = { wx, wy };
 }
 function onEdgePopupOutside(e) {
+  if (isPanStart(e)) return; // §310: 팬 시작은 닫힘 트리거 아님
   if (e.target instanceof Element && e.target.closest('.edgeMenu')) return;
   animEdgePopup.value = null;
 }
@@ -770,6 +775,7 @@ function onPairClick(f, cx, cy) {
 }
 function closePairMenu() { pairMenu.value = null; }
 function closePairMenuOutside(e) {
+  if (isPanStart(e)) return; // §310: 팬 시작은 닫힘 트리거 아님
   if (e.target instanceof Element && e.target.closest('.pairMenu')) return;
   closePairMenu();
 }

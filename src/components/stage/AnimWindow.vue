@@ -413,10 +413,13 @@ const totalLabel = computed(() => {
                0.5px 비치던 것 — 배경 rect를 viewBox 밖까지 1px 오버드로(루트 클립이 잘라줌, export 동일) -->
           <rect :x="-1" :y="-1" :width="pose.W + 2" :height="pose.H + 2" :fill="fa.fill" :stroke="fa.stroke" :stroke-width="fa.strokeW" />
           <!-- §284: 도크 브리지 — 샤프트 연장 (유닛 아래 레이어, 갭 애니에 동승) -->
+          <!-- §310: seam 동반 (§287 문법) — 유닛 샤프트는 seam-width 0.75로 실두께가 D+0.75라
+               브리지만 1px쯤 얇아 보이던 것. 같은 fill 스트로크로 동일 보정 (export 클론에도 승계) -->
           <polygon
             v-for="(bp, bi) in poseBridges" :key="'pb' + bi"
+            class="dockBridge"
             :points="bp.pts.map((p) => `${p[0]},${p[1]}`).join(' ')"
-            :fill="bp.fill"
+            :fill="bp.fill" :stroke="bp.fill" stroke-width="0.75"
           />
           <g v-for="it in pose.items" :key="it.key" :transform="`translate(${it.dx} ${it.dy})`" :opacity="it.opacity">
             <UnitGraphic :params="it.params" :seam-width="0.75" :docked-ends="poseEndsFor(it.key)" />
@@ -462,16 +465,9 @@ const totalLabel = computed(() => {
             <button :class="{ on: fps === 24 }" @click="fps = 24">24fps</button>
           </div>
         </div>
-        <!-- ── §247·§251: 익스포트 그룹 — 투명 · 배율 · 반복 · 홀드 · 포맷(맨 아래) · 저장 ── -->
+        <!-- ── §247·§251: 익스포트 그룹 — 배율 · 반복 · 홀드 · 투명 · 포맷(맨 아래) · 저장
+             (§310: 투명 bg는 포맷 바로 위 — 포맷 종속 옵션이라 인접 배치, 사용자 확정) ── -->
         <div class="sectHead">Export</div>
-        <div class="optRow">
-          <span class="optLabel">Transparent bg</span>
-          <!-- §251: 상시 활성 (GIF 외는 익스포트 시 안내) · §257: MP4 선택 시에만 비활성 (사용자 확정) -->
-          <input
-            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format === 'mp4'"
-            :title="exportCfg.format === 'mp4' ? 'MP4 cannot carry alpha' : 'Drop the frame background — applies to GIF (binary alpha)'"
-          />
-        </div>
         <div class="optRow">
           <span class="optLabel">Scale</span>
           <div class="segMini">
@@ -488,6 +484,14 @@ const totalLabel = computed(() => {
         <div class="optRow">
           <span class="optLabel">End hold</span><!-- §300: (ms) 라벨 제거 — 단위는 필드 안 -->
           <StepField v-model="exportCfg.hold" :min="0" :max="5000" :step="100" suffix="ms" />
+        </div>
+        <div class="optRow">
+          <span class="optLabel">Transparent bg</span>
+          <!-- §251: 상시 활성 (GIF 외는 익스포트 시 안내) · §257: MP4 선택 시에만 비활성 (사용자 확정) -->
+          <input
+            type="checkbox" v-model="exportCfg.alpha" :disabled="exportCfg.format === 'mp4'"
+            :title="exportCfg.format === 'mp4' ? 'MP4 cannot carry alpha' : 'Drop the frame background — applies to GIF (binary alpha)'"
+          />
         </div>
         <div class="optRow">
           <span class="optLabel">Format</span>
@@ -561,6 +565,8 @@ const totalLabel = computed(() => {
      비치며 양옆 1px 헤어라인을 만들던 원인 (§257의 보더 제거는 오진이었음) */
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0;
 }
+/* §310: 브리지 seam — 유닛 seam(UnitGraphic .seam)과 동일 문법 (화면 px 고정) */
+.preview .dockBridge { vector-effect: non-scaling-stroke; stroke-linejoin: miter; }
 /* §228: 호버 시 중앙 재생/정지 표시 — 판정은 pvWrap, 표시는 오버레이 */
 .pvPlay {
   position: absolute; inset: 0;

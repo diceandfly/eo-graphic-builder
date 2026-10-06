@@ -2388,3 +2388,12 @@ margins · bleed · rows · 단위 전환(mm/in/px) · format preset · symmetri
 - **데이터**: marginAsym(bool) + marginT/R/B/L(px) — off면 종전 margin 균일(수학·좌표 완전 호환), on이면 4방 개별. 구문서 마이그레이션 = 4방을 자기 margin 값으로 백필. 스포이드 grid 키 추가, 애니는 수치 키라 자동 보간(marginAsym 불일치는 기존 boolean 규칙대로 디졸브).
 - **지오메트리**: frameGridLines가 콘텐츠 박스(bx·by·bw·bh) 동봉 반환 — 렌더(FrameGraphic)·스냅 후보가 대칭 가정(W−2mx) 대신 박스 사용. 균일 모드 좌표는 구버전과 동일(수치 검증).
 - **UI (A안 = 교체형)**: Asymmetric Margin on/off 토글(마진 아래). off = margin 슬라이더 1개, on = Top/Right/Bottom/Left Margin 4개로 **교체**(동시 노출 없음 — 혼동 원천 제거, Grid Compression 확장 문법). 켜는 순간 4방 미커스텀이면 현재 margin으로 시드. E2E: 토글 전후 교체 확인.
+
+## 310. 2026-10-06 — UI 라운드 5건: 팝업 팬 유지 · 애니 브리지 seam · 마진 상한/라벨 · Ratio 스트로크 · 익스포트 순서
+
+- **팝업 팬 유지**: 월드 앵커 팝업(§308 — 타이밍·페어·도크)은 팬/줌을 따라다니므로 팬 시작 pointerdown(휠클릭·스페이스 드래그)을 "바깥 클릭" 닫힘 트리거에서 제외(isPanStart 가드). 닫힘 = 다른 곳 클릭·팝업 자체 로직만 (사용자 확정 — 팬마다 닫혀 재오픈해야 하던 불편 제거). E2E: 스페이스 팬 중 유지 + 일반 바깥 클릭 닫힘.
+- **애니패널 브리지 seam (§287 문법 이식)**: 유닛 샤프트는 seam-width 0.75로 실두께 D+0.75인데 프리뷰 브리지 폴리곤만 스트로크가 없어 ~1px 얇아 보이던 것 → 같은 fill 스트로크 0.75 + non-scaling-stroke 동반. 익스포트는 프리뷰 DOM 클론이라 자동 승계. 실측(×4 래스터): 샤프트 42.75 vs 브리지 42.87 — 일치(수정 전 42.0).
+- **비대칭 마진 상한 = 프레임 치수 연동 (사용자 확정)**: L+R ≤ W · T+B ≤ H — 각 슬라이더 max = 축 치수 − 반대쪽 마진(marginMax, 반응형). E2E: 295×192에서 T max 172 → bottom 100 시 92.
+- **패널 라벨 단위 표기 제거**: width/height/margin(4방)/row·col gutter의 "(px)/(cm)" 서픽스 삭제 — 가독성 우선(단위는 SIZE 헤더 px/cm 세그가 담당). 단위를 필드 안에 넣는 안은 보류(사용자 고민 중).
+- **프레임 Ratio 칩 = 스트로크 활성 문법**: active-filled(네온 채움) → active-outline(네온 보더/텍스트) — 토글류와 통일(사용자 확정). ChipRow에 outline 변형 신설(압축 칩 등 기존 채움 문법 불변).
+- **익스포트 옵션 순서**: Transparent bg를 Format 바로 위로 (포맷 종속 옵션 인접 배치).

@@ -164,7 +164,6 @@ function applyPhysical(pp) {
 
 // ─── px/cm 표기 단위 (rect 전용, §75) — 내부 저장은 항상 px, dpi 기준 환산 표시 ───
 const isCm = computed(() => isFrame.value && p.value.unitMode === 'cm');
-const unitSuffix = computed(() => (isCm.value ? 'cm' : 'px'));
 const round2 = (n) => Math.round(n * 100) / 100;
 const toDisp = (v) => (isCm.value ? round2((v * 2.54) / dpi.value) : v);
 const fromDisp = (v) => (isCm.value ? (v * dpi.value) / 2.54 : v);
@@ -203,6 +202,14 @@ function setCompChip(key, rate) {
 // 그리드 필드 (margin·gutter): 표시 단위 기준 클램프 → px 환산 저장
 function setGridField(key, v, lo, hi) {
   p.value[key] = Math.round(fromDisp(Math.min(hi, Math.max(lo, v))));
+}
+// §310: 비대칭 마진 상한 = 프레임 치수 연동 — L+R ≤ W · T+B ≤ H (사용자 확정). 반대쪽 마진을
+// 뺀 잔여가 곧 최대 (doc px 기준 — 표시는 호출부에서 toDisp 환산)
+const MARGIN_OPP = { marginT: 'marginB', marginB: 'marginT', marginL: 'marginR', marginR: 'marginL' };
+function marginMax(k) {
+  const q = p.value;
+  const axis = k === 'marginL' || k === 'marginR' ? q.W : q.H;
+  return Math.max(0, axis - (q[MARGIN_OPP[k]] ?? q.margin ?? 0));
 }
 // §309: 비대칭 마진 토글 — 켜는 순간 4방이 전부 균일값과 같으면(= 아직 커스텀 전) 현재 margin으로 시드
 function setMarginAsym(on) {
@@ -284,13 +291,13 @@ function setStrokeColor(c) {
         <button class="foldTg foldEnd" :class="{ isFolded: fold[fkey('size')] }" @click="toggleFold(fkey('size'))"><svg viewBox="0 0 24 24"><path :d="fold[fkey('size')] ? 'M6 9.5 12 15.5 18 9.5' : 'M6 14.5 12 8.5 18 14.5'" /></svg></button>
       </div>
       <NumberField
-        :label="isFrame ? `width (${unitSuffix})` : 'width'" :model-value="toDisp(dispW)"
+        label="width" :model-value="toDisp(dispW)"
         :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('W')"
         @update:model-value="(v) => setSizeField('W', v)"
       />
       <NumberField
-        :label="isFrame ? `height (${unitSuffix})` : 'height'" :model-value="toDisp(dispH)"
+        label="height" :model-value="toDisp(dispH)"
         :min="toDisp(LIMITS.unitMin)" :max="toDisp(UNIT_MAX)"
         :mixed="sizeEach && mixed('H')"
         @update:model-value="(v) => setSizeField('H', v)"
@@ -312,7 +319,7 @@ function setStrokeColor(c) {
       <template v-if="isFrame">
         <div v-if="!isCm" class="ratioRow">
           <ChipRow
-            :model-value="aspect" :chips="RECT_DIGITAL" :tol="ASPECT_TOL"
+            :model-value="aspect" :chips="RECT_DIGITAL" :tol="ASPECT_TOL" outline
             @update:model-value="(v) => emit('setAspect', v, sizeEach)"
           />
         </div>
@@ -336,7 +343,7 @@ function setStrokeColor(c) {
            (두 UI 동시 노출로 인한 혼동 원천 제거 — Grid Compression의 on/off 확장 문법) -->
       <Slider
         v-if="!p.marginAsym"
-        :label="`margin (${unitSuffix})`" :model-value="toDisp(p.margin)"
+        label="margin" :model-value="toDisp(p.margin)"
         :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('margin', v, 0, isCm ? 5 : 200)"
@@ -345,10 +352,10 @@ function setStrokeColor(c) {
         <Slider
           v-for="mk in [['marginT', 'top margin'], ['marginR', 'right margin'], ['marginB', 'bottom margin'], ['marginL', 'left margin']]"
           :key="mk[0]"
-          :label="`${mk[1]} (${unitSuffix})`" :model-value="toDisp(p[mk[0]])"
-          :min="0" :max="isCm ? 5 : 200" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
+          :label="mk[1]" :model-value="toDisp(p[mk[0]])"
+          :min="0" :max="toDisp(marginMax(mk[0]))" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
           :arrow-step="isCm ? 0.01 : 5"
-          @update:model-value="(v) => setGridField(mk[0], v, 0, isCm ? 5 : 200)"
+          @update:model-value="(v) => setGridField(mk[0], v, 0, toDisp(marginMax(mk[0])))"
         />
       </template>
       <Toggle
@@ -356,13 +363,13 @@ function setStrokeColor(c) {
         @update:model-value="(v) => setMarginAsym(v === 'on')"
       />
       <Slider
-        :label="`row gutter (${unitSuffix})`" :model-value="toDisp(p.gutterY)"
+        label="row gutter" :model-value="toDisp(p.gutterY)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterY', v, 0, isCm ? 2 : 100)"
       />
       <Slider
-        :label="`col gutter (${unitSuffix})`" :model-value="toDisp(p.gutterX)"
+        label="col gutter" :model-value="toDisp(p.gutterX)"
         :min="0" :max="isCm ? 2 : 100" :step="isCm ? 0.01 : 1" :decimals="isCm ? 2 : 0"
         :arrow-step="isCm ? 0.01 : 5"
         @update:model-value="(v) => setGridField('gutterX', v, 0, isCm ? 2 : 100)"
