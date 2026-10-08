@@ -1,33 +1,28 @@
 /* ─── 타이포그래피 토큰 ───────────────────────────────
-   폰트 미정 상태 — 교체 시 아래 @import URL과 --font-sans만 수정.
+  폰트 미정 상태 — 교체 시 아래 @import URL과 --font-sans만 수정.
    (셀프호스팅 전환 시 @import를 로컬 @font-face로 교체) */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 
 :root {
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
 
-  /* ── 크기 위계 = 전역 사다리 (§218: 창마다 새 스타일 금지 — 모든 창은 이 사다리의 부분집합만 사용)
-     L1 lg 16 bold 캡스 white : 브랜드 타이틀 (유일 최고위계, 메인 패널만)
-     L2 md 13 semibold white : 창·팝업 타이틀, 편집 대상 이름, 도움말 h1
-     L3 xs 11 semibold accent 캡스 : 섹션 헤드 (키컬러 특수 기능성 위계)
-     L4 sm 12 regular white : 값·입력·본문·카드 이름·메뉴 행·토스트·툴팁
-     L5 xs 11 regular dim : 라벨 (컨트롤·팝업 rowLabel·표 헤더·crumb)
-     L6 2xs 10 regular faint : 보조·노트·캡션·뱃지·단위 표기
-     특수(위계 외): 버튼·칩·토글 = xs 11 상태색(faint↔accent) */
+  /* ── 크기 위계 ──
+    2xs: 스포이드 메뉴 타이틀 등 최소 캡션
+    xs : 라벨·칩·seg 토글·버튼·툴팁·토스트·hex 표기 (기본 UI 텍스트)
+    sm : 값 표기·입력칸·유닛 이름·브랜드 타이틀
+     md : (예약 — 현재 미사용) */
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
-  --fs-lg: 16px;
 
-  /* ── 자간 (§222: 사이즈 경향 추종 — 클수록 타이트, 작을수록 가독 여유. 자간으로 위계 올리는 변칙 금지)
-     13px+ 타이틀: 0 (사용처에서 letter-spacing: 0)
-     base: 11–12px 본문·라벨·버튼
-     caps: 11px 대문자 섹션 헤드 — 대문자 최소 가독 자간만 (§222: 0.06→0.03)
-     2xs : 10px 캡션·노트 — 최소 크기 가독 보강 */
-  --ls-base: 0.01em;
-  --ls-caps: 0.03em;
-  --ls-2xs: 0.02em;
+  /* ── 자간 (5종 → 3종 흡수 확정: 0.04→base, 0.06→wide) ──
+    base: 라벨·칩·토글·값 등 일반 UI 텍스트
+    wide: 브랜드 타이틀·ghost 버튼 등 강조 소자
+    caps: 섹션 타이틀 (SIZE/GRID/…) */
+  --ls-base: 0.03em;
+  --ls-wide: 0.08em;
+  --ls-caps: 0.16em;
 
   /* ── 굵기 ── */
   --fw-regular: 400;

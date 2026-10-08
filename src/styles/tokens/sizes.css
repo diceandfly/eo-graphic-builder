@@ -10,13 +10,16 @@
   --icon-size: 16px;
 
   /* 슬라이더 썸. 사용처: style.css .rg::-webkit-slider-thumb / -moz-range-thumb */
-  --thumb-size: 8px; /* §125: 10→8 소폭 축소 */
+  --thumb-size: 10px;
 
   /* 체크박스 한 변. 사용처: style.css input[type=checkbox] */
   --check-size: 12px;
 
   /* 툴바 컬러 스와치 칩. 사용처: Toolbar .sw .chip */
   --swatch-chip: 17px;
+
+  /* 패널 COLOR 대형 칩. 사용처: ControlPanel .bigChip */
+  --swatch-big: 34px;
 
   /* 좌측 패널 폭. 사용처: App.vue .side */
   --panel-w: 300px;
@@ -28,9 +31,4 @@
      적용처: 모든 UI 크롬 (버튼·칩·입력칸·바·메뉴·툴팁·토스트).
      예외: 캔버스 위 SVG 오버레이(바운딩박스·핸들·가이드)는 미적용. */
   --radius: 0;
-
-  /* §272: 챔퍼 사다리 — 표면 유형별 좌상·우하 사선 컷 (mixins.scss @mixin chamfer) */
-  --chamfer-0: 10px;  /* 대형 창: 메인 패널·프리셋창 */
-  --chamfer-1: 7.5px; /* 중형 창: 애니 시뮬레이터·도움말·노드 타이밍 팝업 */
-  --chamfer-2: 5px;   /* 팝업·툴바: 옵션 팝업·우클릭 ctx·플로팅 바 */
 }
